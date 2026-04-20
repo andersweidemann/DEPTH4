@@ -1,0 +1,25 @@
+{
+  "name": "seed_ema_pullback_v0",
+  "hypothesis": "In trending regimes (ADX >= 20) on M15, pullbacks to a medium EMA followed by a close back above it produce low-risk continuation entries on XAUUSD and GER40.",
+  "regime_filter": {"indicator": "adx", "period": 14, "min": 20},
+  "entry": {
+    "type": "ema_pullback",
+    "ema_period": 50,
+    "confirm_bars": 1,
+    "direction": "with_trend"
+  },
+  "exit": {
+    "sl_atr_mult": 1.8,
+    "tp_atr_mult": 2.8,
+    "time_stop_bars": 48,
+    "trail_atr_mult": 1.5,
+    "atr_period": 14
+  },
+  "sizing": {"risk_pct": 0.5},
+  "filters": {
+    "session_utc": [[6, 20]],
+    "max_spread_points": 40
+  },
+  "symbols": ["XAUUSD", "GER40"],
+  "timeframes": ["M5", "M15"]
+}

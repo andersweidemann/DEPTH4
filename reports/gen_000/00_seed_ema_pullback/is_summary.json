@@ -1,0 +1,78 @@
+{
+  "candidate": "00_seed_ema_pullback",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "XAUUSD",
+      "timeframe": "M5",
+      "trades": 869,
+      "metrics": {
+        "return_pct": -99.90091575221554,
+        "pf": 0.0,
+        "sharpe": -22.55041736996632,
+        "sortino": -4.40994120567585,
+        "max_dd_pct": 99.90091575221552,
+        "trades": 869.0,
+        "win_rate": 0.0,
+        "expectancy": -0.8748666723562158,
+        "avg_trade": -0.875596547272528,
+        "exposure_pct": 2.1664337054369134
+      }
+    },
+    {
+      "symbol": "XAUUSD",
+      "timeframe": "M15",
+      "trades": 747,
+      "metrics": {
+        "return_pct": -99.61631884479178,
+        "pf": 0.004806097781931604,
+        "sharpe": -19.537444029272375,
+        "sortino": -5.096032337504022,
+        "max_dd_pct": 99.61631884479178,
+        "trades": 747.0,
+        "win_rate": 11.244979919678714,
+        "expectancy": -0.9033680602112358,
+        "avg_trade": -0.905670355737298,
+        "exposure_pct": 6.029828779506829
+      }
+    },
+    {
+      "symbol": "GER40",
+      "timeframe": "M5",
+      "trades": 3053,
+      "metrics": {
+        "return_pct": -79.13439443677903,
+        "pf": 0.6286930397879703,
+        "sharpe": -7.064792110525227,
+        "sortino": -5.609523084211352,
+        "max_dd_pct": 79.97410819206267,
+        "trades": 3053.0,
+        "win_rate": 37.34032099574189,
+        "expectancy": -0.05297244164735572,
+        "avg_trade": -0.05322952139451553,
+        "exposure_pct": 7.8477977233943115
+      }
+    },
+    {
+      "symbol": "GER40",
+      "timeframe": "M15",
+      "trades": 1170,
+      "metrics": {
+        "return_pct": -34.958523787616755,
+        "pf": 0.833719207051721,
+        "sharpe": -1.5060681543803953,
+        "sortino": -1.8873704227583954,
+        "max_dd_pct": 37.81078263030633,
+        "trades": 1170.0,
+        "win_rate": 40.0,
+        "expectancy": -0.03694258951643222,
+        "avg_trade": -0.037778578485048175,
+        "exposure_pct": 9.498011203237901
+      }
+    }
+  ]
+}

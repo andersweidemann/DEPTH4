@@ -1,0 +1,889 @@
+//@version=6
+strategy("3.0 EUSTX50 Market Mafia Sniper - PineConnector Edition (Fixed)",
+         overlay=true,
+         pyramiding=4,
+         default_qty_type=strategy.fixed,
+         default_qty_value=1)
+
+// ============================================================================
+// CHANGE LOG (vs original):
+// 1.  [CRITICAL] Removed duplicate alert() calls for entries — use ONLY
+//     alert_message= on strategy.entry/exit/close.  Set TradingView alert to
+//     "Order fills only" (NOT "Any alert() function call").
+// 2.  [CRITICAL] Use closeshortopenlong / closelongopenshort for reversals
+//     so the close + new entry is atomic in one PineConnector command.
+// 3.  [CRITICAL] Fixed sl_pips / tp_pips conversion for indices.
+//     PineConnector defines 1 pip = 10 points (syminfo.mintick * 10).
+//     Now converts ATR-based distance to proper PC pip units.
+// 4.  [MEDIUM]  Scale-in entries now get their own strategy.exit() with TP,
+//     hard stop, and trailing — not only breakeven.
+// 5.  [MEDIUM]  Breakeven exit no longer nukes TP/trail.  BE stop is now the
+//     higher of (breakEvenLevel, existing hard stop) so it coexists.
+// 6.  [MEDIUM]  Safety-net close now fires for 3 consecutive bars (configurable)
+//     instead of once, and also sends a "closeall" as final fallback.
+// 7.  [MEDIUM]  Time stop now also closes scale-in entries.
+// 8.  [LOW]     Fixed market detection (was checking EUSTX50 twice).
+// 9.  [NEW]     Added extra periodic close safety for ghost MT4 positions.
+// 10. [TUNING]  MACD defaults changed from 12/26/9 to 8/17/9 for 10-min TF.
+// 11. [TUNING]  RSI defaults changed to 45-75 (long) / 25-55 (short) for
+//               EUSTX50 on 10-min — wider bands for European index momentum.
+// ============================================================================
+
+
+// ===== PINECONNECTOR =====
+PC_ID      = input.string("8833072595157", "PineConnector License ID", group="PineConnector")
+PC_SYMBOL  = input.string("EUSTX50", "MT4/MT5 Symbol Name", group="PineConnector")
+pcLots     = input.float(1.0, "PineConnector Lot Size", minval=0.01, maxval=50, step=0.01, group="PineConnector")
+usePCtp    = input.bool(false, "Send TP/SL to PineConnector", group="PineConnector")
+
+
+// ===== CORE INPUTS =====
+riskRewardRatio = input.float(1.8, title="Risk to Reward Ratio (TP)", minval=1.0, maxval=7.0)
+useTrailingStop = input.bool(true,  title="Enable Trailing Stop After TP Level?")
+trailOffsetMult = input.float(0.5,  title="Trail Offset Multiplier",    minval=0.1, maxval=2.0, step=0.1)
+enableShorts    = input.bool(true,  title="Enable Short Trades")
+useMTFTrend     = input.bool(true,  title="Use Higher Timeframe Trend Filter?")
+htfTF           = input.timeframe("240", title="HTF Trend Timeframe")
+useVolatilityFilter  = input.bool(true, title="Enable Volatility Filter?")
+useLiquiditySweep    = input.bool(true, title="Enable Liquidity Sweep Filter?")
+useSessionFilter     = input.bool(true, title="Use Session Filter?")
+breakEvenAfter       = input.int(5, title="Move to Breakeven After X Bars In Profit", minval=0)
+
+
+// ===== POSITION SIZING =====
+groupPS         = "Position Sizing"
+baseCapital     = input.float(4000.0, "Starting Capital (€)",        minval=100,  step=100,  group=groupPS)
+riskPerTradePct = input.float(2.0,    "Risk Per Trade (% of Equity)", minval=0.1,  maxval=10, step=0.1, group=groupPS)
+minLotSize      = input.float(1.0,    "Minimum Lot Size",             minval=0.1,  maxval=10, step=0.1, group=groupPS)
+maxLotSize      = input.float(10.0,   "Maximum Lot Size",             minval=1.0,  maxval=50, step=0.5, group=groupPS)
+pointValue      = input.float(1.0,    "Point Value Per Lot (€)",      minval=0.1,  maxval=50, step=0.1, group=groupPS)
+
+
+// ===== DRAWDOWN CONTROL =====
+groupDC          = "Drawdown Control"
+useHardStop      = input.bool(true,  "Enable Hard Stop Loss",                group=groupDC)
+hardStopAtr      = input.float(3.5,  "Hard Stop ATR Multiple",               minval=1.0, maxval=8.0, step=0.5, group=groupDC)
+useTimeStop      = input.bool(true,  "Enable Time-Based Stop",               group=groupDC)
+maxBarsInTrade   = input.int(10,     "Max Bars Before Force Close",          minval=5,   maxval=200, group=groupDC)
+useAggressiveBE  = input.bool(true,  "Enable Aggressive Breakeven",          group=groupDC)
+aggressiveBEBars = input.int(2,      "Aggressive BE: Bars In Profit",        minval=1,   maxval=10,  group=groupDC)
+
+
+// ===== ENHANCED EXIT TOGGLES =====
+groupExitEnh     = "Enhancement: Exit Logic"
+useCondTimeStop  = input.bool(true,  "Use Conditional Time Stop (vol/HTF-based)", group=groupExitEnh)
+useMfeBE         = input.bool(true,  "Use MFE-based BE Trigger",                group=groupExitEnh)
+mfeBEpercent     = input.float(40,   "Move to BE after MFE % of TP", minval=20, maxval=80, group=groupExitEnh)
+useMfeRunnerTP   = input.bool(true,  "Use Runner after TP (MFE-based)",         group=groupExitEnh)
+runnerMult       = input.float(1.0,  "Runner Extra RR after TP", minval=0.5, maxval=3.0, group=groupExitEnh)
+lockPctOfMFE     = input.float(60,   "Lock % of MFE after TP", minval=40, maxval=90, group=groupExitEnh)
+
+
+// ===== SCALE-IN PARAMETERS =====
+groupScaleIn           = "Scale-In Settings"
+useScaleIn             = input.bool(true,  "Enable Scale-In",                           group=groupScaleIn)
+scaleInDistanceAtr     = input.float(0.5,  "Distance Between Scale-Ins (ATR Multiple)", minval=0.2, maxval=2.0, step=0.1, group=groupScaleIn)
+scaleInSizePercent     = input.float(50,   "Scale-In Size (% of Initial Lot)",          minval=10,  maxval=100, step=10,  group=groupScaleIn)
+maxScaleInsPerTrade    = input.int(3,      "Maximum Scale-Ins Per Trade",               minval=1,   maxval=5,             group=groupScaleIn)
+enableScaleInBreakeven = input.bool(true,  "Move To Breakeven After All Scale-Ins",     group=groupScaleIn)
+useMomFilterScaleIn    = input.bool(true,  "Scale-In Only on Momentum",                 group=groupScaleIn)
+momLookback            = input.int(3,      "Momentum Bars", minval=1, maxval=10,        group=groupScaleIn)
+
+
+// ===== SESSION =====
+group1           = "Enhancement 1: Session-Specific Parameters"
+useSessionVolAdj = input.bool(false, title="Adjust for Session Volatility", group=group1)
+euroOpenBoost    = input.float(1.2,  title="European Open Volatility Multiplier", minval=1.0, maxval=2.0, group=group1)
+usOpenBoost      = input.float(1.3,  title="US Open Volatility Multiplier",       minval=1.0, maxval=2.0, group=group1)
+
+
+// ===== GAP FILTER =====
+group2          = "Enhancement 2: Market Open Gap Filter"
+useGapFilter    = input.bool(false, title="Filter Signals After Gaps",         group=group2)
+gapThreshold    = input.float(0.5,  title="Gap Size Threshold (ATR Multiple)", minval=0.1, maxval=2.0, group=group2)
+gapCooldownBars = input.int(5,      title="Bars to Wait After Gap",            minval=1,   maxval=20,  group=group2)
+
+
+// ===== RSI INDEX-SPECIFIC =====
+group3              = "Enhancement 3: Market-Specific RSI Adjustments"
+useIndexSpecificRSI = input.bool(false, title="Use Index-Specific RSI Settings", group=group3)
+daxRsiBullMin = input.float(45, title="DAX RSI Min for Long",  group=group3)
+daxRsiBullMax = input.float(75, title="DAX RSI Max for Long",  group=group3)
+daxRsiBearMax = input.float(55, title="DAX RSI Max for Short", group=group3)
+daxRsiBearMin = input.float(25, title="DAX RSI Min for Short", group=group3)
+spxRsiBullMin = input.float(52, title="SPX RSI Min for Long",  group=group3)
+spxRsiBullMax = input.float(68, title="SPX RSI Max for Long",  group=group3)
+spxRsiBearMax = input.float(48, title="SPX RSI Max for Short", group=group3)
+spxRsiBearMin = input.float(32, title="SPX RSI Min for Short", group=group3)
+
+
+// ===== ECONOMIC CALENDAR =====
+group4                = "Enhancement 4: Economic Calendar Filter"
+avoidHighImpactEvents = input.bool(false, title="Avoid Trading During High Impact Events", group=group4)
+cautionBefore  = input.int(15, title="Bars to Avoid Before Event", minval=0, group=group4)
+cautionAfter   = input.int(5,  title="Bars to Avoid After Event",  minval=0, group=group4)
+economicEvents  = input.time(timestamp("2025-05-02T08:00:00"), title="Economic Event 1", group=group4)
+economicEvents2 = input.time(timestamp("2025-05-02T12:30:00"), title="Economic Event 2", group=group4)
+economicEvents3 = input.time(timestamp("2025-05-10T06:00:00"), title="Economic Event 3", group=group4)
+economicEvents4 = input.time(timestamp("2025-05-15T12:30:00"), title="Economic Event 4", group=group4)
+
+
+// ===== DYNAMIC SIZING =====
+group5           = "Enhancement 5: Dynamic Position Sizing"
+useDynamicSizing = input.bool(false, title="Use Dynamic Position Sizing (volatility-adjusted)", group=group5)
+volMultiplierMax = input.float(1.5,  title="Maximum Vol Multiplier", minval=1.0, maxval=3.0, group=group5)
+volMultiplierMin = input.float(0.5,  title="Minimum Vol Multiplier", minval=0.1, maxval=1.0, group=group5)
+
+
+// ===== VOLUME =====
+group6                = "Enhancement 6: Volume Trend Confirmation"
+useVolumeConfirmation = input.bool(false, title="Use Volume Confirmation", group=group6)
+obvLength             = input.int(14, title="OBV EMA Length", minval=5, maxval=50, group=group6)
+
+
+// ===== PROGRESSIVE TRAIL =====
+group7                   = "Enhancement 7: Progressive Trailing Stop"
+useProgressiveTightening = input.bool(false, title="Progressively Tighten Trailing Stop", group=group7)
+tightenPhase1Bars = input.int(5,    title="Phase 1 Tightening After X Bars", minval=3,  maxval=20, group=group7)
+tightenPhase1Pct  = input.float(15, title="Phase 1 Tightening Percent",      minval=5,  maxval=30, group=group7)
+tightenPhase2Bars = input.int(10,   title="Phase 2 Tightening After X Bars", minval=5,  maxval=30, group=group7)
+tightenPhase2Pct  = input.float(25, title="Phase 2 Tightening Percent",      minval=10, maxval=40, group=group7)
+tightenPhase3Bars = input.int(15,   title="Phase 3 Tightening After X Bars", minval=10, maxval=40, group=group7)
+tightenPhase3Pct  = input.float(40, title="Phase 3 Tightening Percent",      minval=15, maxval=50, group=group7)
+
+
+// ===== DAILY RANGE SCALING =====
+group8                = "Enhancement 8: Daily Range Target Scaling"
+useRangeScaling       = input.bool(false, title="Scale Targets Based on Daily Range", group=group8)
+rangeThresholdPercent = input.float(60,   title="% of Daily Range Threshold",         minval=20, maxval=90, group=group8)
+
+
+// ===== HOURLY VOL =====
+group9          = "Enhancement 9: Advanced Intraday Seasonality"
+useHourlyVol    = input.bool(false, title="Apply Hourly Volatility Filter",    group=group9)
+londonHourStart = input.int(7,      title="London Session Start Hour (UTC)",   minval=0, maxval=23, group=group9)
+nyHourStart     = input.int(13,     title="New York Session Start Hour (UTC)", minval=0, maxval=23, group=group9)
+volatileHours   = input.bool(true,  title="Focus on Volatile Hours",           group=group9)
+lunchAvoidance  = input.bool(true,  title="Avoid Lunch Hour Doldrums",         group=group9)
+
+
+// ===== MEAN-REVERSION DAY STOP ADJUSTMENT =====
+group10             = "Enhancement: Mean-Reversion Day Stop"
+useMeanRevStopAdj   = input.bool(true, "Adjust Hard Stop on Mean-Reversion Days", group=group10)
+meanRevRangeThresh  = input.float(70, "Mean-Reversion if Daily Range Used > %", minval=50, maxval=90, group=group10)
+meanRevStopFactor   = input.float(0.6, "Hard Stop Multiplier on Mean-Rev Days",  minval=0.3, maxval=1.0, group=group10)
+
+
+// ===== SAFETY NET SETTINGS =====
+groupSafety          = "Safety Net: Redundant Close"
+safetyBars           = input.int(3,    "Safety Net: Bars to Resend Close", minval=1, maxval=10, group=groupSafety)
+usePeriodicSafety    = input.bool(true, "Send Periodic Close When Flat (extra safety)", group=groupSafety)
+periodicSafetyBars   = input.int(5,    "Periodic Safety: Bars Between Resends", minval=2, maxval=20, group=groupSafety)
+
+
+// ===== MACD/RSI (TUNED FOR 10-MIN EUSTX50) =====
+macdFast   = input.int(8,    title="MACD Fast Length")
+macdSlow   = input.int(17,   title="MACD Slow Length")
+macdSignal = input.int(9,    title="MACD Signal Length")
+rsiLength  = input.int(14,   title="RSI Length")
+rsiBullMin = input.float(45, title="RSI Min for Long")
+rsiBullMax = input.float(75, title="RSI Max for Long")
+rsiBearMax = input.float(55, title="RSI Max for Short")
+rsiBearMin = input.float(25, title="RSI Min for Short")
+
+
+// ===== INDICATORS =====
+ema200     = ta.ema(close, 200)
+macdLine   = ta.ema(close, macdFast) - ta.ema(close, macdSlow)
+signalLine = ta.ema(macdLine, macdSignal)
+rsi        = ta.rsi(close, rsiLength)
+atr        = ta.atr(14)
+atrMA      = ta.sma(atr, 14)
+
+
+// ===== MARKET DETECTION (FIX #8: was checking EUSTX50 twice) =====
+isEustx = str.contains(syminfo.ticker, "EUSTX50") or str.contains(syminfo.ticker, "STOXX") or str.contains(syminfo.ticker, "SX5E") or str.contains(syminfo.ticker, "EU50")
+isDax   = str.contains(syminfo.ticker, "GER40") or str.contains(syminfo.ticker, "DAX") or str.contains(syminfo.ticker, "DE40") or str.contains(syminfo.ticker, "GER")
+isSpx   = str.contains(syminfo.ticker, "SPX") or str.contains(syminfo.ticker, "ES") or str.contains(syminfo.ticker, "SP500")
+
+
+// ===== POSITION SIZING CALCULATION =====
+float currentEquity  = strategy.equity
+float riskAmount     = currentEquity * (riskPerTradePct / 100)
+
+float stopPointsDummy = atr * hardStopAtr
+float rawLots        = stopPointsDummy > 0 ? riskAmount / (stopPointsDummy * pointValue) : minLotSize
+float calculatedLots = math.max(minLotSize, math.min(maxLotSize, math.floor(rawLots * 10) / 10))
+volRatio             = atr / atrMA
+volMultiplier        = math.min(volMultiplierMax, math.max(volMultiplierMin, 1.0 / volRatio))
+float baseLots       = useDynamicSizing ? math.max(minLotSize, math.min(maxLotSize, math.floor(calculatedLots * volMultiplier * 10) / 10)) : calculatedLots
+float scaleInLots    = math.max(minLotSize, math.floor(baseLots * (scaleInSizePercent / 100) * 10) / 10)
+
+
+// ===== SESSION =====
+currentHour  = hour(time, "Etc/UTC")
+isEuroOpen   = (currentHour >= 7 and currentHour < 9)
+isUSOpen     = (currentHour >= 13 and currentHour < 15)
+isLondonOpen = (currentHour >= londonHourStart and currentHour < londonHourStart + 2)
+isNYOpen     = (currentHour >= nyHourStart and currentHour < nyHourStart + 2)
+isLunchHour  = (currentHour >= 11 and currentHour < 13)
+isGoodHour   = volatileHours ? (isLondonOpen or isNYOpen) : true
+lunchHourOk  = lunchAvoidance ? not isLunchHour : true
+hourlyVolOk  = not useHourlyVol or (isGoodHour and lunchHourOk)
+
+
+var float sessionMult = 1.0
+if useSessionVolAdj
+    if isEuroOpen
+        sessionMult := euroOpenBoost
+    else if isUSOpen
+        sessionMult := usOpenBoost
+    else
+        sessionMult := 1.0
+else
+    sessionMult := 1.0
+
+
+// ===== FILTERS =====
+volatilityOk  = not useVolatilityFilter or (atr > 0.9 * atrMA)
+htfEMA        = request.security(syminfo.tickerid, htfTF, ta.ema(close, 200))
+htfBull       = close > htfEMA
+htfBear       = close < htfEMA
+recentHigh    = ta.highest(high, 20)
+recentLow     = ta.lowest(low,  20)
+sweptHigh     = high > recentHigh
+sweptLow      = low  < recentLow
+liquidityOk   = not useLiquiditySweep or sweptHigh or sweptLow
+inSession     = not useSessionFilter or (currentHour >= 6 and currentHour <= 22)
+prevClose     = request.security(syminfo.tickerid, "1D", close[1])
+dayOpen       = request.security(syminfo.tickerid, "1D", open)
+gapSize       = math.abs(dayOpen - prevClose)
+isGapDay      = gapSize > (atr * gapThreshold)
+barsSinceOpen = ta.barssince(timeframe.change("1D"))
+gapFilterOk   = not useGapFilter or not isGapDay or barsSinceOpen > gapCooldownBars
+
+
+var float effectiveRsiBullMinVal = rsiBullMin
+var float effectiveRsiBullMaxVal = rsiBullMax
+var float effectiveRsiBearMinVal = rsiBearMin
+var float effectiveRsiBearMaxVal = rsiBearMax
+
+
+if useIndexSpecificRSI
+    if isDax
+        effectiveRsiBullMinVal := daxRsiBullMin
+        effectiveRsiBullMaxVal := daxRsiBullMax
+        effectiveRsiBearMinVal := daxRsiBearMin
+        effectiveRsiBearMaxVal := daxRsiBearMax
+    else if isSpx
+        effectiveRsiBullMinVal := spxRsiBullMin
+        effectiveRsiBullMaxVal := spxRsiBullMax
+        effectiveRsiBearMinVal := spxRsiBearMin
+        effectiveRsiBearMaxVal := spxRsiBearMax
+
+
+// ===== ECON EVENTS =====
+var int[] eventTimes = array.new_int(0)
+if barstate.isfirst
+    array.push(eventTimes, int(economicEvents))
+    array.push(eventTimes, int(economicEvents2))
+    array.push(eventTimes, int(economicEvents3))
+    array.push(eventTimes, int(economicEvents4))
+
+
+var bool isEventSoon = false
+isEventSoon := false
+if avoidHighImpactEvents
+    int eventCount = array.size(eventTimes)
+    for i = 0 to eventCount - 1
+        eventTime      = array.get(eventTimes, i)
+        barsSinceEvent = (time - eventTime) / (timeframe.in_seconds() * 1000)
+        barsUntilEvent = (eventTime - time) / (timeframe.in_seconds() * 1000)
+        if (barsUntilEvent > 0 and barsUntilEvent <= cautionBefore) or (barsSinceEvent > 0 and barsSinceEvent <= cautionAfter)
+            isEventSoon := true
+
+
+// ===== VOLUME TREND =====
+var float obvVal = 0.0
+price_change = ta.change(close)
+if price_change > 0
+    obvVal := obvVal + volume
+else if price_change < 0
+    obvVal := obvVal - volume
+obvEma          = ta.ema(obvVal, obvLength)
+volumeUptrend   = obvVal > obvEma
+volumeDowntrend = obvVal < obvEma
+
+
+// ===== DAILY RANGE & MEAN-REV STOP ADJUST =====
+dayHigh      = request.security(syminfo.tickerid, "1D", high)
+dayLow       = request.security(syminfo.tickerid, "1D", low)
+dayRange     = dayHigh - dayLow
+rangeUsedPct = ((close - dayLow) / (dayRange == 0 ? 0.0001 : dayRange)) * 100
+
+
+meanRevDay       = useMeanRevStopAdj and rangeUsedPct > meanRevRangeThresh
+float hardStopMultAdj = meanRevDay ? hardStopAtr * meanRevStopFactor : hardStopAtr
+
+
+var float rangeRemaining      = 1.0
+var float rangeRemainingShort = 1.0
+if useRangeScaling
+    rangeRemaining      := math.max(0.5, (100 - rangeUsedPct) / rangeThresholdPercent)
+    rangeRemainingShort := math.max(0.5, rangeUsedPct / rangeThresholdPercent)
+else
+    rangeRemaining      := 1.0
+    rangeRemainingShort := 1.0
+
+
+// ===== ENTRY CONDITIONS =====
+macdBullish = ta.crossover(macdLine, signalLine)
+macdBearish = ta.crossunder(macdLine, signalLine)
+rsiBullish  = rsi > effectiveRsiBullMinVal and rsi < effectiveRsiBullMaxVal
+rsiBearish  = rsi < effectiveRsiBearMaxVal and rsi > effectiveRsiBearMinVal
+
+
+longConditionBase  = macdBullish and rsiBullish and (not useMTFTrend or htfBull) and volatilityOk and inSession and liquidityOk
+shortConditionBase = enableShorts and macdBearish and rsiBearish and (not useMTFTrend or htfBear) and volatilityOk and inSession and liquidityOk
+
+
+longCondition      = longConditionBase  and gapFilterOk and (not isEventSoon) and (not useVolumeConfirmation or volumeUptrend)  and hourlyVolOk
+shortCondition     = shortConditionBase and gapFilterOk and (not isEventSoon) and (not useVolumeConfirmation or volumeDowntrend) and hourlyVolOk
+
+
+// ===== PINECONNECTOR MESSAGE STRINGS (FIX #3: proper pip conversion) =====
+string pcLotsStr = str.tostring(pcLots)
+
+// FIX #3: Convert price distance to PineConnector pips
+// PC defines 1 pip = 10 points = syminfo.mintick * 10
+float onePcPip       = syminfo.mintick * 10
+float slDistPrice    = atr * hardStopMultAdj
+float tpDistPrice    = atr * riskRewardRatio
+float slDist         = math.round(slDistPrice / onePcPip, 1)
+float tpDist         = math.round(tpDistPrice / onePcPip, 1)
+
+
+// FIX #1 & #2: Build messages — entries use alert_message=, no separate alert()
+string pc_buy_msg     = PC_ID + ",buy,"  + PC_SYMBOL + ",vol_lots=" + pcLotsStr
+string pc_sell_msg    = PC_ID + ",sell," + PC_SYMBOL + ",vol_lots=" + pcLotsStr
+string pc_close_long  = PC_ID + ",closelong,"  + PC_SYMBOL
+string pc_close_short = PC_ID + ",closeshort," + PC_SYMBOL
+
+// Atomic reversal messages
+string pc_reverse_to_long  = PC_ID + ",closeshortopenlong,"  + PC_SYMBOL + ",vol_lots=" + pcLotsStr
+string pc_reverse_to_short = PC_ID + ",closelongopenshort," + PC_SYMBOL + ",vol_lots=" + pcLotsStr
+
+
+if usePCtp
+    string slTpSuffix = ",sl_pips=" + str.tostring(slDist) + ",tp_pips=" + str.tostring(tpDist)
+    pc_buy_msg          := pc_buy_msg  + slTpSuffix
+    pc_sell_msg         := pc_sell_msg + slTpSuffix
+    pc_reverse_to_long  := pc_reverse_to_long  + slTpSuffix
+    pc_reverse_to_short := pc_reverse_to_short + slTpSuffix
+
+
+// ===== RISK MANAGEMENT =====
+stopLoss = atr
+tp       = atr * riskRewardRatio * sessionMult * (strategy.position_size > 0 ? rangeRemaining : rangeRemainingShort)
+
+
+// ===== SCALE-IN TRACKING =====
+var int   scaleInsLong           = 0
+var int   scaleInsShort          = 0
+var float initialLongEntryPrice  = 0.0
+var float initialShortEntryPrice = 0.0
+
+
+// ===== TP LEVEL HIT & BAR TRACKING =====
+var bool tpLevelHitLong  = false
+var bool tpLevelHitShort = false
+var int  barsInProfit    = 0
+var int  barsInTrade     = 0
+
+
+// ===== MFE TRACKING =====
+var float mfeCurr = 0.0
+
+
+if strategy.position_size == 0
+    tpLevelHitLong         := false
+    tpLevelHitShort        := false
+    barsInProfit           := 0
+    barsInTrade            := 0
+    scaleInsLong           := 0
+    scaleInsShort          := 0
+    initialLongEntryPrice  := 0.0
+    initialShortEntryPrice := 0.0
+    mfeCurr                := 0.0
+else
+    barsInTrade := barsInTrade + 1
+
+
+// Update MFE
+if strategy.position_size != 0
+    if strategy.position_size > 0
+        mfeCurr := math.max(mfeCurr, high - strategy.position_avg_price)
+    else
+        mfeCurr := math.max(mfeCurr, strategy.position_avg_price - low)
+
+
+// Track when price reaches TP level
+if strategy.position_size > 0 and not tpLevelHitLong and high >= strategy.position_avg_price + tp
+    tpLevelHitLong := true
+if strategy.position_size < 0 and not tpLevelHitShort and low <= strategy.position_avg_price - tp
+    tpLevelHitShort := true
+
+
+if strategy.position_size > 0 and close > strategy.position_avg_price
+    barsInProfit := barsInProfit + 1
+else if strategy.position_size < 0 and close < strategy.position_avg_price
+    barsInProfit := barsInProfit + 1
+else if strategy.position_size != 0
+    barsInProfit := 0
+
+
+// ===== CONDITIONAL TIME STOP (FIX #7: also closes scale-ins) =====
+bool timeStopCond = false
+if useTimeStop and strategy.position_size != 0 and barsInTrade >= maxBarsInTrade and barsInTrade > 1
+    if useCondTimeStop
+        volCompression = atr < 0.7 * atrMA
+        htfFlipDown   = strategy.position_size > 0 and close < htfEMA
+        htfFlipUp     = strategy.position_size < 0 and close > htfEMA
+        timeStopCond := (volCompression or htfFlipDown or htfFlipUp)
+    else
+        timeStopCond := true
+
+
+if timeStopCond
+    if strategy.position_size > 0
+        strategy.close("Long",  comment="Time/Cond Stop", alert_message=pc_close_long)
+        if useScaleIn
+            for i = 1 to maxScaleInsPerTrade
+                strategy.close("Long Scale " + str.tostring(i), comment="Time/Cond Stop", alert_message=pc_close_long)
+    else
+        strategy.close("Short", comment="Time/Cond Stop", alert_message=pc_close_short)
+        if useScaleIn
+            for i = 1 to maxScaleInsPerTrade
+                strategy.close("Short Scale " + str.tostring(i), comment="Time/Cond Stop", alert_message=pc_close_short)
+
+
+// ===== BREAKEVEN STOP =====
+var float breakEvenLevel = na
+
+
+bool isCurrentlyInProfit = false
+if strategy.position_size > 0
+    isCurrentlyInProfit := close > strategy.position_avg_price
+else if strategy.position_size < 0
+    isCurrentlyInProfit := close < strategy.position_avg_price
+
+
+int effectiveBEBars = useAggressiveBE ? aggressiveBEBars : breakEvenAfter
+
+
+bool barsOk = barsInProfit >= effectiveBEBars
+bool mfeOk  = useMfeBE and (mfeCurr >= tp * (mfeBEpercent / 100))
+
+
+if strategy.position_size != 0 and isCurrentlyInProfit and na(breakEvenLevel) and (barsOk or mfeOk)
+    breakEvenLevel := strategy.position_avg_price
+if strategy.position_size == 0
+    breakEvenLevel := na
+
+
+// ===== SCALE-IN LEVELS =====
+var float[] longScaleLevels  = array.new_float(3)
+var float[] shortScaleLevels = array.new_float(3)
+var bool[]  longLevelsUsed   = array.new_bool(3, false)
+var bool[]  shortLevelsUsed  = array.new_bool(3, false)
+
+
+// Momentum filter for scale-in
+bullMom = close > close[momLookback]
+bearMom = close < close[momLookback]
+
+
+if strategy.position_size > 0 and initialLongEntryPrice > 0 and array.size(longScaleLevels) == 3
+    if scaleInsLong == 0 and not array.get(longLevelsUsed, 0) and not array.get(longLevelsUsed, 1) and not array.get(longLevelsUsed, 2)
+        array.set(longScaleLevels, 0, initialLongEntryPrice - (1 * atr * scaleInDistanceAtr))
+        array.set(longScaleLevels, 1, initialLongEntryPrice - (2 * atr * scaleInDistanceAtr))
+        array.set(longScaleLevels, 2, initialLongEntryPrice - (3 * atr * scaleInDistanceAtr))
+
+
+if strategy.position_size < 0 and initialShortEntryPrice > 0 and array.size(shortScaleLevels) == 3
+    if scaleInsShort == 0 and not array.get(shortLevelsUsed, 0) and not array.get(shortLevelsUsed, 1) and not array.get(shortLevelsUsed, 2)
+        array.set(shortScaleLevels, 0, initialShortEntryPrice + (1 * atr * scaleInDistanceAtr))
+        array.set(shortScaleLevels, 1, initialShortEntryPrice + (2 * atr * scaleInDistanceAtr))
+        array.set(shortScaleLevels, 2, initialShortEntryPrice + (3 * atr * scaleInDistanceAtr))
+
+
+// ===== ENTRIES (FIX #1 + #2: atomic reversals, no duplicate alerts) =====
+if longCondition and strategy.position_size <= 0
+    string entryMsg = pc_buy_msg
+    if strategy.position_size < 0
+        entryMsg := pc_reverse_to_long
+    strategy.entry("Long", strategy.long, qty=baseLots, alert_message=entryMsg)
+    initialLongEntryPrice := close
+    scaleInsLong := 0
+    for i = 0 to 2
+        array.set(longLevelsUsed, i, false)
+
+
+if shortCondition and strategy.position_size >= 0
+    string entryMsg = pc_sell_msg
+    if strategy.position_size > 0
+        entryMsg := pc_reverse_to_short
+    strategy.entry("Short", strategy.short, qty=baseLots, alert_message=entryMsg)
+    initialShortEntryPrice := close
+    scaleInsShort := 0
+    for i = 0 to 2
+        array.set(shortLevelsUsed, i, false)
+
+
+// ===== SCALE-IN EXECUTIONS =====
+if useScaleIn and strategy.position_size > 0 and scaleInsLong < maxScaleInsPerTrade and (not useMomFilterScaleIn or bullMom)
+    for i = 0 to 2
+        if i < array.size(longScaleLevels) and not array.get(longLevelsUsed, i)
+            level = array.get(longScaleLevels, i)
+            if level > 0 and low <= level
+                strategy.entry("Long Scale " + str.tostring(i+1), strategy.long, qty=scaleInLots, alert_message=pc_buy_msg)
+                array.set(longLevelsUsed, i, true)
+                scaleInsLong := scaleInsLong + 1
+                break
+
+
+if useScaleIn and strategy.position_size < 0 and scaleInsShort < maxScaleInsPerTrade and (not useMomFilterScaleIn or bearMom)
+    for i = 0 to 2
+        if i < array.size(shortScaleLevels) and not array.get(shortLevelsUsed, i)
+            level = array.get(shortScaleLevels, i)
+            if level > 0 and high >= level
+                strategy.entry("Short Scale " + str.tostring(i+1), strategy.short, qty=scaleInLots, alert_message=pc_sell_msg)
+                array.set(shortLevelsUsed, i, true)
+                scaleInsShort := scaleInsShort + 1
+                break
+
+
+if useScaleIn and strategy.position_size > 0  and scaleInsLong  >= maxScaleInsPerTrade and enableScaleInBreakeven
+    breakEvenLevel := strategy.position_avg_price
+if useScaleIn and strategy.position_size < 0 and scaleInsShort >= maxScaleInsPerTrade and enableScaleInBreakeven
+    breakEvenLevel := strategy.position_avg_price
+
+
+// ===== TRAILING STOP =====
+var float trailOffset = na
+var float trailPoints = na
+
+
+if strategy.position_size > 0 and na(trailOffset)
+    trailOffset := atr * trailOffsetMult
+    trailPoints := atr
+if strategy.position_size < 0 and na(trailOffset)
+    trailOffset := atr * trailOffsetMult
+    trailPoints := atr
+
+
+// Tighten trailing stop after TP level is reached
+if (tpLevelHitLong or tpLevelHitShort) and useTrailingStop
+    trailOffset := atr * trailOffsetMult * 0.75
+
+
+// MFE-based TP runner
+if useMfeRunnerTP and strategy.position_size != 0 and (tpLevelHitLong or tpLevelHitShort) and mfeCurr > 0
+    if strategy.position_size > 0 and tpLevelHitLong
+        float newTp      = strategy.position_avg_price + mfeCurr * runnerMult
+        float lockedGain = mfeCurr * (lockPctOfMFE / 100.0)
+        float minTp      = strategy.position_avg_price + lockedGain
+        tp := math.max(tp, minTp)
+        tp := math.min(tp, newTp)
+    if strategy.position_size < 0 and tpLevelHitShort
+        float newTp      = strategy.position_avg_price - mfeCurr * runnerMult
+        float lockedGain = mfeCurr * (lockPctOfMFE / 100.0)
+        float maxTp      = strategy.position_avg_price - lockedGain
+        tp := math.min(tp, maxTp)
+        tp := math.max(tp, newTp)
+
+
+// Progressive tightening
+if useProgressiveTightening and strategy.position_size != 0
+    if barsInTrade > tightenPhase1Bars and barsInTrade <= tightenPhase2Bars
+        trailOffset := trailOffset * (1 - tightenPhase1Pct/100)
+    else if barsInTrade > tightenPhase2Bars and barsInTrade <= tightenPhase3Bars
+        trailOffset := trailOffset * (1 - tightenPhase2Pct/100)
+    else if barsInTrade > tightenPhase3Bars
+        trailOffset := trailOffset * (1 - tightenPhase3Pct/100)
+
+
+if strategy.position_size == 0
+    trailOffset := na
+    trailPoints := na
+
+
+// ===== EXITS (FIX #4 + #5: scale-in exits + BE doesn't kill TP) =====
+if strategy.position_size > 0
+    float longHardStop = strategy.position_avg_price - (atr * hardStopMultAdj)
+    float effectiveStop = not na(breakEvenLevel) ? math.max(longHardStop, breakEvenLevel) : longHardStop
+    strategy.exit("Exit Long", from_entry="Long",
+                  trail_points=useTrailingStop ? trailPoints : na,
+                  trail_offset=useTrailingStop ? trailOffset : na,
+                  limit=strategy.position_avg_price + tp,
+                  stop=useHardStop ? effectiveStop : (not na(breakEvenLevel) ? breakEvenLevel : na),
+                  alert_message=pc_close_long)
+    if useScaleIn
+        for i = 1 to maxScaleInsPerTrade
+            strategy.exit("Exit Long Scale " + str.tostring(i), from_entry="Long Scale " + str.tostring(i),
+                          trail_points=useTrailingStop ? trailPoints : na,
+                          trail_offset=useTrailingStop ? trailOffset : na,
+                          limit=strategy.position_avg_price + tp,
+                          stop=useHardStop ? effectiveStop : (not na(breakEvenLevel) ? breakEvenLevel : na),
+                          alert_message=pc_close_long)
+
+
+if strategy.position_size < 0
+    float shortHardStop = strategy.position_avg_price + (atr * hardStopMultAdj)
+    float effectiveStop = not na(breakEvenLevel) ? math.min(shortHardStop, breakEvenLevel) : shortHardStop
+    strategy.exit("Exit Short", from_entry="Short",
+                  trail_points=useTrailingStop ? trailPoints : na,
+                  trail_offset=useTrailingStop ? trailOffset : na,
+                  limit=strategy.position_avg_price - tp,
+                  stop=useHardStop ? effectiveStop : (not na(breakEvenLevel) ? breakEvenLevel : na),
+                  alert_message=pc_close_short)
+    if useScaleIn
+        for i = 1 to maxScaleInsPerTrade
+            strategy.exit("Exit Short Scale " + str.tostring(i), from_entry="Short Scale " + str.tostring(i),
+                          trail_points=useTrailingStop ? trailPoints : na,
+                          trail_offset=useTrailingStop ? trailOffset : na,
+                          limit=strategy.position_avg_price - tp,
+                          stop=useHardStop ? effectiveStop : (not na(breakEvenLevel) ? breakEvenLevel : na),
+                          alert_message=pc_close_short)
+
+
+// ===== REDUNDANT CLOSE SAFETY NET (FIX #6 + NEW #9) =====
+var int  safetyLastDir   = 0
+var int  safetyBarsLeft  = 0
+
+
+if strategy.position_size == 0 and strategy.position_size[1] != 0
+    safetyLastDir  := strategy.position_size[1] > 0 ? 1 : -1
+    safetyBarsLeft := safetyBars
+
+
+noNewEntry = not longCondition and not shortCondition
+if safetyBarsLeft > 0 and strategy.position_size == 0 and noNewEntry
+    if safetyLastDir == 1
+        alert(pc_close_long,  alert.freq_once_per_bar)
+    else if safetyLastDir == -1
+        alert(pc_close_short, alert.freq_once_per_bar)
+    safetyBarsLeft := safetyBarsLeft - 1
+    if safetyBarsLeft == 0
+        alert(pc_close_long,  alert.freq_once_per_bar)
+        alert(pc_close_short, alert.freq_once_per_bar)
+
+
+// NEW #9: Periodic safety — send close signals every N bars while flat
+var int barsSinceFlat = 0
+if strategy.position_size == 0
+    barsSinceFlat := barsSinceFlat + 1
+else
+    barsSinceFlat := 0
+
+
+if usePeriodicSafety and barsSinceFlat > 0 and barsSinceFlat <= (periodicSafetyBars * 3) and barsSinceFlat % periodicSafetyBars == 0
+    alert(pc_close_long,  alert.freq_once_per_bar)
+    alert(pc_close_short, alert.freq_once_per_bar)
+
+
+// ===== VISUALS =====
+// Scale-in detection for visuals
+longScaleTriggered  = useScaleIn and strategy.position_size > 0 and scaleInsLong  > scaleInsLong[1]
+shortScaleTriggered = useScaleIn and strategy.position_size < 0 and scaleInsShort > scaleInsShort[1]
+
+
+if strategy.position_size > 0 and useScaleIn
+    for i = 0 to 2
+        if i < array.size(longScaleLevels) and not array.get(longLevelsUsed, i)
+            level = array.get(longScaleLevels, i)
+            if level > 0
+                line.new(bar_index, level, bar_index + 1, level, color=color.new(color.blue, 50), style=line.style_dashed)
+
+
+if strategy.position_size < 0 and useScaleIn
+    for i = 0 to 2
+        if i < array.size(shortScaleLevels) and not array.get(shortLevelsUsed, i)
+            level = array.get(shortScaleLevels, i)
+            if level > 0
+                line.new(bar_index, level, bar_index + 1, level, color=color.new(color.red, 50), style=line.style_dashed)
+
+
+if not na(breakEvenLevel)
+    line.new(bar_index, breakEvenLevel, bar_index + 1, breakEvenLevel, color=color.yellow, style=line.style_dashed)
+
+
+if strategy.position_size > 0
+    longHardStopVis = strategy.position_avg_price - (atr * hardStopMultAdj)
+    if useHardStop
+        line.new(bar_index, longHardStopVis, bar_index + 1, longHardStopVis, color=color.new(color.orange, 30), width=2)
+if strategy.position_size < 0
+    shortHardStopVis = strategy.position_avg_price + (atr * hardStopMultAdj)
+    if useHardStop
+        line.new(bar_index, shortHardStopVis, bar_index + 1, shortHardStopVis, color=color.new(color.orange, 30), width=2)
+
+
+plot(ema200, "EMA 200", color=color.red)
+plotshape(longCondition,      "Long Signal",   location=location.belowbar, color=color.green, style=shape.triangleup,   size=size.small)
+plotshape(shortCondition,     "Short Signal",  location=location.abovebar, color=color.red,   style=shape.triangledown, size=size.small)
+plotshape(longScaleTriggered, "Scale-In Long", location=location.belowbar, color=color.new(color.blue, 20), style=shape.diamond, size=size.small)
+plotshape(shortScaleTriggered,"Scale-In Short",location=location.abovebar, color=color.new(color.red,  20), style=shape.diamond, size=size.small)
+
+
+// ===== ENTRY/TP/SL LINES =====
+var line entryLine     = na
+var line tpLine        = na
+var line slLine        = na
+var line breakEvenLine = na
+var line trailStopLine = na
+var line hardStopLine  = na
+
+
+if (longCondition or shortCondition)
+    entryPrice = close
+    slPrice    = longCondition ? close - stopLoss                 : close + stopLoss
+    tpPrice    = longCondition ? close + tp                       : close - tp
+    hsPrice    = longCondition ? close - (atr * hardStopMultAdj)  : close + (atr * hardStopMultAdj)
+
+
+    line.delete(entryLine)
+    line.delete(tpLine)
+    line.delete(slLine)
+    line.delete(breakEvenLine)
+    line.delete(trailStopLine)
+    line.delete(hardStopLine)
+
+
+    entryLine := line.new(bar_index, entryPrice, bar_index + 1, entryPrice, color=color.blue,   width=2)
+    tpLine    := line.new(bar_index, tpPrice,    bar_index + 1, tpPrice,    color=color.green,  width=1)
+    slLine    := line.new(bar_index, slPrice,    bar_index + 1, slPrice,    color=color.red,    width=1)
+    if useHardStop
+        hardStopLine := line.new(bar_index, hsPrice, bar_index + 1, hsPrice, color=color.orange, width=2)
+
+
+if strategy.opentrades > 0
+    line.set_x2(entryLine, bar_index)
+    line.set_x2(tpLine,    bar_index)
+    line.set_x2(slLine,    bar_index)
+
+
+    if not na(breakEvenLevel)
+        if na(breakEvenLine)
+            breakEvenLine := line.new(bar_index - 5, breakEvenLevel, bar_index, breakEvenLevel, color=color.yellow, width=1, style=line.style_dashed)
+        else
+            line.set_y1(breakEvenLine, breakEvenLevel)
+            line.set_y2(breakEvenLine, breakEvenLevel)
+            line.set_x2(breakEvenLine, bar_index)
+
+
+    if useTrailingStop and (tpLevelHitLong or tpLevelHitShort)
+        var float trailStopPrice = 0.0
+        if strategy.position_size > 0
+            trailStopPrice := math.max(high - trailOffset, na(line.get_y1(trailStopLine)) ? 0 : line.get_y1(trailStopLine))
+        else
+            trailStopPrice := math.min(low + trailOffset,  na(line.get_y1(trailStopLine)) ? 999999 : line.get_y1(trailStopLine))
+        if na(trailStopLine)
+            trailStopLine := line.new(bar_index - 1, trailStopPrice, bar_index, trailStopPrice, color=color.purple, width=1, style=line.style_dashed)
+        else
+            line.set_y1(trailStopLine, trailStopPrice)
+            line.set_y2(trailStopLine, trailStopPrice)
+            line.set_x2(trailStopLine, bar_index)
+else
+    line.delete(entryLine)
+    line.delete(tpLine)
+    line.delete(slLine)
+    line.delete(breakEvenLine)
+    line.delete(trailStopLine)
+    line.delete(hardStopLine)
+
+
+// ===== STATUS LABEL =====
+var label statusLabel = na
+label.delete(statusLabel)
+if strategy.position_size != 0
+    float currentProfit = strategy.position_size > 0 ?
+         ((close - strategy.position_avg_price) / strategy.position_avg_price) * 100 :
+         ((strategy.position_avg_price - close) / strategy.position_avg_price) * 100
+
+
+    string scaleInStatus = useScaleIn ?
+         (strategy.position_size > 0 ? str.tostring(scaleInsLong) : str.tostring(scaleInsShort)) + "/" + str.tostring(maxScaleInsPerTrade) : "OFF"
+
+
+    string labelText  = strategy.position_size > 0 ? "LONG" : "SHORT"
+    labelText += " | P/L: "   + str.tostring(math.round(currentProfit, 2)) + "%"
+    labelText += " | PC Lots: " + pcLotsStr
+    labelText += " | Scale: " + scaleInStatus
+    labelText += " | BE: "    + (not na(breakEvenLevel) ? "ACTIVE" : "OFF")
+    if useTimeStop
+        labelText += " | T: " + str.tostring(maxBarsInTrade - barsInTrade) + "b"
+
+
+    color labelColor  = strategy.position_size > 0 ? color.green : color.red
+    statusLabel := label.new(bar_index, high, labelText,
+                             color=color.new(labelColor, 80),
+                             style=label.style_label_down,
+                             textcolor=labelColor)
+
+
+// ===== STATUS TABLE =====
+var table statusTable = table.new(position.top_right, 2, 12, frame_color=color.new(color.gray, 20), frame_width=1, border_width=1)
+
+
+if bar_index % 5 == 0
+    string positionStatus = strategy.position_size > 0 ? "LONG" : strategy.position_size < 0 ? "SHORT" : "FLAT"
+    string tpStatus       = strategy.position_size != 0 ? ((tpLevelHitLong or tpLevelHitShort) ? "REACHED" : "PENDING") : "N/A"
+    string beStatus       = not na(breakEvenLevel) ? "ACTIVE" : "INACTIVE"
+
+
+    table.cell(statusTable, 0, 0,  "PC Lots",       bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 0,  pcLotsStr,        bgcolor=color.orange, text_color=color.white)
+    table.cell(statusTable, 0, 1,  "Position",      bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 1,  positionStatus,   bgcolor=positionStatus == "LONG" ? color.green : positionStatus == "SHORT" ? color.red : color.gray)
+    table.cell(statusTable, 0, 2,  "Equity",        bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 2,  "€" + str.tostring(math.round(currentEquity)), bgcolor=color.blue)
+    table.cell(statusTable, 0, 3,  "TP Level",      bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 3,  tpStatus,         bgcolor=tpStatus == "REACHED" ? color.green : tpStatus == "PENDING" ? color.yellow : color.gray)
+    table.cell(statusTable, 0, 4,  "Break Even",    bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 4,  beStatus,         bgcolor=beStatus == "ACTIVE" ? color.green : color.gray)
+    table.cell(statusTable, 0, 5,  "Scale-Ins",     bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 5,  useScaleIn ? (strategy.position_size > 0 ? str.tostring(scaleInsLong) : strategy.position_size < 0 ? str.tostring(scaleInsShort) : "0") + "/" + str.tostring(maxScaleInsPerTrade) : "OFF", bgcolor=useScaleIn ? color.blue : color.gray)
+    table.cell(statusTable, 0, 6,  "Bars In Trade", bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 6,  str.tostring(barsInTrade), bgcolor=color.blue)
+    table.cell(statusTable, 0, 7,  "Hard Stop",     bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 7,  useHardStop ? str.tostring(math.round(hardStopMultAdj, 1)) + "x ATR" : "OFF", bgcolor=useHardStop ? color.orange : color.gray)
+    table.cell(statusTable, 0, 8,  "Time Stop",     bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 8,  useTimeStop ? str.tostring(maxBarsInTrade - barsInTrade) + "b left" : "OFF", bgcolor=useTimeStop ? color.orange : color.gray)
+    table.cell(statusTable, 0, 9,  "SL pips (PC)",  bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 9,  str.tostring(slDist), bgcolor=color.orange)
+    table.cell(statusTable, 0, 10, "TP pips (PC)",  bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 10, str.tostring(tpDist), bgcolor=color.green)
+    table.cell(statusTable, 0, 11, "Safety Net",    bgcolor=color.gray, text_color=color.white)
+    table.cell(statusTable, 1, 11, safetyBarsLeft > 0 ? "ACTIVE (" + str.tostring(safetyBarsLeft) + "b)" : "OFF", bgcolor=safetyBarsLeft > 0 ? color.purple : color.gray)
+
+
+// ===== MTF TREND DASHBOARD =====
+getTrend(tf) =>
+    emaHTF   = request.security(syminfo.tickerid, tf, ta.ema(close, 200))
+    closeHTF = request.security(syminfo.tickerid, tf, close)
+    closeHTF > emaHTF ? "Bullish" : "Bearish"
+
+
+trend15 = getTrend("15")
+trend1h = getTrend("60")
+trend4h = getTrend("240")
+
+
+var table dashboard = table.new(position.bottom_right, 2, 3, border_width=1)
+if bar_index % 5 == 0
+    table.cell(dashboard, 0, 0, "15m Trend", bgcolor=color.gray)
+    table.cell(dashboard, 1, 0, trend15,      bgcolor=trend15 == "Bullish" ? color.green : color.red)
+    table.cell(dashboard, 0, 1, "1H Trend",  bgcolor=color.gray)
+    table.cell(dashboard, 1, 1, trend1h,      bgcolor=trend1h == "Bullish" ? color.green : color.red)
+    table.cell(dashboard, 0, 2, "4H Trend",  bgcolor=color.gray)
+    table.cell(dashboard, 1, 2, trend4h,      bgcolor=trend4h == "Bullish" ? color.green : color.red)

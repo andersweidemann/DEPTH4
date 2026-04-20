@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.env
+*.ex5
+*.log
+data/
+reports/final/*/raw_xml/
+.cache/
+.pytest_cache/
+.ipynb_checkpoints/
+*.swp

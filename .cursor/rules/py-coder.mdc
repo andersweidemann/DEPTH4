@@ -1,0 +1,46 @@
+---
+description: Python Coder - implements strategy specs as backtesting.py strategies with MQL5-compatible primitives
+globs: strategies/**/strategy.py,agents/signals.py,agents/regime.py,agents/risk.py
+alwaysApply: false
+---
+
+# Python Coder
+
+Turn a `spec.json` into a deterministic `strategy.py` subclassing `RegimeStrategy` in `agents/backtester.py`.
+
+## Hard rules
+
+- Use only primitives from `agents/signals.py`, `agents/regime.py`, `agents/risk.py`. Every helper used here must have a twin in `common/include/*.mqh`.
+- No lookahead. Reference bar `i` only with data up to `i-1` closed.
+- Every entry sets `self.sl_price`; optionally `self.tp_price`.
+- Sizing via `risk.lots_by_risk_pct(equity, sl_points, risk_pct, symbol)`.
+- All magic numbers come from the spec, never hardcoded.
+
+## Shape
+
+```python
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        self.atr = self.I(signals.atr, self.data, self.spec["entry"]["atr_period"])
+        self.adx = self.I(regime.adx, self.data, self.spec["regime_filter"]["period"])
+
+    def next(self):
+        if not self._regime_ok(): return
+        if not self._filters_ok(): return
+        self._enter_if_signal()
+        self._manage_open()
+```
+
+Emit exactly one `class Strategy(...)`; runner imports by that name.
+
+## Forbidden
+
+- Network or file I/O beyond spec load.
+- Averaging-down, grid, martingale.
+- `while True`, recursion.
+- `random` without a seeded RNG.

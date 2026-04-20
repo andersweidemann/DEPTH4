@@ -1,0 +1,74 @@
+symbols:
+  xauusd:
+    broker_name: "XAUUSD"          # override to your broker's string if different
+    spread_points: 40              # conservative local cost
+    slippage_points: 1
+    commission_per_lot: 7.0        # USD round-turn per lot; adjust to your broker
+    point_size: 0.01
+    contract_size: 100
+  ger40:
+    broker_name: "GER40"           # common alternatives: DE40, DAX40, GER40.cash
+    spread_points: 30
+    slippage_points: 1
+    commission_per_lot: 3.0
+    point_size: 0.1
+    contract_size: 1
+
+timeframes: [M5, M15]
+
+windows:
+  is_start: "2020-01-01"
+  is_end:   "2024-06-30"
+  oos_start: "2024-07-01"
+  oos_end:   "today"
+
+walk_forward:
+  is_months: 6
+  oos_months: 2
+
+risk:
+  per_trade_pct: 0.5
+  daily_dd_kill_pct: 3.0
+  max_concurrent_per_symbol: 1
+
+acceptance:
+  pf_min: 1.5
+  max_dd_pct: 15.0
+  sharpe_min: 1.5
+  trades_min: 200
+  require_all_combos_positive: true
+  max_local_vs_mt5_divergence_pct: 20.0
+
+loop:
+  candidates_per_gen: 4
+  survivors: 2
+  max_generations: 20
+  scout_every_n_gens: 5
+
+llm:
+  provider: anthropic            # anthropic | openai
+  model: claude-sonnet-4-5
+  max_tokens: 8192
+  temperature: 0.6
+
+scout:
+  max_results_per_query: 40
+  default_queries:
+    - "MT5 XAUUSD EA language:MQL5"
+    - "MQL5 indicator regime"
+    - "MQL5 EA breakout"
+    - "DAX breakout strategy"
+    - "gold scalping strategy python"
+    - "mean reversion MQL5"
+  denylist_path: scouting/denylist.yaml
+
+vps:
+  repo_root: "C:\\TRADING"
+  metaeditor_path: "C:\\Program Files\\MetaTrader 5\\metaeditor64.exe"
+  terminal_path:   "C:\\Program Files\\MetaTrader 5\\terminal64.exe"
+  mql5_include_dir: "MQL5\\Include\\Factory"
+  mql5_experts_dir: "MQL5\\Experts\\Factory"
+
+data:
+  root: data
+  source_priority: [mt5, dukascopy, demo]
