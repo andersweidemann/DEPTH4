@@ -288,14 +288,11 @@ def distill_with_llm(hits: List[Hit], cfg: dict) -> List[Dict]:
         system="You are the Scout. Output a JSON array of idea-card objects only.",
         user=rendered,
     )
-    text = resp.strip()
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-zA-Z]*\n", "", text)
-        text = re.sub(r"\n```\s*$", "", text)
+    from agents.run_loop import _extract_json
     try:
-        cards = json.loads(text)
+        cards = _extract_json(resp)
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"Scout LLM did not return valid JSON: {e}\n---\n{text[:500]}")
+        raise RuntimeError(f"Scout LLM did not return valid JSON: {e}\n---\n{resp[:500]}")
     for c in cards:
         if "slug" not in c:
             fm = c.get("frontmatter", {})

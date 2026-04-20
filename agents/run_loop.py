@@ -57,11 +57,67 @@ def _next_gen_number() -> int:
 # ---------------------------------------------------------------------------
 
 def _strip_code_fences(text: str) -> str:
+    """Strip a single wrapping code fence (```lang ... ```). Best-effort."""
     t = text.strip()
     if t.startswith("```"):
         t = re.sub(r"^```[a-zA-Z]*\n", "", t)
         t = re.sub(r"\n```\s*$", "", t)
     return t
+
+
+def _extract_json(text: str):
+    """Robust JSON extraction for flaky small-model output.
+
+    Tries, in order:
+      1. direct parse of whole string (Claude / GPT-4 usually)
+      2. strip wrapping code fence, then parse
+      3. scan for the first json code fence anywhere in the output
+      4. greedy bracket-balance: take from first `{`/`[` to matching closer
+
+    Raises json.JSONDecodeError if all fallbacks fail.
+    """
+    for candidate in _json_candidates(text):
+        try:
+            return json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+    raise json.JSONDecodeError("no parseable JSON", text, 0)
+
+
+def _json_candidates(text: str):
+    t = text.strip()
+    yield t
+    yield _strip_code_fences(t)
+    m = re.search(r"```(?:json)?\s*\n(.+?)\n```", t, re.DOTALL)
+    if m:
+        yield m.group(1).strip()
+    for opener, closer in (("{", "}"), ("[", "]")):
+        start = t.find(opener)
+        if start == -1:
+            continue
+        depth = 0
+        in_str = False
+        esc = False
+        for i in range(start, len(t)):
+            ch = t[i]
+            if esc:
+                esc = False
+                continue
+            if ch == "\\":
+                esc = True
+                continue
+            if ch == '"':
+                in_str = not in_str
+                continue
+            if in_str:
+                continue
+            if ch == opener:
+                depth += 1
+            elif ch == closer:
+                depth -= 1
+                if depth == 0:
+                    yield t[start:i + 1]
+                    break
 
 
 def _load_scout_cards(limit: int = 30) -> str:
@@ -121,8 +177,7 @@ def run_architect(gen: int) -> List[Path]:
         system="You are the Strategy Architect. Output a JSON array of spec objects only.",
         user=rendered,
     )
-    text = _strip_code_fences(resp)
-    specs = json.loads(text)
+    specs = _extract_json(resp)
     if not isinstance(specs, list) or not specs:
         raise RuntimeError("Architect returned empty or non-array JSON")
 
@@ -225,8 +280,7 @@ def run_critic(gen: int, candidate_dirs: List[Path]) -> Dict:
         system="You are the Critic. Output valid JSON only.",
         user=rendered,
     )
-    text = _strip_code_fences(resp)
-    critique = json.loads(text)
+    critique = _extract_json(resp)
 
     (_reports_dir(gen) / "critic.json").write_text(json.dumps(critique, indent=2))
     summary_md = critique.get("summary_markdown", "")

@@ -53,10 +53,18 @@ loop:
   scout_every_n_gens: 5
 
 llm:
-  provider: anthropic            # anthropic | openai
+  provider: anthropic            # anthropic | openai | ollama
   model: claude-sonnet-4-5
   max_tokens: 8192
   temperature: 0.6
+  # To test the loop against a local Ollama model without spending API tokens,
+  # flip provider to `ollama` and pick a model you've pulled. On an 8 GB Mac
+  # you'll want a 3B-class model; expect much shakier output than Claude.
+  # Example swap:
+  #   provider: ollama
+  #   model: qwen2.5-coder:3b
+  #   max_tokens: 4096           # 3B context-window is usually 32K; lower is fine
+  #   temperature: 0.4           # tighter to improve JSON reliability
 
 scout:
   max_results_per_query: 40

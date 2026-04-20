@@ -1,8 +1,12 @@
 """
-Thin LLM wrapper. Defaults to Anthropic Claude; OpenAI is a drop-in alternative.
+Thin LLM wrapper. Supports three providers:
+    - anthropic : Claude via the official SDK (production default)
+    - openai    : GPT via the official SDK
+    - ollama    : local models via Ollama's OpenAI-compatible endpoint
 
 Reads provider, model, temperature, max_tokens from config.yaml under `llm:`.
-Honours ANTHROPIC_API_KEY / OPENAI_API_KEY. Retries with exponential backoff.
+Honours ANTHROPIC_API_KEY / OPENAI_API_KEY; Ollama needs no key. Retries with
+exponential backoff.
 
 Usage:
     from agents import llm_client
@@ -36,6 +40,8 @@ def complete(system: str, user: str, *, max_tokens: Optional[int] = None,
                 return _call_anthropic(model, system, user, max_tokens, temperature)
             if provider == "openai":
                 return _call_openai(model, system, user, max_tokens, temperature)
+            if provider == "ollama":
+                return _call_ollama(model, system, user, max_tokens, temperature)
             raise LLMError(f"unknown provider: {provider}")
         except Exception as e:  # noqa: BLE001
             last_err = e
@@ -74,6 +80,35 @@ def _call_openai(model: str, system: str, user: str,
     if not api_key:
         raise LLMError("OPENAI_API_KEY not set")
     client = OpenAI(api_key=api_key)
+    resp = client.chat.completions.create(
+        model=model,
+        max_tokens=max_tokens,
+        temperature=temperature,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+    )
+    return resp.choices[0].message.content or ""
+
+
+def _call_ollama(model: str, system: str, user: str,
+                 max_tokens: int, temperature: float) -> str:
+    """Local Ollama via its OpenAI-compatible endpoint.
+
+    Ollama listens on http://localhost:11434 by default and speaks OpenAI's
+    /v1 chat-completions schema out of the box. Override with OLLAMA_HOST env
+    var (e.g. http://remote-box:11434) if your server runs elsewhere.
+
+    No API key needed, but OpenAI client requires one, so we pass a placeholder.
+    """
+    from openai import OpenAI  # type: ignore
+
+    base = os.environ.get("OLLAMA_HOST", "http://localhost:11434").rstrip("/")
+    client = OpenAI(base_url=f"{base}/v1", api_key="ollama")
+    # Small local models are flaky at strict JSON. Many of our prompts already
+    # wrap the expected JSON in a code fence and we tolerate prose around it;
+    # keep temperature modest so they don't wander.
     resp = client.chat.completions.create(
         model=model,
         max_tokens=max_tokens,
