@@ -117,16 +117,87 @@ def fetch_mt5(symbol: str, tf: str, start: str, end: str) -> pd.DataFrame:
         mt5.shutdown()
 
 
+# Instrument-code map for Dukascopy. Broker-side names differ from our internal
+# ones. Add more as needed; values must match dukascopy-python's `instrument`
+# strings exactly.
+_DUKA_INSTRUMENT = {
+    "XAUUSD": "XAU/USD",
+    "GER40":  "DEU.IDX/EUR",   # DAX40 cash index, EUR-quoted
+}
+
+_DUKA_INTERVAL = {
+    "M1":  "INTERVAL_MIN_1",
+    "M5":  "INTERVAL_MIN_5",
+    "M15": "INTERVAL_MIN_15",
+    "M30": "INTERVAL_MIN_30",
+    "H1":  "INTERVAL_HOUR_1",
+    "H4":  "INTERVAL_HOUR_4",
+    "D1":  "INTERVAL_DAY_1",
+}
+
+
 def fetch_dukascopy(symbol: str, tf: str, start: str, end: str) -> pd.DataFrame:
+    """Fetch OHLCV from Dukascopy via `dukascopy-python`.
+
+    Returns a UTC-indexed DataFrame with columns open/high/low/close/volume.
+    Chunks requests by year to keep memory bounded and make progress visible;
+    dukascopy-python handles retries and its own pagination within each chunk.
+    """
     try:
-        import dukascopy_python  # type: ignore
+        import dukascopy_python as d  # type: ignore
     except ImportError as e:
         raise RuntimeError(
             "dukascopy-python not installed. `pip install dukascopy-python` "
             "or use `--source mt5` on VPS / `--source demo` for a smoke test.") from e
-    raise NotImplementedError(
-        "Dukascopy fetch stub - wire up per dukascopy-python API once installed. "
-        "For now use --source mt5 on VPS or --source demo on Mac.")
+
+    sym = symbol.upper()
+    tf_u = tf.upper()
+    if sym not in _DUKA_INSTRUMENT:
+        raise ValueError(
+            f"Dukascopy instrument code for '{sym}' not mapped. "
+            f"Add it to _DUKA_INSTRUMENT in agents/data_fetch.py.")
+    if tf_u not in _DUKA_INTERVAL:
+        raise ValueError(f"Dukascopy interval for '{tf_u}' not mapped")
+
+    instrument = _DUKA_INSTRUMENT[sym]
+    interval = getattr(d, _DUKA_INTERVAL[tf_u])
+
+    start_ts = pd.Timestamp(start, tz="UTC")
+    end_ts = (pd.Timestamp.now(tz="UTC") if end == "today"
+              else pd.Timestamp(end, tz="UTC"))
+
+    # Yearly chunks: keeps progress observable and avoids one giant in-memory
+    # concat. Dukascopy itself delivers daily binary files under the hood.
+    chunks: list[pd.DataFrame] = []
+    cursor = start_ts
+    while cursor < end_ts:
+        chunk_end = min(cursor + pd.DateOffset(years=1), end_ts)
+        print(f"[dukascopy] {sym} {tf_u}: "
+              f"{cursor.date()} -> {chunk_end.date()}", flush=True)
+        df_chunk = d.fetch(
+            instrument=instrument,
+            interval=interval,
+            offer_side=d.OFFER_SIDE_BID,
+            start=cursor.to_pydatetime(),
+            end=chunk_end.to_pydatetime(),
+        )
+        if df_chunk is not None and len(df_chunk) > 0:
+            chunks.append(df_chunk)
+        cursor = chunk_end
+
+    if not chunks:
+        raise RuntimeError(f"Dukascopy returned no data for {sym} {tf_u} "
+                           f"{start} .. {end}")
+
+    df = pd.concat(chunks)
+    df = df[~df.index.duplicated(keep="first")].sort_index()
+    if df.index.tz is None:
+        df.index = df.index.tz_localize("UTC")
+    else:
+        df.index = df.index.tz_convert("UTC")
+    df.index.name = "time"
+    cols = [c for c in ("open", "high", "low", "close", "volume") if c in df.columns]
+    return df[cols]
 
 
 def fetch_demo(symbol: str, tf: str, start: str, end: str,

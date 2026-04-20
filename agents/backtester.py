@@ -133,21 +133,22 @@ class RegimeStrategy(Strategy):
                 if bars_open >= time_stop:
                     self.position.close()
                     return
-        # Trailing stop: lift SL in the direction of the trade.
+        # Trailing stop: tighten each open trade's SL in profit direction.
+        # Must mutate `trade.sl` directly - setting self.sl_price is a no-op.
         trail_mult = exit_cfg.get("trail_atr_mult")
-        if trail_mult and hasattr(self, "_atr_series"):
+        if trail_mult and hasattr(self, "_atr_series") and self.trades:
             atr_now = float(self._atr_series[-1])
-            if not np.isnan(atr_now) and self.position:
-                price = self.data.Close[-1]
-                if self.position.is_long and self.position.pl_pct > 0:
-                    new_sl = price - trail_mult * atr_now
-                    # Only lift SL upward.
-                    if self.sl_price is None or new_sl > self.sl_price:
-                        self.sl_price = new_sl
-                elif self.position.is_short and self.position.pl_pct > 0:
-                    new_sl = price + trail_mult * atr_now
-                    if self.sl_price is None or new_sl < self.sl_price:
-                        self.sl_price = new_sl
+            if not np.isnan(atr_now):
+                price = float(self.data.Close[-1])
+                for trade in self.trades:
+                    if trade.is_long and trade.pl_pct > 0:
+                        new_sl = price - trail_mult * atr_now
+                        if trade.sl is None or new_sl > trade.sl:
+                            trade.sl = new_sl
+                    elif not trade.is_long and trade.pl_pct > 0:
+                        new_sl = price + trail_mult * atr_now
+                        if trade.sl is None or new_sl < trade.sl:
+                            trade.sl = new_sl
 
 
 # ---------------------------------------------------------------------------
@@ -242,8 +243,17 @@ def run_candidate(candidate_dir: Path, out_dir: Path,
                 continue
 
             sym_cfg = cfg["symbols"][symbol.lower()]
-            spread_fraction = (sym_cfg["spread_points"] * sym_cfg["point_size"]) / df["Close"].median()
-            commission = sym_cfg["commission_per_lot"] / max(df["Close"].median(), 1.0)
+            contract_size = sym_cfg.get("contract_size", 1) or 1
+            median_price = float(max(df["Close"].median(), 1.0))
+            # backtesting.py treats `spread` as a per-fill fraction applied on
+            # each execution (open AND close). Config's `spread_points` is the
+            # quoted round-trip spread, so divide by 2 for per-side.
+            rt_spread_price = sym_cfg["spread_points"] * sym_cfg["point_size"]
+            spread_fraction = (rt_spread_price / 2.0) / median_price
+            # Commission: config is round-turn USD PER LOT. 1 lot = contract_size
+            # units in backtesting.py's accounting. `commission` must be the
+            # per-side fraction of trade value.
+            commission = ((sym_cfg["commission_per_lot"] / contract_size) / 2.0) / median_price
 
             StrategyCls = _load_strategy(strategy_py, spec, symbol, equity_start)
             bt = Backtest(
