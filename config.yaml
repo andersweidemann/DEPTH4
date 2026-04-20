@@ -54,7 +54,7 @@ loop:
 
 llm:
   provider: anthropic            # anthropic | openai | ollama
-  model: claude-sonnet-4-5
+  model: claude-opus-4-7         # flagship reasoning; ~$5/MTok in, $25/MTok out
   max_tokens: 8192
   temperature: 0.6
   # To test the loop against a local Ollama model without spending API tokens,

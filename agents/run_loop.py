@@ -74,14 +74,28 @@ def _extract_json(text: str):
       3. scan for the first json code fence anywhere in the output
       4. greedy bracket-balance: take from first `{`/`[` to matching closer
 
-    Raises json.JSONDecodeError if all fallbacks fail.
+    Raises json.JSONDecodeError if all fallbacks fail, with a preview of the
+    raw input so callers can see what the model actually returned.
     """
     for candidate in _json_candidates(text):
         try:
             return json.loads(candidate)
         except json.JSONDecodeError:
             continue
-    raise json.JSONDecodeError("no parseable JSON", text, 0)
+    preview = text[:800].replace("\n", "\\n")
+    raise json.JSONDecodeError(
+        f"no parseable JSON in LLM output. First 800 chars: {preview!r}",
+        text, 0)
+
+
+def _log_raw(gen: int, phase: str, text: str) -> Path:
+    """Persist every LLM raw response under reports/gen_N/raw/<phase>.txt so
+    failures can be inspected without rerunning."""
+    d = _reports_dir(gen) / "raw"
+    d.mkdir(parents=True, exist_ok=True)
+    out = d / f"{phase}.txt"
+    out.write_text(text, encoding="utf-8")
+    return out
 
 
 def _json_candidates(text: str):
@@ -177,6 +191,7 @@ def run_architect(gen: int) -> List[Path]:
         system="You are the Strategy Architect. Output a JSON array of spec objects only.",
         user=rendered,
     )
+    _log_raw(gen, "architect", resp)
     specs = _extract_json(resp)
     if not isinstance(specs, list) or not specs:
         raise RuntimeError("Architect returned empty or non-array JSON")
@@ -201,7 +216,7 @@ def _sanitize_slug(name: str) -> str:
 # Coder
 # ---------------------------------------------------------------------------
 
-def run_coder(candidate_dir: Path) -> None:
+def run_coder(candidate_dir: Path, gen: int = 0) -> None:
     spec = json.loads((candidate_dir / "spec.json").read_text())
     template = llm_client.load_prompt("coder")
 
@@ -221,6 +236,7 @@ def run_coder(candidate_dir: Path) -> None:
         system="You are the Python Coder. Output a single .py file only.",
         user=rendered,
     )
+    _log_raw(gen, f"coder__{candidate_dir.name}", resp)
     text = _strip_code_fences(resp)
     (candidate_dir / "strategy.py").write_text(text)
 
@@ -280,6 +296,7 @@ def run_critic(gen: int, candidate_dirs: List[Path]) -> Dict:
         system="You are the Critic. Output valid JSON only.",
         user=rendered,
     )
+    _log_raw(gen, "critic", resp)
     critique = _extract_json(resp)
 
     (_reports_dir(gen) / "critic.json").write_text(json.dumps(critique, indent=2))
@@ -307,7 +324,7 @@ def run_generation(gen: int) -> Dict:
     alive: List[Path] = []
     for d in dirs:
         try:
-            run_coder(d)
+            run_coder(d, gen=gen)
         except Exception as e:  # noqa: BLE001
             print(f"[coder] {d.name} failed: {e}")
             traceback.print_exc()
