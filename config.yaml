@@ -1,16 +1,23 @@
+# Cost model calibrated to Pepperstone Razor MT5. Pepperstone Razor charges
+# $7/lot round-turn ONLY on FX pairs; metals (XAUUSD) and indices (GER40) have
+# zero commission and cost is entirely baked into the spread. Spread values
+# here are intentionally a bit wider than Pepperstone's quoted typical to leave
+# margin for news-time widening and occasional slippage. Override with your
+# actual broker figures once you run `python -m agents.data_fetch --source mt5`
+# on the VPS and observe real fill costs.
 symbols:
   xauusd:
-    broker_name: "XAUUSD"          # override to your broker's string if different
-    spread_points: 40              # conservative local cost
-    slippage_points: 1
-    commission_per_lot: 7.0        # USD round-turn per lot; adjust to your broker
+    broker_name: "XAUUSD"          # confirm in your MT5 Market Watch
+    spread_points: 30              # Pepperstone Razor typical ~15pts; 30 = 2x buffer
+    slippage_points: 2
+    commission_per_lot: 0.0        # Pepperstone Razor: metals are spread-only
     point_size: 0.01
     contract_size: 100
   ger40:
-    broker_name: "GER40"           # common alternatives: DE40, DAX40, GER40.cash
-    spread_points: 30
+    broker_name: "GER40"           # Pepperstone uses GER40; other brokers: DE40, DAX40, GER40.cash
+    spread_points: 20              # Pepperstone Razor typical ~15pts (= 1.5 index pts); 20 = buffer
     slippage_points: 1
-    commission_per_lot: 3.0
+    commission_per_lot: 0.0        # Pepperstone Razor: indices are spread-only
     point_size: 0.1
     contract_size: 1
 
