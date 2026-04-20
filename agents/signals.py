@@ -50,7 +50,14 @@ def rsi(data_or_arr, period: int) -> np.ndarray:
     avg_gain = gain.ewm(alpha=1.0 / period, adjust=False, min_periods=period).mean()
     avg_loss = loss.ewm(alpha=1.0 / period, adjust=False, min_periods=period).mean()
     rs = avg_gain / avg_loss.replace(0.0, np.nan)
-    return (100.0 - (100.0 / (1.0 + rs))).to_numpy()
+    out = 100.0 - (100.0 / (1.0 + rs))
+    # Wilder RSI: zero average loss with positive average gain => RS = +inf => RSI = 100.
+    ag = avg_gain.to_numpy()
+    al = avg_loss.to_numpy()
+    out_np = out.to_numpy()
+    out_np = np.where((al == 0.0) & (ag > 0.0), 100.0, out_np)
+    out_np = np.where((al == 0.0) & (ag == 0.0), 50.0, out_np)
+    return out_np
 
 
 def bollinger(data_or_arr, period: int, mult: float = 2.0):

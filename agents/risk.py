@@ -136,7 +136,7 @@ def _check_python(src: str, v: Verdict) -> None:
                    or getattr(getattr(node, "func", None), "id", None)
             if name == "lots_by_risk_pct":
                 uses_sizing = True
-            if name in ("buy", "sell") and node.args:
+            if name in ("buy", "sell"):
                 for kw in node.keywords:
                     if kw.arg == "size" and isinstance(kw.value, ast.Constant):
                         literal_lot = True
