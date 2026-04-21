@@ -21,6 +21,7 @@ from typing import List
 SYMBOL_DEFAULTS = {
     "XAUUSD": {"point_size": 0.01, "contract_size": 100.0},
     "GER40":  {"point_size": 0.1,  "contract_size": 1.0},
+    "US500":  {"point_size": 0.01, "contract_size": 1.0},  # CFD index; approximate
 }
 
 

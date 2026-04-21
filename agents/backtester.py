@@ -264,6 +264,7 @@ def run_candidate(candidate_dir: Path, out_dir: Path,
                 commission=max(commission, 0.0),
                 exclusive_orders=True,
                 finalize_trades=True,
+                trade_on_close=bool(spec.get("trade_on_close", False)),
             )
             stats = bt.run()
             metrics = _normalize_stats(stats)

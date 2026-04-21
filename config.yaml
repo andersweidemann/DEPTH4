@@ -20,6 +20,13 @@ symbols:
     commission_per_lot: 0.0        # Pepperstone Razor: indices are spread-only
     point_size: 0.1
     contract_size: 1
+  us500:
+    broker_name: "US500"           # Dukascopy USA500.IDX/USD; MT5 may be US500 / SPXm / ES
+    spread_points: 15              # ~0.15 index pts typical; buffer for 5m
+    slippage_points: 1
+    commission_per_lot: 0.0
+    point_size: 0.01
+    contract_size: 1
 
 timeframes: [M5, M15]
 

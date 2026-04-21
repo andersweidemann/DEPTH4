@@ -123,6 +123,7 @@ def fetch_mt5(symbol: str, tf: str, start: str, end: str) -> pd.DataFrame:
 _DUKA_INSTRUMENT = {
     "XAUUSD": "XAU/USD",
     "GER40":  "DEU.IDX/EUR",   # DAX40 cash index, EUR-quoted
+    "US500":  "USA500.IDX/USD",  # S&P 500 cash index (Dukascopy naming)
 }
 
 _DUKA_INTERVAL = {
