@@ -8,6 +8,9 @@ Reads provider, model, temperature, max_tokens from config.yaml under `llm:`.
 Honours ANTHROPIC_API_KEY / OPENAI_API_KEY; Ollama needs no key. Retries with
 exponential backoff.
 
+Some Anthropic models (e.g. claude-opus-4-7) reject ``temperature``; we omit
+it for those so config.yaml can still list a default for other models.
+
 Usage:
     from agents import llm_client
     txt = llm_client.complete(system="...", user="...")
@@ -23,6 +26,14 @@ from agents import config
 
 class LLMError(RuntimeError):
     pass
+
+
+def _anthropic_accepts_temperature(model: str) -> bool:
+    """Whether to send ``temperature`` on messages.create (newer models deprecate it)."""
+    m = model.lower()
+    if "claude-opus-4-7" in m or "opus-4-7" in m:
+        return False
+    return True
 
 
 def complete(system: str, user: str, *, max_tokens: Optional[int] = None,
@@ -58,13 +69,15 @@ def _call_anthropic(model: str, system: str, user: str,
     if not api_key:
         raise LLMError("ANTHROPIC_API_KEY not set")
     client = anthropic.Anthropic(api_key=api_key)
-    resp = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        temperature=temperature,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    )
+    kwargs = {
+        "model": model,
+        "max_tokens": max_tokens,
+        "system": system,
+        "messages": [{"role": "user", "content": user}],
+    }
+    if _anthropic_accepts_temperature(model):
+        kwargs["temperature"] = temperature
+    resp = client.messages.create(**kwargs)
     parts = []
     for block in resp.content:
         if getattr(block, "type", None) == "text":
