@@ -1,6 +1,3 @@
-# Local MT5 / trading artifacts (not part of DEPTH4)
-mt5/
-
 .venv/
 __pycache__/
 *.pyc

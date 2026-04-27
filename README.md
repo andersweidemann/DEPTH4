@@ -9,8 +9,6 @@ Geopolitical intelligence app: **Next.js** web UI, **FastAPI** backend, **Supaba
 | `signal/` | Full app: `apps/web` (Next), `apps/api` (Python), `packages/*`, `supabase/migrations` |
 | `render.yaml` | [Render](https://render.com) blueprint to host the API (Docker) |
 
-Local MetaTrader / EA work stays in a `mt5/` folder on your machine if you use one; that folder is **gitignored** and is not part of DEPTH4.
-
 ## Quick start (development)
 
 ```bash
