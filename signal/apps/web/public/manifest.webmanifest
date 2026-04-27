@@ -1,0 +1,13 @@
+{
+  "name": "DEPTH4",
+  "short_name": "DEPTH4",
+  "description": "Geopolitical & macro intelligence for your portfolio",
+  "start_url": "/dashboard?tab=feed",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "lang": "en",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "32x32", "type": "image/x-icon", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,38 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# New → Blueprint → connect this repo → set secret env vars in the dashboard.
+# After deploy: set Vercel NEXT_PUBLIC_API_URL to this service URL (https://…onrender.com).
+version: "1"
+services:
+  - type: web
+    name: depth4-api
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: signal/apps/api
+    dockerfilePath: Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: STRIPE_API_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PRO
+        sync: false
+      - key: STRIPE_PRICE_INSTITUTIONAL
+        sync: false
+      - key: ONE_SIGNAL_APP_ID
+        sync: false
+      - key: ONE_SIGNAL_API_KEY
+        sync: false

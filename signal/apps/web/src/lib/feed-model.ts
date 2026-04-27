@@ -1,0 +1,117 @@
+/** View model for the four-layer feed (DEPTH4). */
+
+export type Sl = 1 | 2 | 3 | 4;
+
+export type CausalStep = {
+  title: string; // e.g. "Event", "Why", "Next"
+  text: string;
+};
+
+/** Is this step’s story already in the market price, or is there “edge” left? */
+export type PricedInLevel = "not_priced_in" | "partial" | "priced_in" | "unknown";
+
+/** One example name the model links to this step (illustration; not a recommendation). */
+export type PlyStockIdea = {
+  ticker: string;
+  note: string;
+};
+
+/** One link in the serial 4-ply “transmission” chain (consequence engine). */
+export type TransmissionPly = {
+  step: number;
+  from_state: string;
+  mechanism: string;
+  to_state: string;
+  time_to_effect: string;
+  lead_indicator: string;
+  /** Whether this move is already reflected in prices (stronger for steps 2–4). */
+  pricedIn: PricedInLevel;
+  /** 0–3 US tickers this step points at; heavier on steps 2–4 in the prompt. */
+  stockIdeas: PlyStockIdea[];
+  /** Plain-English: what to wait for before acting on the names above. */
+  buyTrigger: string;
+};
+
+export type LeadTrafficLight = "red" | "yellow" | "green";
+
+export type LeadListItem = {
+  text: string;
+  /** Model hint; user can override in UI (per device, localStorage). */
+  light: LeadTrafficLight;
+};
+
+export type FeedLayer2 = {
+  anchorHeadline: string;
+  /** Vertical chain, order matters */
+  chain: CausalStep[];
+  verdict: string; // one large sentence
+  /** Shared backbone: furthest-ahead serial reasoning (4 plies) when tree has forward_model */
+  transmissionPlies?: TransmissionPly[];
+  /** Replaces string-only “lead” chips: text + red/yellow/green from model, user can update */
+  earlyLeadList?: LeadListItem[];
+  forwardHorizonSummary?: string;
+};
+
+export type FeedScenario3 = {
+  id: string;
+  label: string;
+  probability: number;
+  outcome: string; // up to 2 sentences shown as one block
+  marketImpact: string; // e.g. "Brent +$4–6 · S&P -0.8% · DXY +0.3%"
+  winners: string[];
+  losers: string[];
+  oneWatch: string; // "Confirmed if: …"
+};
+
+export type WatchListTrigger3 = {
+  kind: "confirmA" | "activateC" | "wait";
+  line: string; // full line after "If [X] → …"
+};
+
+export type FeedLayer3 = {
+  scenarios: FeedScenario3[];
+  watchList: WatchListTrigger3[];
+};
+
+export type PosImpactRow4 = {
+  position: string; // "FCX"
+  valueSek: string; // "23,864"
+  impactScenarioA: string; // "+2,100 SEK" or "TBD"
+  impactScenarioC: string;
+  action: string; // "HOLD" + optional emoji
+};
+
+export type OpenOrderBlock4 = {
+  summary: string; // "VLO buy limit $220"
+  distanceLine: string; // "5.9% away"
+  scenarioA: { situation: string; rec: string };
+  scenarioC: { situation: string; rec: string };
+};
+
+export type WatchCandidate4 = {
+  line: string; // full line with ticker, level, context
+};
+
+export type FeedLayer4 = {
+  positions: PosImpactRow4[];
+  orders: OpenOrderBlock4[];
+  watchlist: WatchCandidate4[];
+  /** false when not logged in / demo */
+  isPersonalized: boolean;
+};
+
+export type FeedViewModel = {
+  id: string;
+  source: string;
+  signalLevel: Sl;
+  headline: string;
+  /** Max ~12 words, opinionated */
+  hook: string;
+  /** User portfolio tickers that appear in event's affected list */
+  affectedUserTags: string[];
+  layer2: FeedLayer2;
+  layer3: FeedLayer3;
+  layer4: FeedLayer4 | null;
+  /** L4 push copy = hook (Layer 1 one-liner) */
+  notificationText: string;
+};

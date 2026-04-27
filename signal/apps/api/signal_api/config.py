@@ -1,0 +1,68 @@
+from functools import lru_cache
+
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+  model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
+  supabase_url: str = Field(default="", validation_alias="SUPABASE_URL")
+  supabase_service_key: SecretStr = Field(
+    default=SecretStr(""), validation_alias="SUPABASE_SERVICE_ROLE_KEY"
+  )
+
+  anthropic_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="ANTHROPIC_API_KEY")
+  anthropic_model: str = "claude-sonnet-4-20250514"
+
+  llm_provider: str = Field(
+    default="anthropic", validation_alias="LLM_PROVIDER"
+  )  # anthropic | nvidia | nim
+  nvidia_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="NVIDIA_API_KEY")
+  nvidia_base_url: str = Field(
+    default="https://integrate.api.nvidia.com/v1", validation_alias="NVIDIA_BASE_URL"
+  )
+  nvidia_model: str = Field(
+    default="meta/llama-3.1-8b-instruct", validation_alias="NVIDIA_MODEL"
+  )
+
+  redis_url: str = Field(default="redis://localhost:6379/0", validation_alias="REDIS_URL")
+
+  stripe_api_key: SecretStr | None = Field(default=None, validation_alias="STRIPE_API_KEY")
+  stripe_webhook_secret: SecretStr | None = Field(default=None, validation_alias="STRIPE_WEBHOOK_SECRET")
+  stripe_price_pro: str = Field(default="price_pro", validation_alias="STRIPE_PRICE_PRO")
+  stripe_price_institutional: str = Field(
+    default="price_inst", validation_alias="STRIPE_PRICE_INSTITUTIONAL"
+  )
+
+  one_signal_app_id: str | None = Field(default=None, validation_alias="ONE_SIGNAL_APP_ID")
+  one_signal_api_key: SecretStr | None = Field(default=None, validation_alias="ONE_SIGNAL_API_KEY")
+
+  cdn_public_url: str = Field(default="http://localhost:3000", validation_alias="FRONTEND_URL")
+
+  rss_interval_seconds: int = 60
+  yahoo_fx_ticker: str = "SEK=X"
+
+  yahoo_ticker_ingest_enabled: bool = True
+  yahoo_ticker_ingest_interval_seconds: int = 120
+  yahoo_ticker_ingest_max_tickers_per_cycle: int = 20
+
+  scenario_refinement_interval_seconds: int = 900
+  scenario_refinement_max_per_cycle: int = 3
+  polymarket_enabled: bool = True
+
+  default_rss_feeds: list[str] = Field(
+    default_factory=lambda: [
+      "https://feeds.reuters.com/reuters/topNews",
+      "https://feeds.reuters.com/reuters/businessNews",
+      "https://www.aljazeera.com/xml/rss/all.xml",
+      "https://www.ft.com/?format=rss",
+      "https://feeds.bloomberg.com/markets/news.rss",
+      "https://seekingalpha.com/feed.xml",
+    ]
+  )
+
+
+@lru_cache
+def get_settings() -> Settings:
+  return Settings()  # type: ignore[call-arg]

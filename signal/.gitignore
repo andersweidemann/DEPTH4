@@ -1,0 +1,40 @@
+# Node (monorepo)
+node_modules/
+**/node_modules/
+.pnp.*
+.yarn/install-state.gz
+
+# Next.js
+.next/
+out/
+**/.next/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# OS & IDE
+.DS_Store
+.idea/
+*.swp
+
+# Logs & caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+.pytest_cache/
+.ruff_cache/
