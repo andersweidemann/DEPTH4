@@ -1,5 +1,11 @@
 -- DEPTH4 initial schema
 -- Public users profile (1:1 with auth.users)
+--
+-- If a previous run failed at CREATE TRIGGER, Postgres can roll back new tables but
+-- leave the trigger on auth.users — then re-running fails with "already exists".
+-- Dropping first avoids that. (Also run this DROP alone in SQL Editor if you need a clean slate.)
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 CREATE TABLE public.users (
   id uuid PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
@@ -148,9 +154,6 @@ BEGIN
   RETURN new;
 END;
 $$;
-
--- Safe to re-run: Supabase may already have this trigger from a prior attempt.
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
