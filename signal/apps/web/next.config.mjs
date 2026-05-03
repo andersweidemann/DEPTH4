@@ -3,7 +3,8 @@ import withPWAInit from "@ducanh2912/next-pwa";
 const withPWA = withPWAInit({
   dest: "public",
   cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
+  /** Avoid caching navigations aggressively — OAuth `/auth/callback` must always hit the network. */
+  aggressiveFrontEndNavCaching: false,
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
