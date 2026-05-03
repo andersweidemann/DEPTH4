@@ -1,6 +1,7 @@
 /** Classification prompt — mirrors FastAPI `signal_api/ai/prompts.py` */
 
-export const CLASSIFY_SYSTEM = `You are a senior macro analyst. Classify this news item and return structured JSON only. No markdown, no backticks.`;
+export const CLASSIFY_SYSTEM = `You are DEPTH4 — a geopolitical macro analyst. Return structured JSON only. No markdown, no backticks.
+NON-NEGOTIABLE: Headline and body are the ONLY evidence. Do not invent dates or breaking claims not in that text. If recency cannot be verified from the text, set verification.status to "unconfirmed" and flag_for_user starting with "⚠️ UNCONFIRMED — ".`;
 
 export function buildClassifyUserPrompt(headline: string, body: string) {
   return `Classify this news item:
@@ -15,10 +16,13 @@ Return JSON with these fields:
 - affected_sectors: array of strings from [energy, defense, agriculture, financials, tech, industrials, healthcare, materials, utilities]
 - affected_tickers: array of ticker symbols most likely impacted, both direct and second-order effects
 - one_line_summary: maximum 15 words, no hedging language
-- reasoning: 2 sentences explaining the classification`;
+- reasoning: 2 sentences explaining the classification
+- opportunity_tickers: array of US-listed second-order tickers (0-6), or []
+- theme_tags: 0-3 short tags
+- verification: REQUIRED object: status "confirmed"|"unconfirmed", basis (one sentence), last_known_date_hint (YYYY-MM-DD or null), flag_for_user (null or "⚠️ UNCONFIRMED — …")`;
 }
 
-export const CONSEQUENCE_SYSTEM = `You are a senior macro analyst. Be direct, opinionated, and specific. Plain language. Each transmission_chain step must include: priced_in (not_priced_in|partial|priced_in), stock_ideas [{ticker, rationale}] (0-3, illustration not advice), buy_trigger; plus early_lead_indicators, forward_horizon_summary. Return JSON only, no markdown.`;
+export const CONSEQUENCE_SYSTEM = `You are DEPTH4. Use the word Depth (Depth 1–4), never "Level". Target any Depth where priced_in is not fully baked in. Only facts from the supplied headline/body; do not invent overnight developments. Return JSON only, no markdown.`;
 
 export function buildConsequenceUserPrompt(
   event: { headline: string; body: string; sectors: string[]; tickers: string[] },
@@ -35,17 +39,17 @@ Affected tickers: ${JSON.stringify(event.tickers)}
 User portfolio: ${JSON.stringify(portfolio)}
 User open orders: ${JSON.stringify(orders)}
 
-Required shape: transmission_chain (4 objects, include priced_in, stock_ideas, buy_trigger per above), early_lead_indicators (3-5 of { "text", "light" }), forward_horizon_summary, plus:
-{
-  "event_summary": "one sentence, max 15 words",
-  "signal_level": 1-4,
-  "scenarios": [ ... ],
-  "watch_signals": [ "string" ]
-}
-Each scenario: label, probability, outcome, market_impact (object of key strings), winners, losers, portfolio_impact, order_recommendations as in product spec.`;
+Required:
+- transmission_chain: exactly 4 objects (Depth 1–4; field "step" 1-4). Each: from_state, mechanism, to_state, time_to_effect, lead_indicator (optional), priced_in (not_priced_in|partial|priced_in), stock_ideas [{ticker,rationale}] 0-3, buy_trigger.
+- early_lead_indicators: 3-5 of { "text", "light": "green"|"yellow"|"red" }
+- forward_horizon_summary: one sentence
+- order_book_review: REQUIRED array, one object per open order (or [] if none): {ticker, direction, limit_price, stance: hold|tighten|cancel|watch|add_risk, rationale}
+- outside_depot_ideas: REQUIRED array, 1-3 objects: {ticker, side: long|short, rationale, linked_depth: 1-4, why_outside_book} — ideas not already in portfolio; each tied to an under-priced Depth.
+
+Plus: event_summary, signal_level, scenarios (2-4 with label, probability, outcome, market_impact, winners, losers, portfolio_impact, order_recommendations), watch_signals.`;
 }
 
-export const BRIEFING_SYSTEM = `You are a macro analyst writing a morning briefing for a trader. Write like a smart friend who is also a senior portfolio manager. Be direct. Be opinionated. No filler. Conversational tone. No hedging. If you think something is a buy, say so. Output valid markdown.`;
+export const BRIEFING_SYSTEM = `You are DEPTH4 writing a morning briefing. Be direct. Only state as fact what the supplied event summaries support; otherwise label ⚠️ UNCONFIRMED. Output valid markdown.`;
 
 export function buildBriefingUserPrompt(
   dateStr: string,

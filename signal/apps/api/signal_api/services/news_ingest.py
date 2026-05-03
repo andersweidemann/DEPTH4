@@ -1,5 +1,11 @@
 from __future__ import annotations
 
+"""RSS + per-ticker Yahoo headlines → classify → (optional) consequence trees.
+
+Discovery roadmap: combine these feeds with low-cost HTTP news APIs (e.g. GNews/NewsAPI free tiers,
+GDELT-style JSON) in a merge step before _process_item; dedup via redis.is_duplicate. Keep keys in Render env.
+"""
+
 import asyncio
 import time
 from datetime import datetime, UTC
