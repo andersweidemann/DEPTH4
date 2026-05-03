@@ -1,4 +1,5 @@
 import { safeAppPath } from "@/lib/app-paths";
+import { isLikelySupabaseJwtAnonKey, normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
 import { createServerClient } from "@supabase/ssr";
 import type { SetAllCookies } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -12,10 +13,14 @@ export async function GET(request: Request) {
 
   const res = NextResponse.redirect(redirectUrl);
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const supabaseKey = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  if (!supabaseUrl || !supabaseKey || !isLikelySupabaseJwtAnonKey(supabaseKey)) {
+    const q = new URLSearchParams({
+      error:
+        "Supabase env vars look invalid. Check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (no Bearer prefix, no quotes).",
+    });
+    return NextResponse.redirect(new URL(`/login?${q.toString()}`, request.url));
   }
 
   const jar = await cookies();
