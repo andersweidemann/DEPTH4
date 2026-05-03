@@ -9,6 +9,18 @@ import { Building2, FileUp, ArrowRight } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
+/** PostgREST message when tables were never migrated onto this Supabase project. */
+function augmentMissingSchemaMessage(raw: string): string {
+  if (/could not find the table|schema cache|relation .+ does not exist/i.test(raw)) {
+    return (
+      "DEPTH4 database tables are missing. In Supabase: SQL Editor → run each file from the repo in order: " +
+      "signal/supabase/migrations/20240425120000_initial.sql, then 20250425200000_dismissed_events.sql, then 20250425210000_consequence_forward_model.sql. " +
+      `(${raw})`
+    );
+  }
+  return raw;
+}
+
 export default function Onboarding() {
   const r = useRouter();
   const sb = createClient();
@@ -43,7 +55,7 @@ export default function Onboarding() {
         { onConflict: "id" },
       );
       if (ensureUserErr) {
-        se(ensureUserErr.message);
+        se(augmentMissingSchemaMessage(ensureUserErr.message));
         return;
       }
       if (prv) {
@@ -68,7 +80,7 @@ export default function Onboarding() {
             manual_or_connected: "import" as const,
             avg_cost: 0,
           });
-          if (error) se(error.message);
+          if (error) se(augmentMissingSchemaMessage(error.message));
         }
       } else {
         const { count } = await sb.from("portfolio_positions").select("*", { count: "exact", head: true }).eq("user_id", user.id);
@@ -92,7 +104,7 @@ export default function Onboarding() {
             currency: "SEK",
             manual_or_connected: "manual" as const,
           });
-          if (error) se(error.message);
+          if (error) se(augmentMissingSchemaMessage(error.message));
         }
       }
       for (const j of o) {
@@ -107,19 +119,19 @@ export default function Onboarding() {
           limit_price: lp,
           status: "active" as const,
         });
-        if (error) se(error.message);
+        if (error) se(augmentMissingSchemaMessage(error.message));
       }
       const { error: doneErr } = await sb
         .from("users")
         .update({ onboarding_complete: true } as object)
         .eq("id", user.id);
       if (doneErr) {
-        se(doneErr.message);
+        se(augmentMissingSchemaMessage(doneErr.message));
         return;
       }
       r.replace("/dashboard");
     } catch (x) {
-      se(x instanceof Error ? x.message : "Could not finish onboarding");
+      se(augmentMissingSchemaMessage(x instanceof Error ? x.message : "Could not finish onboarding"));
     } finally {
       setSaving(false);
     }
