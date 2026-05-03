@@ -1,5 +1,5 @@
 import { safeAppPath } from "@/lib/app-paths";
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createServerClient, type CookieOptions, type SetAllCookies } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -23,11 +23,11 @@ export async function GET(request: Request) {
       getAll() {
         return jar.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll: ((cookiesToSet) => {
         for (const { name, value, options } of cookiesToSet) {
-          res.cookies.set({ name, value, ...(options as CookieOptions) });
+          res.cookies.set({ name, value, ...options });
         }
-      },
+      }) satisfies SetAllCookies,
     },
   });
 
