@@ -1,5 +1,6 @@
 import { safeAppPath } from "@/lib/app-paths";
-import { createServerClient, type SetAllCookies } from "@supabase/ssr";
+import { createServerClient } from "@supabase/ssr";
+import type { SetAllCookies } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
@@ -32,9 +33,15 @@ export async function GET(request: Request) {
   });
 
   if (code) {
-    const { error } = await s.auth.exchangeCodeForSession(code);
-    if (error) {
-      const q = new URLSearchParams({ error: error.message });
+    try {
+      const { error } = await s.auth.exchangeCodeForSession(code);
+      if (error) {
+        const q = new URLSearchParams({ error: error.message });
+        return NextResponse.redirect(new URL(`/login?${q.toString()}`, request.url));
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "exchangeCodeForSession failed";
+      const q = new URLSearchParams({ error: msg });
       return NextResponse.redirect(new URL(`/login?${q.toString()}`, request.url));
     }
   }
