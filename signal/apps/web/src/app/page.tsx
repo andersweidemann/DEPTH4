@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   return (
@@ -21,20 +22,23 @@ export default function Home() {
           <Link href="/pricing" className="text-zinc-400 hover:text-zinc-200">
             Plans
           </Link>
-          <Link href="/login">
-            <Button
-              size="sm"
-              type="button"
-              variant="ghost"
-              className="text-zinc-300 hover:text-white hover:bg-zinc-800"
-            >
-              Sign in
-            </Button>
+          <Link
+            href="/login"
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "text-zinc-300 hover:text-white hover:bg-zinc-800",
+            )}
+          >
+            Sign in
           </Link>
-          <Link href="/signup?next=/onboarding">
-            <Button size="sm" type="button" className="bg-zinc-800 text-zinc-200 border border-zinc-600 hover:bg-zinc-700">
-              Create account
-            </Button>
+          <Link
+            href="/signup?next=/onboarding"
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "bg-zinc-800 text-zinc-200 border border-zinc-600 hover:bg-zinc-700",
+            )}
+          >
+            Create account
           </Link>
         </nav>
       </header>
@@ -49,24 +53,23 @@ export default function Home() {
           <span className="text-amber-400/90">open orders</span> — not a generic news feed.
         </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
-          <Link href="/signup?next=/onboarding" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full sm:min-w-[200px] bg-emerald-600 text-zinc-950 font-semibold hover:bg-emerald-500"
-              type="button"
-            >
-              Get started
-            </Button>
+          <Link
+            href="/signup?next=/onboarding"
+            className={cn(
+              buttonVariants({ size: "lg" }),
+              "w-full sm:w-auto sm:min-w-[200px] justify-center bg-emerald-600 text-zinc-950 font-semibold hover:bg-emerald-500",
+            )}
+          >
+            Get started
           </Link>
-          <Link href="/demo" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:min-w-[200px] border-zinc-600 text-zinc-200 hover:bg-zinc-800"
-              type="button"
-            >
-              Try the demo
-            </Button>
+          <Link
+            href="/demo"
+            className={cn(
+              buttonVariants({ variant: "outline", size: "lg" }),
+              "w-full sm:w-auto sm:min-w-[200px] justify-center border-zinc-600 text-zinc-200 hover:bg-zinc-800",
+            )}
+          >
+            Try the demo
           </Link>
         </div>
         <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left w-full max-w-3xl text-sm">

@@ -17,16 +17,36 @@ export function AuthPanel({ nextPath, intent }: Props) {
   const s = createClient();
   const [e, se] = useState("");
   const [msg, sm] = useState("");
+  const [err, setErr] = useState("");
 
   const next = useMemo(() => safeAppPath(nextPath), [nextPath]);
 
   const google = useCallback(async () => {
-    const origin = typeof window !== "undefined" ? location.origin : "";
-    const cb = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-    await s.auth.signInWithOAuth({ provider: "google", options: { redirectTo: cb } });
+    setErr("");
+    sm("");
+    try {
+      const origin = typeof window !== "undefined" ? location.origin : "";
+      const cb = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
+      const { data, error } = await s.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: cb },
+      });
+      if (error) {
+        setErr(error.message);
+        return;
+      }
+      if (data.url) {
+        window.location.assign(data.url);
+        return;
+      }
+      setErr("Could not start Google sign-in. Try again.");
+    } catch (caught) {
+      setErr(caught instanceof Error ? caught.message : "Sign-in failed");
+    }
   }, [s.auth, next]);
 
   const em = useCallback(async () => {
+    setErr("");
     sm("Check your email for a link. New accounts and returning users use the same link.");
     const origin = typeof window !== "undefined" ? location.origin : "";
     const cb = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
@@ -34,7 +54,10 @@ export function AuthPanel({ nextPath, intent }: Props) {
       email: e,
       options: { emailRedirectTo: cb },
     });
-    if (error) sm(error.message);
+    if (error) {
+      sm("");
+      setErr(error.message);
+    }
   }, [s.auth, e, next]);
 
   const h1 = intent === "signup" ? "Create your account" : "Sign in to DEPTH4";
@@ -126,6 +149,7 @@ export function AuthPanel({ nextPath, intent }: Props) {
               </div>
             </div>
 
+            {err && <p className="text-sm text-rose-400/90 mt-4 break-words">{err}</p>}
             {msg && <p className="text-sm text-emerald-400/90 mt-4 break-words">{msg}</p>}
 
             <p className="text-xs text-zinc-500 mt-6">
