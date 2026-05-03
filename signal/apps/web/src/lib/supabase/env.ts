@@ -30,12 +30,14 @@ export function normalizeSupabaseAnonKey(raw: string | undefined): string {
   return v.trim();
 }
 
+/** Loose format check only — real validation is done by Supabase. JWT uses base64url in each segment (dots separate segments). */
 export function isLikelySupabaseJwtAnonKey(key: string): boolean {
   if (!key.startsWith("eyJ")) return false;
   const parts = key.split(".");
   if (parts.length !== 3) return false;
-  if (key.length < 120) return false;
-  return /^[A-Za-z0-9\-_=]+$/.test(key);
+  if (key.length < 80) return false;
+  const b64url = /^[A-Za-z0-9_-]+$/;
+  return parts.every((p) => p.length > 0 && b64url.test(p));
 }
 
 export function safeAuthErrorForQuery(message: string): string {
