@@ -1,5 +1,10 @@
 import { safeAppPath } from "@/lib/app-paths";
-import { isLikelySupabaseJwtAnonKey, normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
+import {
+  isLikelySupabaseJwtAnonKey,
+  normalizeSupabaseAnonKey,
+  normalizeSupabaseUrl,
+  safeAuthErrorForQuery,
+} from "@/lib/supabase/env";
 import { createServerClient } from "@supabase/ssr";
 import type { SetAllCookies } from "@supabase/ssr";
 import { cookies } from "next/headers";
@@ -41,12 +46,12 @@ export async function GET(request: Request) {
     try {
       const { error } = await s.auth.exchangeCodeForSession(code);
       if (error) {
-        const q = new URLSearchParams({ error: error.message });
+        const q = new URLSearchParams({ error: safeAuthErrorForQuery(error.message) });
         return NextResponse.redirect(new URL(`/login?${q.toString()}`, request.url));
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "exchangeCodeForSession failed";
-      const q = new URLSearchParams({ error: msg });
+      const q = new URLSearchParams({ error: safeAuthErrorForQuery(msg) });
       return NextResponse.redirect(new URL(`/login?${q.toString()}`, request.url));
     }
   }

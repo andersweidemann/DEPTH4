@@ -1,10 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isLikelySupabaseJwtAnonKey, normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
 
 export async function middleware(request: NextRequest) {
-  const u = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const k = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!u || !k) {
+  const u = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const k = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  if (!u || !k || !isLikelySupabaseJwtAnonKey(k)) {
     return NextResponse.next();
   }
   let res = NextResponse.next({
