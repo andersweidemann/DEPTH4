@@ -37,6 +37,10 @@ export type ForwardModel = {
   /** Plain strings (legacy) or { text, light: red|yellow|green } from the model. */
   early_lead_indicators?: (string | { text: string; light?: string; signal?: string })[];
   forward_horizon_summary?: string;
+  /** From consequence LLM — per open order review */
+  order_book_review?: Record<string, unknown>[];
+  /** From consequence LLM — ideas not in portfolio */
+  outside_depot_ideas?: Record<string, unknown>[];
 };
 
 export type Tree = {

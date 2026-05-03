@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
   FeedViewModel,
+  FeedVerification,
   LeadListItem,
   LeadTrafficLight,
   PricedInLevel,
@@ -230,6 +231,34 @@ function LeadListD4({ eventId, modelRows }: { eventId: string; modelRows: LeadLi
   );
 }
 
+function VerificationBlockD4({ v }: { v: FeedVerification }) {
+  if (v.status === "unknown" && !v.basis && !v.flagForUser) return null;
+  const warn = v.status === "unconfirmed" || (v.flagForUser && v.flagForUser.startsWith("⚠️"));
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        padding: "8px 10px",
+        borderRadius: 6,
+        fontSize: 11,
+        lineHeight: 1.45,
+        border: `1px solid ${warn ? "var(--d4-red)" : "var(--d4-border)"}`,
+        background: warn ? "rgba(194,82,82,0.12)" : "var(--d4-s4)",
+        color: "var(--d4-text)",
+      }}
+    >
+      <span style={{ fontWeight: 700, color: warn ? "var(--d4-red)" : "var(--d4-muted)" }}>
+        {v.status === "confirmed" ? "Verified (text-only) " : v.status === "unconfirmed" ? "Unconfirmed " : "Review "}
+      </span>
+      {v.flagForUser && <span>{v.flagForUser}</span>}
+      {!v.flagForUser && v.basis && <span>{v.basis}</span>}
+      {v.lastKnownDateHint && (
+        <span style={{ display: "block", marginTop: 4, color: "var(--d4-muted)" }}>Date in text: {v.lastKnownDateHint}</span>
+      )}
+    </div>
+  );
+}
+
 function ForwardBlockD4({ vm }: { vm: FeedViewModel }) {
   const plies = vm.layer2.transmissionPlies ?? [];
   const leadList = vm.layer2.earlyLeadList;
@@ -238,14 +267,14 @@ function ForwardBlockD4({ vm }: { vm: FeedViewModel }) {
   return (
     <div>
       {plies.length > 0 && (
-        <p className="d4-dm-kicker" style={{ marginBottom: 8 }}>Forward — four steps in a row</p>
+        <p className="d4-dm-kicker" style={{ marginBottom: 8 }}>Forward — four Depths in a row</p>
       )}
       {plies.length > 0 && (
         <ol style={{ margin: 0, padding: 0, listStyle: "none" }}>
           {plies.map((p, i) => (
             <li key={p.step + String(i)} style={{ borderLeft: "2px solid var(--d4-gold)", paddingLeft: 10, marginBottom: 8 }}>
               <div className="d4-tl-step" style={{ color: "var(--d4-gold)" }}>
-                Step {p.step}
+                Depth {p.step}
                 {p.time_to_effect && p.time_to_effect !== "—" && <span className="d4-tl-time" style={{ marginLeft: 6 }}>· {p.time_to_effect}</span>}
               </div>
               <p style={{ fontSize: 11, color: "var(--d4-muted)" }}>
@@ -297,6 +326,7 @@ function isTail(s: { label: string; probability: number }, i: number, n: number)
 
 function FeedTags({ vm, publishedAt, overlapLabels }: { vm: FeedViewModel; publishedAt: string | null; overlapLabels: string[] }) {
   const tags: { k: "hot" | "energy" | "impact" | "base"; t: string }[] = [];
+  if (vm.verification?.status === "unconfirmed") tags.push({ k: "base", t: "⚠ Unconfirmed" });
   if (vm.signalLevel >= 4) tags.push({ k: "hot", t: "High signal" });
   const h = (vm.headline + vm.hook).toLowerCase();
   if (h.includes("oil") || h.includes("brent") || h.includes("opec") || h.includes("crude") || h.includes("energy")) {
@@ -380,6 +410,7 @@ export function Depth4FeedBubble({
           <div className="d4-bubble-meta" style={{ marginTop: 4, flexWrap: "wrap" }}>
             <em style={{ color: "var(--d4-text)", fontStyle: "normal" }}>→ {model.hook}</em>
           </div>
+          {model.verification && <VerificationBlockD4 v={model.verification} />}
         </div>
         {onDismiss && (
           <button

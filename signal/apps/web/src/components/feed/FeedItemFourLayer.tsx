@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect } from "react";
 import type {
   FeedViewModel,
+  FeedVerification,
   WatchListTrigger3,
   TransmissionPly,
   LeadListItem,
@@ -20,6 +21,27 @@ function SourceBadge({ name }: { name: string }) {
     <span className="inline-block rounded border border-zinc-600 bg-zinc-800/80 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-300">
       {name}
     </span>
+  );
+}
+
+function VerificationHint({ v }: { v: FeedVerification }) {
+  if (v.status === "unknown" && !v.basis && !v.flagForUser) return null;
+  const warn = v.status === "unconfirmed" || Boolean(v.flagForUser?.startsWith("⚠️"));
+  return (
+    <div
+      className={cn(
+        "mt-2 rounded-lg border px-2.5 py-2 text-xs leading-snug",
+        warn ? "border-rose-500/50 bg-rose-950/25 text-rose-100" : "border-zinc-600/60 bg-zinc-900/70 text-zinc-300",
+      )}
+    >
+      <span className="font-semibold text-zinc-200">
+        {v.status === "confirmed" ? "Verified (from article text) · " : v.status === "unconfirmed" ? "Unconfirmed · " : ""}
+      </span>
+      {v.flagForUser || v.basis || "No verification note."}
+      {v.lastKnownDateHint ? (
+        <span className="mt-1 block text-[10px] text-zinc-500">Date in text: {v.lastKnownDateHint}</span>
+      ) : null}
+    </div>
   );
 }
 
@@ -238,7 +260,7 @@ function ForwardPlyBlock({
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-cyan-400/90">Forward — four steps in a row</p>
           <p className="text-[11px] text-cyan-200/70 mt-0.5">
-            Step 1 → 2 → 3 → 4, one after another. (Layer 3 is where the story can branch.) Short lines on purpose.
+            Depth 1 → 2 → 3 → 4, one after another. (Layer 3 is where the story can branch.) Short lines on purpose.
           </p>
           <p className="text-[10px] text-zinc-500 mt-1.5">
             <span className="text-amber-500/80">Not investment advice.</span> Example tickers, “priced in” tags, and buy
@@ -257,7 +279,7 @@ function ForwardPlyBlock({
         {plies.map((p, i) => (
           <li key={p.step + "-" + i} className="border-l-2 border-cyan-500/50 pl-3">
             <div className="flex flex-wrap items-baseline gap-2 text-[10px] text-cyan-500/90">
-              <span>Step {p.step}</span>
+              <span>Depth {p.step}</span>
               {p.time_to_effect && p.time_to_effect !== "—" && <span>· {p.time_to_effect}</span>}
             </div>
             <p className="text-xs text-cyan-100/90 mt-0.5">
@@ -470,6 +492,39 @@ function BookL4({ l4, hook }: { l4: NonNullable<FeedViewModel["layer4"]>; hook: 
           ))}
         </ul>
       </section>
+      {l4.orderBookReview && l4.orderBookReview.length > 0 && (
+        <section>
+          <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">Model — order book vs scenario</h4>
+          <ul className="space-y-2 text-sm text-zinc-200">
+            {l4.orderBookReview.map((r, i) => (
+              <li key={`${r.ticker}-${i}`} className="rounded-lg border border-sky-700/40 bg-sky-950/20 px-3 py-2">
+                <p className="font-medium text-zinc-100">
+                  {r.ticker}
+                  {r.direction ? ` · ${r.direction}` : ""}
+                  {r.limitPrice != null && !Number.isNaN(Number(r.limitPrice)) ? ` @ ${r.limitPrice}` : ""}{" "}
+                  <span className="text-[10px] uppercase text-amber-300">{r.stance}</span>
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">{r.rationale}</p>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {l4.outsideDepotIdeas && l4.outsideDepotIdeas.length > 0 && (
+        <section>
+          <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">Model — outside depot</h4>
+          <ol className="list-decimal pl-4 space-y-2 text-sm text-zinc-200">
+            {l4.outsideDepotIdeas.map((x) => (
+              <li key={x.ticker + x.linkedDepth}>
+                <span className="font-semibold text-amber-200">{x.ticker}</span>{" "}
+                <span className="text-zinc-500">({x.side}) · Depth {x.linkedDepth}</span>
+                <p className="mt-0.5 text-zinc-300">{x.rationale}</p>
+                <p className="text-xs text-zinc-500">{x.whyOutsideBook}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
       <section>
         <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">C — watch list (not in book)</h4>
         {l4.watchlist.length === 0 ? (
@@ -612,6 +667,7 @@ export function FeedItemFourLayer({
         <span className="text-zinc-500" aria-hidden>→</span>{" "}
         <em className="not-italic font-medium text-zinc-100">{model.hook}</em>
       </p>
+      {model.verification && <VerificationHint v={model.verification} />}
       <p className="mt-2 text-[10px] text-zinc-500 sm:hidden">Tap the headline for the full story (layer 2).</p>
 
       <div className="mt-4 hidden md:block space-y-2">

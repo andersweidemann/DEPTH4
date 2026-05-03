@@ -90,6 +90,46 @@ export function Depth4L4Panel({
           </div>
         )}
 
+        {l4 && l4.orderBookReview && l4.orderBookReview.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)", marginBottom: 6 }}>Order book review (model)</div>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
+              {l4.orderBookReview.map((r, i) => (
+                <li
+                  key={`${r.ticker}-${r.stance}-${i}`}
+                  className="d4-dm-block"
+                  style={{ fontSize: 12, borderLeft: "2px solid var(--d4-blue)", paddingLeft: 10 }}
+                >
+                  <p style={{ margin: "0 0 4px", fontWeight: 600, color: "var(--d4-text)" }}>
+                    {r.ticker} {r.direction ? `· ${r.direction}` : ""}{" "}
+                    {r.limitPrice != null && !Number.isNaN(Number(r.limitPrice)) && (
+                      <span style={{ color: "var(--d4-muted)", fontWeight: 400 }}>@ {String(r.limitPrice)}</span>
+                    )}
+                    <span style={{ marginLeft: 8, fontSize: 10, textTransform: "uppercase", color: "var(--d4-gold)" }}>{r.stance}</span>
+                  </p>
+                  <p style={{ margin: 0, color: "var(--d4-muted)" }}>{r.rationale}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {l4 && l4.outsideDepotIdeas && l4.outsideDepotIdeas.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)", marginBottom: 6 }}>Outside depot (model)</div>
+            <ol style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--d4-text)" }}>
+              {l4.outsideDepotIdeas.map((x) => (
+                <li key={x.ticker + x.linkedDepth} style={{ margin: "6px 0" }}>
+                  <strong style={{ color: "var(--d4-gold)" }}>{x.ticker}</strong>{" "}
+                  <span style={{ color: "var(--d4-muted)" }}>({x.side}) · Depth {x.linkedDepth}</span>
+                  <div style={{ marginTop: 4, color: "var(--d4-text)" }}>{x.rationale}</div>
+                  <div style={{ marginTop: 2, fontSize: 11, color: "var(--d4-muted)" }}>{x.whyOutsideBook}</div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
+
         {l4 && l4.watchlist.length > 0 && (
           <div style={{ marginTop: 10 }}>
             <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)" }}>Watch (not in book)</div>

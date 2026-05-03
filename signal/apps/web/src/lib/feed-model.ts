@@ -92,12 +92,41 @@ export type WatchCandidate4 = {
   line: string; // full line with ticker, level, context
 };
 
+/** Classifier output surfaced on the card (from news_events.raw_json). */
+export type FeedVerification = {
+  status: "confirmed" | "unconfirmed" | "unknown";
+  basis?: string;
+  lastKnownDateHint?: string | null;
+  flagForUser?: string | null;
+};
+
+/** Consequence engine: each open order vs scenario matrix (from forward_model). */
+export type OrderBookReviewRow = {
+  ticker: string;
+  direction?: string;
+  limitPrice?: number | null;
+  stance: string;
+  rationale: string;
+};
+
+/** Consequence engine: 1–3 names not in the book, tied to a Depth step. */
+export type OutsideDepotIdea = {
+  ticker: string;
+  side: string;
+  rationale: string;
+  linkedDepth: number;
+  whyOutsideBook: string;
+};
+
 export type FeedLayer4 = {
   positions: PosImpactRow4[];
   orders: OpenOrderBlock4[];
   watchlist: WatchCandidate4[];
   /** false when not logged in / demo */
   isPersonalized: boolean;
+  /** When present, prefer these over generic order blocks in L4 panel */
+  orderBookReview?: OrderBookReviewRow[];
+  outsideDepotIdeas?: OutsideDepotIdea[];
 };
 
 export type FeedViewModel = {
@@ -114,4 +143,6 @@ export type FeedViewModel = {
   layer4: FeedLayer4 | null;
   /** L4 push copy = hook (Layer 1 one-liner) */
   notificationText: string;
+  /** From classify raw_json when present */
+  verification?: FeedVerification | null;
 };

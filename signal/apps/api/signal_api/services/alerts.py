@@ -192,22 +192,30 @@ def _normalize_lead_list(raw: object) -> list:
 
 def _forward_model_from_tree_payload(payload: dict) -> dict:
   """Normalize LLM flat or nested forward_model for DB (jsonb on consequence_trees)."""
+  def _pick(src: dict) -> dict:
+    out = {
+      "transmission_chain": list(src.get("transmission_chain") or []),
+      "early_lead_indicators": _normalize_lead_list(src.get("early_lead_indicators") or []),
+      "forward_horizon_summary": str(src.get("forward_horizon_summary") or "")[:2_000],
+    }
+    obr = src.get("order_book_review")
+    if isinstance(obr, list):
+      out["order_book_review"] = obr[:50]
+    odi = src.get("outside_depot_ideas")
+    if isinstance(odi, list):
+      out["outside_depot_ideas"] = odi[:20]
+    return out
+
   inner = payload.get("forward_model")
   if isinstance(inner, dict) and (
     inner.get("transmission_chain")
     or inner.get("early_lead_indicators")
     or inner.get("forward_horizon_summary")
+    or inner.get("order_book_review")
+    or inner.get("outside_depot_ideas")
   ):
-    return {
-      "transmission_chain": list(inner.get("transmission_chain") or []),
-      "early_lead_indicators": _normalize_lead_list(inner.get("early_lead_indicators") or []),
-      "forward_horizon_summary": str(inner.get("forward_horizon_summary") or "")[:2_000],
-    }
-  return {
-    "transmission_chain": list(payload.get("transmission_chain") or []),
-    "early_lead_indicators": _normalize_lead_list(payload.get("early_lead_indicators") or []),
-    "forward_horizon_summary": str(payload.get("forward_horizon_summary") or "")[:2_000],
-  }
+    return _pick(inner)
+  return _pick(payload)
 
 
 def insert_tree(

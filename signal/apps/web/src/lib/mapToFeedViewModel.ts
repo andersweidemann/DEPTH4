@@ -3,6 +3,7 @@ import type {
   FeedLayer2,
   FeedLayer3,
   FeedLayer4,
+  FeedVerification,
   Sl,
   WatchListTrigger3,
   FeedScenario3,
@@ -11,6 +12,8 @@ import type {
   LeadTrafficLight,
   PricedInLevel,
   PlyStockIdea,
+  OrderBookReviewRow,
+  OutsideDepotIdea,
 } from "./feed-model";
 import type { NewsItem, Tree, Pos, Ord, Q, ForwardModel } from "@/app/dashboard/types";
 
@@ -33,6 +36,66 @@ type RawExt = {
 function parseRaw(raw: unknown): RawExt {
   if (!raw || typeof raw !== "object") return {};
   return raw as RawExt;
+}
+
+function parseVerification(raw: unknown): FeedVerification | null {
+  if (!raw || typeof raw !== "object") return null;
+  const v = (raw as Record<string, unknown>).verification;
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const st = String(o.status || "").toLowerCase();
+  const status: FeedVerification["status"] =
+    st === "confirmed" ? "confirmed" : st === "unconfirmed" ? "unconfirmed" : "unknown";
+  return {
+    status,
+    basis: typeof o.basis === "string" ? o.basis : undefined,
+    lastKnownDateHint: o.last_known_date_hint == null ? null : String(o.last_known_date_hint),
+    flagForUser: o.flag_for_user == null ? null : String(o.flag_for_user),
+  };
+}
+
+function parseOrderBookReview(fm: ForwardModel | undefined | null): OrderBookReviewRow[] | undefined {
+  const raw = fm?.order_book_review;
+  if (!raw?.length) return undefined;
+  const out: OrderBookReviewRow[] = [];
+  for (const x of raw) {
+    if (!x || typeof x !== "object") continue;
+    const r = x as Record<string, unknown>;
+    const ticker = String(r.ticker ?? "").trim().toUpperCase();
+    if (!ticker) continue;
+    const stance = String(r.stance ?? "watch").trim() || "watch";
+    const rationale = String(r.rationale ?? "").trim() || "—";
+    const lp = r.limit_price;
+    out.push({
+      ticker,
+      direction: typeof r.direction === "string" ? r.direction : undefined,
+      limitPrice: typeof lp === "number" ? lp : lp != null && lp !== "" ? Number(lp) : null,
+      stance,
+      rationale,
+    });
+  }
+  return out.length ? out : undefined;
+}
+
+function parseOutsideDepotIdeas(fm: ForwardModel | undefined | null): OutsideDepotIdea[] | undefined {
+  const raw = fm?.outside_depot_ideas;
+  if (!raw?.length) return undefined;
+  const out: OutsideDepotIdea[] = [];
+  for (const x of raw) {
+    if (!x || typeof x !== "object") continue;
+    const r = x as Record<string, unknown>;
+    const ticker = String(r.ticker ?? "").trim().toUpperCase();
+    if (!ticker) continue;
+    const ld = typeof r.linked_depth === "number" ? r.linked_depth : Number(r.linked_depth);
+    out.push({
+      ticker,
+      side: String(r.side ?? "long").trim() || "long",
+      rationale: String(r.rationale ?? "").trim() || "—",
+      linkedDepth: Number.isFinite(ld) ? Math.min(4, Math.max(1, Math.round(ld))) : 1,
+      whyOutsideBook: String(r.why_outside_book ?? "").trim() || "—",
+    });
+  }
+  return out.length ? out : undefined;
 }
 
 function defaultLayer2(n: NewsItem, body: string | null | undefined): FeedLayer2 {
@@ -324,7 +387,15 @@ export function buildLayer4(
   const watchlist = tickPool.slice(0, 5).map((tk) => ({
     line: `${String(tk)} — only as context after L2–3; not a buy list.`,
   }));
-  return { positions: rows, orders: oBlocks, watchlist, isPersonalized: true };
+  const fm = t?.forward_model;
+  return {
+    positions: rows,
+    orders: oBlocks,
+    watchlist,
+    isPersonalized: true,
+    orderBookReview: parseOrderBookReview(fm),
+    outsideDepotIdeas: parseOutsideDepotIdeas(fm),
+  };
 }
 
 export function mapToFeedViewModel(
@@ -352,6 +423,8 @@ export function mapToFeedViewModel(
         line: `${t} — consider only after L2 context (illustration)`,
       })),
       isPersonalized: false,
+      orderBookReview: parseOrderBookReview(tree?.forward_model),
+      outsideDepotIdeas: parseOutsideDepotIdeas(tree?.forward_model),
     };
   }
   return {
@@ -365,5 +438,6 @@ export function mapToFeedViewModel(
     layer3: l3,
     layer4: l4,
     notificationText: hook,
+    verification: parseVerification(n.raw_json),
   };
 }
