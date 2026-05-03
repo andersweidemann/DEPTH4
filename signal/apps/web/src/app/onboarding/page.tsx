@@ -16,58 +16,113 @@ export default function Onboarding() {
   const [p, setP] = useState([{ t: "", q: "", a: "" }]);
   const [o, setO] = useState([{ t: "", dir: "buy" as "buy" | "sell", lp: "" }]);
   const [err, se] = useState("");
+  const [saving, setSaving] = useState(false);
   const [prv, sprv] = useState<{ t: string; n: string; q: string }[] | null>(null);
   const [b, sbr] = useState<BrokerImportSource>("unknown");
 
   async function fin() {
+    if (saving) return;
+    setSaving(true);
     se("");
-    const { data: { user } } = await sb.auth.getUser();
-    if (!user) return r.push("/login");
-    if (prv) {
-      const { count } = await sb.from("portfolio_positions").select("*", { count: "exact", head: true }).eq("user_id", user.id);
-      if ((prv.length + (count ?? 0)) > 5) {
-        const u = await sb.from("users").select("tier").eq("id", user.id).single();
-        if ((u.data as { tier: string } | null)?.tier === "free") {
-          se("Free plan allows 5 positions. Remove some or upgrade to Pro.");
-          return;
+    try {
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      if (!user) {
+        r.push("/login");
+        return;
+      }
+
+      const meta = user.user_metadata as { full_name?: string; name?: string } | undefined;
+      const fullName =
+        (typeof meta?.full_name === "string" && meta.full_name) ||
+        (typeof meta?.name === "string" && meta.name) ||
+        "";
+      const { error: ensureUserErr } = await sb.from("users").upsert(
+        { id: user.id, email: user.email ?? "", full_name: fullName },
+        { onConflict: "id" },
+      );
+      if (ensureUserErr) {
+        se(ensureUserErr.message);
+        return;
+      }
+      if (prv) {
+        const { count } = await sb.from("portfolio_positions").select("*", { count: "exact", head: true }).eq("user_id", user.id);
+        if ((prv.length + (count ?? 0)) > 5) {
+          const u = await sb.from("users").select("tier").eq("id", user.id).single();
+          if ((u.data as { tier: string } | null)?.tier === "free") {
+            se("Free plan allows 5 positions. Remove some or upgrade to Pro.");
+            return;
+          }
+        }
+        for (const m of prv) {
+          if (!m.t) continue;
+          const q = parseFloat(m.q) || 0;
+          if (q === 0) continue;
+          const { error } = await sb.from("portfolio_positions").insert({
+            user_id: user.id,
+            ticker: m.t.toUpperCase().slice(0, 20),
+            company_name: m.n || null,
+            quantity: q,
+            currency: "SEK",
+            manual_or_connected: "import" as const,
+            avg_cost: 0,
+          });
+          if (error) se(error.message);
+        }
+      } else {
+        const { count } = await sb.from("portfolio_positions").select("*", { count: "exact", head: true }).eq("user_id", user.id);
+        if (p.filter((i) => i.t).length + (count ?? 0) > 5) {
+          const u = await sb.from("users").select("tier").eq("id", user.id).single();
+          if ((u.data as { tier: string } | null)?.tier === "free") {
+            se("Free plan allows 5 positions. Remove some or upgrade to Pro.");
+            return;
+          }
+        }
+        for (const i of p) {
+          if (!i.t) continue;
+          const q = parseFloat(i.q) || 0,
+            a = parseFloat(i.a) || 0;
+          if (!q) continue;
+          const { error } = await sb.from("portfolio_positions").insert({
+            user_id: user.id,
+            ticker: i.t.toUpperCase().slice(0, 16),
+            quantity: q,
+            avg_cost: a,
+            currency: "SEK",
+            manual_or_connected: "manual" as const,
+          });
+          if (error) se(error.message);
         }
       }
-      for (const m of prv) {
-        if (!m.t) continue;
-        const q = parseFloat(m.q) || 0;
-        if (q === 0) continue;
-        const { error } = await sb.from("portfolio_positions").insert({
-          user_id: user.id, ticker: m.t.toUpperCase().slice(0, 20), company_name: m.n || null,
-          quantity: q, currency: "SEK", manual_or_connected: "import" as const, avg_cost: 0,
+      for (const j of o) {
+        if (!j.t) continue;
+        const lp = parseFloat(j.lp);
+        if (!j.lp) continue;
+        const { error } = await sb.from("open_orders").insert({
+          user_id: user.id,
+          ticker: j.t.toUpperCase(),
+          order_type: "limit",
+          direction: j.dir,
+          limit_price: lp,
+          status: "active" as const,
         });
         if (error) se(error.message);
       }
-    } else {
-      const { count } = await sb.from("portfolio_positions").select("*", { count: "exact", head: true }).eq("user_id", user.id);
-      if (p.filter((i) => i.t).length + (count ?? 0) > 5) {
-        const u = await sb.from("users").select("tier").eq("id", user.id).single();
-        if ((u.data as { tier: string } | null)?.tier === "free") {
-          se("Free plan allows 5 positions. Remove some or upgrade to Pro.");
-          return;
-        }
+      const { error: doneErr } = await sb
+        .from("users")
+        .update({ onboarding_complete: true } as object)
+        .eq("id", user.id);
+      if (doneErr) {
+        se(doneErr.message);
+        return;
       }
-      for (const i of p) {
-        if (!i.t) continue;
-        const q = parseFloat(i.q) || 0, a = parseFloat(i.a) || 0;
-        if (!q) continue;
-        const { error } = await sb.from("portfolio_positions").insert({ user_id: user.id, ticker: i.t.toUpperCase().slice(0, 16), quantity: q, avg_cost: a, currency: "SEK", manual_or_connected: "manual" as const });
-        if (error) se(error.message);
-      }
+      r.replace("/dashboard");
+    } catch (x) {
+      se(x instanceof Error ? x.message : "Could not finish onboarding");
+    } finally {
+      setSaving(false);
     }
-    for (const j of o) {
-      if (!j.t) continue;
-      const lp = parseFloat(j.lp);
-      if (!j.lp) continue;
-      const { error } = await sb.from("open_orders").insert({ user_id: user.id, ticker: j.t.toUpperCase(), order_type: "limit", direction: j.dir, limit_price: lp, status: "active" as const });
-      if (error) se(error.message);
-    }
-    await sb.from("users").update({ onboarding_complete: true } as object).eq("id", user.id);
-    r.replace("/dashboard");
   }
 
   async function csvPicked() {
@@ -153,11 +208,25 @@ export default function Onboarding() {
           </Card>
         </div>
       </div>
-      {err && <p className="text-sm text-red-600">{err}</p>}
-      <div className="flex justify-end gap-2 fixed bottom-0 left-0 right-0 p-3 bg-white/90 border-t border-slate-200 z-20">
-        <Button type="button" onClick={fin} className="w-full sm:w-auto">
-          Save & go to feed <ArrowRight className="ml-1 h-4 w-4" />
-        </Button>
+      <div className="flex flex-col gap-2 fixed bottom-0 left-0 right-0 p-3 bg-white/95 border-t border-slate-200 z-20 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        {err ? <p className="text-sm text-red-600 text-center sm:text-left">{err}</p> : null}
+        <div className="flex justify-end">
+          <Button
+            type="button"
+            onClick={() => void fin()}
+            disabled={saving}
+            className="w-full sm:w-auto inline-flex items-center gap-1.5"
+          >
+            {saving ? (
+              "Saving…"
+            ) : (
+              <>
+                Save & go to feed
+                <ArrowRight className="h-4 w-4 shrink-0" />
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
