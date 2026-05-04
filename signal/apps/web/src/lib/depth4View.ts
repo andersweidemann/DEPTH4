@@ -23,8 +23,50 @@ export function relTime(publishedAt: string | null | undefined): string {
 
 export type L1FromFeed = { event: string; why: string; next: string; signal: string };
 
+function _squish(s: string): string {
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+/** True when two strings are the same headline-ish blob (avoid repeating card chrome in Depth 1). */
+function _sameish(a: string, b: string): boolean {
+  const x = _squish(a);
+  const y = _squish(b);
+  if (!x || !y) return false;
+  if (x === y) return true;
+  const short = x.length < y.length ? x : y;
+  const long = x.length < y.length ? y : x;
+  if (short.length >= 24 && long.includes(short.slice(0, Math.min(48, short.length)))) return true;
+  return false;
+}
+
+/**
+ * Depth 1 — Event: three distinct lines of meaning.
+ * - Prefer consequence **transmission_chain** step 1 (`from_state` / `mechanism` / `to_state`) when present —
+ *   that is the product’s “what state → why it moves → what state next”.
+ * - Otherwise fall back to classifier **chain**; when that chain is thin, use **forward_horizon_summary**
+ *   before repeating **hook** under “Next” so we do not clone the subtitle line twice.
+ */
 export function layer1FromView(vm: FeedViewModel): L1FromFeed {
+  const plies = vm.layer2.transmissionPlies;
+  if (plies?.length) {
+    const p0 = plies[0]!;
+    const from = String(p0.from_state || "").trim();
+    const mech = String(p0.mechanism || "").trim();
+    const to = String(p0.to_state || "").trim();
+    const lead = String(p0.lead_indicator || "").trim();
+    const trig = String(p0.buy_trigger || "").trim();
+    const event = from || vm.headline;
+    const why = mech || vm.layer2.chain[0]?.text?.trim() || vm.layer2.anchorHeadline || "—";
+    const nextParts = [to, lead, trig].filter(Boolean);
+    let next = nextParts.join(" · ").trim();
+    if (!next || _sameish(next, vm.hook)) {
+      next = vm.layer2.forwardHorizonSummary?.trim() || vm.hook;
+    }
+    return { event, why, next, signal: vm.layer2.verdict };
+  }
+
   const ch = vm.layer2.chain;
+  const horizon = vm.layer2.forwardHorizonSummary?.trim() || "";
   if (ch.length >= 3) {
     return {
       event: ch[0]!.text,
@@ -34,25 +76,27 @@ export function layer1FromView(vm: FeedViewModel): L1FromFeed {
     };
   }
   if (ch.length === 2) {
+    const next = !_sameish(vm.hook, ch[1]!.text) ? vm.hook : horizon || vm.hook;
     return {
       event: ch[0]!.text,
       why: ch[1]!.text,
-      next: vm.hook,
+      next,
       signal: vm.layer2.verdict,
     };
   }
   if (ch.length === 1) {
+    const next = horizon && !_sameish(horizon, vm.hook) ? horizon : vm.hook;
     return {
       event: vm.headline,
       why: ch[0]!.text,
-      next: vm.hook,
+      next,
       signal: vm.layer2.verdict,
     };
   }
   return {
     event: vm.headline,
-    why: (vm.layer2 as FeedLayer2).anchorHeadline || vm.headline,
-    next: vm.hook,
+    why: vm.layer2.anchorHeadline || vm.headline,
+    next: horizon || vm.hook,
     signal: vm.layer2.verdict,
   };
 }
