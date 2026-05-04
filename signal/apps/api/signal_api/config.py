@@ -13,9 +13,10 @@ class Settings(BaseSettings):
   )
 
   anthropic_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="ANTHROPIC_API_KEY")
-  # Must match an id your org can call; list: https://docs.anthropic.com/en/api/models
+  # Cheaper default for pre-launch; override ANTHROPIC_MODEL for production (e.g. claude-sonnet-4-6).
+  # List: https://docs.anthropic.com/en/api/models
   anthropic_model: str = Field(
-    default="claude-sonnet-4-6",
+    default="claude-3-5-haiku-20241022",
     validation_alias="ANTHROPIC_MODEL",
   )
 
