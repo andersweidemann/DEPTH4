@@ -110,6 +110,126 @@ async def _news_source_url_exists(sb: Client, source_url_key: str) -> bool:
     return False
 
 
+def _is_nonempty_scenario_row(d: dict[str, Any]) -> bool:
+  if not d:
+    return False
+  for k in ("label", "name", "title", "outcome", "summary", "description"):
+    v = d.get(k)
+    if isinstance(v, str) and v.strip():
+      return True
+  mi = d.get("market_impact")
+  if isinstance(mi, str) and mi.strip():
+    return True
+  if isinstance(mi, dict) and mi:
+    return True
+  return False
+
+
+def _extract_scenarios_list(tree_out: dict[str, Any]) -> list[dict[str, Any]]:
+  sc_raw = tree_out.get("scenarios")
+  if isinstance(sc_raw, list):
+    rows = [x for x in sc_raw if isinstance(x, dict)]
+  elif isinstance(sc_raw, dict):
+    rows = [v for v in sc_raw.values() if isinstance(v, dict)]
+  else:
+    rows = []
+  return [r for r in rows if _is_nonempty_scenario_row(r)]
+
+
+def _skeleton_scenarios(
+  headline: str,
+  one_line: str,
+  tickers: list[str],
+  sectors: list[str],
+) -> list[dict[str, Any]]:
+  """Last-resort 3-branch matrix so signal ≥ 3 trees always persist usable Depth-3 scenarios."""
+  base = (one_line or headline)[:280].strip() or "the headline event digests without disorderly repricing"
+  vol = f"Sectors in play: {', '.join(sectors[:5])}." if sectors else "Cross-asset repricing as the headline digests."
+  w_tick: list[dict[str, str]] = []
+  for t in tickers[:4]:
+    u = str(t).strip().upper().split(".", 1)[0][:8]
+    if u:
+      w_tick.append({"ticker": u})
+  if not w_tick:
+    w_tick = [{"ticker": "SPY"}]
+  return [
+    {
+      "label": "Base case",
+      "probability": 45,
+      "outcome": f"Default path: {base}; range-bound chop after the initial move.",
+      "market_impact": f"{vol} Realized vol mean-reverts; liquidity remains adequate.",
+      "winners": w_tick[:2],
+      "losers": [],
+      "portfolio_impact": "Size only to deliberate theme overlap; avoid blind headline risk.",
+      "order_recommendations": "Widen stops on correlated singles; do not chase the first print.",
+    },
+    {
+      "label": "Constructive surprise",
+      "probability": 32,
+      "outcome": f"Resolution skews risk-on relative to the first read of: {base[:160]}.",
+      "market_impact": "Cyclicals outperform defensives near term; credit spreads steady.",
+      "winners": w_tick,
+      "losers": [{"ticker": "TLT"}],
+      "portfolio_impact": "Add only to prior high-conviction longs tied to this theme, sized for gap risk.",
+      "order_recommendations": "Staged adds on pullback; cap new risk as a fraction of equity.",
+    },
+    {
+      "label": "Adverse tail",
+      "probability": 23,
+      "outcome": f"Escalation or policy shock: {base[:160]} worsens; liquidity stress in pockets.",
+      "market_impact": "Volatility spike, de-grossing, quality bid; correlations jump.",
+      "winners": [{"ticker": "GLD"}, {"ticker": "UUP"}],
+      "losers": w_tick,
+      "portfolio_impact": "Reduce gross on margin-heavy books; keep dry powder for dislocations.",
+      "order_recommendations": "Tighten stops on high-beta names in the direct path of the story.",
+    },
+  ]
+
+
+async def _ensure_scenarios_for_signal3(
+  eid: str,
+  sev: int,
+  title: str,
+  body: str,
+  sect: list[str],
+  tick: list[str],
+  cls: dict[str, Any],
+  tree_out: dict[str, Any],
+) -> dict[str, Any]:
+  if sev < 3:
+    return tree_out
+  if _extract_scenarios_list(tree_out):
+    return tree_out
+  log.warning(
+    "news_ingest: consequence missing usable scenarios; running repair pass event_id=%s sev=%s",
+    eid,
+    sev,
+  )
+  try:
+    repaired = await claude.generate_scenarios_repair(title, body, sect, tick)
+    fixed = [r for r in repaired if _is_nonempty_scenario_row(r)]
+    if len(fixed) >= 2:
+      tree_out["scenarios"] = fixed
+      return tree_out
+  except Exception as e:
+    log.warning(
+      "news_ingest: scenarios repair LLM failed event_id=%s err=%s",
+      eid,
+      e,
+    )
+  tree_out["scenarios"] = _skeleton_scenarios(
+    title,
+    str(cls.get("one_line_summary") or ""),
+    [str(s) for s in tick],
+    [str(s) for s in sect],
+  )
+  log.error(
+    "news_ingest: applied skeleton scenarios (repair missing or insufficient) event_id=%s",
+    eid,
+  )
+  return tree_out
+
+
 async def _process_item(
   sb: Client,
   item: dict[str, Any],
@@ -178,16 +298,32 @@ async def _process_item(
     return
   sect = [str(s) for s in (cls.get("affected_sectors") or [])]
   tick = [str(s) for s in (cls.get("affected_tickers") or [])]
-  try:
-    tree_out = await claude.generate_consequence(
-      title, (item.get("body_text") or ""), sect, tick, "[]", "[]"
-    )
-  except Exception as e:
+  body_text = (item.get("body_text") or "")[:32_000]
+  tree_out: dict[str, Any] | None = None
+  last_exc: BaseException | None = None
+  for attempt in range(3):
+    try:
+      tree_out = await claude.generate_consequence(title, body_text, sect, tick, "[]", "[]")
+      last_exc = None
+      break
+    except Exception as e:
+      last_exc = e
+      log.warning(
+        "news_ingest: consequence LLM attempt %s/3 failed event_id=%s signal=%s err=%s",
+        attempt + 1,
+        eid,
+        sev,
+        e,
+      )
+      if attempt < 2:
+        await asyncio.sleep(0.35 * (attempt + 1))
+
+  if tree_out is None:
     log.warning(
-      "news_ingest: consequence LLM failed event_id=%s signal=%s err=%s",
+      "news_ingest: consequence LLM exhausted retries event_id=%s signal=%s err=%s",
       eid,
       sev,
-      e,
+      last_exc,
     )
     tree_out = {
       "event_summary": (cls.get("one_line_summary") or "")[:200],
@@ -195,16 +331,14 @@ async def _process_item(
       "watch_signals": [],
       "signal_level": sev,
     }
-  sc_raw = tree_out.get("scenarios")
-  if isinstance(sc_raw, list):
-    sc_list = sc_raw
-  elif isinstance(sc_raw, dict):
-    sc_list = [v for v in sc_raw.values() if isinstance(v, dict)]
-  else:
-    sc_list = []
-  if sev >= 3 and not sc_list:
-    log.warning(
-      "news_ingest: consequence tree has no scenarios event_id=%s sev=%s (empty JSON branch or LLM parse issue)",
+
+  tree_out = await _ensure_scenarios_for_signal3(
+    eid, sev, title, body_text, sect, tick, cls, tree_out
+  )
+  sc_list = _extract_scenarios_list(tree_out)
+  if not sc_list:
+    log.error(
+      "news_ingest: scenarios unexpectedly empty after ensure event_id=%s sev=%s",
       eid,
       sev,
     )

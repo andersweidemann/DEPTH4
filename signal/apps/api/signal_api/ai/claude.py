@@ -56,6 +56,44 @@ async def generate_consequence(
   return json.loads(_strip_fences(text))
 
 
+async def generate_scenarios_repair(
+  headline: str,
+  body: str,
+  sectors: list,
+  tickers: list,
+) -> list[dict[str, Any]]:
+  """Focused second pass when the main consequence JSON omitted usable scenarios."""
+  s = get_settings()
+  text = await asyncio.to_thread(
+    _scenarios_repair_sync,
+    s,
+    headline,
+    body or "",
+    sectors,
+    tickers,
+  )
+  data = json.loads(_strip_fences(text))
+  raw = data.get("scenarios")
+  if not isinstance(raw, list):
+    return []
+  return [x for x in raw if isinstance(x, dict)]
+
+
+def _scenarios_repair_sync(
+  settings: Settings,
+  headline: str,
+  body: str,
+  sectors: list,
+  tickers: list,
+) -> str:
+  return llm_text_for_task(
+    settings,
+    "analysis",
+    prompts.SCENARIOS_REPAIR_SYSTEM,
+    prompts.scenarios_repair_user_prompt(headline, body, sectors, tickers),
+  )
+
+
 def _consequence_sync(
   settings: Settings,
   headline: str,

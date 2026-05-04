@@ -99,6 +99,11 @@ Also return:
 "scenarios" (2-4): label, probability (0-100, approximate OK), outcome, market_impact, winners, losers, portfolio_impact, order_recommendations,
 "watch_signals" (string array).
 
+NON-NEGOTIABLE when signal_level is 3 or 4: "scenarios" MUST be a JSON array of 2 to 4 objects — never [], never a string, never null.
+Each scenario object MUST have non-empty "label" and "outcome", a numeric "probability", "market_impact" (string or short object),
+"winners" and "losers" as arrays of {{"ticker": "US symbol"}} (use [] if none), plus string "portfolio_impact" and "order_recommendations".
+DEPTH4 depends on this matrix to stay ahead of price; an empty scenarios array invalidates the product.
+
 The scenarios are alternative paths; transmission_chain is the shared backbone until branches diverge.
 """
 
@@ -193,4 +198,46 @@ Return JSON:
 }}
 The scenarios array must have the SAME length and SAME labels in the SAME order as the input, unless a label is clearly wrong (then you may fix ONE label and mention in revision_note).
 Only change probabilities (and at most small outcome text clarifications) unless there is a gross error.
+"""
+
+
+SCENARIOS_REPAIR_SYSTEM = (
+  "You are DEPTH4 — same macro voice as the main consequence engine, but your ONLY job is to output a compact "
+  "scenario matrix JSON. Facts must come from the supplied headline/body only; do not invent dates or sources. "
+  "Return JSON only, no markdown, no backticks, no code fences—only a raw JSON object."
+)
+
+
+def scenarios_repair_user_prompt(
+  headline: str,
+  body: str,
+  sectors: list,
+  tickers: list,
+) -> str:
+  return f"""The full consequence JSON failed to include a valid "scenarios" array. Produce ONLY this shape:
+
+{{
+  "scenarios": [
+    {{
+      "label": "short name",
+      "probability": 0-100,
+      "outcome": "one decisive sentence tied to the event",
+      "market_impact": "one sentence",
+      "winners": [{{"ticker": "SYM"}}],
+      "losers": [{{"ticker": "SYM"}}],
+      "portfolio_impact": "one sentence (generic; no user portfolio here)",
+      "order_recommendations": "one sentence (generic)"
+    }}
+  ]
+}}
+
+Rules:
+- Exactly 3 scenarios in the array (base case, constructive surprise, adverse tail).
+- Probabilities are approximate integers summing to about 100.
+- Use 2-4 tickers total across winners/losers drawn from affected_tickers when plausible; otherwise use broad liquid US names (e.g. SPY, XLE, GLD) only as illustrations.
+
+Event headline: {headline}
+Body/context: {body}
+Affected sectors: {sectors}
+Affected tickers: {tickers}
 """
