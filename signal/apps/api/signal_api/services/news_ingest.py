@@ -3,7 +3,7 @@ from __future__ import annotations
 """RSS + per-ticker Yahoo headlines → classify → (optional) consequence trees.
 
 Discovery roadmap: combine these feeds with low-cost HTTP news APIs (e.g. GNews/NewsAPI free tiers,
-GDELT-style JSON) in a merge step before _process_item; dedup via redis.is_duplicate. Keep keys in Render env.
+GDELT-style JSON) in a merge step before _process_item; dedup via redis + DB source_url check. Keep keys in Render env.
 """
 
 import asyncio
@@ -70,6 +70,38 @@ def _parse_feed(
   return out
 
 
+def _source_url_key_for_db(item_url: str, title: str, source_name: str) -> str:
+  """Canonical `news_events.source_url` (matches insert + UNIQUE constraint)."""
+  u = (item_url or "")[:2_000]
+  if not (u and u.strip()):
+    u = f"urn:depth4:{abs(hash(f'{title}|{source_name}'))%10**12}"
+  return u[:1_200]
+
+
+def _is_pg_unique_violation(exc: BaseException) -> bool:
+  s = str(exc)
+  if "23505" in s:
+    return True
+  low = s.lower()
+  return "unique constraint" in low or "duplicate key" in low
+
+
+async def _news_source_url_exists(sb: Client, source_url_key: str) -> bool:
+  if not source_url_key.strip():
+    return False
+  try:
+    r = (
+      sb.table("news_events")
+      .select("id")
+      .eq("source_url", source_url_key)
+      .limit(1)
+      .execute()
+    )
+    return bool(r.data)
+  except Exception:
+    return False
+
+
 async def _process_item(
   sb: Client,
   item: dict[str, Any],
@@ -80,6 +112,9 @@ async def _process_item(
   if not title.strip():
     return
   if await redis.is_duplicate(u, title):
+    return
+  url_key = _source_url_key_for_db(item.get("source_url") or "", title, source_name)
+  if await _news_source_url_exists(sb, url_key):
     return
   try:
     cls: dict = await claude.classify_news(
@@ -94,13 +129,11 @@ async def _process_item(
     )
     return
   sev = int(cls.get("signal_level") or 1)
-  if not (u and u.strip()):
-    u = f"urn:depth4:{abs(hash(f'{title}|{source_name}'))%10**12}"
   row: dict = {
     "headline": title,
     "body_text": (item.get("body_text") or "")[:32_000],
     "source": source_name,
-    "source_url": u[:1_200],
+    "source_url": url_key,
     "published_at": item.get("published_at"),
     "signal_level": sev,
     "category": cls.get("category"),
@@ -115,6 +148,13 @@ async def _process_item(
   try:
     r = sb.table("news_events").insert(row).execute()
   except Exception as e:
+    if _is_pg_unique_violation(e):
+      log.debug(
+        "news_ingest: skip duplicate source_url (postgres) source=%s url=%.120s",
+        source_name,
+        url_key,
+      )
+      return
     log.warning(
       "news_ingest: news_events insert failed source=%s headline=%.100s err=%s",
       source_name,
