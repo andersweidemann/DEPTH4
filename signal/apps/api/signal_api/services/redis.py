@@ -18,7 +18,15 @@ async def get_redis() -> aioredis.Redis:
   global _r
   if _r is None:
     s = get_settings()
-    _r = aioredis.from_url(s.redis_url, encoding="utf-8", decode_responses=True)
+    # Keepalives + periodic health checks reduce "Connection closed by server" on managed Redis.
+    _r = aioredis.from_url(
+      s.redis_url,
+      encoding="utf-8",
+      decode_responses=True,
+      health_check_interval=15,
+      socket_keepalive=True,
+      retry_on_timeout=True,
+    )
   return _r
 
 

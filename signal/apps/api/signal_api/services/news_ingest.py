@@ -79,11 +79,19 @@ def _source_url_key_for_db(item_url: str, title: str, source_name: str) -> str:
 
 
 def _is_pg_unique_violation(exc: BaseException) -> bool:
-  s = str(exc)
-  if "23505" in s:
-    return True
-  low = s.lower()
-  return "unique constraint" in low or "duplicate key" in low
+  """PostgREST / Supabase errors may hide SQLSTATE in str(); scan cause chain + attrs."""
+  parts: list[str] = []
+  cur: BaseException | None = exc
+  while cur is not None:
+    parts.append(str(cur))
+    parts.append(repr(cur))
+    for attr in ("code", "message", "hint", "details"):
+      v = getattr(cur, attr, None)
+      if v is not None:
+        parts.append(str(v))
+    cur = cur.__cause__ or cur.__context__
+  blob = " ".join(parts).lower()
+  return "23505" in blob or "unique constraint" in blob or "duplicate key" in blob
 
 
 async def _news_source_url_exists(sb: Client, source_url_key: str) -> bool:
