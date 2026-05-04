@@ -232,7 +232,7 @@ export function DashboardClient() {
         if (!opts?.silent) sFeedUp(false);
       }
     },
-    [r, sb, API],
+    [r, sb],
   );
 
   useEffect(() => {

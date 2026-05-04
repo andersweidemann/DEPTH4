@@ -1,4 +1,4 @@
-import type { FeedViewModel, FeedLayer2 } from "./feed-model";
+import type { FeedViewModel } from "./feed-model";
 
 export function sourcePillClass(source: string | null | undefined): string {
   const s = (source || "Wire").toLowerCase();
