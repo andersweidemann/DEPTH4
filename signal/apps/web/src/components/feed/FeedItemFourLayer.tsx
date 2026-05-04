@@ -260,7 +260,7 @@ function ForwardPlyBlock({
         <div>
           <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-cyan-400/90">Forward — four steps in a row</p>
           <p className="text-[11px] text-cyan-200/70 mt-0.5">
-            Depth 1 → 2 → 3 → 4, one after another. (Layer 3 is where the story can branch.) Short lines on purpose.
+            Depth 1 → 2 → 3 → 4, one after another. (Depth 3 is where the story can branch.) Short lines on purpose.
           </p>
           <p className="text-[10px] text-zinc-500 mt-1.5">
             <span className="text-amber-500/80">Not investment advice.</span> Example tickers, “priced in” tags, and buy
@@ -668,12 +668,12 @@ export function FeedItemFourLayer({
         <em className="not-italic font-medium text-zinc-100">{model.hook}</em>
       </p>
       {model.verification && <VerificationHint v={model.verification} />}
-      <p className="mt-2 text-[10px] text-zinc-500 sm:hidden">Tap the headline for the full story (layer 2).</p>
+      <p className="mt-2 text-[10px] text-zinc-500 sm:hidden">Tap the headline for the full story (Depth 2).</p>
 
       <div className="mt-4 hidden md:block space-y-2">
         {dL2 && (
           <div className="border-l-4 border-indigo-500 pl-3 py-2">
-            <p className="text-xs font-bold uppercase text-indigo-300 mb-2">Layer 2 — the story</p>
+            <p className="text-xs font-bold uppercase text-indigo-300 mb-2">Depth 2 — the story</p>
             {(model.layer2.transmissionPlies?.length ||
               model.layer2.earlyLeadList?.length ||
               model.layer2.forwardHorizonSummary) && (
@@ -725,7 +725,7 @@ export function FeedItemFourLayer({
         )}
         {dL2 && dL3 && hasL3 && proUnlocked && (
           <div className="border-l-4 border-orange-500 pl-3 py-2">
-            <p className="text-xs font-bold uppercase text-orange-300 mb-2">Layer 3 — what could happen</p>
+            <p className="text-xs font-bold uppercase text-orange-300 mb-2">Depth 3 — what could happen</p>
             <Layer3Scenarios view={model.layer3} />
             <div className="pt-2">
               <Button
@@ -740,12 +740,12 @@ export function FeedItemFourLayer({
                 <ChevronDown className={cn("inline h-4 w-4", dL4 && "rotate-180")} />
               </Button>
             </div>
-            {!l4 && <p className="text-xs text-zinc-500 mt-1">Book layer unavailable (no data).</p>}
+            {!l4 && <p className="text-xs text-zinc-500 mt-1">Book depth unavailable (no data).</p>}
           </div>
         )}
         {showLayer4 && l4 && (
           <div className="border-l-4 border-emerald-500/90 pl-3 py-2">
-            <p className="text-xs font-bold uppercase text-emerald-300 mb-2">Layer 4 — for you</p>
+            <p className="text-xs font-bold uppercase text-emerald-300 mb-2">Depth 4 — for you</p>
             <BookL4 l4={l4} hook={model.hook} />
           </div>
         )}
@@ -756,7 +756,7 @@ export function FeedItemFourLayer({
         <Sheet
           open={!!sheet}
           onOpenChange={(o) => !o && setSheet(null)}
-          title={sheet === "L2" ? "Layer 2" : sheet === "L3" ? "Layer 3" : sheet === "L4" ? "Layer 4" : "DEPTH4"}
+          title={sheet === "L2" ? "Depth 2" : sheet === "L3" ? "Depth 3" : sheet === "L4" ? "Depth 4" : "DEPTH4"}
           className="md:hidden"
         >
           <div className="pt-2">

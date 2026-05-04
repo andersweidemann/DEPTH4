@@ -84,7 +84,7 @@ export function NotificationSettings({ className }: { className?: string }) {
             Allow desktop notifications
           </Button>
         )}
-        <span className="text-[10px] text-zinc-500">L3+ events, opt-in. Mobile push = roadmap.</span>
+        <span className="text-[10px] text-zinc-500">Depth 3+ events, opt-in. Mobile push = roadmap.</span>
       </div>
     </div>
   );

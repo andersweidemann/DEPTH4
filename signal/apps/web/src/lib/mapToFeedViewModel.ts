@@ -239,38 +239,52 @@ function marketImpString(m: Record<string, string> | string | undefined | null):
     .join(" · ");
 }
 
+/** LLM may return scenarios as array, keyed object, or alternate field names (Haiku / partial JSON). */
+function scenarioRowsFromTree(raw: unknown): Record<string, unknown>[] {
+  if (Array.isArray(raw)) {
+    return raw.filter((x) => x && typeof x === "object") as Record<string, unknown>[];
+  }
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const vals = Object.values(raw as Record<string, unknown>).filter((x) => x && typeof x === "object");
+    return vals as Record<string, unknown>[];
+  }
+  return [];
+}
+
 function fromTreeToLayer3(t: Tree | null | undefined): FeedLayer3 {
   if (!t) {
     return { scenarios: [], watchList: buildWatchFromStrings([], []) };
   }
   const wSig = (t.watch_signals as string[] | undefined) || [];
-  const sc = t.scenarios as
-    | {
-        label: string;
-        probability: number;
-        outcome?: string;
-        market_impact?: Record<string, string> | string;
-        winners?: { ticker: string; reason?: string }[];
-        losers?: { ticker: string; reason?: string }[];
-        watch_one?: string;
-      }[]
-    | undefined
-    | null;
-  if (!sc?.length) {
+  const sc = scenarioRowsFromTree(t.scenarios as unknown);
+  if (!sc.length) {
     return { scenarios: [], watchList: buildWatchFromStrings(wSig, []) };
   }
   const scenarios: FeedScenario3[] = sc.map((s, i) => {
-    const wn = s.winners?.map((x) => x.ticker) || [];
-    const ls = s.losers?.map((x) => x.ticker) || [];
+    const label =
+      String(s.label ?? s.name ?? s.title ?? s.id ?? `Scenario ${i + 1}`).trim() || `Scenario ${i + 1}`;
+    const probRaw = s.probability ?? s.pct ?? s.weight;
+    const prob =
+      typeof probRaw === "number" && Number.isFinite(probRaw)
+        ? probRaw
+        : typeof probRaw === "string" && probRaw.trim()
+          ? Number.parseFloat(probRaw)
+          : 0;
+    const wn = Array.isArray(s.winners)
+      ? (s.winners as { ticker?: string }[]).map((x) => String(x?.ticker ?? "").trim()).filter(Boolean)
+      : [];
+    const ls = Array.isArray(s.losers)
+      ? (s.losers as { ticker?: string }[]).map((x) => String(x?.ticker ?? "").trim()).filter(Boolean)
+      : [];
     const wOne =
-      s.watch_one ||
-      (i === 0 && wSig[0] ? `Confirmed if: ${wSig[0]}` : `Watch: scenario ${s.label} drivers`);
+      String(s.watch_one ?? s.watch ?? "").trim() ||
+      (i === 0 && wSig[0] ? `Confirmed if: ${wSig[0]}` : `Watch: ${label} drivers`);
     return {
-      id: `${i}-${s.label}`,
-      label: s.label,
-      probability: Math.min(100, Math.max(0, s.probability ?? 0)),
-      outcome: (s.outcome || "").trim() || "—",
-      marketImpact: marketImpString(s.market_impact),
+      id: `${i}-${label}`,
+      label,
+      probability: Math.min(100, Math.max(0, Number.isFinite(prob) ? prob : 0)),
+      outcome: String(s.outcome ?? s.summary ?? s.description ?? "").trim() || "—",
+      marketImpact: marketImpString(s.market_impact as Record<string, string> | string | undefined | null),
       winners: wn,
       losers: ls,
       oneWatch: wOne,

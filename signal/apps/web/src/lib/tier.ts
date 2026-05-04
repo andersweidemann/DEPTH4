@@ -16,20 +16,20 @@ export const TIER_OFFERS = {
   free: {
     name: "Free" as const,
     price: "$0",
-    description: "News desk essentials — story layer on every event.",
+    description: "News desk essentials — causal story depth on every event.",
     features: [
-      "Headline, hook, and full layer 2 (causal story)",
-      "L3+ high-signal alerts: limited per month on Free",
+      "Headline, hook, and full Depth 2 (causal story)",
+      "Depth 3+ high-signal alerts: limited per month on Free",
       "Onboarding + portfolio for personalization when you go Pro",
     ] as const,
   },
   pro: {
     name: "Pro" as const,
     priceLabel: "Paid",
-    description: "The full four layers for serious tape reading.",
+    description: "The full four depths for serious tape reading.",
     features: [
-      "Layer 3: scenarios, probabilities, WATCH list",
-      "Layer 4: your positions, orders, and actions",
+      "Depth 3: scenarios, probabilities, WATCH list",
+      "Depth 4: your positions, orders, and actions",
       "Daily & weekend briefings, richer alert allowance",
     ] as const,
   },

@@ -1,4 +1,4 @@
-/** View model for the four-layer feed (DEPTH4). */
+/** View model for the four-depth feed (DEPTH4). Internal fields remain layer2|3|4. */
 
 export type Sl = 1 | 2 | 3 | 4;
 
@@ -141,7 +141,7 @@ export type FeedViewModel = {
   layer2: FeedLayer2;
   layer3: FeedLayer3;
   layer4: FeedLayer4 | null;
-  /** L4 push copy = hook (Layer 1 one-liner) */
+  /** L4 push copy = hook (Depth 1 one-liner) */
   notificationText: string;
   /** From classify raw_json when present */
   verification?: FeedVerification | null;

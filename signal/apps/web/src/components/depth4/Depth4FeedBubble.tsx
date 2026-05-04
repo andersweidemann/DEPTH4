@@ -435,9 +435,9 @@ export function Depth4FeedBubble({
         <div className="d4-dm-tabs" role="tablist">
           {(
             [
-              ["l1", "Layer 1 — Event"],
-              ["l2", "Layer 2 — Story"],
-              ["l3", "Layer 3 — Scenarios"],
+              ["l1", "Depth 1 — Event"],
+              ["l2", "Depth 2 — Story"],
+              ["l3", "Depth 3 — Scenarios"],
               ["clock", "Depth clock"],
             ] as [TabK, string][]
           ).map(([k, label]) => (
@@ -546,7 +546,7 @@ export function Depth4FeedBubble({
                 <>
                   <p style={{ margin: 0 }}>
                     Scenarios are only built for <strong>higher-signal</strong> items (badge <strong>≥3</strong>). This
-                    story is rated lower, so Layer 3 stays empty on purpose.
+                    story is rated lower, so Depth 3 stays empty on purpose.
                   </p>
                   <p style={{ margin: "10px 0 0" }}>Open a headline with a higher signal, or wait for a bigger wire.</p>
                 </>

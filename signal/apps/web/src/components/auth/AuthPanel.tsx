@@ -63,7 +63,7 @@ export function AuthPanel({ nextPath, intent }: Props) {
   const h1 = intent === "signup" ? "Create your account" : "Sign in to DEPTH4";
   const lead =
     intent === "signup"
-      ? "Start on Free. Upgrade to Pro when you want scenarios, your book layer, and more alerts."
+      ? "Start on Free. Upgrade to Pro when you want scenarios, your book depth, and more alerts."
       : "Welcome back. New here? The same page creates your account—pick Google or a magic link.";
 
   return (

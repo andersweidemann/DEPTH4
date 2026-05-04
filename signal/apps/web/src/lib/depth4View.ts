@@ -102,7 +102,7 @@ export function buildDepthClockData(vm: FeedViewModel, signalLevel: number): { u
       tick: "·",
       act: "watch",
       edge: 30,
-      thesis: "Scenarios are thin — use Layer 2 forward chain for timing.",
+      thesis: "Scenarios are thin — use Depth 2 forward chain for timing.",
     });
   }
   return { urgency, horizon, recs: out.slice(0, 4) };

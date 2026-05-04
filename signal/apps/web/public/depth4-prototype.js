@@ -320,9 +320,9 @@
     const clock = buildDepthClock(d.clock);
     return `
     <div class="dm-tabs" role="tablist" aria-label="Depth layers">
-      <button type="button" class="dm-tab active" data-tab="l1" role="tab" aria-selected="true">Layer 1 — Event</button>
-      <button type="button" class="dm-tab" data-tab="l2" role="tab" aria-selected="false">Layer 2 — Story</button>
-      <button type="button" class="dm-tab" data-tab="l3" role="tab" aria-selected="false">Layer 3 — Scenarios</button>
+      <button type="button" class="dm-tab active" data-tab="l1" role="tab" aria-selected="true">Depth 1 — Event</button>
+      <button type="button" class="dm-tab" data-tab="l2" role="tab" aria-selected="false">Depth 2 — Story</button>
+      <button type="button" class="dm-tab" data-tab="l3" role="tab" aria-selected="false">Depth 3 — Scenarios</button>
       <button type="button" class="dm-tab" data-tab="clock" role="tab" aria-selected="false">Depth Clock</button>
     </div>
     <div class="dm-panel active" data-panel="l1" role="tabpanel">${l1}</div>

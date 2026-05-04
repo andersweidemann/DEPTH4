@@ -35,7 +35,7 @@ export default function PricingPage() {
           <h1 className="text-3xl md:text-4xl font-semibold">Free vs Pro</h1>
           <p className="text-zinc-400 max-w-xl mx-auto text-sm">
             Everyone starts on <span className="text-zinc-200">Free</span>. <span className="text-emerald-400/90">Pro</span> is the paid
-            plan for the full four layers and heavier alerts. Institutional is custom.
+            plan for the full four depths and heavier alerts. Institutional is custom.
           </p>
         </div>
         <div className="grid md:grid-cols-2 gap-4 max-w-4xl mx-auto">

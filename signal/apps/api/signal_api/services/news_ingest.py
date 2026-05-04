@@ -195,6 +195,14 @@ async def _process_item(
       "watch_signals": [],
       "signal_level": sev,
     }
+  sc_raw = tree_out.get("scenarios")
+  sc_list = sc_raw if isinstance(sc_raw, list) else []
+  if sev >= 3 and not sc_list:
+    log.warning(
+      "news_ingest: consequence tree has no scenarios event_id=%s sev=%s (empty JSON branch or LLM parse issue)",
+      eid,
+      sev,
+    )
   tr = alerts.insert_tree(eid, tree_out)
   if not tr.get("scenarios") and tree_out.get("scenarios"):
     tr["scenarios"] = tree_out.get("scenarios", [])

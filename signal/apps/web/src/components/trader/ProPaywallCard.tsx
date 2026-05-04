@@ -14,9 +14,9 @@ export function ProPaywallCard({ compact }: { compact?: boolean }) {
       <div className="flex items-start gap-2">
         <Lock className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-amber-200">Pro — scenarios & your book</p>
+          <p className="text-sm font-semibold text-amber-200">Pro — scenarios & your book depth</p>
           <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
-            Consequence trees (what could happen next) and a personalized layer for your positions and
+            Consequence trees (what could happen next) and a personalized depth for your positions and
             open orders are included on Pro. Free still gets the full story and hook on every event.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">

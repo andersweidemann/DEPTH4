@@ -36,7 +36,7 @@ export function Depth4L4Panel({
   return (
     <>
       <div className="d4-rp-sec">
-        <div className="d4-rp-kicker">Layer 4 — for you</div>
+        <div className="d4-rp-kicker">Depth 4 — for you</div>
         {headline && <p className="d4-bubble-meta" style={{ marginBottom: 8, color: "var(--d4-text)", fontSize: 12 }}>{headline}</p>}
         {l4 && l4.isPersonalized === false && (
           <p className="d4-dm-signal" style={{ marginBottom: 10, fontSize: 11, fontWeight: 400, background: "var(--d4-goldbg)" }}>

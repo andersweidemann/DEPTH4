@@ -364,7 +364,7 @@ export function DashboardClient() {
           }}
           role="status"
         >
-          You have {3 - al} L3+ alerts left this month on Free.{" "}
+          You have {3 - al} Depth 3+ alerts left this month on Free.{" "}
           <button type="button" className="d4-btn" style={{ textDecoration: "underline" }} onClick={() => sUp(false)}>
             Dismiss
           </button>

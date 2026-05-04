@@ -79,7 +79,7 @@ export default function Home() {
           </div>
           <div className="rounded-lg border border-emerald-500/20 bg-emerald-950/20 p-4">
             <p className="font-mono text-xs text-emerald-500/80">Pro</p>
-            <p className="text-zinc-200 mt-1">Scenarios, book &amp; order layer, briefings, more alerts.</p>
+            <p className="text-zinc-200 mt-1">Scenarios, book &amp; order depth, briefings, more alerts.</p>
           </div>
           <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
             <p className="font-mono text-xs text-zinc-500">Alerts</p>
