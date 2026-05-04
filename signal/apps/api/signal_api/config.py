@@ -15,9 +15,18 @@ class Settings(BaseSettings):
   anthropic_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="ANTHROPIC_API_KEY")
   anthropic_model: str = "claude-sonnet-4-20250514"
 
+  # Base provider (used as fallback when per-task provider is not set).
   llm_provider: str = Field(
     default="anthropic", validation_alias="LLM_PROVIDER"
-  )  # anthropic | nvidia | nim
+  )  # anthropic | nvidia | nim | kimi
+
+  # Optional routing (lets you do: cheap classify + premium analysis).
+  # Examples:
+  # - LLM_PROVIDER_CLASSIFY=nvidia
+  # - LLM_PROVIDER_ANALYSIS=anthropic  (or kimi)
+  llm_provider_classify: str | None = Field(default=None, validation_alias="LLM_PROVIDER_CLASSIFY")
+  llm_provider_analysis: str | None = Field(default=None, validation_alias="LLM_PROVIDER_ANALYSIS")
+
   nvidia_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="NVIDIA_API_KEY")
   nvidia_base_url: str = Field(
     default="https://integrate.api.nvidia.com/v1", validation_alias="NVIDIA_BASE_URL"
@@ -26,7 +35,15 @@ class Settings(BaseSettings):
     default="meta/llama-3.1-8b-instruct", validation_alias="NVIDIA_MODEL"
   )
 
+  # Kimi (Moonshot) — OpenAI-compatible /chat/completions.
+  kimi_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="KIMI_API_KEY")
+  kimi_base_url: str = Field(default="https://api.moonshot.cn/v1", validation_alias="KIMI_BASE_URL")
+  kimi_model: str = Field(default="", validation_alias="KIMI_MODEL")
+
   redis_url: str = Field(default="redis://localhost:6379/0", validation_alias="REDIS_URL")
+
+  # If set, POST /cron/ingest-once with header X-Depth4-Ingest-Secret: <value> runs one RSS cycle (free Render spin-up).
+  ingest_cron_secret: SecretStr = Field(default=SecretStr(""), validation_alias="INGEST_CRON_SECRET")
 
   stripe_api_key: SecretStr | None = Field(default=None, validation_alias="STRIPE_API_KEY")
   stripe_webhook_secret: SecretStr | None = Field(default=None, validation_alias="STRIPE_WEBHOOK_SECRET")
@@ -40,7 +57,7 @@ class Settings(BaseSettings):
 
   cdn_public_url: str = Field(default="http://localhost:3000", validation_alias="FRONTEND_URL")
 
-  rss_interval_seconds: int = 60
+  rss_interval_seconds: int = Field(default=60, validation_alias="RSS_INTERVAL_SECONDS")
   yahoo_fx_ticker: str = "SEK=X"
 
   yahoo_ticker_ingest_enabled: bool = True

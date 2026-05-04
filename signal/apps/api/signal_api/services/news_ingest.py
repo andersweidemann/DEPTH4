@@ -7,6 +7,7 @@ GDELT-style JSON) in a merge step before _process_item; dedup via redis.is_dupli
 """
 
 import asyncio
+import logging
 import time
 from datetime import datetime, UTC
 from typing import Any
@@ -20,6 +21,8 @@ from signal_api.ai.llm_client import llm_configured
 from signal_api.config import get_settings
 from signal_api.db import supabase_admin
 from signal_api.services import alerts, redis
+
+log = logging.getLogger("depth4")
 
 _ticker_offset = 0
 
@@ -82,7 +85,13 @@ async def _process_item(
     cls: dict = await claude.classify_news(
       title, (item.get("body_text") or "")[:16_000]
     )
-  except Exception:
+  except Exception as e:
+    log.warning(
+      "news_ingest: classify failed source=%s headline=%.100s err=%s",
+      source_name,
+      title,
+      e,
+    )
     return
   sev = int(cls.get("signal_level") or 1)
   if not (u and u.strip()):
@@ -105,7 +114,13 @@ async def _process_item(
   }
   try:
     r = sb.table("news_events").insert(row).execute()
-  except Exception:
+  except Exception as e:
+    log.warning(
+      "news_ingest: news_events insert failed source=%s headline=%.100s err=%s",
+      source_name,
+      title,
+      e,
+    )
     return
   rec = (r.data or [None])[0]
   if not rec or not rec.get("id"):
@@ -119,7 +134,13 @@ async def _process_item(
     tree_out = await claude.generate_consequence(
       title, (item.get("body_text") or ""), sect, tick, "[]", "[]"
     )
-  except Exception:
+  except Exception as e:
+    log.warning(
+      "news_ingest: consequence LLM failed event_id=%s signal=%s err=%s",
+      eid,
+      sev,
+      e,
+    )
     tree_out = {
       "event_summary": (cls.get("one_line_summary") or "")[:200],
       "scenarios": [],
@@ -137,8 +158,13 @@ async def _process_item(
 async def one_cycle() -> None:
   s = get_settings()
   if not llm_configured():
+    log.warning(
+      "news_ingest: skipping cycle — LLM not configured (set ANTHROPIC_API_KEY or NVIDIA path)"
+    )
     return
   sb = supabase_admin()
+  feeds_ok = 0
+  items_tried = 0
   for url in s.default_rss_feeds:
     name = "Wire"
     if "reuters" in url:
@@ -153,13 +179,23 @@ async def one_cycle() -> None:
       name = "Seeking Alpha"
     try:
       text = await _fetch_rss_url(url)
-    except Exception:
+    except Exception as e:
+      log.warning("news_ingest: RSS fetch failed url=%s err=%s", url[:120], e)
       continue
+    feeds_ok += 1
     for item in _parse_feed(text)[:25]:
+      items_tried += 1
       try:
         await _process_item(sb, item, name)
-      except Exception:
+      except Exception as e:
+        log.warning("news_ingest: item processing error source=%s err=%s", name, e)
         continue
+  log.info(
+    "news_ingest: cycle done feeds_ok=%s/%s items_tried=%s (trees only for classifier signal_level>=3)",
+    feeds_ok,
+    len(s.default_rss_feeds),
+    items_tried,
+  )
 
 
 async def rss_loop() -> None:
@@ -167,7 +203,7 @@ async def rss_loop() -> None:
     try:
       await one_cycle()
     except Exception:
-      pass
+      log.exception("news_ingest: one_cycle crashed")
     await asyncio.sleep(get_settings().rss_interval_seconds)
 
 
@@ -196,8 +232,8 @@ async def yahoo_ticker_ingest_loop() -> None:
       continue
     try:
       await yahoo_ticker_ingest_once()
-    except Exception:
-      pass
+    except Exception as e:
+      log.warning("news_ingest: yahoo_ticker_ingest_once failed: %s", e)
     await asyncio.sleep(s.yahoo_ticker_ingest_interval_seconds)
 
 

@@ -6,7 +6,7 @@ import re
 from typing import Any
 
 from signal_api.ai import prompts
-from signal_api.ai.llm_client import llm_text
+from signal_api.ai.llm_client import llm_text_for_task
 from signal_api.config import get_settings, Settings
 
 
@@ -26,8 +26,9 @@ async def classify_news(headline: str, body: str) -> dict[str, Any]:
 
 
 def _classify_sync(settings: Settings, headline: str, body: str) -> str:
-  return llm_text(
+  return llm_text_for_task(
     settings,
+    "classify",
     prompts.CLASSIFY_SYSTEM,
     prompts.classify_user_prompt(headline, body),
   )
@@ -64,8 +65,9 @@ def _consequence_sync(
   portfolio_json: str,
   orders_json: str,
 ) -> str:
-  return llm_text(
+  return llm_text_for_task(
     settings,
+    "analysis",
     prompts.CONSEQUENCE_SYSTEM,
     prompts.consequence_user_prompt(headline, body, sectors, tickers, portfolio_json, orders_json),
   )
@@ -90,8 +92,9 @@ def _briefing_sync(
   orders: str,
   trees: str,
 ) -> str:
-  return llm_text(
+  return llm_text_for_task(
     settings,
+    "analysis",
     prompts.BRIEFING_SYSTEM,
     prompts.briefing_user_prompt(date_str, events, portfolio, orders, trees),
   )
@@ -128,8 +131,9 @@ def _revise_sync(
   new_headlines_digest: str,
   crowd_block: str,
 ) -> str:
-  return llm_text(
+  return llm_text_for_task(
     settings,
+    "analysis",
     prompts.REVISE_PROB_SYSTEM,
     prompts.revise_user_prompt(
       event_headline,
@@ -167,8 +171,9 @@ def _personalize_sync(
   portfolio: str,
   orders: str,
 ) -> str:
-  return llm_text(
+  return llm_text_for_task(
     settings,
+    "analysis",
     prompts.PERSONALIZE_SYSTEM,
     prompts.personalize_user_prompt(headline, scenarios_json, portfolio, orders),
   )

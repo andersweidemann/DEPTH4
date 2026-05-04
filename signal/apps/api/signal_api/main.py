@@ -7,9 +7,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from signal_api.ai.llm_client import llm_configured
 from signal_api.config import get_settings
 from signal_api.jobs import briefing_worker, scenario_refinement
-from signal_api.routers import market_routes, stripe_routes
+from signal_api.routers import ingest_cron, market_routes, stripe_routes
 from signal_api.services import news_ingest
 
 log = logging.getLogger("depth4")
@@ -23,7 +24,12 @@ async def lifespan(_app: FastAPI):
   t3: asyncio.Task[None] | None = None
   t4: asyncio.Task[None] | None = None
   if s.supabase_url and s.supabase_service_key.get_secret_value():
-    log.info("DEPTH4 API starting, redis=%s", s.redis_url and s.redis_url[:24])
+    log.info(
+      "DEPTH4 API starting, redis=%s, llm_provider=%s, llm_configured=%s",
+      s.redis_url and s.redis_url[:24],
+      (s.llm_provider or "anthropic").lower(),
+      llm_configured(),
+    )
     t1 = asyncio.create_task(news_ingest.rss_loop())
     t2 = asyncio.create_task(briefing_worker.run_loop())
     t3 = asyncio.create_task(news_ingest.yahoo_ticker_ingest_loop())
@@ -53,6 +59,7 @@ app.add_middleware(
 
 app.include_router(stripe_routes.router, prefix="/webhooks", tags=["billing"])
 app.include_router(market_routes.router, prefix="/market", tags=["market"])
+app.include_router(ingest_cron.router, prefix="/cron", tags=["cron"])
 
 
 @app.get("/healthz")

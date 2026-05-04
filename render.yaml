@@ -18,8 +18,30 @@ services:
         sync: false
       - key: REDIS_URL
         sync: false
+      - key: INGEST_CRON_SECRET
+        sync: false
+      - key: RSS_INTERVAL_SECONDS
+        value: "60"
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: LLM_PROVIDER_CLASSIFY
+        value: ""
+      - key: LLM_PROVIDER_ANALYSIS
+        value: ""
+      # Optional: use NVIDIA NIM for cheap pipeline tests (set LLM_PROVIDER=nvidia and NVIDIA_API_KEY).
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_BASE_URL
+        value: https://integrate.api.nvidia.com/v1
+      - key: NVIDIA_MODEL
+        value: meta/llama-3.1-8b-instruct
+      # Optional: Kimi (Moonshot) for analysis (set LLM_PROVIDER_ANALYSIS=kimi and KIMI_API_KEY).
+      - key: KIMI_API_KEY
+        sync: false
+      - key: KIMI_BASE_URL
+        value: https://api.moonshot.cn/v1
+      - key: KIMI_MODEL
+        value: ""
       - key: FRONTEND_URL
         sync: false
       - key: LLM_PROVIDER
