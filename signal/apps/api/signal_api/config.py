@@ -13,7 +13,11 @@ class Settings(BaseSettings):
   )
 
   anthropic_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="ANTHROPIC_API_KEY")
-  anthropic_model: str = "claude-sonnet-4-20250514"
+  # Must match an id your org can call; list: https://docs.anthropic.com/en/api/models
+  anthropic_model: str = Field(
+    default="claude-sonnet-4-6",
+    validation_alias="ANTHROPIC_MODEL",
+  )
 
   # Base provider (used as fallback when per-task provider is not set).
   llm_provider: str = Field(
