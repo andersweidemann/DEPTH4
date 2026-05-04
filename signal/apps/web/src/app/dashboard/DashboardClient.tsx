@@ -17,6 +17,44 @@ import { edgeScoreForPosition } from "@/lib/depth4View";
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const FEED_POLL_MS = 60_000;
 const DISMISSED_L4_KEY = "depth4_dismissed_l4_ids";
+/** After a successful idle-mode ingest, skip re-running until next browser session. */
+const IDLE_INGEST_BOOTSTRAP_KEY = "depth4_idle_ingest_bootstrap_ok";
+let idleIngestBootstrapPromise: Promise<void> | null = null;
+
+/** When API has background loops off, run one ingest-session on first dashboard load (deduped). */
+async function tryIdleIngestBootstrap(
+  sb: ReturnType<typeof createClient>,
+  apiBase: string,
+): Promise<void> {
+  if (typeof window === "undefined") return;
+  if (sessionStorage.getItem(IDLE_INGEST_BOOTSTRAP_KEY) === "1") return;
+  const base = apiBase.replace(/\/$/, "");
+  const run = async () => {
+    try {
+      const hz = await fetch(`${base}/healthz`);
+      if (!hz.ok) return;
+      const meta = (await hz.json()) as { background_llm_loops?: boolean };
+      if (meta.background_llm_loops !== false) return;
+      const { data: { session } } = await sb.auth.getSession();
+      const tok = session?.access_token;
+      if (!tok) return;
+      const ir = await fetch(`${base}/market/ingest-session`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${tok}` },
+      });
+      if (ir.ok) sessionStorage.setItem(IDLE_INGEST_BOOTSTRAP_KEY, "1");
+    } catch {
+      /* API unreachable — feed still loads from Supabase */
+    }
+  };
+  if (!idleIngestBootstrapPromise) {
+    idleIngestBootstrapPromise = run().finally(() => {
+      idleIngestBootstrapPromise = null;
+    });
+  }
+  await idleIngestBootstrapPromise;
+}
+
 type Tab = "feed" | "portfolio" | "orders" | "briefing";
 
 function normT(t: string) {
@@ -75,7 +113,7 @@ export function DashboardClient() {
   }, []);
 
   const load = useCallback(
-    async (opts?: { silent?: boolean }) => {
+    async (opts?: { silent?: boolean; skipIdleBootstrap?: boolean }) => {
       try {
         const { data: { user } } = await sb.auth.getUser();
         if (!user) {
@@ -94,6 +132,9 @@ export function DashboardClient() {
         if (!ur?.onboarding_complete) {
           r.replace("/onboarding");
           return;
+        }
+        if (!opts?.skipIdleBootstrap) {
+          await tryIdleIngestBootstrap(sb, API);
         }
         const { data: pos } = await sb
           .from("portfolio_positions")
@@ -191,7 +232,7 @@ export function DashboardClient() {
         if (!opts?.silent) sFeedUp(false);
       }
     },
-    [r, sb],
+    [r, sb, API],
   );
 
   useEffect(() => {
@@ -260,7 +301,7 @@ export function DashboardClient() {
     } catch {
       /* offline or API down — still reload cached feed */
     }
-    await load();
+    await load({ skipIdleBootstrap: true });
   }, [load, sb]);
 
   const onDismissEvent = useCallback(
@@ -295,7 +336,7 @@ export function DashboardClient() {
 
   useEffect(() => {
     const t = setInterval(() => {
-      void load({ silent: true });
+      void load({ silent: true, skipIdleBootstrap: true });
     }, FEED_POLL_MS);
     return () => clearInterval(t);
   }, [load]);
