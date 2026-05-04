@@ -32,16 +32,29 @@ def provider_configured(settings: Settings, provider: str) -> bool:
 
 
 def llm_configured() -> bool:
-  """True if ANY configured provider exists for the active routing."""
+  """True if the provider used for automated ingest/jobs is configured."""
   s = get_settings()
+  bg = _norm_provider(s.llm_provider_background)
+  if bg:
+    return provider_configured(s, bg)
   classify_p = _norm_provider(s.llm_provider_classify) or _norm_provider(s.llm_provider)
   analysis_p = _norm_provider(s.llm_provider_analysis) or _norm_provider(s.llm_provider)
   return provider_configured(s, classify_p) or provider_configured(s, analysis_p)
 
 
+def llm_interactive_configured() -> bool:
+  """True if the on-demand (click) premium route can call its provider (usually Anthropic)."""
+  s = get_settings()
+  p = _norm_provider(s.llm_provider_interactive) or "anthropic"
+  return provider_configured(s, p)
+
+
 def llm_configuration_hint() -> str:
   """Human-readable hint for logs when ingest skips (no secrets)."""
   s = get_settings()
+  bg = _norm_provider(s.llm_provider_background)
+  if bg:
+    return f"background_provider={bg!r} configured={provider_configured(s, bg)}"
   classify_p = _norm_provider(s.llm_provider_classify) or _norm_provider(s.llm_provider)
   analysis_p = _norm_provider(s.llm_provider_analysis) or _norm_provider(s.llm_provider)
   c_cls = provider_configured(s, classify_p)
@@ -54,8 +67,13 @@ def llm_configuration_hint() -> str:
 
 
 def pick_provider_for_task(settings: Settings, task: str) -> str:
-  """task: classify | analysis"""
+  """task: classify | analysis | interactive"""
   t = (task or "").strip().lower()
+  if t == "interactive":
+    return _norm_provider(settings.llm_provider_interactive) or "anthropic"
+  bg = _norm_provider(settings.llm_provider_background)
+  if bg:
+    return bg
   if t == "classify":
     return _norm_provider(settings.llm_provider_classify) or _norm_provider(settings.llm_provider) or "anthropic"
   return _norm_provider(settings.llm_provider_analysis) or _norm_provider(settings.llm_provider) or "anthropic"

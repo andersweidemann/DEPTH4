@@ -188,6 +188,8 @@ async def personalize_user_impact(
   scenarios: Any,
   portfolio: str,
   orders: str,
+  *,
+  llm_task: str = "analysis",
 ) -> dict[str, Any]:
   s = get_settings()
   sc = json.dumps(scenarios, default=str)[:32_000]
@@ -198,6 +200,7 @@ async def personalize_user_impact(
     sc,
     portfolio,
     orders,
+    llm_task,
   )
   return json.loads(_strip_fences(text))
 
@@ -208,10 +211,11 @@ def _personalize_sync(
   scenarios_json: str,
   portfolio: str,
   orders: str,
+  llm_task: str,
 ) -> str:
   return llm_text_for_task(
     settings,
-    "analysis",
+    llm_task,
     prompts.PERSONALIZE_SYSTEM,
     prompts.personalize_user_prompt(headline, scenarios_json, portfolio, orders),
   )

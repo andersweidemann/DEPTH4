@@ -31,6 +31,11 @@ class Settings(BaseSettings):
   # - LLM_PROVIDER_ANALYSIS=anthropic  (or kimi)
   llm_provider_classify: str | None = Field(default=None, validation_alias="LLM_PROVIDER_CLASSIFY")
   llm_provider_analysis: str | None = Field(default=None, validation_alias="LLM_PROVIDER_ANALYSIS")
+  # When set (e.g. nvidia), ALL automated LLM work uses this: RSS/Yahoo ingest, consequence trees, repair,
+  # briefings, scenario refinement, and per-user alert personalization. Leave empty to use CLASSIFY/ANALYSIS/LLM_PROVIDER above.
+  llm_provider_background: str = Field(default="", validation_alias="LLM_PROVIDER_BACKGROUND")
+  # Used only for explicit user-triggered API routes (premium personalize). Default anthropic.
+  llm_provider_interactive: str = Field(default="anthropic", validation_alias="LLM_PROVIDER_INTERACTIVE")
 
   nvidia_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="NVIDIA_API_KEY")
   nvidia_base_url: str = Field(

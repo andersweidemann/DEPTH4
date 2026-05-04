@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from signal_api.ai.llm_client import llm_configured
+from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.config import get_settings
 from signal_api.jobs import briefing_worker, scenario_refinement
 from signal_api.routers import ingest_cron, market_routes, stripe_routes
@@ -32,10 +32,14 @@ async def lifespan(_app: FastAPI):
         "Set REDIS_URL to Upstash or Render Redis (rediss://…). Dedup is fail-open until then."
       )
     log.info(
-      "DEPTH4 API starting, redis=%s, llm_provider=%s, llm_configured=%s",
+      "DEPTH4 API starting, redis=%s, llm_provider=%s, llm_background=%r, llm_interactive=%r, "
+      "background_configured=%s interactive_configured=%s",
       s.redis_url and s.redis_url[:24],
       (s.llm_provider or "anthropic").lower(),
+      (s.llm_provider_background or "").strip().lower() or "(legacy classify/analysis)",
+      (s.llm_provider_interactive or "anthropic").strip().lower(),
       llm_configured(),
+      llm_interactive_configured(),
     )
     t1 = asyncio.create_task(news_ingest.rss_loop())
     t2 = asyncio.create_task(briefing_worker.run_loop())

@@ -54,6 +54,9 @@ export function DashboardClient() {
   const [costIn, sCost] = useState("");
   const [curIn, sCur] = useState("SEK");
   const [saving, sSave] = useState(false);
+  const [premLoading, sPremL] = useState(false);
+  const [premErr, sPremE] = useState<string | null>(null);
+  const [premJson, sPremJ] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -194,6 +197,51 @@ export function DashboardClient() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    sPremJ(null);
+    sPremE(null);
+  }, [active?.id]);
+
+  const runPremiumPersonalize = useCallback(async () => {
+    if (!active?.id) return;
+    const tree = (treeMap as Record<string, T.Tree>)[active.id];
+    const sc = tree?.scenarios;
+    if (!Array.isArray(sc) || sc.length < 1) {
+      sPremE("No scenario matrix for this story yet — refresh after the server ingests it.");
+      return;
+    }
+    sPremL(true);
+    sPremE(null);
+    sPremJ(null);
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      const tok = session?.access_token;
+      if (!tok) {
+        sPremE("Not signed in.");
+        return;
+      }
+      const res = await fetch(`${API}/market/premium-personalize`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tok}`,
+        },
+        body: JSON.stringify({ event_id: active.id }),
+      });
+      const j = (await res.json().catch(() => ({}))) as Record<string, unknown> & { detail?: string };
+      if (!res.ok) {
+        const d = j.detail;
+        sPremE(typeof d === "string" ? d : res.status === 503 ? "Premium LLM not configured on API (Anthropic key)." : `Request failed (${res.status})`);
+        return;
+      }
+      sPremJ(j);
+    } catch (e) {
+      sPremE(e instanceof Error ? e.message : "Network error");
+    } finally {
+      sPremL(false);
+    }
+  }, [active?.id, sb, treeMap]);
 
   const refreshNow = useCallback(() => {
     sFeedUp(true);
@@ -538,7 +586,7 @@ export function DashboardClient() {
                   <span className="d4-live-dot" aria-hidden />
                   <span>Geopol + macro — consequence trees refresh on the server. Polls every {FEED_POLL_MS / 1000}s.</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span className="d4-bubble-meta" style={{ fontSize: 10, color: "var(--d4-faint)" }}>Click a card to expand the depth map</span>
                   <button type="button" className="d4-btn d4-btn-ghost" onClick={refreshNow} disabled={feedUpdating} aria-busy={feedUpdating}>
                     <RefreshCw
@@ -547,8 +595,35 @@ export function DashboardClient() {
                     />
                     {feedUpdating ? "…" : "Refresh"}
                   </button>
+                  <button
+                    type="button"
+                    className="d4-btn d4-btn-ghost"
+                    style={{ borderColor: "var(--d4-gold)", color: "var(--d4-gold)" }}
+                    title="Uses your configured premium model (Anthropic) — not the free background pipeline"
+                    onClick={() => void runPremiumPersonalize()}
+                    disabled={premLoading || !active?.id || !((treeMap as Record<string, T.Tree>)[active.id]?.scenarios as unknown[] | undefined)?.length}
+                  >
+                    {premLoading ? "Premium…" : "Premium personalize"}
+                  </button>
                 </div>
               </div>
+              {(premErr || premJson) && (
+                <div className="d4-sidecard" style={{ marginBottom: 10 }}>
+                  {premErr && (
+                    <p className="d4-ferr" role="alert" style={{ margin: 0, fontSize: 12 }}>
+                      {premErr}
+                    </p>
+                  )}
+                  {premJson && (
+                    <pre
+                      className="d4-bubble-meta"
+                      style={{ margin: "8px 0 0", fontSize: 10, whiteSpace: "pre-wrap", wordBreak: "break-word", maxHeight: 220, overflow: "auto" }}
+                    >
+                      {JSON.stringify(premJson, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
               <div className="d4-news-grid" style={{ paddingBottom: 8 }}>
                 {n.map((e) => {
                   const userOverlap = (e.affected_tickers || []).filter(
