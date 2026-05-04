@@ -30,8 +30,8 @@ export type ForwardModel = {
     lead_indicator?: string;
     /** not_priced_in | partial | priced_in */
     priced_in?: string;
-    /** [{ ticker, rationale | note }] */
-    stock_ideas?: { ticker?: string; rationale?: string; note?: string }[];
+    /** [{ ticker, rationale | note, priced_in_pct? 1–100 }] */
+    stock_ideas?: { ticker?: string; rationale?: string; note?: string; priced_in_pct?: number }[];
     buy_trigger?: string;
   }[];
   /** Plain strings (legacy) or { text, light: red|yellow|green } from the model. */

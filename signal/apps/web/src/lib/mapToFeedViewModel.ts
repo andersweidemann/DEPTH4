@@ -11,9 +11,9 @@ import type {
   LeadListItem,
   LeadTrafficLight,
   PricedInLevel,
-  PlyStockIdea,
   OrderBookReviewRow,
   OutsideDepotIdea,
+  PlyStockIdea,
 } from "./feed-model";
 import type { NewsItem, Tree, Pos, Ord, Q, ForwardModel } from "@/app/dashboard/types";
 
@@ -119,6 +119,37 @@ function defaultLayer2(n: NewsItem, body: string | null | undefined): FeedLayer2
   };
 }
 
+function clampPct1to100(n: number): number {
+  if (!Number.isFinite(n)) return 50;
+  return Math.min(100, Math.max(1, Math.round(n)));
+}
+
+/** Parse optional per-ticker % from LLM stock_ideas row. */
+function parseStockPricedPct(o: Record<string, unknown>): number | null {
+  const keys = ["priced_in_pct", "news_priced_in_pct", "pct_priced_in", "news_priced_pct", "priced_in_percent"];
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v === "number" && Number.isFinite(v)) return clampPct1to100(v);
+    if (typeof v === "string" && v.trim()) {
+      const n = Number.parseFloat(v);
+      if (Number.isFinite(n)) return clampPct1to100(n);
+    }
+  }
+  return null;
+}
+
+/** When the model omits priced_in_pct, map Depth priced_in + step to a conservative 1–100 anchor. */
+function fallbackNewsPricedPctForStock(pi: PricedInLevel, step: number): number | null {
+  if (pi === "unknown") return null;
+  const s = Math.min(4, Math.max(1, step));
+  const table: Record<Exclude<PricedInLevel, "unknown">, [number, number, number, number]> = {
+    not_priced_in: [22, 28, 34, 42],
+    partial: [46, 54, 62, 70],
+    priced_in: [58, 68, 78, 88],
+  };
+  return table[pi][s - 1] ?? table[pi][0];
+}
+
 function parsePricedIn(v: unknown): PricedInLevel {
   const s = String(v ?? "")
     .trim()
@@ -142,7 +173,7 @@ function parsePricedIn(v: unknown): PricedInLevel {
   return "unknown";
 }
 
-function stockIdeasFromRow(x: Record<string, unknown>): PlyStockIdea[] {
+function stockIdeasFromRow(x: Record<string, unknown>, plyPricedIn: PricedInLevel, step: number): PlyStockIdea[] {
   const arr = x.stock_ideas;
   if (!arr || !Array.isArray(arr)) return [];
   const out: PlyStockIdea[] = [];
@@ -154,7 +185,9 @@ function stockIdeasFromRow(x: Record<string, unknown>): PlyStockIdea[] {
       .toUpperCase();
     if (!t) continue;
     const note = String(o.note ?? o.rationale ?? o.reason ?? "").trim();
-    out.push({ ticker: t, note: note || "—" });
+    const explicit = parseStockPricedPct(o);
+    const newsPricedInPct = explicit ?? fallbackNewsPricedPctForStock(plyPricedIn, step);
+    out.push({ ticker: t, note: note || "—", newsPricedInPct });
   }
   return out.slice(0, 4);
 }
@@ -169,7 +202,7 @@ function pliesFromForwardModel(fm: ForwardModel | undefined | null): Transmissio
     const stepN = typeof x.step === "number" && (x as { step: number }).step >= 1 && (x as { step: number }).step <= 9 ? (x as { step: number }).step : i + 1;
     const row = x as Record<string, unknown>;
     const pi = parsePricedIn(row.priced_in);
-    const stocks = stockIdeasFromRow(row);
+    const stocks = stockIdeasFromRow(row, pi, stepN);
     const buyTrigger = String(row.buy_trigger ?? "")
       .trim();
     return {

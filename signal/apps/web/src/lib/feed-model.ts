@@ -14,6 +14,11 @@ export type PricedInLevel = "not_priced_in" | "partial" | "priced_in" | "unknown
 export type PlyStockIdea = {
   ticker: string;
   note: string;
+  /**
+   * 1–100: approximate share of this headline / this Depth already reflected in the symbol (model or heuristic).
+   * `null` when the engine could not score it.
+   */
+  newsPricedInPct: number | null;
 };
 
 /** One link in the serial 4-ply “transmission” chain (consequence engine). */

@@ -89,6 +89,9 @@ function leadDotClass(light: LeadTrafficLight): string {
   }
 }
 
+const PRICED_NEWS_IN_STOCK_TIP =
+  "Approximate share of this headline’s tradable information already reflected in this symbol (model estimate; not a price target or advice).";
+
 const PRICED_IN_UI: Record<
   PricedInLevel,
   { line: string; abbr: string; ring: string; text: string }
@@ -143,8 +146,22 @@ function PlyPricedAndStocks({ p }: { p: TransmissionPly }) {
           </p>
           <ul className="m-0 p-0 list-none space-y-1">
             {p.stockIdeas.map((s, k) => (
-              <li key={`${s.ticker}-${k}`} className="text-xs text-zinc-200">
-                <span className="font-mono font-semibold text-cyan-300/90">{s.ticker}</span>{" "}
+              <li key={`${s.ticker}-${k}`} className="text-xs text-zinc-200 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <span className="font-mono font-semibold text-cyan-300/90">{s.ticker}</span>
+                  {s.newsPricedInPct != null ? (
+                    <span
+                      className="inline-flex items-center rounded-full bg-zinc-950/80 px-2 py-0.5 text-[10px] font-bold tabular-nums text-amber-200 ring-1 ring-amber-500/35"
+                      title={PRICED_NEWS_IN_STOCK_TIP}
+                    >
+                      {s.newsPricedInPct}%
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono text-zinc-600" title={PRICED_NEWS_IN_STOCK_TIP}>
+                      —%
+                    </span>
+                  )}
+                </span>
                 <span className="text-zinc-400">— {s.note}</span>
               </li>
             ))}

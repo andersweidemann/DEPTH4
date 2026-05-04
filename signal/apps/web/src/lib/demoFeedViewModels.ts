@@ -111,8 +111,8 @@ export const demoAraghchi: FeedViewModel = {
         lead_indicator: "Diesel price vs oil; what freighters are paying in the region",
         pricedIn: "not_priced_in",
         stockIdeas: [
-          { ticker: "VLO", note: "Refining — margin story if products stay firm while crude is jumpy" },
-          { ticker: "XLE", note: "Broad U.S. energy — simple way to stay with the “channel still open” read" },
+          { ticker: "VLO", note: "Refining — margin story if products stay firm while crude is jumpy", newsPricedInPct: 32 },
+          { ticker: "XLE", note: "Broad U.S. energy — simple way to stay with the “channel still open” read", newsPricedInPct: 41 },
         ],
         buyTrigger: "Diesel and crude both stay firm for several sessions, and the Oman channel gets a public nod (even vague).",
       },
@@ -126,8 +126,8 @@ export const demoAraghchi: FeedViewModel = {
         lead_indicator: "Fertilizer stocks (e.g. NTR, CF) vs gas; ammonia pricing in Europe",
         pricedIn: "not_priced_in",
         stockIdeas: [
-          { ticker: "NTR", note: "Big fertilizer; gas/feed pass-through is the margin story" },
-          { ticker: "CF", note: "Nitrogen; moves when ammonia netbacks in Europe wobble" },
+          { ticker: "NTR", note: "Big fertilizer; gas/feed pass-through is the margin story", newsPricedInPct: 36 },
+          { ticker: "CF", note: "Nitrogen; moves when ammonia netbacks in Europe wobble", newsPricedInPct: 34 },
         ],
         buyTrigger: "Gas in Europe is still bumpy, and the company doesn’t pre-announce a big cost fix next quarter.",
       },
@@ -140,8 +140,8 @@ export const demoAraghchi: FeedViewModel = {
         lead_indicator: "energy ETF vs airline ETF; traffic updates from carriers",
         pricedIn: "partial",
         stockIdeas: [
-          { ticker: "XLE", note: "Stays the blunt energy beta if the Gulf stays in headlines" },
-          { ticker: "DAL", note: "As a *watch / avoid* if you think oil fear wins over travel demand (short idea only as context)" },
+          { ticker: "XLE", note: "Stays the blunt energy beta if the Gulf stays in headlines", newsPricedInPct: 68 },
+          { ticker: "DAL", note: "As a *watch / avoid* if you think oil fear wins over travel demand (short idea only as context)", newsPricedInPct: 71 },
         ],
         buyTrigger: "XLE is working vs airline indices for a week or more while headlines keep rotating through the Gulf, not a one-day spike.",
       },

@@ -134,6 +134,9 @@ function DepthClock({ urgency, horizon, recs }: { urgency: number; horizon: stri
   );
 }
 
+const PRICED_NEWS_IN_STOCK_TIP_D4 =
+  "Approximate share of this headline’s tradable information already reflected in this symbol (model estimate; not a price target or advice).";
+
 function PlyPriced({ p }: { p: TransmissionPly }) {
   const pi = PRICED[p.pricedIn];
   return (
@@ -151,8 +154,32 @@ function PlyPriced({ p }: { p: TransmissionPly }) {
       {p.stockIdeas.length > 0 && (
         <ul style={{ margin: "6px 0 0", padding: "8px 10px", listStyle: "none", background: "var(--d4-s4)", borderRadius: 6, border: "1px solid var(--d4-border)" }}>
           {p.stockIdeas.map((s) => (
-            <li key={s.ticker} style={{ fontSize: 12 }}>
-              <strong style={{ color: "var(--d4-gold)" }}>{s.ticker}</strong> <span style={{ color: "var(--d4-muted)" }}>— {s.note}</span>
+            <li key={s.ticker} style={{ fontSize: 12, display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "6px 10px" }}>
+              <span style={{ display: "inline-flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+                <strong style={{ color: "var(--d4-gold)" }}>{s.ticker}</strong>
+                {s.newsPricedInPct != null ? (
+                  <span
+                    title={PRICED_NEWS_IN_STOCK_TIP_D4}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fontVariantNumeric: "tabular-nums",
+                      color: "var(--d4-text)",
+                      background: "var(--d4-s4)",
+                      border: "1px solid rgba(245, 158, 11, 0.45)",
+                      borderRadius: 999,
+                      padding: "2px 8px",
+                    }}
+                  >
+                    {s.newsPricedInPct}%
+                  </span>
+                ) : (
+                  <span title={PRICED_NEWS_IN_STOCK_TIP_D4} style={{ fontSize: 10, fontFamily: "monospace", color: "var(--d4-muted)" }}>
+                    —%
+                  </span>
+                )}
+              </span>
+              <span style={{ color: "var(--d4-muted)" }}>— {s.note}</span>
             </li>
           ))}
         </ul>

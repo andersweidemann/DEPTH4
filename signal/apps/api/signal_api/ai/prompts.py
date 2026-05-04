@@ -75,7 +75,8 @@ Required top-level fields (in addition to scenarios, etc.):
    "step" (1-4, meaning Depth 1–4), "from_state", "mechanism", "to_state", "time_to_effect",
    "lead_indicator" (optional but preferred on Depths 2-4),
    "priced_in" (REQUIRED: "not_priced_in" | "partial" | "priced_in" for THIS Depth),
-   "stock_ideas" (0-3 objects: {{"ticker": US symbol, "rationale": "one line"}} — illustration only, not advice),
+   "stock_ideas" (0-3 objects: {{"ticker": US symbol, "rationale": "one line",
+   "priced_in_pct": integer 1-100 estimating how much of THIS headline's tradable information is already in that symbol's price (anchor to this Depth's priced_in; be conservative if unsure)}} — illustration only, not advice),
    "buy_trigger" (one line wait condition; "" if none).
 
 2) "early_lead_indicators": 3-5 objects with "text" and "light" ("green"|"yellow"|"red") as before.

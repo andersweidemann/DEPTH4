@@ -40,7 +40,7 @@ User portfolio: ${JSON.stringify(portfolio)}
 User open orders: ${JSON.stringify(orders)}
 
 Required:
-- transmission_chain: exactly 4 objects (Depth 1–4; field "step" 1-4). Each: from_state, mechanism, to_state, time_to_effect, lead_indicator (optional), priced_in (not_priced_in|partial|priced_in), stock_ideas [{ticker,rationale}] 0-3, buy_trigger.
+- transmission_chain: exactly 4 objects (Depth 1–4; field "step" 1-4). Each: from_state, mechanism, to_state, time_to_effect, lead_indicator (optional), priced_in (not_priced_in|partial|priced_in), stock_ideas [{ticker,rationale,priced_in_pct 1-100}] 0-3, buy_trigger.
 - early_lead_indicators: 3-5 of { "text", "light": "green"|"yellow"|"red" }
 - forward_horizon_summary: one sentence
 - order_book_review: REQUIRED array, one object per open order (or [] if none): {ticker, direction, limit_price, stance: hold|tighten|cancel|watch|add_risk, rationale}
