@@ -38,6 +38,21 @@ def headline_dedup_key(url: str | None, title: str) -> str:
   return f"news:hash:{h.hexdigest()}"
 
 
+SESSION_INGEST_COOLDOWN_SEC = 90
+
+
+async def try_acquire_session_ingest(uid: str) -> bool:
+  """True if this user may start an on-demand ingest now; sets a short cooldown key."""
+  k = f"depth4:session_ingest:{uid}"
+  try:
+    r = await get_redis()
+    ok = await r.set(k, "1", nx=True, ex=SESSION_INGEST_COOLDOWN_SEC)
+    return bool(ok)
+  except Exception:
+    # Fail open: allow ingest if Redis is down (same as dedup).
+    return True
+
+
 async def is_duplicate(url: str | None, title: str) -> bool:
   """Return True if this headline was seen recently. On Redis errors, fail open (not duplicate)."""
   global _r, _last_redis_dedup_warn_monotonic

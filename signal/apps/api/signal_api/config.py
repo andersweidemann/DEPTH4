@@ -67,6 +67,9 @@ class Settings(BaseSettings):
 
   cdn_public_url: str = Field(default="http://localhost:3000", validation_alias="FRONTEND_URL")
 
+  # When false, no in-process RSS/Yahoo/briefing/refinement loops — zero idle LLM. Use POST /cron/ingest-once
+  # (secret) or POST /market/ingest-session (logged-in user, rate-limited) to pull news.
+  enable_background_llm_loops: bool = Field(default=True, validation_alias="ENABLE_BACKGROUND_LLM_LOOPS")
   rss_interval_seconds: int = Field(default=60, validation_alias="RSS_INTERVAL_SECONDS")
   yahoo_fx_ticker: str = "SEK=X"
 

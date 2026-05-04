@@ -33,18 +33,25 @@ async def lifespan(_app: FastAPI):
       )
     log.info(
       "DEPTH4 API starting, redis=%s, llm_provider=%s, llm_background=%r, llm_interactive=%r, "
-      "background_configured=%s interactive_configured=%s",
+      "background_configured=%s interactive_configured=%s background_loops=%s",
       s.redis_url and s.redis_url[:24],
       (s.llm_provider or "anthropic").lower(),
       (s.llm_provider_background or "").strip().lower() or "(legacy classify/analysis)",
       (s.llm_provider_interactive or "anthropic").strip().lower(),
       llm_configured(),
       llm_interactive_configured(),
+      s.enable_background_llm_loops,
     )
-    t1 = asyncio.create_task(news_ingest.rss_loop())
-    t2 = asyncio.create_task(briefing_worker.run_loop())
-    t3 = asyncio.create_task(news_ingest.yahoo_ticker_ingest_loop())
-    t4 = asyncio.create_task(scenario_refinement.run_loop())
+    if s.enable_background_llm_loops:
+      t1 = asyncio.create_task(news_ingest.rss_loop())
+      t2 = asyncio.create_task(briefing_worker.run_loop())
+      t3 = asyncio.create_task(news_ingest.yahoo_ticker_ingest_loop())
+      t4 = asyncio.create_task(scenario_refinement.run_loop())
+    else:
+      log.info(
+        "DEPTH4: ENABLE_BACKGROUND_LLM_LOOPS=false — no RSS/Yahoo/briefing/refinement timers; "
+        "use /cron/ingest-once or POST /market/ingest-session when you want work to run.",
+      )
   else:
     log.warning("DEPTH4 API: no Supabase; background workers off")
   try:
@@ -75,7 +82,12 @@ app.include_router(ingest_cron.router, prefix="/cron", tags=["cron"])
 
 @app.get("/healthz")
 def healthz() -> dict:
-  return {"ok": True, "service": "depth4-api"}
+  s = get_settings()
+  return {
+    "ok": True,
+    "service": "depth4-api",
+    "background_llm_loops": s.enable_background_llm_loops,
+  }
 
 
 if __name__ == "__main__":

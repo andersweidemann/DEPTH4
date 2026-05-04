@@ -7,9 +7,9 @@ from fastapi import APIRouter, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from signal_api.ai import claude
-from signal_api.ai.llm_client import llm_interactive_configured
+from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.db import supabase_admin
-from signal_api.services import prices
+from signal_api.services import news_ingest, prices, redis as redis_svc
 
 router = APIRouter()
 
@@ -19,6 +19,28 @@ async def quote(ticker: str = Query(..., min_length=1)) -> dict:
   parts = [t.strip().upper() for t in ticker.split(",") if t.strip()][:32]
   q = await prices.quote_tickers(parts)
   return {"quotes": q}
+
+
+@router.post("/ingest-session")
+async def ingest_session(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+  """One RSS+classify(+trees) cycle, tied to a signed-in user — for when background loops are off."""
+  if not llm_configured():
+    raise HTTPException(status_code=503, detail="LLM not configured on API.")
+  if not authorization or not authorization.lower().startswith("bearer "):
+    raise HTTPException(status_code=401, detail="Send Authorization: Bearer <Supabase access_token>")
+  token = authorization[7:].strip()
+  sb = supabase_admin()
+  uid = _uid_from_access_token(sb, token)
+  if not await redis_svc.try_acquire_session_ingest(uid):
+    raise HTTPException(
+      status_code=429,
+      detail=f"Rate limited — try again in ~{redis_svc.SESSION_INGEST_COOLDOWN_SEC}s.",
+    )
+  try:
+    await news_ingest.one_cycle()
+  except Exception as e:
+    raise HTTPException(status_code=502, detail=f"Ingest failed: {e!s}") from e
+  return {"ok": True}
 
 
 class PremiumPersonalizeBody(BaseModel):

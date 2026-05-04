@@ -243,10 +243,25 @@ export function DashboardClient() {
     }
   }, [active?.id, sb, treeMap]);
 
-  const refreshNow = useCallback(() => {
+  const refreshNow = useCallback(async () => {
     sFeedUp(true);
-    void load();
-  }, [load]);
+    try {
+      const hz = await fetch(`${API}/healthz`);
+      const meta = (await hz.json().catch(() => ({}))) as { background_llm_loops?: boolean };
+      const loopsOff = meta.background_llm_loops === false;
+      const { data: { session } } = await sb.auth.getSession();
+      const tok = session?.access_token;
+      if (loopsOff && tok) {
+        await fetch(`${API}/market/ingest-session`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${tok}` },
+        });
+      }
+    } catch {
+      /* offline or API down — still reload cached feed */
+    }
+    await load();
+  }, [load, sb]);
 
   const onDismissEvent = useCallback(
     async (eventId: string) => {
@@ -584,7 +599,10 @@ export function DashboardClient() {
               <div className="d4-feed-h">
                 <div className="d4-feed-status">
                   <span className="d4-live-dot" aria-hidden />
-                  <span>Geopol + macro — consequence trees refresh on the server. Polls every {FEED_POLL_MS / 1000}s.</span>
+                  <span>
+                    Geopol + macro — feed reloads every {FEED_POLL_MS / 1000}s. If the API has background loops off,
+                    Refresh also runs one ingest cycle (uses LLM when new headlines exist).
+                  </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <span className="d4-bubble-meta" style={{ fontSize: 10, color: "var(--d4-faint)" }}>Click a card to expand the depth map</span>
