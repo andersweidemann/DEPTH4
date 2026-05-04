@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -24,6 +25,12 @@ async def lifespan(_app: FastAPI):
   t3: asyncio.Task[None] | None = None
   t4: asyncio.Task[None] | None = None
   if s.supabase_url and s.supabase_service_key.get_secret_value():
+    ru = (s.redis_url or "").lower()
+    if os.getenv("RENDER") and ("localhost" in ru or "127.0.0.1" in ru):
+      log.warning(
+        "DEPTH4: REDIS_URL points at localhost — Render has no local Redis. "
+        "Set REDIS_URL to Upstash or Render Redis (rediss://…). Dedup is fail-open until then."
+      )
     log.info(
       "DEPTH4 API starting, redis=%s, llm_provider=%s, llm_configured=%s",
       s.redis_url and s.redis_url[:24],
