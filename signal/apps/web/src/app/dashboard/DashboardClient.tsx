@@ -133,6 +133,7 @@ export function DashboardClient() {
             .limit(1)
             .maybeSingle();
           if (t.data) sAT(t.data as T.Tree);
+          else sAT(null);
         } else {
           sAct(null);
           sAT(null);

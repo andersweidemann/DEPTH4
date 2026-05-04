@@ -540,7 +540,30 @@ export function Depth4FeedBubble({
               </ul>
             </div>
           )}
-          {proUnlocked && !hasL3 && <p style={{ color: "var(--d4-muted)" }}>Scenarios still processing — check back shortly.</p>}
+          {proUnlocked && !hasL3 && (
+            <div style={{ color: "var(--d4-muted)", fontSize: 13, lineHeight: 1.55 }}>
+              {sl < 3 ? (
+                <>
+                  <p style={{ margin: 0 }}>
+                    Scenarios are only built for <strong>higher-signal</strong> items (badge <strong>≥3</strong>). This
+                    story is rated lower, so Layer 3 stays empty on purpose.
+                  </p>
+                  <p style={{ margin: "10px 0 0" }}>Open a headline with a higher signal, or wait for a bigger wire.</p>
+                </>
+              ) : (
+                <>
+                  <p style={{ margin: 0 }}>
+                    No scenario branches are stored for this item yet (ingest may still be writing the tree, or
+                    generation returned an empty list).
+                  </p>
+                  <p style={{ margin: "10px 0 0" }}>
+                    Use <strong>Refresh</strong> on the dashboard in a little while, or try another <strong>≥3</strong>{" "}
+                    item.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
           {!proUnlocked && (hasL3 || model.layer4) && <ProPaywallCard />}
         </div>
 
