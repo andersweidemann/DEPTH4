@@ -196,7 +196,12 @@ async def _process_item(
       "signal_level": sev,
     }
   sc_raw = tree_out.get("scenarios")
-  sc_list = sc_raw if isinstance(sc_raw, list) else []
+  if isinstance(sc_raw, list):
+    sc_list = sc_raw
+  elif isinstance(sc_raw, dict):
+    sc_list = [v for v in sc_raw.values() if isinstance(v, dict)]
+  else:
+    sc_list = []
   if sev >= 3 and not sc_list:
     log.warning(
       "news_ingest: consequence tree has no scenarios event_id=%s sev=%s (empty JSON branch or LLM parse issue)",
