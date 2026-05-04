@@ -39,6 +39,20 @@ def llm_configured() -> bool:
   return provider_configured(s, classify_p) or provider_configured(s, analysis_p)
 
 
+def llm_configuration_hint() -> str:
+  """Human-readable hint for logs when ingest skips (no secrets)."""
+  s = get_settings()
+  classify_p = _norm_provider(s.llm_provider_classify) or _norm_provider(s.llm_provider)
+  analysis_p = _norm_provider(s.llm_provider_analysis) or _norm_provider(s.llm_provider)
+  c_cls = provider_configured(s, classify_p)
+  c_ana = provider_configured(s, analysis_p)
+  return (
+    f"classify_provider={classify_p!r} configured={c_cls}, "
+    f"analysis_provider={analysis_p!r} configured={c_ana} "
+    f"(set keys for those providers on the API service)"
+  )
+
+
 def pick_provider_for_task(settings: Settings, task: str) -> str:
   """task: classify | analysis"""
   t = (task or "").strip().lower()

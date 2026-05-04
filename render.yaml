@@ -24,10 +24,11 @@ services:
         value: "60"
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Optional split routing (set in dashboard if desired; do not leave blank keys overriding secrets).
       - key: LLM_PROVIDER_CLASSIFY
-        value: ""
+        sync: false
       - key: LLM_PROVIDER_ANALYSIS
-        value: ""
+        sync: false
       # Optional: use NVIDIA NIM for cheap pipeline tests (set LLM_PROVIDER=nvidia and NVIDIA_API_KEY).
       - key: NVIDIA_API_KEY
         sync: false

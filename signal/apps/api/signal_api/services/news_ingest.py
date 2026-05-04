@@ -17,7 +17,7 @@ import httpx
 from supabase import Client
 
 from signal_api.ai import claude
-from signal_api.ai.llm_client import llm_configured
+from signal_api.ai.llm_client import llm_configured, llm_configuration_hint
 from signal_api.config import get_settings
 from signal_api.db import supabase_admin
 from signal_api.services import alerts, redis
@@ -159,7 +159,8 @@ async def one_cycle() -> None:
   s = get_settings()
   if not llm_configured():
     log.warning(
-      "news_ingest: skipping cycle — LLM not configured (set ANTHROPIC_API_KEY or NVIDIA path)"
+      "news_ingest: skipping cycle — LLM not configured (%s)",
+      llm_configuration_hint(),
     )
     return
   sb = supabase_admin()
