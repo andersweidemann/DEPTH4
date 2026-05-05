@@ -21,6 +21,8 @@ const DISMISSED_L4_KEY = "depth4_dismissed_l4_ids";
 const IDLE_INGEST_BOOTSTRAP_KEY = "depth4_idle_ingest_bootstrap_ok";
 let idleIngestBootstrapPromise: Promise<void> | null = null;
 
+type HealthzMeta = { background_llm_loops?: boolean };
+
 /** When API has background loops off, run one ingest-session on first dashboard load (deduped). */
 async function tryIdleIngestBootstrap(
   sb: ReturnType<typeof createClient>,
@@ -95,6 +97,7 @@ export function DashboardClient() {
   const [premLoading, sPremL] = useState(false);
   const [premErr, sPremE] = useState<string | null>(null);
   const [premJson, sPremJ] = useState<Record<string, unknown> | null>(null);
+  const [bgLoops, sBgLoops] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -110,6 +113,20 @@ export function DashboardClient() {
     try {
       sessionStorage.setItem(DISMISSED_L4_KEY, JSON.stringify(Array.from(acknowledgedL4Ref.current)));
     } catch { /* */ }
+  }, []);
+
+  const refreshHealthz = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/healthz`);
+      if (!res.ok) return null;
+      const j = (await res.json()) as HealthzMeta;
+      const v = typeof j.background_llm_loops === "boolean" ? j.background_llm_loops : null;
+      sBgLoops(v);
+      return v;
+    } catch {
+      sBgLoops(null);
+      return null;
+    }
   }, []);
 
   const load = useCallback(
@@ -236,8 +253,9 @@ export function DashboardClient() {
   );
 
   useEffect(() => {
+    void refreshHealthz();
     void load();
-  }, [load]);
+  }, [load, refreshHealthz]);
 
   useEffect(() => {
     sPremJ(null);
@@ -287,9 +305,8 @@ export function DashboardClient() {
   const refreshNow = useCallback(async () => {
     sFeedUp(true);
     try {
-      const hz = await fetch(`${API}/healthz`);
-      const meta = (await hz.json().catch(() => ({}))) as { background_llm_loops?: boolean };
-      const loopsOff = meta.background_llm_loops === false;
+      const loops = await refreshHealthz();
+      const loopsOff = loops === false;
       const { data: { session } } = await sb.auth.getSession();
       const tok = session?.access_token;
       if (loopsOff && tok) {
@@ -302,7 +319,96 @@ export function DashboardClient() {
       /* offline or API down — still reload cached feed */
     }
     await load({ skipIdleBootstrap: true });
-  }, [load, sb]);
+  }, [load, sb, refreshHealthz]);
+
+  const MacroStatusBar = useCallback(() => {
+    const e = active;
+    const vm = activeVm;
+    if (!e || !vm) {
+      return (
+        <div
+          className="d4-sidecard"
+          style={{
+            margin: "10px 0 0",
+            padding: "10px 12px",
+            position: "sticky",
+            top: 0,
+            zIndex: 20,
+            background: "rgba(10, 10, 12, 0.92)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <div className="d4-bubble-meta" style={{ fontSize: 11 }}>
+            No active story. Click a card to pin the current macro event.
+          </div>
+        </div>
+      );
+    }
+    const hasTree = Boolean((treeMap as Record<string, T.Tree>)[e.id]);
+    const ply0 = vm.layer2.transmissionPlies?.[0];
+    const pricedIn = ply0?.pricedIn || "unknown";
+    const v = vm.verification?.status || "unknown";
+    const loopLabel = bgLoops === null ? "—" : bgLoops ? "ON" : "OFF";
+    const loopHint =
+      bgLoops === false ? "Idle mode: Refresh runs ingest once." : bgLoops === true ? "Live mode: server runs ingest loops." : "Unknown API mode.";
+    return (
+      <div
+        className="d4-sidecard"
+        style={{
+          margin: "10px 0 0",
+          padding: "10px 12px",
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          background: "rgba(10, 10, 12, 0.92)",
+          backdropFilter: "blur(10px)",
+          borderColor: "rgba(226, 164, 58, 0.22)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div className="d4-bubble-meta" style={{ fontSize: 10, letterSpacing: 0.3, textTransform: "uppercase" }}>
+              Current macro event
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, marginTop: 4 }}>
+              <span className="d4-tick" style={{ fontSize: 12, maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {vm.headline}
+              </span>
+              <SigBadge className="!shrink-0" level={vm.signalLevel} />
+            </div>
+            <div className="d4-bubble-meta" style={{ marginTop: 6, fontSize: 11, lineHeight: 1.4 }}>
+              <span style={{ color: "var(--d4-text)" }}>→ {vm.hook}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="d4-btn d4-btn-ghost"
+            style={{ fontSize: 11, padding: "6px 10px", borderColor: "rgba(226, 164, 58, 0.35)" }}
+            onClick={() => void refreshNow()}
+            disabled={feedUpdating}
+            title="Refresh feed (and ingest once in idle mode)"
+          >
+            {feedUpdating ? "Refreshing…" : "Refresh"}
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
+          <span className="d4-bubble-meta" style={{ fontSize: 11 }}>
+            <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Tree</strong>: {hasTree ? "OK" : "missing"}
+          </span>
+          <span className="d4-bubble-meta" style={{ fontSize: 11 }}>
+            <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Priced-in</strong>: {pricedIn.replace(/_/g, " ")}
+          </span>
+          <span className="d4-bubble-meta" style={{ fontSize: 11 }}>
+            <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Verify</strong>: {v}
+          </span>
+          <span className="d4-bubble-meta" style={{ fontSize: 11 }} title={loopHint}>
+            <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Mode</strong>: {loopLabel}
+          </span>
+        </div>
+      </div>
+    );
+  }, [active, activeVm, bgLoops, feedUpdating, refreshNow, treeMap]);
 
   const onDismissEvent = useCallback(
     async (eventId: string) => {
@@ -559,6 +665,8 @@ export function DashboardClient() {
           <button type="button" className="d4-btn d4-btn-ghost" onClick={() => sAdd(true)}>+ Add holding</button>
           <button type="button" className="d4-btn d4-btn-ghost" onClick={onSignOut}>Sign out</button>
         </header>
+
+        <MacroStatusBar />
 
         <aside className="d4-sidebar" aria-label="Portfolio">
           <div className="d4-kicker">Portfolio</div>
