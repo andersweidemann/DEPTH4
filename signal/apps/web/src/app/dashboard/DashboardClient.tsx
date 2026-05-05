@@ -810,6 +810,48 @@ export function DashboardClient() {
             </div>
 
             <div style={{ marginTop: 14 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>A Concrete Example</div>
+              <div
+                style={{
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 12,
+                  background: "rgba(255,255,255,0.03)",
+                  padding: 12,
+                }}
+              >
+                <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                  <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>News</strong>: US imposes tariffs on Chinese
+                  semiconductors.
+                </p>
+                <ul
+                  className="d4-bubble-meta"
+                  style={{ fontSize: 12, lineHeight: 1.6, paddingLeft: 18, margin: "10px 0 0" }}
+                >
+                  <li>
+                    <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Level 1 — Direct</strong>: SMIC, ASML,
+                    Nvidia, Applied Materials. Everyone trades these immediately.
+                  </li>
+                  <li>
+                    <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Level 2 — Sector Ripple</strong>: EV
+                    makers (battery chips), data center REITs (capex slowdown), cloud providers (GPU scarcity). Priced
+                    partially within 24h.
+                  </li>
+                  <li>
+                    <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Level 3 — Macro Cascade</strong>: Taiwan
+                    dollar strengthens (TSMC gains share), Vietnam/India manufacturing ETFs rally, copper demand shifts
+                    (fab buildout elsewhere), USD/CNY pressure. Most traders miss this window.
+                  </li>
+                  <li>
+                    <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Level 4 — Structural Drift</strong>: US
+                    defense contractors with chip divisions, university R&amp;D funding plays, long-duration bonds react to
+                    inflation expectations from supply chain restructuring. Weeks out — almost nobody connects the dots at
+                    event time.
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
               <div className="d4-kicker" style={{ marginBottom: 6 }}>What Does “Not Yet Priced In” Mean?</div>
               <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
                 For every macro event, DEPTH4 calculates two things:
@@ -821,6 +863,22 @@ export function DashboardClient() {
               <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: "8px 0 0" }}>
                 The difference between those two numbers is the unpriced opportunity. A large gap at Level 3 or Level 4
                 means the market hasn&apos;t connected the dots yet — and you have a window to act before it does.
+              </p>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>The “Not Yet Priced In” Engine</div>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                This is the real product logic. For each level, DEPTH4 should answer two questions:
+              </p>
+              <ul className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, paddingLeft: 18, margin: "8px 0 0" }}>
+                <li>What is the implied move based on the news?</li>
+                <li>What has the market already done (price action since the event)?</li>
+              </ul>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: "8px 0 0" }}>
+                The delta between those two numbers is the unpriced opportunity. Level 1 deltas close in minutes. Level
+                3–4 deltas can persist for days. This is where DEPTH4 tells traders: “The market priced Level 1
+                immediately, Level 2 is 40% priced, Level 3 is essentially untouched — here&apos;s the trade.”
               </p>
             </div>
 
