@@ -508,6 +508,9 @@ export function Depth4FeedBubble({
   isIncoming,
   trigger,
   onDismissTrigger,
+  isBookmarked,
+  onToggleBookmark,
+  tracked,
 }: {
   news: NewsItem;
   model: FeedViewModel;
@@ -526,6 +529,9 @@ export function Depth4FeedBubble({
   isIncoming?: boolean;
   trigger?: { tone: "gold" | "red"; text: string } | null;
   onDismissTrigger?: () => void;
+  isBookmarked?: boolean;
+  onToggleBookmark?: () => void;
+  tracked?: boolean;
 }) {
   const [tab, setTab] = useState<TabK>("l1");
   const l1 = layer1FromView(model);
@@ -553,7 +559,7 @@ export function Depth4FeedBubble({
 
   return (
     <div
-      className={cn("d4-bubble", expanded && "d4-bubble--active", isIncoming && "incoming")}
+      className={cn("d4-bubble", expanded && "d4-bubble--active", isIncoming && "incoming", tracked && "tracked")}
       style={{
         ...(sl >= 4
           ? { boxShadow: "0 0 0 1px rgba(194, 82, 82, 0.35)" }
@@ -616,6 +622,18 @@ export function Depth4FeedBubble({
             <X className="h-4 w-4" style={{ color: "var(--d4-muted)" }} />
           </button>
         )}
+        <button
+          type="button"
+          className={cn("bookmark-btn", isBookmarked && "bookmarked")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleBookmark?.();
+          }}
+          title={isBookmarked ? "Stop tracking" : "Track this story"}
+          aria-label={isBookmarked ? "Stop tracking" : "Track this story"}
+        >
+          {isBookmarked ? "★" : "☆"}
+        </button>
         <span className="d4-caret-hint" aria-hidden>▼</span>
       </div>
       <FeedTags vm={model} publishedAt={publishedAt} overlapLabels={overlapLabelTickers} />

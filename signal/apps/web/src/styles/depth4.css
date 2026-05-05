@@ -108,6 +108,209 @@ body.d4-skin {
   gap: 14px;
   min-width: 0;
 }
+
+/* Focus mode: dim sibling cards when one is expanded. */
+.d4-main.has-focus .d4-bubble:not(.d4-bubble--active) {
+  opacity: 0.25;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.d4-main.has-focus .d4-bubble.d4-bubble--active {
+  opacity: 1;
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 0 0 1px var(--d4-goldring), var(--d4-sh);
+}
+
+.pending-pill {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  width: 100%;
+  padding: 7px 12px;
+  background: var(--d4-s2);
+  border: 1px solid var(--d4-goldring);
+  border-radius: var(--d4-rfull);
+  color: var(--d4-gold);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  animation: d4-slideDown 0.2s ease;
+}
+@keyframes d4-slideDown {
+  from {
+    transform: translateY(-6px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.tracking-section {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+}
+.tracking-divider {
+  font-size: 10px;
+  color: var(--d4-faint);
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--d4-divider);
+}
+.d4-bubble.tracked {
+  border-left: 2px solid var(--d4-goldring);
+}
+
+.bookmark-btn {
+  font-size: 13px;
+  color: var(--d4-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.bookmark-btn:hover {
+  color: var(--d4-gold);
+}
+.bookmark-btn.bookmarked {
+  color: var(--d4-gold);
+  transform: scale(1.1);
+}
+
+.action-strip {
+  font-size: 11px;
+  padding: 5px 16px;
+  background: var(--d4-s1);
+  border: 1px solid var(--d4-divider);
+  border-radius: var(--d4-r2);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.action-strip-label {
+  color: var(--d4-faint);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+.action-strip-line {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-strip-link {
+  color: var(--d4-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 11px;
+}
+.action-strip-link:hover {
+  color: var(--d4-text);
+}
+.as-watch {
+  color: var(--d4-gold);
+  font-weight: 700;
+}
+.as-avoid {
+  color: var(--d4-red);
+  font-weight: 700;
+}
+.as-buy {
+  color: var(--d4-green);
+  font-weight: 700;
+}
+
+/* Onboarding tour overlay */
+.d4-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+.d4-tour-cutout {
+  position: fixed;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+  outline: 1px solid rgba(226, 164, 58, 0.35);
+}
+.d4-tour-card {
+  position: fixed;
+  width: 340px;
+  max-width: calc(100vw - 24px);
+  background: var(--d4-s2);
+  border: 1px solid rgba(226, 164, 58, 0.25);
+  border-radius: 14px;
+  padding: 12px 12px;
+  box-shadow: var(--d4-sh);
+  pointer-events: auto;
+}
+.d4-tour-kicker {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--d4-faint);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.d4-tour-title {
+  font-family: "Cabinet Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+.d4-tour-body {
+  font-size: 12px;
+  color: var(--d4-muted);
+  line-height: 1.5;
+}
+.d4-tour-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 10px;
+}
+.d4-tour-skip {
+  background: none;
+  border: none;
+  color: var(--d4-muted);
+  cursor: pointer;
+  font-size: 11px;
+}
+.d4-tour-skip:hover {
+  color: var(--d4-text);
+}
+.d4-tour-next,
+.d4-tour-cta {
+  background: var(--d4-s3);
+  border: 1px solid var(--d4-border);
+  color: var(--d4-text);
+  cursor: pointer;
+  border-radius: var(--d4-r2);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 7px 10px;
+}
+.d4-tour-cta {
+  border-color: var(--d4-goldring);
+  color: var(--d4-gold);
+}
+.d4-tour-next:hover,
+.d4-tour-cta:hover {
+  background: var(--d4-s4);
+}
 .d4-panel {
   grid-row: 2;
   background: var(--d4-s1);

@@ -12,7 +12,7 @@ import * as T from "./types";
 import { Depth4FeedBubble } from "@/components/depth4/Depth4FeedBubble";
 import { Depth4L4Panel } from "@/components/depth4/Depth4L4Panel";
 import { edgeScoreForPosition } from "@/lib/depth4View";
-import { layer1FromView } from "@/lib/depth4View";
+import { buildDepthClockData, layer1FromView } from "@/lib/depth4View";
 import { Sheet } from "@/components/ui/sheet";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { SigBadge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ import type { Plan } from "@/lib/plan";
 import { PLAN_LIMITS, planFromDbTier, planLabel, planPillStyle } from "@/lib/plan";
 import { PaywallOverlay } from "@/components/PaywallOverlay";
 import type { DeepBrief } from "@/types/deepBrief";
+import { OnboardingTour } from "@/components/OnboardingTour";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const DISMISSED_L4_KEY = "depth4_dismissed_l4_ids";
@@ -92,6 +93,7 @@ export function DashboardClient() {
   const [lastSynced, sLast] = useState<string | null>(null);
   const acknowledgedL4Ref = useRef<Set<string>>(new Set());
   const feedFocusEventIdRef = useRef<string | null>(null);
+  const expIdRef = useRef<string | null>(null);
   const [expId, sExp] = useState<string | null>(null);
   const [addOpen, sAdd] = useState(false);
   const [addErr, sAddErr] = useState<string | null>(null);
@@ -113,6 +115,8 @@ export function DashboardClient() {
   const [incoming, setIncoming] = useState<Record<string, number>>({});
   const [dismissedTriggers, setDismissedTriggers] = useState<Record<string, boolean>>({});
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [pendingStories, setPendingStories] = useState<T.NewsItem[]>([]);
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
 
   function isDeepBrief(x: unknown): x is DeepBrief {
     if (!x || typeof x !== "object") return false;
@@ -137,6 +141,34 @@ export function DashboardClient() {
   const openUpgrade = useCallback(() => {
     setUpgradeOpen(true);
   }, []);
+
+  const toggleBookmark = useCallback((id: string) => {
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const flushPendingStories = useCallback(() => {
+    setN((prev) => {
+      if (!pendingStories.length) return prev;
+      const seen = new Set(prev.map((x) => x.id));
+      const incomingUnique = pendingStories.filter((x) => !seen.has(x.id));
+      return [...incomingUnique, ...prev];
+    });
+    setPendingStories([]);
+  }, [pendingStories]);
+
+  useEffect(() => {
+    // When leaving focus mode (card collapsed), auto-flush queued stories into the feed.
+    if (!expId && pendingStories.length) flushPendingStories();
+  }, [expId, pendingStories.length, flushPendingStories]);
+
+  useEffect(() => {
+    expIdRef.current = expId;
+  }, [expId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -238,6 +270,23 @@ export function DashboardClient() {
           }
           if (Object.keys(inc).length) {
             setIncoming((cur) => ({ ...cur, ...inc }));
+          }
+          // Focus mode: keep feed stable and queue new stories instead of prepending.
+          if (expIdRef.current) {
+            const newlyArrived = m.filter((e) => !prevIds.has(e.id));
+            if (newlyArrived.length) {
+              setPendingStories((cur) => {
+                const seen = new Set(cur.map((x) => x.id));
+                const next = [...cur];
+                for (const s of newlyArrived) {
+                  if (!seen.has(s.id)) next.push(s);
+                }
+                return next;
+              });
+            }
+            // Keep current ordering; also drop any stories that disappeared.
+            const mIds = new Set(m.map((x) => x.id));
+            return prev.filter((x) => mIds.has(x.id));
           }
           return m;
         });
@@ -605,6 +654,17 @@ export function DashboardClient() {
     [p],
   );
 
+  const trackedIds = bookmarkedIds;
+  const trackedStories = useMemo(
+    () => n.filter((e) => trackedIds.has(e.id)),
+    [n, trackedIds],
+  );
+
+  const liveStories = useMemo(
+    () => n.filter((e) => !trackedIds.has(e.id)),
+    [n, trackedIds],
+  );
+
   const affForEdge = useMemo(
     () => new Set((active?.affected_tickers || []).map((t) => normT(t))),
     [active],
@@ -834,6 +894,7 @@ export function DashboardClient() {
           <button
             type="button"
             className="d4-btn d4-btn-ghost"
+            id="openModalSide"
             onClick={() => (atHoldingsLimit ? openUpgrade() : sAdd(true))}
             title={atHoldingsLimit ? "Holding limit reached — upgrade to add more" : "Add holding"}
           >
@@ -1285,7 +1346,7 @@ export function DashboardClient() {
             </div>
           </div>
           <div className="d4-kicker">Edge scores (illus.)</div>
-          <div className="d4-sidecard" style={{ paddingBottom: 6 }}>
+          <div className="d4-sidecard" id="edgeList" style={{ paddingBottom: 6 }}>
             <p className="d4-bubble-meta" style={{ fontSize: 10, lineHeight: 1.5, marginBottom: 6 }}>
               Brighter = more to watch for the active story.
             </p>
@@ -1320,9 +1381,43 @@ export function DashboardClient() {
           </div>
         </aside>
 
-        <div className="d4-main">
+        <div className={cn("d4-main", expId ? "has-focus" : "")}>
           {(!sp.get("tab") || sp.get("tab") === "feed") && (
             <>
+              <OnboardingTour
+                onOpenAddHolding={() => sAdd(true)}
+              />
+
+              {active && activeVm?.layer4 && (
+                <div className="action-strip" role="status" aria-live="polite">
+                  <span className="action-strip-label">NOW</span>
+                  <div className="action-strip-line">
+                    {(() => {
+                      const recs = buildDepthClockData(activeVm, active.signal_level).recs.slice(0, 6);
+                      return recs.map((r, i) => (
+                      <span key={`${r.tick}-${i}`} className={r.act === "buy" ? "as-buy" : r.act === "avoid" ? "as-avoid" : "as-watch"}>
+                        {r.tick} {r.act.toUpperCase()}
+                        {typeof r.edge === "number" ? ` ${Math.round(r.edge)}` : ""}
+                        {i < recs.length - 1 ? " · " : ""}
+                      </span>
+                      ));
+                    })()}
+                    <button
+                      type="button"
+                      className="action-strip-link"
+                      onClick={() => {
+                        if (!active?.id) return;
+                        sExp(active.id);
+                        feedFocusEventIdRef.current = active.id;
+                      }}
+                      title="Open active story"
+                    >
+                      — based on {active.headline.slice(0, 60)}{active.headline.length > 60 ? "…" : ""}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <div className="d4-feed-h">
                 <div className="d4-feed-status">
                   <span className="d4-live-dot" aria-hidden />
@@ -1368,8 +1463,67 @@ export function DashboardClient() {
                   )}
                 </div>
               )}
+              {pendingStories.length > 0 && (
+                <button type="button" className="pending-pill" onClick={flushPendingStories}>
+                  ↑ {pendingStories.length} new {pendingStories.length === 1 ? "story" : "stories"}
+                </button>
+              )}
+
+              {trackedStories.length > 0 && (
+                <div className="tracking-section">
+                  <div className="d4-kicker">Tracking</div>
+                  <div className="d4-news-grid" style={{ paddingBottom: 8 }}>
+                    {trackedStories.map((e) => {
+                      const vmForTrig = mapToFeedViewModel(
+                        e,
+                        (treeMap as Record<string, T.Tree>)[e.id] ?? null,
+                        p,
+                        od,
+                        pr,
+                      );
+                      const userOverlap = (e.affected_tickers || []).filter(
+                        (t) => p.some((q) => normT(q.ticker) === normT(t)),
+                      );
+                      return (
+                        <Depth4FeedBubble
+                          key={`tracked-${e.id}`}
+                          news={
+                            deepBriefById[e.id]
+                              ? ({ ...(e as unknown as Record<string, unknown>), deepBrief: deepBriefById[e.id] } as unknown as T.NewsItem)
+                              : e
+                          }
+                          model={vmForTrig}
+                          plan={plan}
+                          publishedAt={e.published_at}
+                          overlapLabelTickers={userOverlap as string[]}
+                          userHoldings={p.map((x) => x.ticker)}
+                          onUpgrade={openUpgrade}
+                          isGeneratingBrief={generatingId === e.id}
+                          briefError={briefErr[e.id] || null}
+                          onGenerateBrief={() => void handleGenerateBrief(e.id)}
+                          isIncoming={false}
+                          trigger={null}
+                          expanded={expId === e.id}
+                          onToggle={() => sExp((cur) => (cur === e.id ? null : e.id))}
+                          onFocus={() => {
+                            feedFocusEventIdRef.current = e.id;
+                            sAct(e);
+                            sAT((treeMap as Record<string, T.Tree>)[e.id] ?? null);
+                          }}
+                          onDismiss={() => void onDismissEvent(e.id)}
+                          isBookmarked={bookmarkedIds.has(e.id)}
+                          onToggleBookmark={() => toggleBookmark(e.id)}
+                          tracked
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="tracking-divider">Live feed ↓</div>
+                </div>
+              )}
+
               <div className="d4-news-grid" style={{ paddingBottom: 8 }}>
-                {n.map((e) => {
+                {liveStories.map((e) => {
                   const incAt = incoming[e.id];
                   const isIncoming = typeof incAt === "number" && Date.now() - incAt < 30_000;
                   const vmForTrig = mapToFeedViewModel(
@@ -1423,6 +1577,8 @@ export function DashboardClient() {
                       onDismiss={() => {
                         void onDismissEvent(e.id);
                       }}
+                      isBookmarked={bookmarkedIds.has(e.id)}
+                      onToggleBookmark={() => toggleBookmark(e.id)}
                     />
                   );
                 })}
