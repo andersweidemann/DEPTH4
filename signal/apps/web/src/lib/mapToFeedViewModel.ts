@@ -258,6 +258,8 @@ function mergeLayer2Forward(tree: Tree | null | undefined, base: FeedLayer2): Fe
   if (!plies?.length && !leadList?.length && !horizon) return base;
   return {
     ...base,
+    depth1: (fm as unknown as { depth1?: FeedLayer2["depth1"] })?.depth1,
+    depth2: (fm as unknown as { depth2?: FeedLayer2["depth2"] })?.depth2,
     transmissionPlies: plies && plies.length ? plies : undefined,
     earlyLeadList: leadList,
     forwardHorizonSummary: horizon || undefined,

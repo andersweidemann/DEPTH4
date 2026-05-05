@@ -7,6 +7,7 @@ GDELT-style JSON) in a merge step before _process_item; dedup via redis + DB sou
 """
 
 import asyncio
+import hashlib
 import logging
 import time
 from datetime import datetime, UTC
@@ -152,10 +153,21 @@ def _skeleton_scenarios(
       w_tick.append({"ticker": u})
   if not w_tick:
     w_tick = [{"ticker": "SPY"}]
+
+  seed = hashlib.sha256(f"{headline}|{one_line}|{','.join(tickers[:4])}|{','.join(sectors[:5])}".encode("utf-8")).digest()
+  weights = [seed[0] + 1, seed[1] + 1, seed[2] + 1]
+  total = sum(weights) or 1
+  probs = [int(round(100 * w / total)) for w in weights]
+  diff = 100 - sum(probs)
+  probs[0] = max(0, min(100, probs[0] + diff))
+  diff2 = 100 - sum(probs)
+  if diff2 != 0:
+    probs[1] = max(0, min(100, probs[1] + diff2))
+  p0, p1, p2 = probs
   return [
     {
       "label": "Base case",
-      "probability": 45,
+      "probability": p0,
       "outcome": f"Default path: {base}; range-bound chop after the initial move.",
       "market_impact": f"{vol} Realized vol mean-reverts; liquidity remains adequate.",
       "winners": w_tick[:2],
@@ -165,7 +177,7 @@ def _skeleton_scenarios(
     },
     {
       "label": "Constructive surprise",
-      "probability": 32,
+      "probability": p1,
       "outcome": f"Resolution skews risk-on relative to the first read of: {base[:160]}.",
       "market_impact": "Cyclicals outperform defensives near term; credit spreads steady.",
       "winners": w_tick,
@@ -175,7 +187,7 @@ def _skeleton_scenarios(
     },
     {
       "label": "Adverse tail",
-      "probability": 23,
+      "probability": p2,
       "outcome": f"Escalation or policy shock: {base[:160]} worsens; liquidity stress in pockets.",
       "market_impact": "Volatility spike, de-grossing, quality bid; correlations jump.",
       "winners": [{"ticker": "GLD"}, {"ticker": "UUP"}],
@@ -206,7 +218,7 @@ async def _ensure_scenarios_for_signal3(
     sev,
   )
   try:
-    repaired = await claude.generate_scenarios_repair(title, body, sect, tick)
+    repaired = await claude.generate_scenarios_repair(title, body, sect, tick, temperature=0.7)
     fixed = [r for r in repaired if _is_nonempty_scenario_row(r)]
     if len(fixed) >= 2:
       tree_out["scenarios"] = fixed
@@ -303,7 +315,15 @@ async def _process_item(
   last_exc: BaseException | None = None
   for attempt in range(3):
     try:
-      tree_out = await claude.generate_consequence(title, body_text, sect, tick, "[]", "[]")
+      tree_out = await claude.generate_consequence(
+        title,
+        body_text,
+        sect,
+        tick,
+        "[]",
+        "[]",
+        temperature=0.7,
+      )
       last_exc = None
       break
     except Exception as e:

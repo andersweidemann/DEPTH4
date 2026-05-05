@@ -529,6 +529,10 @@ export function Depth4FeedBubble({
 }) {
   const [tab, setTab] = useState<TabK>("l1");
   const l1 = layer1FromView(model);
+  const d1 = model.layer2.depth1;
+  const d2 = model.layer2.depth2;
+  const hasStructuredD1 = Boolean(d1?.event || d1?.whyItMatters || d1?.firstMove || d1?.pricedIn);
+  const hasStructuredD2 = Boolean(d2?.sectorRipple || (d2?.timeline && d2.timeline.length) || d2?.crossAsset);
   const hasL3 = model.layer3.scenarios.length > 0;
   const clock = buildDepthClockData(model, news.signal_level);
   const sl = model.signalLevel;
@@ -689,38 +693,94 @@ export function Depth4FeedBubble({
         </div>
 
         <div className={cn("d4-dm-panel", tab === "l1" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "l1"}>
-          <div className="d4-dm-kicker">Event</div>
-          <div className="d4-dm-block">{l1.event}</div>
-          <div className="d4-dm-kicker" style={{ marginTop: 8 }}>Why</div>
-          <div className="d4-dm-block">{l1.why}</div>
-          <div className="d4-dm-kicker" style={{ marginTop: 8 }}>Next</div>
-          <div className="d4-dm-block">{l1.next}</div>
-          <div className="d4-dm-signal">{l1.signal}</div>
+          {hasStructuredD1 ? (
+            <>
+              <div className="d4-dm-kicker">EVENT</div>
+              <div className="d4-dm-block">{d1?.event || l1.event}</div>
+              <div className="d4-dm-kicker" style={{ marginTop: 8 }}>WHY IT MATTERS</div>
+              <div className="d4-dm-block">{d1?.whyItMatters || l1.why}</div>
+              <div className="d4-dm-kicker" style={{ marginTop: 8 }}>FIRST MOVE</div>
+              <div className="d4-dm-block">{d1?.firstMove || l1.next}</div>
+              <div className="d4-dm-kicker" style={{ marginTop: 8 }}>PRICED IN</div>
+              <div className="d4-dm-block">{d1?.pricedIn || l1.signal}</div>
+            </>
+          ) : (
+            <>
+              <div className="d4-dm-kicker">Event</div>
+              <div className="d4-dm-block">{l1.event}</div>
+              <div className="d4-dm-kicker" style={{ marginTop: 8 }}>Why</div>
+              <div className="d4-dm-block">{l1.why}</div>
+              <div className="d4-dm-kicker" style={{ marginTop: 8 }}>Next</div>
+              <div className="d4-dm-block">{l1.next}</div>
+              <div className="d4-dm-signal">{l1.signal}</div>
+            </>
+          )}
         </div>
 
         <div className={cn("d4-dm-panel", tab === "l2" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "l2"}>
-          <ForwardBlockD4 vm={model} />
-          {(model.layer2.transmissionPlies?.length || model.layer2.earlyLeadList?.length || model.layer2.forwardHorizonSummary) && (
-            <p className="d4-dm-kicker" style={{ margin: "10px 0 6px" }}>Narrative</p>
-          )}
-          <div>
-            {model.layer2.chain.map((s, i) => (
-              <div key={i}>
-                {i > 0 && <div className="d4-tl-item" style={{ border: "none", padding: 4, justifyContent: "center" }}><ArrowDown className="h-4 w-4 mx-auto" style={{ color: "var(--d4-muted)" }} /></div>}
-                <p className="d4-tl-step">{s.title}</p>
-                <p className="tl-desc">{s.text}</p>
+          {hasStructuredD2 ? (
+            <div>
+              <p className="d4-dm-kicker">SECTOR RIPPLE</p>
+              <div className="d4-dm-block" style={{ fontSize: 12, lineHeight: 1.55 }}>
+                {d2?.sectorRipple || "—"}
               </div>
-            ))}
-            <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.3, borderTop: "1px solid var(--d4-divider)", marginTop: 8, paddingTop: 8 }}>
-              {model.layer2.verdict}
-            </p>
-          </div>
+
+              <p className="d4-dm-kicker" style={{ marginTop: 10 }}>TIMELINE</p>
+              <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 10 }}>
+                {(d2?.timeline || []).slice(0, 3).map((step, i) => (
+                  <div key={`${step.step || i}-${i}`} className="d4-dm-block" style={{ borderLeft: "2px solid var(--d4-gold)", paddingLeft: 10 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--d4-text)", margin: 0 }}>Step {i + 1} · {step.step || "—"}</p>
+                    <p style={{ fontSize: 12, color: "var(--d4-text)", margin: "6px 0 0", lineHeight: 1.55 }}>
+                      {step.impact || "—"}
+                    </p>
+                    <p style={{ fontSize: 12, color: "var(--d4-muted)", margin: "6px 0 0", lineHeight: 1.55 }}>
+                      {step.watch || "—"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <p className="d4-dm-kicker" style={{ marginTop: 10 }}>CROSS-ASSET</p>
+              <div className="d4-dm-block" style={{ fontSize: 12, lineHeight: 1.55 }}>
+                {d2?.crossAsset || "—"}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Fallback: only show forward propagation blocks (avoid repeating the same narrative as Depth 1). */}
+              <ForwardBlockD4 vm={model} />
+              {/* If ForwardBlockD4 has nothing, show the story chain as last resort. */}
+              {(!model.layer2.transmissionPlies?.length && !(model.layer2.earlyLeadList?.length) && !(model.layer2.forwardHorizonSummary?.trim())) && (
+                <div>
+                  <div>
+                    {model.layer2.chain.map((s, i) => (
+                      <div key={i}>
+                        {i > 0 && <div className="d4-tl-item" style={{ border: "none", padding: 4, justifyContent: "center" }}><ArrowDown className="h-4 w-4 mx-auto" style={{ color: "var(--d4-muted)" }} /></div>}
+                        <p className="d4-tl-step">{s.title}</p>
+                        <p className="tl-desc">{s.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ fontSize: 16, fontWeight: 600, lineHeight: 1.3, borderTop: "1px solid var(--d4-divider)", marginTop: 8, paddingTop: 8 }}>
+                    {model.layer2.verdict}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div className={cn("d4-dm-panel", tab === "l3" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "l3"}>
           {depth3Unlocked && hasL3 && (
             <div className="d4-sc-tree">
               {model.layer3.scenarios.map((s, i, arr) => {
+                if (typeof window !== "undefined") {
+                  // Temporary debug to confirm variability (remove later).
+                  console.log(
+                    "[D3 probs]",
+                    model.layer3.scenarios.map((ss) => `${ss.label}: ${ss.probability}%`),
+                  );
+                }
                 const tail = isTail(s, i, arr.length);
                 const fill = scenarioBarClass(s, i, arr.length);
                 return (

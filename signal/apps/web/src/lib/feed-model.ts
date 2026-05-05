@@ -50,6 +50,19 @@ export type FeedLayer2 = {
   /** Vertical chain, order matters */
   chain: CausalStep[];
   verdict: string; // one large sentence
+  /** Structured Depth 1 (LLM) when present in forward_model */
+  depth1?: {
+    event?: string;
+    whyItMatters?: string;
+    firstMove?: string;
+    pricedIn?: string;
+  };
+  /** Structured Depth 2 (LLM) when present in forward_model */
+  depth2?: {
+    sectorRipple?: string;
+    timeline?: { step?: string; impact?: string; watch?: string }[];
+    crossAsset?: string;
+  };
   /** Shared backbone: furthest-ahead serial reasoning (4 plies) when tree has forward_model */
   transmissionPlies?: TransmissionPly[];
   /** Replaces string-only “lead” chips: text + red/yellow/green from model, user can update */

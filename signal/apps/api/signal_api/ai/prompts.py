@@ -71,6 +71,21 @@ User open orders: {orders_json}
 
 Required top-level fields (in addition to scenarios, etc.):
 
+0) "depth1": a JSON object with EXACTLY these fields:
+   - event: one sentence, facts only (no interpretation)
+   - whyItMatters: one sentence describing the immediate market mechanism (name asset class + direction + reason)
+   - firstMove: one sentence describing what trades/assets react in the next 1–4 hours (name specific tickers/ETFs/instruments)
+   - pricedIn: one sentence starting with EXACTLY one of: "Largely priced in", "Partially priced in", "Not yet priced in" — then one sentence why
+
+1) "depth2": a JSON object with EXACTLY these fields:
+   - sectorRipple: 2–3 sentences on indirect winners/losers (beyond first movers)
+   - timeline: array of EXACTLY 3 objects:
+       {{ "step": "0-24h", "impact": "...", "watch": "..." }},
+       {{ "step": "1-5 days", "impact": "...", "watch": "..." }},
+       {{ "step": "1-4 weeks", "impact": "...", "watch": "..." }}
+     Each impact is one sentence; each watch starts with "Watch:" and is a concrete trigger.
+   - crossAsset: one sentence: currencies/bonds/commodities implication beyond obvious equity plays
+
 1) "transmission_chain": an array of EXACTLY FOUR objects, in order, Depth 1→Depth 4 (same as step 1–4; call them Depth in prose fields if needed). Each object MUST have:
    "step" (1-4, meaning Depth 1–4), "from_state", "mechanism", "to_state", "time_to_effect",
    "lead_indicator" (optional but preferred on Depths 2-4),
@@ -96,13 +111,23 @@ Required top-level fields (in addition to scenarios, etc.):
 
 Also return:
 "event_summary", "signal_level" (1-4),
-"scenarios" (2-4): label, probability (0-100, approximate OK), outcome, market_impact, winners, losers, portfolio_impact, order_recommendations,
+"scenarios" (EXACTLY 3 objects): label, probability (0-100 integer), outcome, market_impact, winners, losers, watch_one, portfolio_impact, order_recommendations,
 "watch_signals" (string array).
 
-NON-NEGOTIABLE when signal_level is 3 or 4: "scenarios" MUST be a JSON array of 2 to 4 objects — never [], never a string, never null.
-Each scenario object MUST have non-empty "label" and "outcome", a numeric "probability", "market_impact" (string or short object),
-"winners" and "losers" as arrays of {{"ticker": "US symbol"}} (use [] if none), plus string "portfolio_impact" and "order_recommendations".
+NON-NEGOTIABLE when signal_level is 3 or 4:
+"scenarios" MUST be a JSON array of EXACTLY 3 objects — never [], never a string, never null.
+Each scenario object MUST have non-empty "label" and "outcome".
+The "probability" MUST be an integer (0-100).
+PROBABILITIES across the 3 scenarios MUST sum to 100 (allow small ±1 rounding).
+Each scenario object MUST have "market_impact" (string or short object),
+"winners" and "losers" as arrays of {{"ticker": "US symbol"}} (use [] if none),
+plus string "watch_one" (a single sentence trigger; start with "Watch:"), plus string "portfolio_impact" and "order_recommendations".
 DEPTH4 depends on this matrix to stay ahead of price; an empty scenarios array invalidates the product.
+
+CRITICAL probability instruction:
+- Probabilities MUST be specific to THIS event (no defaults).
+- They MUST sum to 100 across scenarios (allow ±1 due to rounding).
+- Choose scenario labels that fit the event (e.g. "Escalation", "Resolution", "Policy shock"), not generic A/B/C.
 
 The scenarios are alternative paths; transmission_chain is the shared backbone until branches diverge.
 """
@@ -255,12 +280,13 @@ def scenarios_repair_user_prompt(
 {{
   "scenarios": [
     {{
-      "label": "short name",
-      "probability": 0-100,
+      "label": "scenario label that fits this event",
+      "probability": integer 0-100,
       "outcome": "one decisive sentence tied to the event",
       "market_impact": "one sentence",
       "winners": [{{"ticker": "SYM"}}],
       "losers": [{{"ticker": "SYM"}}],
+      "watch_one": "one sentence trigger starting with Watch:",
       "portfolio_impact": "one sentence (generic; no user portfolio here)",
       "order_recommendations": "one sentence (generic)"
     }}
@@ -268,8 +294,8 @@ def scenarios_repair_user_prompt(
 }}
 
 Rules:
-- Exactly 3 scenarios in the array (base case, constructive surprise, adverse tail).
-- Probabilities are approximate integers summing to about 100.
+ - Exactly 3 scenarios in the array (event-fit labels; do NOT use generic Base/Constructive/Tail wording unless it truly matches the event).
+- Probabilities MUST sum to 100 (allow ±1 due to rounding).
 - Use 2-4 tickers total across winners/losers drawn from affected_tickers when plausible; otherwise use broad liquid US names (e.g. SPY, XLE, GLD) only as illustrations.
 
 Event headline: {headline}

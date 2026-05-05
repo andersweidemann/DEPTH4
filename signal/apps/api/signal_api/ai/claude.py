@@ -41,6 +41,8 @@ async def generate_consequence(
   tickers: list,
   portfolio_json: str,
   orders_json: str,
+  *,
+  temperature: float | None = None,
 ) -> dict[str, Any]:
   s = get_settings()
   text = await asyncio.to_thread(
@@ -52,6 +54,7 @@ async def generate_consequence(
     tickers,
     portfolio_json,
     orders_json,
+    temperature,
   )
   return json.loads(_strip_fences(text))
 
@@ -61,6 +64,8 @@ async def generate_scenarios_repair(
   body: str,
   sectors: list,
   tickers: list,
+  *,
+  temperature: float | None = None,
 ) -> list[dict[str, Any]]:
   """Focused second pass when the main consequence JSON omitted usable scenarios."""
   s = get_settings()
@@ -71,6 +76,7 @@ async def generate_scenarios_repair(
     body or "",
     sectors,
     tickers,
+    temperature,
   )
   data = json.loads(_strip_fences(text))
   raw = data.get("scenarios")
@@ -85,12 +91,14 @@ def _scenarios_repair_sync(
   body: str,
   sectors: list,
   tickers: list,
+  temperature: float | None,
 ) -> str:
   return llm_text_for_task(
     settings,
     "analysis",
     prompts.SCENARIOS_REPAIR_SYSTEM,
     prompts.scenarios_repair_user_prompt(headline, body, sectors, tickers),
+    temperature=temperature,
   )
 
 
@@ -102,12 +110,14 @@ def _consequence_sync(
   tickers: list,
   portfolio_json: str,
   orders_json: str,
+  temperature: float | None,
 ) -> str:
   return llm_text_for_task(
     settings,
     "analysis",
     prompts.CONSEQUENCE_SYSTEM,
     prompts.consequence_user_prompt(headline, body, sectors, tickers, portfolio_json, orders_json),
+    temperature=temperature,
   )
 
 

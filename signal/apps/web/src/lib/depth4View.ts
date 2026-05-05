@@ -47,6 +47,14 @@ function _sameish(a: string, b: string): boolean {
  *   before repeating **hook** under “Next” so we do not clone the subtitle line twice.
  */
 export function layer1FromView(vm: FeedViewModel): L1FromFeed {
+  const d1 = vm.layer2.depth1;
+  if (d1?.event || d1?.whyItMatters || d1?.firstMove || d1?.pricedIn) {
+    const event = String(d1.event || "").trim() || vm.headline;
+    const why = String(d1.whyItMatters || "").trim() || vm.layer2.chain[0]?.text?.trim() || "—";
+    const nextParts = [String(d1.firstMove || "").trim(), String(d1.pricedIn || "").trim()].filter(Boolean);
+    const next = nextParts.join(" · ").trim() || vm.hook;
+    return { event, why, next, signal: vm.layer2.verdict };
+  }
   const plies = vm.layer2.transmissionPlies;
   if (plies?.length) {
     const p0 = plies[0]!;

@@ -198,6 +198,12 @@ def _forward_model_from_tree_payload(payload: dict) -> dict:
       "early_lead_indicators": _normalize_lead_list(src.get("early_lead_indicators") or []),
       "forward_horizon_summary": str(src.get("forward_horizon_summary") or "")[:2_000],
     }
+    d1 = src.get("depth1")
+    if isinstance(d1, dict):
+      out["depth1"] = d1
+    d2 = src.get("depth2")
+    if isinstance(d2, dict):
+      out["depth2"] = d2
     obr = src.get("order_book_review")
     if isinstance(obr, list):
       out["order_book_review"] = obr[:50]

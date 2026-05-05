@@ -84,27 +84,35 @@ def llm_text(settings: Settings, system: str, user: str) -> str:
   return llm_text_with_provider(settings, p, system, user)
 
 
-def llm_text_for_task(settings: Settings, task: str, system: str, user: str) -> str:
+def llm_text_for_task(
+  settings: Settings,
+  task: str,
+  system: str,
+  user: str,
+  *,
+  temperature: float | None = None,
+) -> str:
   p = pick_provider_for_task(settings, task)
-  return llm_text_with_provider(settings, p, system, user)
+  return llm_text_with_provider(settings, p, system, user, temperature=temperature)
 
 
-def llm_text_with_provider(settings: Settings, provider: str, system: str, user: str) -> str:
+def llm_text_with_provider(settings: Settings, provider: str, system: str, user: str, *, temperature: float | None = None) -> str:
   p = _norm_provider(provider) or "anthropic"
   if p in ("nvidia", "nim"):
-    return _nvidia_chat_sync(settings, system, user)
+    return _nvidia_chat_sync(settings, system, user, temperature=temperature)
   if p == "kimi":
-    return _kimi_chat_sync(settings, system, user)
-  return _complete_anthropic_sync(settings, system, user)
+    return _kimi_chat_sync(settings, system, user, temperature=temperature)
+  return _complete_anthropic_sync(settings, system, user, temperature=temperature)
 
 
-def _complete_anthropic_sync(settings: Settings, system: str, user: str) -> str:
+def _complete_anthropic_sync(settings: Settings, system: str, user: str, *, temperature: float | None = None) -> str:
   client = anthropic.Anthropic(api_key=settings.anthropic_api_key.get_secret_value())
   msg = client.messages.create(
     model=settings.anthropic_model,
     max_tokens=8_192,
     system=system,
     messages=[{"role": "user", "content": user}],
+    temperature=temperature if temperature is not None else 0.2,
   )
   parts: list[str] = []
   for b in msg.content:
@@ -113,7 +121,7 @@ def _complete_anthropic_sync(settings: Settings, system: str, user: str) -> str:
   return "\n".join(parts)
 
 
-def _nvidia_chat_sync(settings: Settings, system: str, user: str) -> str:
+def _nvidia_chat_sync(settings: Settings, system: str, user: str, *, temperature: float | None = None) -> str:
   key = settings.nvidia_api_key.get_secret_value()
   if not key:
     msg = "NVIDIA_API_KEY is empty"
@@ -132,7 +140,7 @@ def _nvidia_chat_sync(settings: Settings, system: str, user: str) -> str:
           {"role": "user", "content": user},
         ],
         "max_tokens": 8_192,
-        "temperature": 0.2,
+        "temperature": 0.2 if temperature is None else temperature,
       },
     )
     try:
@@ -149,7 +157,7 @@ def _nvidia_chat_sync(settings: Settings, system: str, user: str) -> str:
   return (content.get("content") or "").strip()
 
 
-def _kimi_chat_sync(settings: Settings, system: str, user: str) -> str:
+def _kimi_chat_sync(settings: Settings, system: str, user: str, *, temperature: float | None = None) -> str:
   key = settings.kimi_api_key.get_secret_value()
   if not key:
     msg = "KIMI_API_KEY is empty"
@@ -171,7 +179,7 @@ def _kimi_chat_sync(settings: Settings, system: str, user: str) -> str:
           {"role": "user", "content": user},
         ],
         "max_tokens": 8_192,
-        "temperature": 0.2,
+        "temperature": 0.2 if temperature is None else temperature,
       },
     )
     try:

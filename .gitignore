@@ -12,3 +12,5 @@ reports/final/*/raw_xml/
 .pytest_cache/
 .ipynb_checkpoints/
 *.swp
+.vercel
+.env*.local
