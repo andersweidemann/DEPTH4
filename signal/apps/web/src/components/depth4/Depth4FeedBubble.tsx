@@ -351,6 +351,22 @@ function isTail(s: { label: string; probability: number }, i: number, n: number)
   return (i === n - 1 && s.probability < 35) || (n > 1 && /scenario\s*c/i.test(s.label));
 }
 
+function ageMinutes(publishedAt: string | null): number | null {
+  if (!publishedAt) return null;
+  const d = new Date(publishedAt);
+  if (Number.isNaN(d.getTime())) return null;
+  return Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+}
+
+type WindowStatus = "open" | "closing" | "open-long" | "closed";
+function getWindowStatus(level: 1 | 2 | 3 | 4, ageMin: number): WindowStatus {
+  const limits: Record<1 | 2 | 3 | 4, number> = { 1: 120, 2: 720, 3: 5760, 4: Number.POSITIVE_INFINITY };
+  const closing: Record<1 | 2 | 3 | 4, number> = { 1: 60, 2: 360, 3: 2880, 4: Number.POSITIVE_INFINITY };
+  if (ageMin > limits[level]) return "closed";
+  if (ageMin > closing[level]) return "closing";
+  return level >= 3 ? "open-long" : "open";
+}
+
 function FeedTags({ vm, publishedAt, overlapLabels }: { vm: FeedViewModel; publishedAt: string | null; overlapLabels: string[] }) {
   const tags: { k: "hot" | "energy" | "impact" | "base"; t: string }[] = [];
   if (vm.verification?.status === "unconfirmed") tags.push({ k: "base", t: "⚠ Unconfirmed" });
@@ -361,6 +377,16 @@ function FeedTags({ vm, publishedAt, overlapLabels }: { vm: FeedViewModel; publi
   }
   if (overlapLabels.length) tags.push({ k: "impact", t: `Book: ${overlapLabels.slice(0, 3).join("·")}` });
   if (!tags.length) tags.push({ k: "base", t: "Macro" });
+  const am = ageMinutes(publishedAt);
+  const ws = am == null ? null : getWindowStatus(vm.signalLevel, am);
+  const pill =
+    ws === "closing"
+      ? { text: "Window closing", color: "rgba(226,164,58,0.85)", bg: "rgba(226,164,58,0.10)" }
+      : ws === "open-long"
+        ? vm.signalLevel === 4
+          ? { text: "Long window", color: "rgba(120,167,255,0.9)", bg: "rgba(120,167,255,0.10)" }
+          : { text: "Window open", color: "rgba(120,220,170,0.9)", bg: "rgba(120,220,170,0.10)" }
+        : null;
   return (
     <div className="d4-bubble-tags">
       {tags.map((x) => (
@@ -372,6 +398,19 @@ function FeedTags({ vm, publishedAt, overlapLabels }: { vm: FeedViewModel; publi
         </span>
       ))}
       <span className="d4-btag" style={{ color: "var(--d4-muted)" }}>{relTime(publishedAt)}</span>
+      {pill && (
+        <span
+          className="d4-btag"
+          style={{
+            color: pill.color,
+            background: pill.bg,
+            borderColor: "rgba(255,255,255,0.10)",
+          }}
+          title="Trade window is a heuristic (not advice)"
+        >
+          {pill.text}
+        </span>
+      )}
     </div>
   );
 }
@@ -402,6 +441,9 @@ export function Depth4FeedBubble({
   const hasL3 = model.layer3.scenarios.length > 0;
   const clock = buildDepthClockData(model, news.signal_level);
   const sl = model.signalLevel;
+  const am = ageMinutes(publishedAt);
+  const ws = am == null ? null : getWindowStatus(sl, am);
+  const closed = ws === "closed";
 
   const onOpen = useCallback(() => {
     onFocus();
@@ -411,7 +453,14 @@ export function Depth4FeedBubble({
   return (
     <div
       className={cn("d4-bubble", expanded && "d4-bubble--active")}
-      style={sl >= 4 ? { boxShadow: "0 0 0 1px rgba(194, 82, 82, 0.35)" } : sl === 3 ? { boxShadow: "0 0 0 1px rgba(226, 164, 58, 0.3)" } : undefined}
+      style={{
+        ...(sl >= 4
+          ? { boxShadow: "0 0 0 1px rgba(194, 82, 82, 0.35)" }
+          : sl === 3
+            ? { boxShadow: "0 0 0 1px rgba(226, 164, 58, 0.3)" }
+            : {}),
+        ...(closed ? { opacity: 0.6 } : {}),
+      }}
     >
       <div
         className="d4-bubble-top"
@@ -462,12 +511,12 @@ export function Depth4FeedBubble({
         <div className="d4-dm-tabs" role="tablist">
           {(
             [
-              ["l1", "Depth 1 — Event"],
-              ["l2", "Depth 2 — Story"],
-              ["l3", "Depth 3 — Scenarios"],
-              ["clock", "Depth clock"],
-            ] as [TabK, string][]
-          ).map(([k, label]) => (
+              ["l1", "L1 — Event", "Direct impact"],
+              ["l2", "L2 — Story", "Sector ripple"],
+              ["l3", "L3 — Scenarios", "Macro cascade"],
+              ["clock", "L4 — Clock", "Structural drift"],
+            ] as [TabK, string, string][]
+          ).map(([k, label, sub]) => (
             <button
               key={k}
               type="button"
@@ -480,7 +529,8 @@ export function Depth4FeedBubble({
                 setTab(k);
               }}
             >
-              {label}
+              <span style={{ display: "block" }}>{label}</span>
+              <span style={{ display: "block", fontSize: 10, marginTop: 2, color: "var(--d4-faint)" }}>{sub}</span>
             </button>
           ))}
         </div>
@@ -537,7 +587,12 @@ export function Depth4FeedBubble({
                         <div className={cn("d4-sc-lbl", tail && "d4-sc-lbl--tail")}>{s.label}</div>
                         <div className="d4-sc-sub">{s.outcome.slice(0, 100)}{s.outcome.length > 100 ? "…" : ""}</div>
                       </div>
-                      <div className="d4-sc-prob">{s.probability}%</div>
+                      <div className="d4-sc-prob" style={{ textAlign: "right" }}>
+                        <div>{s.probability}%</div>
+                        <div style={{ fontSize: 11, color: "rgba(226,164,58,0.80)", marginTop: 2 }}>
+                          ~{Math.round(s.probability * 0.6)}% of this move is unpriced
+                        </div>
+                      </div>
                     </div>
                     <div className="d4-sc-bar" aria-hidden>
                       <div className={cn("d4-sc-fill", fill)} style={{ width: `${s.probability}%` }} />
@@ -553,7 +608,11 @@ export function Depth4FeedBubble({
                         ))}
                       </div>
                     )}
-                    {s.oneWatch && <div className={cn("d4-sc-watch", tail && "d4-sc-watch--danger")}>Watch: {s.oneWatch}</div>}
+                    {s.oneWatch && (
+                      <div className={cn("d4-sc-watch", tail && "d4-sc-watch--danger")}>
+                        Watch: {String(s.oneWatch || "").replace(/^\s*watch:\s*/i, "")}
+                      </div>
+                    )}
                   </div>
                 );
               })}

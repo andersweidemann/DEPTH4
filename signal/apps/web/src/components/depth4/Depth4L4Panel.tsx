@@ -133,6 +133,9 @@ export function Depth4L4Panel({
         {l4 && l4.watchlist.length > 0 && (
           <div style={{ marginTop: 10 }}>
             <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)" }}>Watch (not in book)</div>
+            <p className="d4-bubble-meta" style={{ margin: "6px 0 0", fontSize: 11, color: "var(--d4-faint)", lineHeight: 1.4 }}>
+              Context only — not a buy list. Relevant after L2–L3 confirmation.
+            </p>
             <ol className="d4-prose-brief" style={{ color: "var(--d4-text)", fontSize: 12, paddingLeft: 18, margin: "6px 0 0" }}>
               {l4.watchlist.map((w, i) => (
                 <li key={i} style={{ margin: "4px 0" }}>{boldFromMarkdown(w.line)}</li>

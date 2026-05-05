@@ -383,7 +383,12 @@ function Layer3Scenarios({ view }: { view: FeedViewModel["layer3"] }) {
         <div key={s.id} className="rounded-xl border border-zinc-600/60 bg-zinc-900/50 p-3 space-y-2 shadow-sm">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-bold text-zinc-100">{s.label}</span>
-            <span className="text-sm tabular-nums font-semibold text-orange-400">{s.probability}%</span>
+            <span className="text-right">
+              <span className="block text-sm tabular-nums font-semibold text-orange-400">{s.probability}%</span>
+              <span className="block text-[11px] text-amber-500/80 tabular-nums">
+                ~{Math.round(s.probability * 0.6)}% of this move is unpriced
+              </span>
+            </span>
           </div>
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-zinc-800">
             <div className="h-full bg-orange-500" style={{ width: `${s.probability}%` }} />
@@ -424,7 +429,9 @@ function Layer3Scenarios({ view }: { view: FeedViewModel["layer3"] }) {
             </div>
           )}
           {s.oneWatch && (
-            <p className="text-xs text-amber-200 border-l-2 border-amber-500/60 pl-2 py-0.5 bg-amber-950/40 rounded-r">Watch: {s.oneWatch}</p>
+            <p className="text-xs text-amber-200 border-l-2 border-amber-500/60 pl-2 py-0.5 bg-amber-950/40 rounded-r">
+              Watch: {String(s.oneWatch || "").replace(/^\s*watch:\s*/i, "")}
+            </p>
           )}
         </div>
       ))}

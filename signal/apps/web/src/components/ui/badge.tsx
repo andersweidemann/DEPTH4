@@ -14,8 +14,19 @@ const v = cva(
     },
   },
 );
+function depthTooltip(level: 1 | 2 | 3 | 4): string {
+  if (level === 1) return "Direct Impact — priced within hours";
+  if (level === 2) return "Sector Ripple — priced within 1 day";
+  if (level === 3) return "Macro Cascade — 1–5 days to price in";
+  return "Structural Drift — weeks to price in";
+}
+
 export const SigBadge = ({ level, className }: { level: 1 | 2 | 3 | 4; className?: string }) => (
-  <span className={cn(v({ s: String(level) as "1" | "2" | "3" | "4" }), className)}>
+  <span
+    className={cn(v({ s: String(level) as "1" | "2" | "3" | "4" }), className)}
+    title={depthTooltip(level)}
+    aria-label={depthTooltip(level)}
+  >
     L{level}
   </span>
 );

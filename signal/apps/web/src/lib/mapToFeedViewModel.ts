@@ -284,6 +284,12 @@ function scenarioRowsFromTree(raw: unknown): Record<string, unknown>[] {
   return [];
 }
 
+function stripWatchPrefix(s: string): string {
+  const t = (s || "").trim();
+  if (!t) return "";
+  return t.replace(/^\s*watch:\s*/i, "").trim();
+}
+
 function fromTreeToLayer3(t: Tree | null | undefined): FeedLayer3 {
   if (!t) {
     return { scenarios: [], watchList: buildWatchFromStrings([], []) };
@@ -310,8 +316,8 @@ function fromTreeToLayer3(t: Tree | null | undefined): FeedLayer3 {
       ? (s.losers as { ticker?: string }[]).map((x) => String(x?.ticker ?? "").trim()).filter(Boolean)
       : [];
     const wOne =
-      String(s.watch_one ?? s.watch ?? "").trim() ||
-      (i === 0 && wSig[0] ? `Confirmed if: ${wSig[0]}` : `Watch: ${label} drivers`);
+      stripWatchPrefix(String(s.watch_one ?? s.watch ?? "").trim()) ||
+      (i === 0 && wSig[0] ? `Confirmed if: ${wSig[0]}` : `${label} drivers`);
     return {
       id: `${i}-${label}`,
       label,
@@ -397,15 +403,29 @@ export function buildLayer4(
     });
   }
   if (!rows.length) {
+    const indirect = (() => {
+      const raw = t?.scenarios as unknown;
+      if (!Array.isArray(raw) || !raw.length) return null;
+      const first = raw[0] as Record<string, unknown>;
+      const wins = first?.winners;
+      if (Array.isArray(wins)) {
+        const w0 = wins[0] as Record<string, unknown> | undefined;
+        const tk = String(w0?.ticker ?? "").trim().toUpperCase();
+        if (tk) return tk;
+      }
+      return null;
+    })();
     for (const p of positions.slice(0, 4)) {
       const q = quotes[p.ticker] as Q | undefined;
       const v = q?.price_sek && p.quantity ? Math.round(q.price_sek * +p.quantity) : null;
       rows.push({
         position: p.ticker,
         valueSek: v != null ? v.toLocaleString("sv-SE") : "—",
-        impactScenarioA: "— (no direct overlap in feed list)",
+        impactScenarioA: indirect
+          ? `${p.ticker} has no direct L1–L2 exposure to this event. Monitor ${indirect} for indirect macro exposure.`
+          : "No exposure detected at any depth level for this event. DEPTH4 will flag if this changes.",
         impactScenarioC: "—",
-        action: "Optional review",
+        action: indirect ? `Monitor ${indirect}` : "No action",
       });
     }
   }
@@ -432,7 +452,7 @@ export function buildLayer4(
     (t) => !positions.some((p) => norm(p.ticker) === norm(t as string)),
   );
   const watchlist = tickPool.slice(0, 5).map((tk) => ({
-    line: `${String(tk)} — only as context after L2–3; not a buy list.`,
+    line: `${String(tk)} — indirect macro exposure candidate`,
   }));
   const fm = t?.forward_model;
   return {

@@ -1002,8 +1002,7 @@ export function DashboardClient() {
                 <div className="d4-feed-status">
                   <span className="d4-live-dot" aria-hidden />
                   <span>
-                    Geopol + macro — feed reloads every {FEED_POLL_MS / 1000}s. If the API has background loops off,
-                    Refresh also runs one ingest cycle (uses LLM when new headlines exist).
+                    Feed updates every {FEED_POLL_MS / 1000}s. Click Refresh to force an update.
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
