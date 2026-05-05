@@ -13,6 +13,7 @@ import * as T from "./types";
 import { Depth4FeedBubble } from "@/components/depth4/Depth4FeedBubble";
 import { Depth4L4Panel } from "@/components/depth4/Depth4L4Panel";
 import { edgeScoreForPosition } from "@/lib/depth4View";
+import { Sheet } from "@/components/ui/sheet";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const FEED_POLL_MS = 60_000;
@@ -98,6 +99,7 @@ export function DashboardClient() {
   const [premErr, sPremE] = useState<string | null>(null);
   const [premJson, sPremJ] = useState<Record<string, unknown> | null>(null);
   const [bgLoops, sBgLoops] = useState<boolean | null>(null);
+  const [helpOpen, sHelpOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -662,9 +664,53 @@ export function DashboardClient() {
           <span className="d4-bubble-src d4-bubble-meta" style={{ fontSize: 10, padding: "2px 8px" }}>{tierLabel(tier)}</span>
           <Link href="/pricing" className="d4-btn d4-btn-ghost" style={{ textDecoration: "none" }}>Plans</Link>
           <Link href="/" className="d4-btn d4-btn-ghost" style={{ textDecoration: "none" }}>App home</Link>
+          <button type="button" className="d4-btn d4-btn-ghost" onClick={() => sHelpOpen(true)}>Help</button>
           <button type="button" className="d4-btn d4-btn-ghost" onClick={() => sAdd(true)}>+ Add holding</button>
           <button type="button" className="d4-btn d4-btn-ghost" onClick={onSignOut}>Sign out</button>
         </header>
+
+        <Sheet open={helpOpen} onOpenChange={sHelpOpen} title="Help — how to use DEPTH4">
+          <div className="text-sm" style={{ color: "var(--d4-text)" }}>
+            <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.5 }}>
+              DEPTH4 is built for the non-obvious: markets price the headline fast, but they’re slow and sloppy at
+              pricing second- and third-order consequences across assets, geographies, and supply chains.
+            </p>
+
+            <div style={{ marginTop: 12 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>Navigation</div>
+              <ul className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.55, paddingLeft: 18, margin: 0 }}>
+                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Click a card</strong> to expand the Depth map.</li>
+                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Focus</strong> (click a card) pins it as the “Current macro event”.</li>
+                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Refresh</strong> reloads the feed. In idle mode (loops OFF) it also runs one ingest cycle.</li>
+              </ul>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>How to read Depth 1–3</div>
+              <ul className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.55, paddingLeft: 18, margin: 0 }}>
+                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Depth 1 — Event</strong>: what just changed (the new state).</li>
+                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Depth 2 — Story</strong>: the transmission chain — how this propagates into other markets, with timing + “priced‑in”.</li>
+                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Depth 3 — Scenarios</strong>: branching futures with probabilities and “watch signals” that confirm/deny each path.</li>
+              </ul>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>What “priced‑in %” means</div>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.5, margin: 0 }}>
+                The % badge under each suggested ticker is a model estimate of how much of <em>this headline’s tradable information</em>
+                is already reflected in that symbol’s price. It’s an illustration, not advice.
+              </p>
+            </div>
+
+            <div style={{ marginTop: 12 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>Idle vs Live mode (cost control)</div>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.5, margin: 0 }}>
+                If the API shows <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Mode: OFF</strong>, background ingest/refinement loops are disabled.
+                DEPTH4 only spends LLM when you Refresh (or when a cron trigger runs). When Mode is ON, the server keeps ingesting wires continuously.
+              </p>
+            </div>
+          </div>
+        </Sheet>
 
         <MacroStatusBar />
 
