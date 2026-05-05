@@ -449,7 +449,7 @@ export function DashboardClient() {
         </div>
       </div>
     );
-  }, [active, activeVm, bgLoops, feedUpdating, refreshNow, treeMap]);
+  }, [active, aTree, bgLoops, feedUpdating, refreshNow, treeMap, p, od, pr]);
 
   const onDismissEvent = useCallback(
     async (eventId: string) => {
