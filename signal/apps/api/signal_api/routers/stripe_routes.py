@@ -43,16 +43,19 @@ async def stripe_webhook(request: Request) -> dict:
     price = (m[0].get("price", {}) or {}).get("id") if m else None
     c = stripe.Customer.retrieve(cust) if isinstance(cust, str) else cust
     email = (c or {}).get("email") or (c or {}).get("id")
-    pro = s.stripe_price_pro
-    inst = s.stripe_price_institutional
+    am = s.stripe_price_analyst_monthly
+    ay = s.stripe_price_analyst_yearly
+    pm = s.stripe_price_pro_monthly
+    py = s.stripe_price_pro_yearly
     st = (obj or {}).get("status")
     if t == "customer.subscription.deleted" or st == "canceled":
       _set_tier(sb, email, "free")
     elif st in ("active", "trialing", "past_due"):
-      if price == pro:
+      if price and price in (am, ay):
+        _set_tier(sb, email, "analyst")
+      elif price and price in (pm, py):
         _set_tier(sb, email, "pro")
-      elif price == inst:
-        _set_tier(sb, email, "institutional")
       else:
-        _set_tier(sb, email, "pro")
+        # Unknown paid price id — keep access conservative.
+        _set_tier(sb, email, "free")
   return {"received": True}

@@ -20,9 +20,9 @@ async def _deliver(uid: str, btype: str) -> None:
     0
   ]
   tier = (srow or {}).get("tier") or "free"
-  if btype == "daily" and tier not in ("pro", "institutional"):
+  if btype == "daily" and tier not in ("pro",):
     return
-  if btype == "weekend" and tier not in ("pro", "institutional"):
+  if btype == "weekend" and tier not in ("pro",):
     return
   p = (
     sb.table("portfolio_positions")
@@ -92,10 +92,7 @@ async def one_tick() -> None:
   )
   for u in r.data or []:
     uid = u.get("id")
-    if not uid or (u.get("tier") or "free") not in (
-      "pro",
-      "institutional",
-    ):
+    if not uid or (u.get("tier") or "free") not in ("pro",):
       continue
     tzs = (u.get("timezone") or "UTC").strip()
     try:

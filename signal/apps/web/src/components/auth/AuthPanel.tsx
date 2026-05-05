@@ -63,7 +63,7 @@ export function AuthPanel({ nextPath, intent }: Props) {
   const h1 = intent === "signup" ? "Create your account" : "Sign in to DEPTH4";
   const lead =
     intent === "signup"
-      ? "Start on Free. Upgrade to Pro when you want scenarios, your book depth, and more alerts."
+      ? "Start on Observer. Upgrade when you want scenarios, deeper tools, and more alerts."
       : "Welcome back. New here? The same page creates your account—pick Google or a magic link.";
 
   return (
@@ -71,11 +71,11 @@ export function AuthPanel({ nextPath, intent }: Props) {
       <div className="grid gap-8 lg:grid-cols-[1fr_minmax(0,24rem)] lg:gap-10 items-stretch">
         <div className="space-y-4 text-left order-2 lg:order-1">
           <p className="text-xs font-mono text-emerald-500/80 uppercase tracking-[0.2em]">Tiers</p>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-100">{TIER_OFFERS.free.name}</h2>
-                <p className="text-2xl font-bold text-zinc-50 mt-0.5">{TIER_OFFERS.free.price}</p>
+                <p className="text-2xl font-bold text-zinc-50 mt-0.5">{TIER_OFFERS.free.priceMonthly}</p>
                 <p className="text-xs text-zinc-500 mt-1">{TIER_OFFERS.free.description}</p>
               </div>
               <ul className="space-y-1.5 text-sm text-zinc-400">
@@ -89,14 +89,30 @@ export function AuthPanel({ nextPath, intent }: Props) {
             </div>
             <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/25 p-4 space-y-3">
               <div>
-                <h2 className="text-lg font-semibold text-emerald-300">{TIER_OFFERS.pro.name}</h2>
-                <p className="text-2xl font-bold text-zinc-50 mt-0.5">{TIER_OFFERS.pro.priceLabel}</p>
-                <p className="text-xs text-zinc-500 mt-1">{TIER_OFFERS.pro.description}</p>
+                <h2 className="text-lg font-semibold text-emerald-300">{TIER_OFFERS.analyst.name}</h2>
+                <p className="text-2xl font-bold text-zinc-50 mt-0.5">{TIER_OFFERS.analyst.priceMonthly}</p>
+                <p className="text-xs text-zinc-500 mt-1">{TIER_OFFERS.analyst.description}</p>
               </div>
               <ul className="space-y-1.5 text-sm text-zinc-300">
-                {TIER_OFFERS.pro.features.map((t) => (
+                {TIER_OFFERS.analyst.features.map((t) => (
                   <li key={t} className="flex gap-2">
                     <Check className="h-4 w-4 text-emerald-500/90 shrink-0 mt-0.5" />
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-100">{TIER_OFFERS.pro.name}</h2>
+                <p className="text-2xl font-bold text-zinc-50 mt-0.5">{TIER_OFFERS.pro.priceMonthly}</p>
+                <p className="text-xs text-zinc-500 mt-1">{TIER_OFFERS.pro.description}</p>
+              </div>
+              <ul className="space-y-1.5 text-sm text-zinc-400">
+                {TIER_OFFERS.pro.features.map((t) => (
+                  <li key={t} className="flex gap-2">
+                    <Check className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
                     <span>{t}</span>
                   </li>
                 ))}
@@ -107,7 +123,7 @@ export function AuthPanel({ nextPath, intent }: Props) {
             <Link href="/pricing" className="text-emerald-500/90 hover:text-emerald-400">
               Full comparison
             </Link>{" "}
-            · Pro is billed in Stripe. Institutionals: contact us from pricing.
+            · Paid plans are billed in Stripe.
           </p>
         </div>
 

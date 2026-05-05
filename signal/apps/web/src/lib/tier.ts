@@ -1,36 +1,60 @@
-/** Tiers in DB: free | pro | institutional */
-export type Tier = "free" | "pro" | "institutional";
+/** Public pricing tiers (UI only). DB tier uses: free | analyst | pro */
+export type Tier = "free" | "analyst" | "pro";
 
-export function isProOrAbove(tier: string | null | undefined): boolean {
-  return tier === "pro" || tier === "institutional";
+export function isAnalystOrAbove(tier: string | null | undefined): boolean {
+  return tier === "analyst" || tier === "pro";
+}
+
+export function isPro(tier: string | null | undefined): boolean {
+  return tier === "pro";
 }
 
 export function tierLabel(tier: string | null | undefined): string {
+  if (tier === "analyst") return "Analyst";
   if (tier === "pro") return "Pro";
-  if (tier === "institutional") return "Institutional";
-  return "Free";
+  return "Observer";
 }
 
-/** UI copy: Free vs Pro (new accounts are Free until they subscribe). */
 export const TIER_OFFERS = {
   free: {
-    name: "Free" as const,
-    price: "$0",
-    description: "News desk essentials — causal story depth on every event.",
+    name: "Observer" as const,
+    priceMonthly: "$0" as const,
+    description: "Fast macro feed + L1–L2 depth.",
     features: [
-      "Headline, hook, and full Depth 2 (causal story)",
-      "Depth 3+ high-signal alerts: limited per month on Free",
-      "Onboarding + portfolio for personalization when you go Pro",
+      "Depth 1 + Depth 2 analysis",
+      "Live macro event feed",
+      "1 portfolio holding",
+      "Feed refreshes every 60s",
+      "No Deep Brief, alerts, broker links",
+    ] as const,
+  },
+  analyst: {
+    name: "Analyst" as const,
+    priceMonthly: "$19 / mo" as const,
+    priceYearly: "$190 / yr" as const,
+    description: "Add scenarios + Deep Brief (partial) + alerts.",
+    badge: "Most popular" as const,
+    features: [
+      "Depth 1–3 analysis",
+      "Deep Brief (Situation + Market Read)",
+      "Up to 10 holdings",
+      "Desktop alerts",
+      "Broker links",
+      "Feed refreshes every 60s",
     ] as const,
   },
   pro: {
     name: "Pro" as const,
-    priceLabel: "Paid",
-    description: "The full four depths for serious tape reading.",
+    priceMonthly: "$49 / mo" as const,
+    priceYearly: "$490 / yr" as const,
+    description: "Full L1–L4 + Depth Clock + full Deep Brief.",
     features: [
-      "Depth 3: scenarios, probabilities, WATCH list",
-      "Depth 4: your positions, orders, and actions",
-      "Daily & weekend briefings, richer alert allowance",
+      "Full L1–L4 + Depth Clock",
+      "Deep Brief with Stock Conviction",
+      "Unlimited holdings",
+      "Priority refresh (30s) + portfolio P&L sensitivity",
+      "Broker links",
+      "API access (coming soon)",
     ] as const,
   },
 } as const;

@@ -39,7 +39,7 @@ export type DeepBriefAccess = (typeof PLAN_LIMITS)[Plan]["deepBrief"];
 export function planFromDbTier(tier: string | null | undefined): Plan {
   const t = (tier || "").trim().toLowerCase();
   if (t === "analyst") return "analyst";
-  if (t === "pro" || t === "institutional") return "pro";
+  if (t === "pro") return "pro";
   return "free";
 }
 

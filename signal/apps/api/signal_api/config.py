@@ -57,10 +57,10 @@ class Settings(BaseSettings):
 
   stripe_api_key: SecretStr | None = Field(default=None, validation_alias="STRIPE_API_KEY")
   stripe_webhook_secret: SecretStr | None = Field(default=None, validation_alias="STRIPE_WEBHOOK_SECRET")
-  stripe_price_pro: str = Field(default="price_pro", validation_alias="STRIPE_PRICE_PRO")
-  stripe_price_institutional: str = Field(
-    default="price_inst", validation_alias="STRIPE_PRICE_INSTITUTIONAL"
-  )
+  stripe_price_analyst_monthly: str = Field(default="", validation_alias="STRIPE_PRICE_ANALYST_MONTHLY")
+  stripe_price_analyst_yearly: str = Field(default="", validation_alias="STRIPE_PRICE_ANALYST_YEARLY")
+  stripe_price_pro_monthly: str = Field(default="", validation_alias="STRIPE_PRICE_PRO_MONTHLY")
+  stripe_price_pro_yearly: str = Field(default="", validation_alias="STRIPE_PRICE_PRO_YEARLY")
 
   one_signal_app_id: str | None = Field(default=None, validation_alias="ONE_SIGNAL_APP_ID")
   one_signal_api_key: SecretStr | None = Field(default=None, validation_alias="ONE_SIGNAL_API_KEY")
