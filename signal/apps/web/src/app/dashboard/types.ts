@@ -1,3 +1,5 @@
+import type { DeepBrief } from "@/types/deepBrief";
+
 export type User = {
   onboarding_complete: boolean;
   tier: string;
@@ -15,6 +17,7 @@ export type NewsItem = {
   affected_tickers: string[] | null;
   one_line_summary: string | null;
   raw_json: object | null;
+  deepBrief?: DeepBrief;
 };
 
 /** Serial four-ply market/geopol transmission from consequence LLM (stored in consequence_trees.forward_model). */

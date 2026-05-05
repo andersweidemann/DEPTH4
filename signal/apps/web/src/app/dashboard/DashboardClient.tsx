@@ -100,6 +100,7 @@ export function DashboardClient() {
   const [premJson, sPremJ] = useState<Record<string, unknown> | null>(null);
   const [bgLoops, sBgLoops] = useState<boolean | null>(null);
   const [helpOpen, sHelpOpen] = useState(false);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -303,6 +304,18 @@ export function DashboardClient() {
       sPremL(false);
     }
   }, [active?.id, sb, treeMap]);
+
+  async function handleGenerateBrief(eventId: string) {
+    setGeneratingId(eventId);
+    try {
+      // TODO: call your LLM API endpoint here
+      // const brief = await fetch(`/api/brief/${eventId}`)
+      // then update the event with the returned DeepBrief
+      await new Promise((r) => setTimeout(r, 650));
+    } finally {
+      setGeneratingId(null);
+    }
+  }
 
   const refreshNow = useCallback(async () => {
     sFeedUp(true);
@@ -1062,6 +1075,10 @@ export function DashboardClient() {
                       proUnlocked={isProOrAbove(tier)}
                       publishedAt={e.published_at}
                       overlapLabelTickers={userOverlap as string[]}
+                      userHoldings={p.map((x) => x.ticker)}
+                      onUpgrade={() => r.replace("/pricing")}
+                      isGeneratingBrief={generatingId === e.id}
+                      onGenerateBrief={() => void handleGenerateBrief(e.id)}
                       expanded={expId === e.id}
                       onToggle={() => sExp((cur) => (cur === e.id ? null : e.id))}
                       onFocus={() => {

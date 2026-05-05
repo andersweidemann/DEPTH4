@@ -12,6 +12,8 @@ import { ProPaywallCard } from "@/components/trader/ProPaywallCard";
 import { cn } from "@/lib/utils";
 import { ArrowDown, X } from "lucide-react";
 import { SigBadge } from "@/components/ui/badge";
+import { DeepBriefPanel } from "@/components/DeepBriefPanel";
+import type { DeepBrief } from "@/types/deepBrief";
 import {
   buildDepthClockData,
   layer1FromView,
@@ -339,7 +341,7 @@ function ForwardBlockD4({ vm }: { vm: FeedViewModel }) {
   );
 }
 
-type TabK = "l1" | "l2" | "l3" | "clock";
+type TabK = "l1" | "l2" | "l3" | "clock" | "db";
 
 function scenarioBarClass(s: { label: string; probability: number }, i: number, n: number): "d4-sc-fill" | "d4-sc-fill--flat" | "d4-sc-fill--danger" {
   if (i === 0) return "d4-sc-fill";
@@ -425,6 +427,10 @@ export function Depth4FeedBubble({
   proUnlocked,
   publishedAt,
   overlapLabelTickers,
+  userHoldings,
+  onUpgrade,
+  isGeneratingBrief,
+  onGenerateBrief,
 }: {
   news: NewsItem;
   model: FeedViewModel;
@@ -435,12 +441,17 @@ export function Depth4FeedBubble({
   proUnlocked: boolean;
   publishedAt: string | null;
   overlapLabelTickers: string[];
+  userHoldings: string[];
+  onUpgrade: () => void;
+  isGeneratingBrief?: boolean;
+  onGenerateBrief?: () => void;
 }) {
   const [tab, setTab] = useState<TabK>("l1");
   const l1 = layer1FromView(model);
   const hasL3 = model.layer3.scenarios.length > 0;
   const clock = buildDepthClockData(model, news.signal_level);
   const sl = model.signalLevel;
+  const brief = (news as NewsItem & { deepBrief?: DeepBrief }).deepBrief;
   const am = ageMinutes(publishedAt);
   const ws = am == null ? null : getWindowStatus(sl, am);
   const closed = ws === "closed";
@@ -482,6 +493,15 @@ export function Depth4FeedBubble({
           <div className="d4-bubble-title" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
             {model.headline}
             <SigBadge className="!shrink-0" level={sl} />
+            {brief && (
+              <span
+                className="d4-btag"
+                style={{ color: "var(--d4-gold)", borderColor: "rgba(226,164,58,0.35)", background: "rgba(226,164,58,0.10)", fontSize: 10 }}
+                title="Deep Brief available — click to read"
+              >
+                ⚡ Brief
+              </span>
+            )}
           </div>
           <div className="d4-bubble-meta" style={{ marginTop: 4, flexWrap: "wrap" }}>
             <em style={{ color: "var(--d4-text)", fontStyle: "normal" }}>→ {model.hook}</em>
@@ -515,6 +535,7 @@ export function Depth4FeedBubble({
               ["l2", "L2 — Story", "Sector ripple"],
               ["l3", "L3 — Scenarios", "Macro cascade"],
               ["clock", "L4 — Clock", "Structural drift"],
+              ["db", "Deep Brief", "Trade-ready"],
             ] as [TabK, string, string][]
           ).map(([k, label, sub]) => (
             <button
@@ -663,6 +684,17 @@ export function Depth4FeedBubble({
         <div className={cn("d4-dm-panel", tab === "clock" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "clock"}>
           {proUnlocked && <DepthClock {...clock} />}
           {!proUnlocked && <ProPaywallCard />}
+        </div>
+
+        <div className={cn("d4-dm-panel", tab === "db" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "db"}>
+          <DeepBriefPanel
+            brief={brief}
+            userHoldings={userHoldings}
+            isPaid={proUnlocked}
+            onUpgrade={onUpgrade}
+            isGenerating={isGeneratingBrief}
+            onGenerate={onGenerateBrief}
+          />
         </div>
       </div>
     </div>
