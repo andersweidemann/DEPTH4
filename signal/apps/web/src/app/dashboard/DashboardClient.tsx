@@ -14,7 +14,6 @@ import { Depth4L4Panel } from "@/components/depth4/Depth4L4Panel";
 import { edgeScoreForPosition } from "@/lib/depth4View";
 import { buildDepthClockData, layer1FromView } from "@/lib/depth4View";
 import { Sheet } from "@/components/ui/sheet";
-import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { SigBadge } from "@/components/ui/badge";
 import type { Plan } from "@/lib/plan";
 import { PLAN_LIMITS, planFromDbTier, planLabel, planPillStyle } from "@/lib/plan";
@@ -26,7 +25,6 @@ const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const DISMISSED_L4_KEY = "depth4_dismissed_l4_ids";
 /** After a successful idle-mode ingest, skip re-running until next browser session. */
 const IDLE_INGEST_BOOTSTRAP_KEY = "depth4_idle_ingest_bootstrap_ok";
-const ONBOARDING_SESSION_KEY = "depth4_onboarding_seen";
 let idleIngestBootstrapPromise: Promise<void> | null = null;
 
 type HealthzMeta = { background_llm_loops?: boolean };
@@ -111,7 +109,6 @@ export function DashboardClient() {
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [briefErr, setBriefErr] = useState<Record<string, string>>({});
   const [deepBriefById, setDeepBriefById] = useState<Record<string, DeepBrief>>({});
-  const [showOnb, sShowOnb] = useState(false);
   const [incoming, setIncoming] = useState<Record<string, number>>({});
   const [dismissedTriggers, setDismissedTriggers] = useState<Record<string, boolean>>({});
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -175,14 +172,6 @@ export function DashboardClient() {
     try {
       const j = sessionStorage.getItem(DISMISSED_L4_KEY);
       if (j) acknowledgedL4Ref.current = new Set(JSON.parse(j) as string[]);
-    } catch { /* */ }
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const seen = sessionStorage.getItem(ONBOARDING_SESSION_KEY) === "1";
-      if (!seen) sShowOnb(true);
     } catch { /* */ }
   }, []);
 
@@ -741,14 +730,6 @@ export function DashboardClient() {
 
   return (
     <>
-      {showOnb && (
-        <OnboardingScreen
-          onDone={() => {
-            try { sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1"); } catch { /* */ }
-            sShowOnb(false);
-          }}
-        />
-      )}
       {l4 && l4OverlayVm && (
         <div className="d4-backdrop d4-backdrop--open" style={{ zIndex: 200 }} role="alertdialog" aria-modal="true">
           <div className="d4-l4-prompt" style={{ textAlign: "left" }} role="document">
@@ -1381,7 +1362,7 @@ export function DashboardClient() {
           </div>
         </aside>
 
-        <div className={cn("d4-main", expId ? "has-focus" : "")}>
+        <div className={cn("d4-main", "main", expId ? "has-focus" : "")}>
           {(!sp.get("tab") || sp.get("tab") === "feed") && (
             <>
               <OnboardingTour

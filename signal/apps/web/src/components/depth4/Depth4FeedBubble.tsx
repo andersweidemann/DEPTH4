@@ -662,7 +662,7 @@ export function Depth4FeedBubble({
       )}
 
       <div className="d4-depth-map" id={`dm-${model.id}`}>
-        <div className="d4-dm-tabs" role="tablist">
+        <div className="d4-dm-tabs dm-tabs" role="tablist">
           {(
             [
               ["l1", "L1 — Event", "Direct impact"],
