@@ -1,12 +1,20 @@
 # Vercel CLI was running out of memory uploading this monorepo.
-# Only deploy the Next.js app under signal/apps/web for this project.
+# Only deploy the Next.js app under signal/apps/web for this project,
+# while still including the workspace root lockfile and local workspace packages.
 *
 
 !signal/
 signal/*
 
+!signal/package.json
+!signal/package-lock.json
+
 !signal/apps/
 signal/apps/*
+
+!signal/packages/
+signal/packages/*
+!signal/packages/**
 
 !signal/apps/web/
 !signal/apps/web/**
