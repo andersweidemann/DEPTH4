@@ -19,6 +19,7 @@ import { SigBadge } from "@/components/ui/badge";
 import type { Plan } from "@/lib/plan";
 import { PLAN_LIMITS, planFromDbTier, planLabel, planPillStyle } from "@/lib/plan";
 import { PaywallOverlay } from "@/components/PaywallOverlay";
+import type { DeepBrief } from "@/types/deepBrief";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const DISMISSED_L4_KEY = "depth4_dismissed_l4_ids";
@@ -107,11 +108,26 @@ export function DashboardClient() {
   const [helpOpen, sHelpOpen] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [briefErr, setBriefErr] = useState<Record<string, string>>({});
-  const [deepBriefById, setDeepBriefById] = useState<Record<string, unknown>>({});
+  const [deepBriefById, setDeepBriefById] = useState<Record<string, DeepBrief>>({});
   const [showOnb, sShowOnb] = useState(false);
   const [incoming, setIncoming] = useState<Record<string, number>>({});
   const [dismissedTriggers, setDismissedTriggers] = useState<Record<string, boolean>>({});
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  function isDeepBrief(x: unknown): x is DeepBrief {
+    if (!x || typeof x !== "object") return false;
+    const o = x as Record<string, unknown>;
+    if (typeof o.hook !== "string") return false;
+    if (typeof o.market !== "string") return false;
+    if (!Array.isArray(o.stocks)) return false;
+    for (const s of o.stocks) {
+      if (!s || typeof s !== "object") return false;
+      const so = s as Record<string, unknown>;
+      if (typeof so.t !== "string") return false;
+      if (typeof so.th !== "string") return false;
+    }
+    return true;
+  }
 
   const plan: Plan = useMemo(() => planFromDbTier(tier), [tier]);
   const refreshMs = PLAN_LIMITS[plan].feedRefreshSeconds * 1000;
@@ -381,10 +397,13 @@ export function DashboardClient() {
         },
         body: JSON.stringify({ event_id: eventId, depth1, depth2, depth3 }),
       });
-      const j = (await res.json().catch(() => ({}))) as Record<string, unknown> & { detail?: string };
+      const j = (await res.json().catch(() => ({}))) as unknown;
       if (!res.ok) {
-        const d = j.detail;
-        throw new Error(typeof d == "string" ? d : `Request failed (${res.status})`);
+        const d = (j as { detail?: unknown } | null)?.detail;
+        throw new Error(typeof d === "string" ? d : `Request failed (${res.status})`);
+      }
+      if (!isDeepBrief(j)) {
+        throw new Error("Deep Brief response malformed.");
       }
 
       // Update local UI state so the Deep Brief panel re-renders immediately.
