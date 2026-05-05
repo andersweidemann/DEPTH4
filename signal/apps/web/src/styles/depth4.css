@@ -112,7 +112,6 @@ body.d4-skin {
 /* Focus mode: dim sibling cards when one is expanded. */
 .d4-main.has-focus .d4-bubble:not(.d4-bubble--active) {
   opacity: 0.25;
-  pointer-events: none;
   transition: opacity 0.2s ease;
 }
 .d4-main.has-focus .d4-bubble.d4-bubble--active {
@@ -120,6 +119,14 @@ body.d4-skin {
   position: relative;
   z-index: 10;
   box-shadow: 0 0 0 1px var(--d4-goldring), var(--d4-sh);
+}
+
+.focus-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  background: transparent;
+  cursor: default;
 }
 
 .pending-pill {

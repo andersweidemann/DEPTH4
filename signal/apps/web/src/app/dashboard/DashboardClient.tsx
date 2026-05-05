@@ -171,6 +171,15 @@ export function DashboardClient() {
   }, [expId]);
 
   useEffect(() => {
+    if (!expId) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") sExp(null);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [expId]);
+
+  useEffect(() => {
     if (tourShown) return;
     tourShown = true;
     const t = window.setTimeout(() => setShowTour(true), 1000);
@@ -1387,6 +1396,13 @@ export function DashboardClient() {
         <div className={cn("d4-main", "main", expId ? "has-focus" : "")}>
           {(!sp.get("tab") || sp.get("tab") === "feed") && (
             <>
+              {expId && (
+                <div
+                  className="focus-backdrop"
+                  onClick={() => sExp(null)}
+                  aria-hidden
+                />
+              )}
               {showTour && (
                 <OnboardingTour
                   onOpenAddHolding={() => sAdd(true)}

@@ -570,6 +570,9 @@ export function Depth4FeedBubble({
         ...(trigTone === "gold" ? { borderColor: "var(--d4-goldring)" } : {}),
         ...(trigTone === "red" ? { borderColor: "rgba(194,82,82,.35)" } : {}),
       }}
+      onClick={(e) => {
+        if (expanded) e.stopPropagation();
+      }}
     >
       <div
         className="d4-bubble-top"
