@@ -390,7 +390,7 @@ export function DashboardClient() {
       // Update local UI state so the Deep Brief panel re-renders immediately.
       setDeepBriefById((cur) => ({ ...cur, [eventId]: j }));
       if (active?.id === eventId) {
-        sAct((cur) => (cur && cur.id === eventId ? ({ ...(cur as never), deepBrief: j } as never) : cur));
+        sAct((cur) => (cur && cur.id === eventId ? { ...cur, deepBrief: j } : cur));
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Network error";
