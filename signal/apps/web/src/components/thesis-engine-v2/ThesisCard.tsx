@@ -1,0 +1,48 @@
+import Link from "next/link";
+import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { DirectionBadge } from "./DirectionBadge";
+import { ProbabilityBar } from "./ProbabilityBar";
+import { StatusBadge } from "./StatusBadge";
+
+export function ThesisCard({ thesis }: { thesis: Thesis }) {
+  return (
+    <Link
+      href={`/theses/${thesis.slug}`}
+      className="group block rounded-lg border border-white/[0.06] bg-zinc-900/40 p-5 transition-colors hover:border-amber-500/20 hover:bg-zinc-900/70"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[13px] font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95">
+            {thesis.title}
+          </h2>
+          <p className="mt-2 font-mono text-[11px] text-zinc-500">{thesis.asset}</p>
+        </div>
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+          <DirectionBadge direction={thesis.direction} />
+          <StatusBadge status={thesis.status} />
+        </div>
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <span className="text-[11px] tabular-nums text-zinc-400">{thesis.probability}%</span>
+        <div className="min-w-0 flex-1">
+          <ProbabilityBar value={thesis.probability} />
+        </div>
+      </div>
+      <div className="mt-4 space-y-1.5 border-t border-white/[0.04] pt-4 text-[11px] leading-relaxed text-zinc-500">
+        <p>
+          <span className="text-zinc-600">Why now · </span>
+          {thesis.whyNow}
+        </p>
+        <p>
+          <span className="text-zinc-600">What&apos;s unpriced · </span>
+          {thesis.whatsUnpriced}
+        </p>
+        <p className="font-mono text-[10px] text-zinc-400">{thesis.trade}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-zinc-600">
+          <span>{thesis.horizon}</span>
+          <span className="tabular-nums text-zinc-500">{thesis.lastUpdated}</span>
+        </div>
+      </div>
+    </Link>
+  );
+}

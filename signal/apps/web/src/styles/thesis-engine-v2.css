@@ -1,0 +1,17 @@
+/* DEPTH4 2.0 prototype — scoped surface; does not alter 1.0 depth4.css */
+.te2 {
+  --te2-bg: #0c0c0e;
+  --te2-surface: #121214;
+  --te2-border: rgba(255, 255, 255, 0.06);
+  --te2-muted: #71717a;
+  --te2-gold: #d4a574;
+  --te2-gold-dim: rgba(212, 165, 116, 0.15);
+}
+
+.te2-bg {
+  background-color: var(--te2-bg);
+}
+
+.te2-surface {
+  background-color: var(--te2-surface);
+}
