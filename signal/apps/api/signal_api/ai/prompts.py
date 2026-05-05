@@ -207,6 +207,42 @@ SCENARIOS_REPAIR_SYSTEM = (
   "Return JSON only, no markdown, no backticks, no code fences—only a raw JSON object."
 )
 
+DEEP_BRIEF_SYSTEM = (
+  "You are DEPTH4 — a macro trading analyst. You will be given DEPTH 1–3 text for one event. "
+  "Write a Deep Brief in three sections: Situation, Market Read, Stock Conviction. "
+  "Be specific, direct, trade-oriented. "
+  "Return JSON only with keys hook, market, stocks (array of {t, th}). "
+  "No markdown, no backticks, no code fences—only a raw JSON object."
+)
+
+
+def deep_brief_user_prompt(depth1: str, depth2: str, depth3: str) -> str:
+  return f"""You are a macro trading analyst. Based on the following event analysis, write a Deep Brief with three sections:
+
+SITUATION: One paragraph. What is physically/politically happening and its immediate market mechanism. Be specific and factual.
+
+MARKET READ: One paragraph. How this flows to specific market segments — who gains, who loses, what moves in sympathy. Include asset classes, geographies, sector dynamics.
+
+STOCK CONVICTION: A list of 3–5 tickers most affected. For each: ticker symbol and one sentence conviction thesis.
+
+Event data:
+Depth 1 (Event):
+{depth1}
+
+Depth 2 (Story):
+{depth2}
+
+Depth 3 (Scenarios):
+{depth3}
+
+Return ONLY valid JSON in this exact shape:
+{{
+  "hook": "situation paragraph",
+  "market": "market read paragraph",
+  "stocks": [{{"t": "TICKER", "th": "one sentence"}}]
+}}
+"""
+
 
 def scenarios_repair_user_prompt(
   headline: str,

@@ -8,12 +8,14 @@ import type {
   PricedInLevel,
   TransmissionPly,
 } from "@/lib/feed-model";
-import { ProPaywallCard } from "@/components/trader/ProPaywallCard";
 import { cn } from "@/lib/utils";
 import { ArrowDown, X } from "lucide-react";
 import { SigBadge } from "@/components/ui/badge";
 import { DeepBriefPanel } from "@/components/DeepBriefPanel";
 import type { DeepBrief } from "@/types/deepBrief";
+import type { Plan } from "@/lib/plan";
+import { PLAN_LIMITS, canAccessDepth } from "@/lib/plan";
+import { PaywallOverlay } from "@/components/PaywallOverlay";
 import {
   buildDepthClockData,
   layer1FromView,
@@ -82,7 +84,17 @@ function edgeStyle(score: number) {
   return { bar, col, glow };
 }
 
-function DepthClock({ urgency, horizon, recs }: { urgency: number; horizon: string; recs: { tick: string; act: string; edge: number; thesis: string }[] }) {
+function DepthClock({
+  urgency,
+  horizon,
+  recs,
+  brokerLinks,
+}: {
+  urgency: number;
+  horizon: string;
+  recs: { tick: string; act: string; edge: number; thesis: string }[];
+  brokerLinks: boolean;
+}) {
   const [openTick, setOpenTick] = useState<string | null>(null);
   const r = 56;
   const cx = 70;
@@ -129,16 +141,21 @@ function DepthClock({ urgency, horizon, recs }: { urgency: number; horizon: stri
               <span className={cn("d4-dc-act", actc)}>{rec.act.toUpperCase()}</span>
               <div className="d4-dc-thesis">{rec.thesis}</div>
               <div className="d4-dc-edge" style={{ color: s.col }}>{rec.edge}</div>
-              {/** Paid-only: in this app `recs` are only shown for paid users already. */}
               <div style={{ marginTop: 8, position: "relative" }}>
-                <button
-                  type="button"
-                  className="d4-btn d4-btn-ghost"
-                  style={{ fontSize: 11, padding: "5px 10px", borderColor: "var(--d4-border)" }}
-                  onClick={() => setOpenTick((cur) => (cur === rec.tick ? null : rec.tick))}
-                >
-                  Execute →
-                </button>
+                {brokerLinks ? (
+                  <button
+                    type="button"
+                    className="d4-btn d4-btn-ghost"
+                    style={{ fontSize: 11, padding: "5px 10px", borderColor: "var(--d4-border)" }}
+                    onClick={() => setOpenTick((cur) => (cur === rec.tick ? null : rec.tick))}
+                  >
+                    Execute →
+                  </button>
+                ) : (
+                  <span className="pw-exec-hint d4-bubble-meta" style={{ fontSize: 11, color: "var(--d4-muted)" }}>
+                    🔒 Upgrade to execute
+                  </span>
+                )}
                 {openTick === rec.tick && (
                   <div
                     className="d4-dm-block"
@@ -391,6 +408,13 @@ function ForwardBlockD4({ vm }: { vm: FeedViewModel }) {
 }
 
 type TabK = "l1" | "l2" | "l3" | "clock" | "db";
+type TabId = "depth1" | "depth2" | "depth3" | "depthClock" | "db";
+
+const DEPTH_TAB_ACCESS: Record<Plan, TabId[]> = {
+  free: ["depth1", "depth2"],
+  analyst: ["depth1", "depth2", "depth3", "db"],
+  pro: ["depth1", "depth2", "depth3", "depthClock", "db"],
+};
 
 function scenarioBarClass(s: { label: string; probability: number }, i: number, n: number): "d4-sc-fill" | "d4-sc-fill--flat" | "d4-sc-fill--danger" {
   if (i === 0) return "d4-sc-fill";
@@ -473,12 +497,13 @@ export function Depth4FeedBubble({
   onToggle,
   onFocus,
   onDismiss,
-  proUnlocked,
+  plan,
   publishedAt,
   overlapLabelTickers,
   userHoldings,
   onUpgrade,
   isGeneratingBrief,
+  briefError,
   onGenerateBrief,
   isIncoming,
   trigger,
@@ -490,12 +515,13 @@ export function Depth4FeedBubble({
   onToggle: () => void;
   onFocus: () => void;
   onDismiss?: () => void;
-  proUnlocked: boolean;
+  plan: Plan;
   publishedAt: string | null;
   overlapLabelTickers: string[];
   userHoldings: string[];
   onUpgrade: () => void;
   isGeneratingBrief?: boolean;
+  briefError?: string | null;
   onGenerateBrief?: () => void;
   isIncoming?: boolean;
   trigger?: { tone: "gold" | "red"; text: string } | null;
@@ -507,6 +533,10 @@ export function Depth4FeedBubble({
   const clock = buildDepthClockData(model, news.signal_level);
   const sl = model.signalLevel;
   const brief = (news as NewsItem & { deepBrief?: DeepBrief }).deepBrief;
+  const depth3Unlocked = canAccessDepth(plan, 3);
+  const clockUnlocked = plan === "pro";
+  const deepBriefAccess = PLAN_LIMITS[plan].deepBrief;
+  const brokerLinks = PLAN_LIMITS[plan].brokerLinks;
   const am = ageMinutes(publishedAt);
   const ws = am == null ? null : getWindowStatus(sl, am);
   const closed = ws === "closed";
@@ -619,23 +649,36 @@ export function Depth4FeedBubble({
               ["clock", "L4 — Clock", "Structural drift"],
               ["db", "Deep Brief", "Trade-ready"],
             ] as [TabK, string, string][]
-          ).map(([k, label, sub]) => (
-            <button
-              key={k}
-              type="button"
-              role="tab"
-              className={cn("d4-dm-tab", tab === k && "d4-dm-tab--active")}
-              aria-selected={tab === k}
-              onClick={(e) => {
-                e.stopPropagation();
-                onFocus();
-                setTab(k);
-              }}
-            >
-              <span style={{ display: "block" }}>{label}</span>
-              <span style={{ display: "block", fontSize: 10, marginTop: 2, color: "var(--d4-faint)" }}>{sub}</span>
-            </button>
-          ))}
+          ).map(([k, label, sub]) => {
+            const tabId: TabId =
+              k === "l1" ? "depth1" :
+                k === "l2" ? "depth2" :
+                  k === "l3" ? "depth3" :
+                    k === "clock" ? "depthClock" : "db";
+            const allowed = DEPTH_TAB_ACCESS[plan].includes(tabId);
+            return (
+              <button
+                key={k}
+                type="button"
+                role="tab"
+                className={cn("d4-dm-tab", tab === k && "d4-dm-tab--active")}
+                aria-selected={tab === k}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFocus();
+                  setTab(k);
+                }}
+                style={allowed ? undefined : { opacity: 0.55 }}
+                title={allowed ? undefined : "Locked — upgrade to unlock"}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+                  <span>{label}</span>
+                  {!allowed && <span aria-hidden style={{ fontSize: 12, transform: "translateY(-1px)" }}>🔒</span>}
+                </span>
+                <span style={{ display: "block", fontSize: 10, marginTop: 2, color: "var(--d4-faint)" }}>{sub}</span>
+              </button>
+            );
+          })}
         </div>
         <div className="d4-bubble-meta" style={{ marginTop: 8, fontSize: 11, lineHeight: 1.35 }}>
           <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>How to read it</strong>:{" "}
@@ -675,7 +718,7 @@ export function Depth4FeedBubble({
         </div>
 
         <div className={cn("d4-dm-panel", tab === "l3" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "l3"}>
-          {proUnlocked && hasL3 && (
+          {depth3Unlocked && hasL3 && (
             <div className="d4-sc-tree">
               {model.layer3.scenarios.map((s, i, arr) => {
                 const tail = isTail(s, i, arr.length);
@@ -721,7 +764,7 @@ export function Depth4FeedBubble({
               })}
             </div>
           )}
-          {proUnlocked && hasL3 && model.layer3.watchList.length > 0 && (
+          {depth3Unlocked && hasL3 && model.layer3.watchList.length > 0 && (
             <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--d4-divider)" }}>
               <p className="d4-dm-kicker" style={{ color: "var(--d4-faint)" }}>Watch list (triggers)</p>
               <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 8, fontSize: 12, color: "var(--d4-text)" }}>
@@ -736,7 +779,7 @@ export function Depth4FeedBubble({
               </ul>
             </div>
           )}
-          {proUnlocked && !hasL3 && (
+          {depth3Unlocked && !hasL3 && (
             <div style={{ color: "var(--d4-muted)", fontSize: 13, lineHeight: 1.55 }}>
               {sl < 3 ? (
                 <>
@@ -760,21 +803,56 @@ export function Depth4FeedBubble({
               )}
             </div>
           )}
-          {!proUnlocked && (hasL3 || model.layer4) && <ProPaywallCard />}
+          {!depth3Unlocked && (
+            <div style={{ position: "relative", minHeight: 220 }}>
+              <div style={{ filter: "blur(5px)", opacity: 0.45, maxHeight: 220, overflow: "hidden" }}>
+                <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)" }}>Scenarios</div>
+                <div className="d4-dm-block" style={{ marginTop: 8 }}>
+                  Unlock Depth 3 to see scenario branches + confirmation triggers.
+                </div>
+              </div>
+              <PaywallOverlay
+                requiredPlan="analyst"
+                featureName="Depth 3 — Scenarios"
+                currentPlan={plan}
+                subtitle="Depth 3 is available on Analyst and Pro."
+                onUpgrade={onUpgrade}
+              />
+            </div>
+          )}
         </div>
 
         <div className={cn("d4-dm-panel", tab === "clock" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "clock"}>
-          {proUnlocked && <DepthClock {...clock} />}
-          {!proUnlocked && <ProPaywallCard />}
+          {clockUnlocked && <DepthClock {...clock} brokerLinks={brokerLinks} />}
+          {!clockUnlocked && (
+            <div style={{ position: "relative", minHeight: 220 }}>
+              <div style={{ filter: "blur(5px)", opacity: 0.45, maxHeight: 220, overflow: "hidden" }}>
+                <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)" }}>Depth Clock</div>
+                <div className="d4-dm-block" style={{ marginTop: 8 }}>
+                  Timing, urgency, and execution links.
+                </div>
+              </div>
+              <PaywallOverlay
+                requiredPlan="pro"
+                featureName="Depth Clock"
+                currentPlan={plan}
+                subtitle="Depth Clock is available on Pro."
+                onUpgrade={onUpgrade}
+              />
+            </div>
+          )}
         </div>
 
         <div className={cn("d4-dm-panel", tab === "db" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "db"}>
           <DeepBriefPanel
             brief={brief}
             userHoldings={userHoldings}
-            isPaid={proUnlocked}
-            onUpgrade={onUpgrade}
+            plan={plan}
+            briefAccess={deepBriefAccess}
+            onUpgradeAnalyst={onUpgrade}
+            onUpgradePro={onUpgrade}
             isGenerating={isGeneratingBrief}
+            error={briefError}
             onGenerate={onGenerateBrief}
           />
         </div>

@@ -47,6 +47,13 @@ class PremiumPersonalizeBody(BaseModel):
   event_id: str = Field(..., min_length=8, max_length=80)
 
 
+class DeepBriefBody(BaseModel):
+  event_id: str = Field(..., min_length=8, max_length=80)
+  depth1: str = Field(..., min_length=1, max_length=60_000)
+  depth2: str = Field(..., min_length=1, max_length=120_000)
+  depth3: str = Field(..., min_length=1, max_length=180_000)
+
+
 def _uid_from_access_token(sb: Any, token: str) -> str:
   if not token.strip():
     raise HTTPException(status_code=401, detail="Missing bearer token")
@@ -132,3 +139,43 @@ async def premium_personalize(
     "portfolio_impact": p.get("portfolio_impact"),
     "order_recommendations": p.get("order_recommendations"),
   }
+
+
+@router.post("/deep-brief")
+async def deep_brief(
+  body: DeepBriefBody,
+  authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+  """User-click only: generate a Deep Brief via interactive provider."""
+  if not llm_interactive_configured():
+    raise HTTPException(
+      status_code=503,
+      detail="Interactive LLM not configured (e.g. set ANTHROPIC_API_KEY for LLM_PROVIDER_INTERACTIVE=anthropic).",
+    )
+  if not authorization or not authorization.lower().startswith("bearer "):
+    raise HTTPException(status_code=401, detail="Send Authorization: Bearer <Supabase access_token>")
+  token = authorization[7:].strip()
+  sb = supabase_admin()
+  _uid_from_access_token(sb, token)  # Authn gate; generation itself is stateless.
+
+  try:
+    out = await claude.generate_deep_brief(body.depth1, body.depth2, body.depth3, llm_task="interactive")
+  except Exception as e:
+    raise HTTPException(status_code=502, detail=f"LLM error: {e!s}") from e
+
+  # Basic shape validation (avoid crashing the UI on bad JSON).
+  hook = str((out or {}).get("hook") or "").strip()
+  market = str((out or {}).get("market") or "").strip()
+  stocks = (out or {}).get("stocks")
+  if not isinstance(stocks, list):
+    stocks = []
+  cleaned: list[dict[str, str]] = []
+  for x in stocks[:6]:
+    if not isinstance(x, dict):
+      continue
+    t = str(x.get("t") or "").strip()[:16]
+    th = str(x.get("th") or "").strip()[:320]
+    if t and th:
+      cleaned.append({"t": t, "th": th})
+
+  return {"hook": hook, "market": market, "stocks": cleaned}

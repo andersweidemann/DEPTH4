@@ -6,7 +6,6 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { mapToFeedViewModel } from "@/lib/mapToFeedViewModel";
 import { NotificationSettings } from "@/components/push/NotificationSettings";
-import { isProOrAbove, tierLabel } from "@/lib/tier";
 import { Activity, FileText, LayoutList, ListOrdered, RefreshCw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import * as T from "./types";
@@ -16,9 +15,11 @@ import { edgeScoreForPosition } from "@/lib/depth4View";
 import { Sheet } from "@/components/ui/sheet";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { SigBadge } from "@/components/ui/badge";
+import type { Plan } from "@/lib/plan";
+import { PLAN_LIMITS, planFromDbTier, planLabel, planPillStyle } from "@/lib/plan";
+import { PaywallOverlay } from "@/components/PaywallOverlay";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-const FEED_POLL_MS = 60_000;
 const DISMISSED_L4_KEY = "depth4_dismissed_l4_ids";
 /** After a successful idle-mode ingest, skip re-running until next browser session. */
 const IDLE_INGEST_BOOTSTRAP_KEY = "depth4_idle_ingest_bootstrap_ok";
@@ -104,9 +105,21 @@ export function DashboardClient() {
   const [bgLoops, sBgLoops] = useState<boolean | null>(null);
   const [helpOpen, sHelpOpen] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [briefErr, setBriefErr] = useState<Record<string, string>>({});
+  const [deepBriefById, setDeepBriefById] = useState<Record<string, unknown>>({});
   const [showOnb, sShowOnb] = useState(false);
   const [incoming, setIncoming] = useState<Record<string, number>>({});
   const [dismissedTriggers, setDismissedTriggers] = useState<Record<string, boolean>>({});
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
+
+  const plan: Plan = useMemo(() => planFromDbTier(tier), [tier]);
+  const refreshMs = PLAN_LIMITS[plan].feedRefreshSeconds * 1000;
+  const holdingsCap = PLAN_LIMITS[plan].maxHoldings;
+  const atHoldingsLimit = Number.isFinite(holdingsCap) ? p.length >= holdingsCap : false;
+
+  const openUpgrade = useCallback(() => {
+    setUpgradeOpen(true);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -332,12 +345,55 @@ export function DashboardClient() {
   }, [active?.id, sb, treeMap]);
 
   async function handleGenerateBrief(eventId: string) {
+    console.log("[DeepBrief] Generate clicked, eventId:", eventId);
     setGeneratingId(eventId);
+    setBriefErr((cur) => {
+      if (!cur[eventId]) return cur;
+      const next = { ...cur };
+      delete next[eventId];
+      return next;
+    });
     try {
-      // TODO: call your LLM API endpoint here
-      // const brief = await fetch(`/api/brief/${eventId}`)
-      // then update the event with the returned DeepBrief
-      await new Promise((r) => setTimeout(r, 650));
+      const { data: { session } } = await sb.auth.getSession();
+      const tok = session?.access_token;
+      if (!tok) throw new Error("Not signed in.");
+
+      const e = n.find((x) => x.id === eventId) || active;
+      const t = (treeMap as Record<string, T.Tree>)[eventId] ?? null;
+      if (!e) throw new Error("Event not found.");
+
+      const vm = mapToFeedViewModel(e, t, p, od, pr);
+      const depth1 = `${vm.layer1.event}\n\nWHY:\n${vm.layer1.why}\n\nNEXT:\n${vm.layer1.next}`;
+      const depth2 = `${vm.layer2.verdict}\n\nCHAIN:\n${vm.layer2.chain.map((s) => `- ${s.title}: ${s.text}`).join("\n")}`;
+      const depth3 = vm.layer3.scenarios.length
+        ? vm.layer3.scenarios
+            .map((s) => `- ${s.label} (${s.probability}%): ${s.outcome}. Watch: ${s.oneWatch || "—"}`)
+            .join("\n")
+        : "—";
+
+      const res = await fetch(`${API}/market/deep-brief`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tok}`,
+        },
+        body: JSON.stringify({ event_id: eventId, depth1, depth2, depth3 }),
+      });
+      const j = (await res.json().catch(() => ({}))) as Record<string, unknown> & { detail?: string };
+      if (!res.ok) {
+        const d = j.detail;
+        throw new Error(typeof d == "string" ? d : `Request failed (${res.status})`);
+      }
+
+      // Update local UI state so the Deep Brief panel re-renders immediately.
+      setDeepBriefById((cur) => ({ ...cur, [eventId]: j }));
+      if (active?.id === eventId) {
+        sAct((cur) => (cur && cur.id === eventId ? ({ ...(cur as never), deepBrief: j } as never) : cur));
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Network error";
+      console.error("[DeepBrief] Generation failed:", e);
+      setBriefErr((cur) => ({ ...cur, [eventId]: msg }));
     } finally {
       setGeneratingId(null);
     }
@@ -484,9 +540,9 @@ export function DashboardClient() {
   useEffect(() => {
     const t = setInterval(() => {
       void load({ silent: true, skipIdleBootstrap: true });
-    }, FEED_POLL_MS);
+    }, refreshMs);
     return () => clearInterval(t);
-  }, [load]);
+  }, [load, refreshMs]);
 
   useEffect(() => {
     if (!active) return;
@@ -552,6 +608,14 @@ export function DashboardClient() {
 
   const saveHolding = useCallback(async () => {
     sAddErr(null);
+    if (atHoldingsLimit) {
+      sAddErr(
+        plan === "free"
+          ? "Observer plan supports 1 holding. Upgrade to Analyst for up to 10, or Pro for unlimited."
+          : "Upgrade to Pro for unlimited holdings.",
+      );
+      return;
+    }
     const tick = tickerIn.trim().toUpperCase();
     const name = nameIn.trim();
     const q = +qtyIn;
@@ -587,7 +651,7 @@ export function DashboardClient() {
     sCost("");
     sCur("SEK");
     void load();
-  }, [tickerIn, nameIn, qtyIn, costIn, curIn, sb, load]);
+  }, [atHoldingsLimit, plan, tickerIn, nameIn, qtyIn, costIn, curIn, sb, load]);
 
   const onSignOut = useCallback(async () => {
     await sb.auth.signOut();
@@ -669,6 +733,9 @@ export function DashboardClient() {
                 ✕
               </button>
             </div>
+            <div className="d4-bubble-meta" style={{ fontSize: 11, color: "var(--d4-muted)", marginBottom: 10 }}>
+              {plan === "pro" ? `${p.length} holdings` : `${p.length} / ${holdingsCap} holdings`}
+            </div>
             <div className="d4-form-grid2">
               <div>
                 <label className="d4-flabel" htmlFor="fT">Ticker</label>
@@ -725,13 +792,145 @@ export function DashboardClient() {
           <span className="d4-live-label">LIVE</span>
           {lastSynced && <span className="d4-bubble-meta" style={{ fontSize: 11, color: "var(--d4-muted)" }}>Updated {lastSynced}</span>}
           <span className="d4-spacer" />
-          <span className="d4-bubble-src d4-bubble-meta" style={{ fontSize: 10, padding: "2px 8px" }}>{tierLabel(tier)}</span>
-          <Link href="/pricing" className="d4-btn d4-btn-ghost" style={{ textDecoration: "none" }}>Plans</Link>
+          <button
+            type="button"
+            className="d4-bubble-src d4-bubble-meta"
+            style={{
+              fontSize: 10,
+              padding: "2px 8px",
+              cursor: "pointer",
+              border: `1px solid ${planPillStyle(plan).border}`,
+              background: planPillStyle(plan).bg,
+              color: planPillStyle(plan).color,
+            }}
+            onClick={openUpgrade}
+            title="View plans"
+          >
+            {planLabel(plan)}
+          </button>
           <Link href="/" className="d4-btn d4-btn-ghost" style={{ textDecoration: "none" }}>App home</Link>
           <button type="button" className="d4-btn d4-btn-ghost" onClick={() => sHelpOpen(true)}>Help</button>
-          <button type="button" className="d4-btn d4-btn-ghost" onClick={() => sAdd(true)}>+ Add holding</button>
+          <button
+            type="button"
+            className="d4-btn d4-btn-ghost"
+            onClick={() => (atHoldingsLimit ? openUpgrade() : sAdd(true))}
+            title={atHoldingsLimit ? "Holding limit reached — upgrade to add more" : "Add holding"}
+          >
+            {atHoldingsLimit ? "🔒 Add holding" : "+ Add holding"}
+          </button>
           <button type="button" className="d4-btn d4-btn-ghost" onClick={onSignOut}>Sign out</button>
         </header>
+
+        <Sheet open={upgradeOpen} onOpenChange={setUpgradeOpen} title="Plans — DEPTH4">
+          <div style={{ color: "var(--d4-text)" }}>
+            <div className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6 }}>
+              Upgrade anytime. This modal only controls UI access (payments handled on the pricing page).
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12, marginTop: 12 }}>
+              {(
+                [
+                  {
+                    k: "free" as const,
+                    name: "Observer",
+                    price: "$0",
+                    desc: "See L1–L2 and track one holding.",
+                    feats: [
+                      "✓ L1 + L2 depth analysis",
+                      "✓ Live macro event feed",
+                      "✓ 1 portfolio holding",
+                      "✓ Feed refreshes every 60s",
+                      "✗ Deep Brief",
+                      "✗ Alerts",
+                      "✗ Broker links",
+                      "✗ L3 / L4 / Depth Clock",
+                    ],
+                    cta: plan === "free" ? "Current plan" : "Switch to Observer",
+                    badge: null as string | null,
+                    highlight: false,
+                  },
+                  {
+                    k: "analyst" as const,
+                    name: "Analyst",
+                    price: "$19 / mo",
+                    desc: "Scenarios + Deep Brief (partial).",
+                    feats: [
+                      "✓ L1, L2 + L3 depth analysis",
+                      "✓ Deep Brief (Situation + Market Read)",
+                      "✓ Up to 10 holdings",
+                      "✓ Desktop alerts",
+                      "✓ Broker links",
+                      "✓ Feed refreshes every 60s",
+                      "✗ L4 + Depth Clock",
+                      "✗ Stock Conviction",
+                      "✗ Portfolio P&L sensitivity",
+                    ],
+                    cta: plan === "analyst" ? "Current plan" : "Upgrade to Analyst",
+                    badge: "Most popular",
+                    highlight: true,
+                  },
+                  {
+                    k: "pro" as const,
+                    name: "Pro",
+                    price: "$49 / mo",
+                    desc: "Full L1–L4 + Depth Clock + portfolio sensitivity.",
+                    feats: [
+                      "✓ Full L1–L4 + Depth Clock",
+                      "✓ Deep Brief with Stock Conviction",
+                      "✓ Unlimited holdings",
+                      "✓ Priority refresh (30s)",
+                      "✓ Portfolio P&L sensitivity",
+                      "✓ Broker links",
+                      "✓ API access (coming soon)",
+                    ],
+                    cta: plan === "pro" ? "Current plan" : "Upgrade to Pro",
+                    badge: null as string | null,
+                    highlight: false,
+                  },
+                ] as const
+              ).map((card) => (
+                <div
+                  key={card.k}
+                  className="d4-sidecard"
+                  style={{
+                    border: card.highlight ? "1px solid rgba(226,164,58,0.40)" : "1px solid var(--d4-border)",
+                    boxShadow: card.highlight ? "0 0 0 1px rgba(226,164,58,0.12), 0 8px 30px rgba(0,0,0,0.35)" : undefined,
+                    transform: card.highlight ? "scale(1.01)" : undefined,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+                    <div style={{ fontWeight: 800 }}>{card.name}</div>
+                    {card.badge && (
+                      <span className="d4-btag d4-btag--impact" style={{ fontSize: 10, borderColor: "rgba(226,164,58,0.45)" }}>
+                        {card.badge}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 18, fontWeight: 800, color: "var(--d4-text)" }}>{card.price}</div>
+                  <div className="d4-bubble-meta" style={{ fontSize: 12, marginTop: 6, lineHeight: 1.5 }}>{card.desc}</div>
+                  <ul className="d4-bubble-meta" style={{ margin: "10px 0 0", paddingLeft: 16, fontSize: 12, lineHeight: 1.55, color: "var(--d4-muted)" }}>
+                    {card.feats.map((f) => <li key={f}>{f}</li>)}
+                  </ul>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <Link
+                      href="/pricing"
+                      className="d4-btn d4-btn-ghost"
+                      style={{
+                        textDecoration: "none",
+                        justifyContent: "center",
+                        width: "100%",
+                        borderColor: card.k === "free" ? "var(--d4-border)" : "rgba(226,164,58,0.45)",
+                        color: card.k === "free" ? "var(--d4-text)" : "var(--d4-gold)",
+                      }}
+                      onClick={() => setUpgradeOpen(false)}
+                    >
+                      {card.cta}
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Sheet>
 
         <Sheet open={helpOpen} onOpenChange={sHelpOpen} title="Help — DEPTH4">
           <div className="text-sm" style={{ color: "var(--d4-text)" }}>
@@ -995,12 +1194,52 @@ export function DashboardClient() {
             </p>
             <p className="d4-bubble-meta" style={{ fontSize: 10, lineHeight: 1.4 }}>Quotes from DEPTH4 API. Unrealized P&amp;L: compare to avg cost in a later build.</p>
           </div>
+          <div className="d4-sidecard" style={{ position: "relative" }}>
+            {PLAN_LIMITS[plan].portfolioPnl ? (
+              <>
+                <p className="d4-bubble-meta" style={{ marginBottom: 6, fontSize: 11 }}>P&amp;L sensitivity (illus.)</p>
+                <div className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.55, color: "var(--d4-muted)" }}>
+                  If A: +— SEK
+                  <br />
+                  If C: — SEK
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ filter: "blur(5px)", opacity: 0.45, maxHeight: 90, overflow: "hidden" }}>
+                  <p className="d4-bubble-meta" style={{ marginBottom: 6, fontSize: 11 }}>P&amp;L sensitivity (illus.)</p>
+                  <div className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.55, color: "var(--d4-muted)" }}>
+                    If A: +— SEK
+                    <br />
+                    If C: — SEK
+                  </div>
+                </div>
+                <PaywallOverlay
+                  requiredPlan="pro"
+                  featureName="P&L Scenario Sensitivity"
+                  currentPlan={plan}
+                  subtitle="Portfolio sensitivity is available on Pro."
+                  onUpgrade={openUpgrade}
+                />
+              </>
+            )}
+          </div>
           <div className="d4-sidecard">
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
               <span className="d4-kicker" style={{ marginBottom: 0 }}>Holdings</span>
-              <button type="button" className="d4-btn d4-btn-ghost" style={{ fontSize: 10, padding: "2px 8px" }} onClick={() => sAdd(true)} aria-label="Add holding">
-                ＋
+              <button
+                type="button"
+                className="d4-btn d4-btn-ghost"
+                style={{ fontSize: 10, padding: "2px 8px" }}
+                onClick={() => (atHoldingsLimit ? openUpgrade() : sAdd(true))}
+                aria-label={atHoldingsLimit ? "Upgrade to add holding" : "Add holding"}
+                title={atHoldingsLimit ? "Holding limit reached — upgrade" : "Add holding"}
+              >
+                {atHoldingsLimit ? "🔒" : "＋"}
               </button>
+            </div>
+            <div className="d4-bubble-meta" style={{ fontSize: 10, color: "var(--d4-muted)", marginBottom: 6 }}>
+              {plan === "pro" ? `${p.length} holdings` : `${p.length} / ${holdingsCap} holdings`}
             </div>
             <div className="d4-pos-list">
               {p.map((x) => {
@@ -1067,7 +1306,7 @@ export function DashboardClient() {
                 <div className="d4-feed-status">
                   <span className="d4-live-dot" aria-hidden />
                   <span>
-                    Feed updates every {FEED_POLL_MS / 1000}s. Click Refresh to force an update.
+                    Feed updates every {Math.round(refreshMs / 1000)}s. Click Refresh to force an update.
                   </span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -1136,14 +1375,19 @@ export function DashboardClient() {
                   return (
                     <Depth4FeedBubble
                       key={e.id}
-                      news={e}
+                      news={
+                        deepBriefById[e.id]
+                          ? ({ ...(e as unknown as Record<string, unknown>), deepBrief: deepBriefById[e.id] } as unknown as T.NewsItem)
+                          : e
+                      }
                       model={vmForTrig}
-                      proUnlocked={isProOrAbove(tier)}
+                      plan={plan}
                       publishedAt={e.published_at}
                       overlapLabelTickers={userOverlap as string[]}
                       userHoldings={p.map((x) => x.ticker)}
-                      onUpgrade={() => r.replace("/pricing")}
+                      onUpgrade={openUpgrade}
                       isGeneratingBrief={generatingId === e.id}
+                      briefError={briefErr[e.id] || null}
                       onGenerateBrief={() => void handleGenerateBrief(e.id)}
                       isIncoming={isIncoming}
                       trigger={trig}
@@ -1163,7 +1407,26 @@ export function DashboardClient() {
                 })}
               </div>
               <div className="md:hidden" style={{ marginTop: 4 }}>
-                <NotificationSettings />
+                {PLAN_LIMITS[plan].alerts ? (
+                  <NotificationSettings />
+                ) : (
+                  <div className="rounded-lg border border-zinc-700/60 bg-zinc-900/50 p-3" style={{ position: "relative" }}>
+                    <div style={{ filter: "blur(5px)", opacity: 0.45, maxHeight: 90, overflow: "hidden" }}>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Alerts (optional)</p>
+                      <p className="text-xs text-zinc-500 mt-1">Get desktop notices when we flag high-signal events.</p>
+                      <div className="mt-2">
+                        <span className="text-[10px] text-zinc-500">Depth 3+ events, opt-in. Mobile push = roadmap.</span>
+                      </div>
+                    </div>
+                    <PaywallOverlay
+                      requiredPlan="analyst"
+                      featureName="Alerts"
+                      currentPlan={plan}
+                      subtitle="Upgrade to get notified when watch conditions fire."
+                      onUpgrade={openUpgrade}
+                    />
+                  </div>
+                )}
               </div>
             </>
           )}

@@ -219,3 +219,25 @@ def _personalize_sync(
     prompts.PERSONALIZE_SYSTEM,
     prompts.personalize_user_prompt(headline, scenarios_json, portfolio, orders),
   )
+
+
+async def generate_deep_brief(depth1: str, depth2: str, depth3: str, *, llm_task: str = "interactive") -> dict[str, Any]:
+  s = get_settings()
+  text = await asyncio.to_thread(
+    _deep_brief_sync,
+    s,
+    depth1 or "",
+    depth2 or "",
+    depth3 or "",
+    llm_task,
+  )
+  return json.loads(_strip_fences(text))
+
+
+def _deep_brief_sync(settings: Settings, depth1: str, depth2: str, depth3: str, llm_task: str) -> str:
+  return llm_text_for_task(
+    settings,
+    llm_task,
+    prompts.DEEP_BRIEF_SYSTEM,
+    prompts.deep_brief_user_prompt(depth1, depth2, depth3),
+  )
