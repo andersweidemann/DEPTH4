@@ -22,23 +22,23 @@ export function OnboardingTour({ onOpenAddHolding }: { onOpenAddHolding: () => v
     () => [
       {
         targetSelector: ".main",
-        title: "Your live macro feed",
-        body: "Stories are ranked by market impact. Click any card to start your analysis.",
+        title: "Your macro feed",
+        body: "Every story that moves markets, ranked by impact. Click one to start.",
       },
       {
         targetSelector: ".dm-tabs",
-        title: "Go deeper with every click",
-        body: "L1 = what happened. L2 = who else is affected. L3 = what could happen next. L4 = what to do and when.",
+        title: "Go deeper",
+        body: "L1 is what happened. L4 is what to trade. The edge is always deeper than the headline.",
       },
       {
         targetSelector: "#edgeList",
-        title: "Your edge scores",
-        body: "Higher score = more uncaptured upside for this story. These update live.",
+        title: "Edge scores",
+        body: "How much of this story is still unpriced? Higher = the market hasn't caught up yet. That's your window.",
       },
       {
         targetSelector: "#openModalSide",
-        title: "Make it personal",
-        body: "Add your holdings to see exactly how each story affects your book.",
+        title: "Make it yours",
+        body: "Add what's in your book. Every story gets filtered through your positions — so you only see what matters to you.",
         cta: { label: "Add my first holding →", action: onOpenAddHolding },
       },
     ],
