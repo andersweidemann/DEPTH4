@@ -669,44 +669,117 @@ export function DashboardClient() {
           <button type="button" className="d4-btn d4-btn-ghost" onClick={onSignOut}>Sign out</button>
         </header>
 
-        <Sheet open={helpOpen} onOpenChange={sHelpOpen} title="Help — how to use DEPTH4">
+        <Sheet open={helpOpen} onOpenChange={sHelpOpen} title="Help — DEPTH4">
           <div className="text-sm" style={{ color: "var(--d4-text)" }}>
-            <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.5 }}>
-              DEPTH4 is built for the non-obvious: markets price the headline fast, but they’re slow and sloppy at
-              pricing second- and third-order consequences across assets, geographies, and supply chains.
+            <div className="d4-kicker" style={{ marginBottom: 6 }}>What is DEPTH4?</div>
+            <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+              DEPTH4 is a macro trading intelligence tool that helps you understand how news events affect financial
+              markets — not just immediately, but across four progressively deeper levels of impact. The core idea is
+              simple: markets are fast at pricing what&apos;s obvious, and slow at pricing everything else. DEPTH4 maps the
+              &quot;everything else.&quot;
             </p>
 
-            <div style={{ marginTop: 12 }}>
-              <div className="d4-kicker" style={{ marginBottom: 6 }}>Navigation</div>
-              <ul className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.55, paddingLeft: 18, margin: 0 }}>
-                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Click a card</strong> to expand the Depth map.</li>
-                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Focus</strong> (click a card) pins it as the “Current macro event”.</li>
-                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Refresh</strong> reloads the feed. In idle mode (loops OFF) it also runs one ingest cycle.</li>
-              </ul>
+            <div style={{ marginTop: 14 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>Understanding the 4 Depth Levels</div>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                When a macro event occurs — a central bank decision, a geopolitical shock, a major earnings surprise, a
+                commodity spike — its effects don&apos;t stop at the most obvious stocks. They propagate outward through
+                supply chains, capital flows, industries, and policy frameworks. DEPTH4 organizes these effects into four
+                levels.
+              </p>
+
+              <div style={{ marginTop: 12 }}>
+                <div className="d4-kicker" style={{ marginBottom: 6 }}>Level 1: Direct Impact</div>
+                <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                  These are the assets most immediately and obviously affected by the news. Think of a semiconductor
+                  tariff hitting chip manufacturers directly. Level 1 moves happen within minutes to hours of the event
+                  and are typically 90–95% priced in by the time most traders react. DEPTH4 still tracks these so you
+                  have a complete picture, but the primary signal here is about timing — knowing when Level 1 is fully
+                  priced so you can shift focus deeper.
+                </p>
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <div className="d4-kicker" style={{ marginBottom: 6 }}>Level 2: Sector Ripple</div>
+                <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                  These are the industries and companies that depend on, supply, or compete with the Level 1 assets. In
+                  the semiconductor tariff example, this includes EV manufacturers reliant on chips, data center
+                  operators facing capex uncertainty, and cloud providers dealing with GPU scarcity. Level 2 effects
+                  typically take hours to one full trading day to price in, and are often only 50–60% reflected in prices
+                  on the day of the event. This is where most actionable same-day trades live.
+                </p>
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <div className="d4-kicker" style={{ marginBottom: 6 }}>Level 3: Macro Cascade</div>
+                <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                  As Level 2 reprices, it sends signals through broader capital flows, currencies, and commodities. A
+                  semiconductor tariff might strengthen the Taiwan dollar as TSMC gains market share, push manufacturing
+                  investment into Vietnam and India, and affect copper demand through new fab construction. These
+                  cross-asset and cross-geography moves take one to five days to fully price in and are frequently
+                  overlooked by traders focused on the headline sector. Level 3 is where DEPTH4 begins to show you trades
+                  that aren&apos;t crowded.
+                </p>
+              </div>
+
+              <div style={{ marginTop: 12 }}>
+                <div className="d4-kicker" style={{ marginBottom: 6 }}>Level 4: Structural Drift</div>
+                <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                  This is the longest-horizon layer — the behavioral, regulatory, and policy changes that a macro event
+                  sets in motion over weeks and months. Less than 10% of this impact is priced at the time the news
+                  breaks. These are the hardest connections to draw manually, and the most valuable to find early. DEPTH4
+                  automates this mapping so you can position ahead of the consensus.
+                </p>
+              </div>
             </div>
 
-            <div style={{ marginTop: 12 }}>
-              <div className="d4-kicker" style={{ marginBottom: 6 }}>How to read Depth 1–3</div>
-              <ul className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.55, paddingLeft: 18, margin: 0 }}>
-                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Depth 1 — Event</strong>: what just changed (the new state).</li>
-                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Depth 2 — Story</strong>: the transmission chain — how this propagates into other markets, with timing + “priced‑in”.</li>
-                <li><strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Depth 3 — Scenarios</strong>: branching futures with probabilities and “watch signals” that confirm/deny each path.</li>
+            <div style={{ marginTop: 14 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>What Does “Not Yet Priced In” Mean?</div>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                For every macro event, DEPTH4 calculates two things:
+              </p>
+              <ul className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, paddingLeft: 18, margin: "8px 0 0" }}>
+                <li>The implied move — how much a given stock or asset should move based on its exposure to the event</li>
+                <li>The actual move — what the market has already done to that price since the event</li>
               </ul>
-            </div>
-
-            <div style={{ marginTop: 12 }}>
-              <div className="d4-kicker" style={{ marginBottom: 6 }}>What “priced‑in %” means</div>
-              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-                The % badge under each suggested ticker is a model estimate of how much of <em>this headline’s tradable information</em>
-                is already reflected in that symbol’s price. It’s an illustration, not advice.
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: "8px 0 0" }}>
+                The difference between those two numbers is the unpriced opportunity. A large gap at Level 3 or Level 4
+                means the market hasn&apos;t connected the dots yet — and you have a window to act before it does.
               </p>
             </div>
 
-            <div style={{ marginTop: 12 }}>
-              <div className="d4-kicker" style={{ marginBottom: 6 }}>Idle vs Live mode (cost control)</div>
-              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-                If the API shows <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>Mode: OFF</strong>, background ingest/refinement loops are disabled.
-                DEPTH4 only spends LLM when you Refresh (or when a cron trigger runs). When Mode is ON, the server keeps ingesting wires continuously.
+            <div style={{ marginTop: 14 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>How Should I Use the Depth Levels When Trading?</div>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>A practical workflow:</p>
+              <ul className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, paddingLeft: 18, margin: "8px 0 0" }}>
+                <li>
+                  Use Level 1 to understand the full landscape of the event and identify when the obvious trade is already
+                  exhausted
+                </li>
+                <li>
+                  Use Level 2 for same-day and next-day trades in adjacent sectors that are still catching up
+                </li>
+                <li>
+                  Use Level 3 for multi-day swing trades across currencies, commodities, and cross-market plays
+                </li>
+                <li>
+                  Use Level 4 for longer-duration positions where you&apos;re positioning ahead of a structural shift that most
+                  of the market hasn&apos;t modeled yet
+                </li>
+              </ul>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: "8px 0 0" }}>
+                The deeper the level, the longer your trade window — and the less competition you face from other traders.
+              </p>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <div className="d4-kicker" style={{ marginBottom: 6 }}>Why Are Some Stocks Marked as “Unpriced”?</div>
+              <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
+                When DEPTH4 flags a stock as having significant unpriced exposure, it means the asset&apos;s price has not yet
+                moved in proportion to its calculated impact from a recent macro event. This is based on the asset&apos;s
+                dependency relationships — supply chain links, customer concentration, regulatory exposure, and capital
+                flow sensitivity — compared against actual price movement since the event. These flags are time-sensitive:
+                the window closes as the broader market catches up.
               </p>
             </div>
           </div>
