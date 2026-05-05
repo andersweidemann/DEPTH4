@@ -536,7 +536,7 @@ function BookL4({ l4, hook }: { l4: NonNullable<FeedViewModel["layer4"]>; hook: 
       )}
       {l4.outsideDepotIdeas && l4.outsideDepotIdeas.length > 0 && (
         <section>
-          <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">Model — outside depot</h4>
+          <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">Suggested plays</h4>
           <ol className="list-decimal pl-4 space-y-2 text-sm text-zinc-200">
             {l4.outsideDepotIdeas.map((x) => (
               <li key={x.ticker + x.linkedDepth}>

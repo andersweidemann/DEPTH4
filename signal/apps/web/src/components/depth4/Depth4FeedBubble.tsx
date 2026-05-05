@@ -343,7 +343,7 @@ function VerificationBlockD4({ v }: { v: FeedVerification }) {
       }}
     >
       <span style={{ fontWeight: 700, color: warn ? "var(--d4-red)" : "var(--d4-muted)" }}>
-        {v.status === "confirmed" ? "Verified (text-only) " : v.status === "unconfirmed" ? "Unconfirmed " : "Review "}
+        {v.status === "confirmed" ? "✓ Source confirmed " : v.status === "unconfirmed" ? "⚠ Timing unverified " : "Review "}
       </span>
       {v.flagForUser && <span>{v.flagForUser}</span>}
       {!v.flagForUser && v.basis && <span>{v.basis}</span>}
@@ -444,7 +444,8 @@ function getWindowStatus(level: 1 | 2 | 3 | 4, ageMin: number): WindowStatus {
 
 function FeedTags({ vm, publishedAt, overlapLabels }: { vm: FeedViewModel; publishedAt: string | null; overlapLabels: string[] }) {
   const tags: { k: "hot" | "energy" | "impact" | "base"; t: string }[] = [];
-  if (vm.verification?.status === "unconfirmed") tags.push({ k: "base", t: "⚠ Unconfirmed" });
+  if (vm.verification?.status === "unconfirmed") tags.push({ k: "base", t: "⚠ Timing unverified" });
+  if (vm.verification?.status === "confirmed") tags.push({ k: "base", t: "✓ Source confirmed" });
   if (vm.signalLevel >= 4) tags.push({ k: "hot", t: "High signal" });
   const h = (vm.headline + vm.hook).toLowerCase();
   if (h.includes("oil") || h.includes("brent") || h.includes("opec") || h.includes("crude") || h.includes("energy")) {
@@ -527,8 +528,8 @@ export function Depth4FeedBubble({
   briefError?: string | null;
   onGenerateBrief?: () => void;
   isIncoming?: boolean;
-  trigger?: { tone: "gold" | "red"; text: string } | null;
-  onDismissTrigger?: () => void;
+  trigger?: { id: string; tone: "gold" | "red"; text: string } | null;
+  onDismissTrigger?: (triggerId: string) => void;
   isBookmarked?: boolean;
   onToggleBookmark?: () => void;
   tracked?: boolean;
@@ -651,12 +652,13 @@ export function Depth4FeedBubble({
           <span style={{ color: "inherit" }}>{trigger.text}</span>
           <button
             type="button"
-            className="watch-trigger-dismiss"
+            className="trigger-dismiss"
             aria-label="Dismiss"
             title="Dismiss"
             onClick={(e) => {
               e.stopPropagation();
-              onDismissTrigger?.();
+              e.preventDefault();
+              onDismissTrigger?.(trigger.id);
             }}
           >
             ×

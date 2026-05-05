@@ -52,7 +52,7 @@ export const TIER_OFFERS = {
       "Full L1–L4 + Depth Clock",
       "Deep Brief with Stock Conviction",
       "Unlimited holdings",
-      "Priority refresh (30s) + portfolio P&L sensitivity",
+      "Priority refresh (30s) + your exposure",
       "Broker links",
       "API access (coming soon)",
     ] as const,

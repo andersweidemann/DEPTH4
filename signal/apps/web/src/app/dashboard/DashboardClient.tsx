@@ -112,7 +112,7 @@ export function DashboardClient() {
   const [briefErr, setBriefErr] = useState<Record<string, string>>({});
   const [deepBriefById, setDeepBriefById] = useState<Record<string, DeepBrief>>({});
   const [incoming, setIncoming] = useState<Record<string, number>>({});
-  const [dismissedTriggers, setDismissedTriggers] = useState<Record<string, boolean>>({});
+  const [dismissedTriggers, setDismissedTriggers] = useState<Set<string>>(() => new Set());
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [pendingStories, setPendingStories] = useState<T.NewsItem[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
@@ -131,6 +131,7 @@ export function DashboardClient() {
   } | null>(null);
   const [tickRegState, setTickRegState] = useState<"idle" | "loading" | "found" | "missing" | "error">("idle");
   const [posReg, setPosReg] = useState<Record<string, { short_name: string; display_name: string }>>({});
+  const [tickSuggestState, setTickSuggestState] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
   function isDeepBrief(x: unknown): x is DeepBrief {
     if (!x || typeof x !== "object") return false;
@@ -184,12 +185,40 @@ export function DashboardClient() {
     }
   }, [sb]);
 
+  const requestAddToRegistry = useCallback(async () => {
+    const symbol = tickerIn.trim().toUpperCase();
+    if (!symbol) return;
+    setTickSuggestState("sending");
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const payload = {
+        user_id: user.id,
+        symbol,
+        short_name: nameIn.trim() || null,
+        display_name: null,
+        asset_class: null,
+        region: null,
+        notes: "Requested from Add Holding modal",
+      };
+      const { error } = await sb.from("ticker_registry_suggestions").insert(payload as never);
+      if (error) throw error;
+      setTickSuggestState("sent");
+    } catch {
+      setTickSuggestState("error");
+    }
+  }, [sb, tickerIn, nameIn]);
+
   useEffect(() => {
     const t = window.setTimeout(() => {
       void lookupTicker(tickerIn);
     }, 240);
     return () => window.clearTimeout(t);
   }, [tickerIn, lookupTicker]);
+
+  useEffect(() => {
+    setTickSuggestState("idle");
+  }, [tickerIn]);
 
   useEffect(() => {
     const run = async () => {
@@ -272,6 +301,38 @@ export function DashboardClient() {
     sAct(first);
     sAT((treeMap as Record<string, T.Tree>)[first.id] ?? null);
   }, [showTour, expId, n, treeMap]);
+
+  type FeedFilters = {
+    minLevel: 1 | 3 | 4;
+    minEdge: 0 | 60 | 75;
+    hideUnconfirmed: boolean;
+    windowOpenOnly: boolean;
+  };
+
+  const [filters, setFilters] = useState<FeedFilters>({
+    minLevel: 1,
+    minEdge: 0,
+    hideUnconfirmed: false,
+    windowOpenOnly: false,
+  });
+
+  function ageMinutes(publishedAt: string | null): number | null {
+    if (!publishedAt) return null;
+    const d = new Date(publishedAt);
+    if (Number.isNaN(d.getTime())) return null;
+    return Math.max(0, Math.round((Date.now() - d.getTime()) / 60000));
+  }
+  type WindowStatus = "open" | "closing" | "open-long" | "closed";
+  function getWindowStatus(level: 1 | 2 | 3 | 4, ageMin: number): WindowStatus {
+    const limits: Record<1 | 2 | 3 | 4, number> = { 1: 120, 2: 720, 3: 5760, 4: Number.POSITIVE_INFINITY };
+    const closing: Record<1 | 2 | 3 | 4, number> = { 1: 60, 2: 360, 3: 2880, 4: Number.POSITIVE_INFINITY };
+    if (ageMin > limits[level]) return "closed";
+    if (ageMin > closing[level]) return "closing";
+    return level >= 3 ? "open-long" : "open";
+  }
+
+  const filtersActive =
+    filters.minLevel !== 1 || filters.minEdge !== 0 || filters.hideUnconfirmed || filters.windowOpenOnly;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -965,6 +1026,21 @@ export function DashboardClient() {
                   <div style={{ marginTop: 3, color: "var(--d4-muted)", lineHeight: 1.35 }}>
                     ⚠ We&apos;ll track this by symbol only — news matching may be limited.
                   </div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8, flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="d4-btn d4-btn-ghost"
+                      style={{ padding: "6px 10px", fontSize: 11 }}
+                      onClick={() => void requestAddToRegistry()}
+                      disabled={tickSuggestState === "sending" || tickSuggestState === "sent"}
+                      title="Request this symbol be added to the curated registry"
+                    >
+                      {tickSuggestState === "sent" ? "✓ Requested" : tickSuggestState === "sending" ? "Requesting…" : "Request add to registry"}
+                    </button>
+                    {tickSuggestState === "error" && (
+                      <span style={{ color: "var(--d4-muted)" }}>Request failed. Try again later.</span>
+                    )}
+                  </div>
                 </div>
               )}
               {tickRegState === "error" && (
@@ -1088,7 +1164,7 @@ export function DashboardClient() {
                       "✓ Feed refreshes every 60s",
                       "✗ L4 + Depth Clock",
                       "✗ Stock Conviction",
-                      "✗ Portfolio P&L sensitivity",
+                      "✗ Your Exposure",
                     ],
                     cta: plan === "analyst" ? "Current plan" : "Upgrade to Analyst",
                     badge: "Most popular",
@@ -1104,7 +1180,7 @@ export function DashboardClient() {
                       "✓ Deep Brief with Stock Conviction",
                       "✓ Unlimited holdings",
                       "✓ Priority refresh (30s)",
-                      "✓ Portfolio P&L sensitivity",
+                      "✓ Your Exposure",
                       "✓ Broker links",
                       "✓ API access (coming soon)",
                     ],
@@ -1490,10 +1566,18 @@ export function DashboardClient() {
               {p.length === 0 && <p className="d4-bubble-meta" style={{ fontSize: 12 }}>No positions. Add a holding to personalize L4.</p>}
             </div>
           </div>
-          <div className="d4-kicker">Edge scores (illus.)</div>
+          <div className="d4-kicker">
+            Edge scores{" "}
+            <span
+              className="d4-info"
+              title="How much of this story's market impact is still unpriced. Higher = bigger opportunity window."
+            >
+              ⓘ
+            </span>
+          </div>
           <div className="d4-sidecard" id="edgeList" style={{ paddingBottom: 6 }}>
             <p className="d4-bubble-meta" style={{ fontSize: 10, lineHeight: 1.5, marginBottom: 6 }}>
-              Brighter = more to watch for the active story.
+              Higher score = more unpriced opportunity.
             </p>
             {relevantTickersForEdge.length === 0 && <p className="d4-bubble-meta" style={{ fontSize: 12 }}>—</p>}
             {relevantTickersForEdge.map((t) => {
@@ -1545,33 +1629,40 @@ export function DashboardClient() {
               )}
 
               {active && activeVm?.layer4 && (
-                <div className="action-strip" role="status" aria-live="polite">
-                  <span className="action-strip-label">NOW</span>
-                  <div className="action-strip-line">
-                    {(() => {
-                      const recs = buildDepthClockData(activeVm, active.signal_level).recs.slice(0, 6);
-                      return recs.map((r, i) => (
-                      <span key={`${r.tick}-${i}`} className={r.act === "buy" ? "as-buy" : r.act === "avoid" ? "as-avoid" : "as-watch"}>
-                        {r.tick} {r.act.toUpperCase()}
-                        {typeof r.edge === "number" ? ` ${Math.round(r.edge)}` : ""}
-                        {i < recs.length - 1 ? " · " : ""}
-                      </span>
-                      ));
-                    })()}
-                    <button
-                      type="button"
-                      className="action-strip-link"
-                      onClick={() => {
-                        if (!active?.id) return;
-                        sExp(active.id);
-                        feedFocusEventIdRef.current = active.id;
-                      }}
-                      title="Open active story"
-                    >
-                      — based on {active.headline.slice(0, 60)}{active.headline.length > 60 ? "…" : ""}
-                    </button>
-                  </div>
-                </div>
+                (() => {
+                  const recsAll = buildDepthClockData(activeVm, active.signal_level).recs;
+                  const showActionStrip = active.signal_level >= 3 && recsAll.some((s) => (s.edge ?? 0) >= 60);
+                  if (!showActionStrip) return null;
+                  const recs = recsAll.filter((s) => (s.edge ?? 0) >= 60).slice(0, 6);
+                  const h = active.headline || "";
+                  const hShort = h.slice(0, 35) + (h.length > 35 ? "…" : "");
+                  return (
+                    <div className="action-strip" role="status" aria-live="polite">
+                      <span className="action-strip-label">NOW</span>
+                      <div className="action-strip-line">
+                        {recs.map((r, i) => (
+                          <span key={`${r.tick}-${i}`} className={r.act === "buy" ? "as-buy" : r.act === "avoid" ? "as-avoid" : "as-watch"}>
+                            {r.tick} {r.act.toUpperCase()}
+                            {typeof r.edge === "number" ? ` ${Math.round(r.edge)}` : ""}
+                            {i < recs.length - 1 ? " · " : ""}
+                          </span>
+                        ))}
+                        <button
+                          type="button"
+                          className="action-strip-link"
+                          onClick={() => {
+                            if (!active?.id) return;
+                            sExp(active.id);
+                            feedFocusEventIdRef.current = active.id;
+                          }}
+                          title="Open active story"
+                        >
+                          — based on {hShort}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })()
               )}
 
               <div className="d4-feed-h">
@@ -1602,6 +1693,75 @@ export function DashboardClient() {
                   </button>
                 </div>
               </div>
+
+              <div className="filter-bar">
+                <select
+                  className={cn("filter-pill", filters.minLevel !== 1 && "active")}
+                  value={filters.minLevel}
+                  onChange={(e) => setFilters((cur) => ({ ...cur, minLevel: Number(e.target.value) as 1 | 3 | 4 }))}
+                  aria-label="Min level"
+                >
+                  <option value={1}>All levels</option>
+                  <option value={3}>L3 and above</option>
+                  <option value={4}>L4 only</option>
+                </select>
+                <select
+                  className={cn("filter-pill", filters.minEdge !== 0 && "active")}
+                  value={filters.minEdge}
+                  onChange={(e) => setFilters((cur) => ({ ...cur, minEdge: Number(e.target.value) as 0 | 60 | 75 }))}
+                  aria-label="Min edge"
+                >
+                  <option value={0}>Any edge</option>
+                  <option value={60}>Edge 60+</option>
+                  <option value={75}>Edge 75+</option>
+                </select>
+                <button
+                  type="button"
+                  className={cn("filter-pill", filters.hideUnconfirmed && "active")}
+                  onClick={() => setFilters((cur) => ({ ...cur, hideUnconfirmed: !cur.hideUnconfirmed }))}
+                >
+                  Confirmed only {filters.hideUnconfirmed ? "●" : "○"}
+                </button>
+                <button
+                  type="button"
+                  className={cn("filter-pill", filters.windowOpenOnly && "active")}
+                  onClick={() => setFilters((cur) => ({ ...cur, windowOpenOnly: !cur.windowOpenOnly }))}
+                >
+                  Window open {filters.windowOpenOnly ? "●" : "○"}
+                </button>
+              </div>
+              {filtersActive && (
+                <div className="d4-bubble-meta" style={{ fontSize: 11, marginTop: -6, marginBottom: 10 }}>
+                  Showing{" "}
+                  {
+                    liveStories.filter((e) => {
+                      const levelOk = e.signal_level >= filters.minLevel;
+                      if (!levelOk) return false;
+                      const vm = mapToFeedViewModel(e, (treeMap as Record<string, T.Tree>)[e.id] ?? null, p, od, pr);
+                      const maxEdge = Math.max(0, ...buildDepthClockData(vm, e.signal_level).recs.map((r) => r.edge ?? 0));
+                      if (maxEdge < filters.minEdge) return false;
+                      const verified = vm.verification?.status === "confirmed";
+                      if (filters.hideUnconfirmed && !verified) return false;
+                      const am = ageMinutes(e.published_at);
+                      const ws = am == null ? null : getWindowStatus(e.signal_level as 1 | 2 | 3 | 4, am);
+                      const windowOpen = ws === "open-long";
+                      if (filters.windowOpenOnly && !windowOpen) return false;
+                      return true;
+                    }).length
+                  }{" "}
+                  of {liveStories.length} stories{" "}
+                  <button
+                    type="button"
+                    className="d4-btn"
+                    style={{ textDecoration: "underline", padding: 0, fontSize: 11 }}
+                    onClick={() =>
+                      setFilters({ minLevel: 1, minEdge: 0, hideUnconfirmed: false, windowOpenOnly: false })
+                    }
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              )}
               {(premErr || premJson) && (
                 <div className="d4-sidecard" style={{ marginBottom: 10 }}>
                   {premErr && (
@@ -1679,7 +1839,21 @@ export function DashboardClient() {
               )}
 
               <div className="d4-news-grid" style={{ paddingBottom: 8 }}>
-                {liveStories.map((e) => {
+                {liveStories
+                  .filter((e) => {
+                    if (e.signal_level < filters.minLevel) return false;
+                    const vm = mapToFeedViewModel(e, (treeMap as Record<string, T.Tree>)[e.id] ?? null, p, od, pr);
+                    const maxEdge = Math.max(0, ...buildDepthClockData(vm, e.signal_level).recs.map((r) => r.edge ?? 0));
+                    if (maxEdge < filters.minEdge) return false;
+                    const verified = vm.verification?.status === "confirmed";
+                    if (filters.hideUnconfirmed && !verified) return false;
+                    const am = ageMinutes(e.published_at);
+                    const ws = am == null ? null : getWindowStatus(e.signal_level as 1 | 2 | 3 | 4, am);
+                    const windowOpen = ws === "open-long";
+                    if (filters.windowOpenOnly && !windowOpen) return false;
+                    return true;
+                  })
+                  .map((e) => {
                   const incAt = incoming[e.id];
                   const isIncoming = typeof incAt === "number" && Date.now() - incAt < 30_000;
                   const vmForTrig = mapToFeedViewModel(
@@ -1691,14 +1865,22 @@ export function DashboardClient() {
                   );
                   const trRow = (treeMap as Record<string, T.Tree>)[e.id];
                   const trig =
-                    dismissedTriggers[e.id]
+                    dismissedTriggers.has(`${e.id}:${String(trRow?.watch_signals?.[0] || "")}`)
                       ? null
                       : trRow?.watch_signals?.[0]
-                        ? { tone: "gold" as const, text: String(trRow.watch_signals[0]) }
+                        ? { id: `${e.id}:${String(trRow.watch_signals[0])}`, tone: "gold" as const, text: String(trRow.watch_signals[0]) }
                         : vmForTrig.layer3.watchList.find((w) => w.kind === "activateC")
-                          ? { tone: "red" as const, text: String(vmForTrig.layer3.watchList.find((w) => w.kind === "activateC")!.line).replace(/^\*\*|\*\*$/g, "") }
+                          ? {
+                            id: `${e.id}:activateC`,
+                            tone: "red" as const,
+                            text: String(vmForTrig.layer3.watchList.find((w) => w.kind === "activateC")!.line).replace(/^\*\*|\*\*$/g, ""),
+                          }
                           : vmForTrig.layer3.watchList.find((w) => w.kind === "confirmA")
-                            ? { tone: "gold" as const, text: String(vmForTrig.layer3.watchList.find((w) => w.kind === "confirmA")!.line).replace(/^\*\*|\*\*$/g, "") }
+                            ? {
+                              id: `${e.id}:confirmA`,
+                              tone: "gold" as const,
+                              text: String(vmForTrig.layer3.watchList.find((w) => w.kind === "confirmA")!.line).replace(/^\*\*|\*\*$/g, ""),
+                            }
                             : null;
                   const userOverlap = (e.affected_tickers || []).filter(
                     (t) => p.some((q) => normT(q.ticker) === normT(t)),
@@ -1722,7 +1904,13 @@ export function DashboardClient() {
                       onGenerateBrief={() => void handleGenerateBrief(e.id)}
                       isIncoming={isIncoming}
                       trigger={trig}
-                      onDismissTrigger={() => setDismissedTriggers((cur) => ({ ...cur, [e.id]: true }))}
+                      onDismissTrigger={(triggerId) =>
+                        setDismissedTriggers((prev) => {
+                          const next = new Set(prev);
+                          next.add(triggerId);
+                          return next;
+                        })
+                      }
                       expanded={expId === e.id}
                       onToggle={() => sExp((cur) => (cur === e.id ? null : e.id))}
                       onFocus={() => {

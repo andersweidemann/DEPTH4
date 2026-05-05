@@ -116,14 +116,25 @@ export function Depth4L4Panel({
 
         {l4 && l4.outsideDepotIdeas && l4.outsideDepotIdeas.length > 0 && (
           <div style={{ marginTop: 14 }}>
-            <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)", marginBottom: 6 }}>Outside depot (model)</div>
+            <div className="d4-dm-kicker" style={{ color: "var(--d4-faint)", marginBottom: 6 }}>
+              Suggested plays{" "}
+              <span
+                className="d4-info"
+                title="Instruments DEPTH4's model flags as relevant to this story — outside your current holdings."
+              >
+                ⓘ
+              </span>
+            </div>
             <ol style={{ margin: "6px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--d4-text)" }}>
               {l4.outsideDepotIdeas.map((x) => (
                 <li key={x.ticker + x.linkedDepth} style={{ margin: "6px 0" }}>
-                  <strong style={{ color: "var(--d4-gold)" }}>{x.ticker}</strong>{" "}
-                  <span style={{ color: "var(--d4-muted)" }}>({x.side}) · Depth {x.linkedDepth}</span>
-                  <div style={{ marginTop: 4, color: "var(--d4-text)" }}>{x.rationale}</div>
-                  <div style={{ marginTop: 2, fontSize: 11, color: "var(--d4-muted)" }}>{x.whyOutsideBook}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <strong style={{ color: "var(--d4-gold)" }}>{x.ticker}</strong>
+                    <span className="d4-btag" style={{ fontSize: 9, padding: "1px 6px" }}>{String(x.side || "").toUpperCase()}</span>
+                    <span className="d4-btag" style={{ fontSize: 9, padding: "1px 6px" }}>D{x.linkedDepth}</span>
+                  </div>
+                  <div className="suggested-play-desc" style={{ marginTop: 4 }}>{x.rationale}</div>
+                  <div className="suggested-play-desc" style={{ marginTop: 2 }}>{x.whyOutsideBook}</div>
                 </li>
               ))}
             </ol>
@@ -146,7 +157,15 @@ export function Depth4L4Panel({
       </div>
 
       <div className="d4-rp-sec">
-        <div className="d4-rp-kicker">Watch signals (tree)</div>
+        <div className="d4-rp-kicker">
+          Watch conditions{" "}
+          <span
+            className="d4-info"
+            title="Specific signals to monitor that confirm or deny each scenario. These fire alerts when triggered."
+          >
+            ⓘ
+          </span>
+        </div>
         {aTree?.watch_signals && Array.isArray(aTree.watch_signals) && aTree.watch_signals.length > 0 ? (
           <div>
             {aTree.watch_signals.map((w) => (
@@ -157,7 +176,7 @@ export function Depth4L4Panel({
             ))}
           </div>
         ) : (
-          <p className="d4-bubble-meta" style={{ fontSize: 12 }}>No watch signals for this run.</p>
+          <p className="d4-bubble-meta" style={{ fontSize: 12 }}>No watch conditions for this run.</p>
         )}
       </div>
 
