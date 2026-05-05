@@ -14,12 +14,15 @@ import { Depth4FeedBubble } from "@/components/depth4/Depth4FeedBubble";
 import { Depth4L4Panel } from "@/components/depth4/Depth4L4Panel";
 import { edgeScoreForPosition } from "@/lib/depth4View";
 import { Sheet } from "@/components/ui/sheet";
+import { OnboardingScreen } from "@/components/OnboardingScreen";
+import { SigBadge } from "@/components/ui/badge";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 const FEED_POLL_MS = 60_000;
 const DISMISSED_L4_KEY = "depth4_dismissed_l4_ids";
 /** After a successful idle-mode ingest, skip re-running until next browser session. */
 const IDLE_INGEST_BOOTSTRAP_KEY = "depth4_idle_ingest_bootstrap_ok";
+const ONBOARDING_SESSION_KEY = "depth4_onboarding_seen";
 let idleIngestBootstrapPromise: Promise<void> | null = null;
 
 type HealthzMeta = { background_llm_loops?: boolean };
@@ -101,12 +104,23 @@ export function DashboardClient() {
   const [bgLoops, sBgLoops] = useState<boolean | null>(null);
   const [helpOpen, sHelpOpen] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [showOnb, sShowOnb] = useState(false);
+  const [incoming, setIncoming] = useState<Record<string, number>>({});
+  const [dismissedTriggers, setDismissedTriggers] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const j = sessionStorage.getItem(DISMISSED_L4_KEY);
       if (j) acknowledgedL4Ref.current = new Set(JSON.parse(j) as string[]);
+    } catch { /* */ }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const seen = sessionStorage.getItem(ONBOARDING_SESSION_KEY) === "1";
+      if (!seen) sShowOnb(true);
     } catch { /* */ }
   }, []);
 
@@ -184,7 +198,19 @@ export function DashboardClient() {
             .filter(Boolean) as string[],
         );
         m = m.filter((e) => !hidden.has(e.id));
-        setN(m);
+        // Track newly-prepended stories for animation + NEW badge (30s).
+        setN((prev) => {
+          const prevIds = new Set(prev.map((x) => x.id));
+          const now = Date.now();
+          const inc: Record<string, number> = {};
+          for (const e of m) {
+            if (!prevIds.has(e.id)) inc[e.id] = now;
+          }
+          if (Object.keys(inc).length) {
+            setIncoming((cur) => ({ ...cur, ...inc }));
+          }
+          return m;
+        });
         const f = m[0] || null;
         const prefer = feedFocusEventIdRef.current ? m.find((e) => e.id === feedFocusEventIdRef.current) || f : f;
         if (prefer) {
@@ -338,7 +364,7 @@ export function DashboardClient() {
 
   const MacroStatusBar = useCallback(() => {
     const e = active;
-    const vm = activeVm;
+    const vm = e ? mapToFeedViewModel(e, aTree, p, od, pr) : null;
     if (!e || !vm) {
       return (
         <div
@@ -507,6 +533,23 @@ export function DashboardClient() {
     [active],
   );
 
+  const relevantTickersForEdge = useMemo(() => {
+    const out: string[] = [];
+    const add = (t: string) => {
+      const n = normT(t);
+      if (n && !out.includes(n)) out.push(n);
+    };
+    for (const t of active?.affected_tickers || []) add(String(t));
+    for (const sc of activeVm?.layer3?.scenarios || []) {
+      for (const t of sc.winners || []) add(String(t));
+      for (const t of sc.losers || []) add(String(t));
+    }
+    for (const ply of activeVm?.layer2?.transmissionPlies || []) {
+      for (const s of ply.stockIdeas || []) add(String(s.ticker));
+    }
+    return out.slice(0, 10);
+  }, [active?.affected_tickers, activeVm]);
+
   const saveHolding = useCallback(async () => {
     sAddErr(null);
     const tick = tickerIn.trim().toUpperCase();
@@ -553,6 +596,14 @@ export function DashboardClient() {
 
   return (
     <>
+      {showOnb && (
+        <OnboardingScreen
+          onDone={() => {
+            try { sessionStorage.setItem(ONBOARDING_SESSION_KEY, "1"); } catch { /* */ }
+            sShowOnb(false);
+          }}
+        />
+      )}
       {l4 && l4OverlayVm && (
         <div className="d4-backdrop d4-backdrop--open" style={{ zIndex: 200 }} role="alertdialog" aria-modal="true">
           <div className="d4-l4-prompt" style={{ textAlign: "left" }} role="document">
@@ -978,23 +1029,24 @@ export function DashboardClient() {
             <p className="d4-bubble-meta" style={{ fontSize: 10, lineHeight: 1.5, marginBottom: 6 }}>
               Brighter = more to watch for the active story.
             </p>
-            {p.length === 0 && <p className="d4-bubble-meta" style={{ fontSize: 12 }}>—</p>}
-            {p.map((x) => {
-              const st = affForEdge.has(normT(x.ticker));
-              const sc = edgeScoreForPosition(
-                x.ticker,
-                st ? posTickers : new Set(),
-                active?.signal_level ?? 1,
-                st,
-              );
+            {relevantTickersForEdge.length === 0 && <p className="d4-bubble-meta" style={{ fontSize: 12 }}>—</p>}
+            {relevantTickersForEdge.map((t) => {
+              const holding = p.find((x) => normT(x.ticker) === normT(t));
+              const st = affForEdge.has(normT(t));
+              const sc = edgeScoreForPosition(t, posTickers, active?.signal_level ?? 1, st);
               const bar = 0.1 + (sc / 100) * 0.9;
               const l = 36 + (sc / 100) * 20;
               const c = `hsla(38,80%,${l + 8}%,${bar})`;
               const b = `hsl(38,${38 + sc * 0.55}%,${l}%)`;
               const g = sc > 65 ? `0 0 5px hsla(38,90%,55%,${(sc - 65) / 120})` : "none";
               return (
-                <div className="d4-edge-row" key={x.id}>
-                  <div className="d4-etick" style={{ color: c, textShadow: g }}>{x.ticker}</div>
+                <div className="d4-edge-row" key={t}>
+                  <div>
+                    <div className="d4-etick" style={{ color: c, textShadow: g }}>{t}</div>
+                    {holding?.company_name && (
+                      <div className="d4-nm" style={{ marginTop: 1 }}>{holding.company_name}</div>
+                    )}
+                  </div>
                   <div className="d4-ebar-wrap" aria-hidden>
                     <div
                       className="d4-ebar-fill"
@@ -1058,6 +1110,26 @@ export function DashboardClient() {
               )}
               <div className="d4-news-grid" style={{ paddingBottom: 8 }}>
                 {n.map((e) => {
+                  const incAt = incoming[e.id];
+                  const isIncoming = typeof incAt === "number" && Date.now() - incAt < 30_000;
+                  const vmForTrig = mapToFeedViewModel(
+                    e,
+                    (treeMap as Record<string, T.Tree>)[e.id] ?? null,
+                    p,
+                    od,
+                    pr,
+                  );
+                  const trRow = (treeMap as Record<string, T.Tree>)[e.id];
+                  const trig =
+                    dismissedTriggers[e.id]
+                      ? null
+                      : trRow?.watch_signals?.[0]
+                        ? { tone: "gold" as const, text: String(trRow.watch_signals[0]) }
+                        : vmForTrig.layer3.watchList.find((w) => w.kind === "activateC")
+                          ? { tone: "red" as const, text: String(vmForTrig.layer3.watchList.find((w) => w.kind === "activateC")!.line).replace(/^\*\*|\*\*$/g, "") }
+                          : vmForTrig.layer3.watchList.find((w) => w.kind === "confirmA")
+                            ? { tone: "gold" as const, text: String(vmForTrig.layer3.watchList.find((w) => w.kind === "confirmA")!.line).replace(/^\*\*|\*\*$/g, "") }
+                            : null;
                   const userOverlap = (e.affected_tickers || []).filter(
                     (t) => p.some((q) => normT(q.ticker) === normT(t)),
                   );
@@ -1065,13 +1137,7 @@ export function DashboardClient() {
                     <Depth4FeedBubble
                       key={e.id}
                       news={e}
-                      model={mapToFeedViewModel(
-                        e,
-                        (treeMap as Record<string, T.Tree>)[e.id] ?? null,
-                        p,
-                        od,
-                        pr,
-                      )}
+                      model={vmForTrig}
                       proUnlocked={isProOrAbove(tier)}
                       publishedAt={e.published_at}
                       overlapLabelTickers={userOverlap as string[]}
@@ -1079,6 +1145,9 @@ export function DashboardClient() {
                       onUpgrade={() => r.replace("/pricing")}
                       isGeneratingBrief={generatingId === e.id}
                       onGenerateBrief={() => void handleGenerateBrief(e.id)}
+                      isIncoming={isIncoming}
+                      trigger={trig}
+                      onDismissTrigger={() => setDismissedTriggers((cur) => ({ ...cur, [e.id]: true }))}
                       expanded={expId === e.id}
                       onToggle={() => sExp((cur) => (cur === e.id ? null : e.id))}
                       onFocus={() => {

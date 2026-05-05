@@ -54,7 +54,7 @@ export function layer1FromView(vm: FeedViewModel): L1FromFeed {
     const mech = String(p0.mechanism || "").trim();
     const to = String(p0.to_state || "").trim();
     const lead = String(p0.lead_indicator || "").trim();
-    const trig = String(p0.buy_trigger || "").trim();
+    const trig = String((p0 as { buyTrigger?: unknown }).buyTrigger || "").trim();
     const event = from || vm.headline;
     const why = mech || vm.layer2.chain[0]?.text?.trim() || vm.layer2.anchorHeadline || "—";
     const nextParts = [to, lead, trig].filter(Boolean);

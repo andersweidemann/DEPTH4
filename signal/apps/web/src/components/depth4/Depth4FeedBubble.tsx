@@ -83,6 +83,7 @@ function edgeStyle(score: number) {
 }
 
 function DepthClock({ urgency, horizon, recs }: { urgency: number; horizon: string; recs: { tick: string; act: string; edge: number; thesis: string }[] }) {
+  const [openTick, setOpenTick] = useState<string | null>(null);
   const r = 56;
   const cx = 70;
   const cy = 70;
@@ -128,6 +129,54 @@ function DepthClock({ urgency, horizon, recs }: { urgency: number; horizon: stri
               <span className={cn("d4-dc-act", actc)}>{rec.act.toUpperCase()}</span>
               <div className="d4-dc-thesis">{rec.thesis}</div>
               <div className="d4-dc-edge" style={{ color: s.col }}>{rec.edge}</div>
+              {/** Paid-only: in this app `recs` are only shown for paid users already. */}
+              <div style={{ marginTop: 8, position: "relative" }}>
+                <button
+                  type="button"
+                  className="d4-btn d4-btn-ghost"
+                  style={{ fontSize: 11, padding: "5px 10px", borderColor: "var(--d4-border)" }}
+                  onClick={() => setOpenTick((cur) => (cur === rec.tick ? null : rec.tick))}
+                >
+                  Execute →
+                </button>
+                {openTick === rec.tick && (
+                  <div
+                    className="d4-dm-block"
+                    style={{
+                      position: "absolute",
+                      top: 34,
+                      left: 0,
+                      right: 0,
+                      zIndex: 5,
+                      background: "var(--d4-s3)",
+                      border: "1px solid var(--d4-border)",
+                      padding: 10,
+                    }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {[
+                        ["Avanza", "https://www.avanza.se"],
+                        ["Nordnet", "https://www.nordnet.se"],
+                        ["IBKR", "https://www.interactivebrokers.com"],
+                      ].map(([name, url]) => (
+                        <a
+                          key={name}
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="d4-btn d4-btn-ghost"
+                          style={{ justifyContent: "center" }}
+                        >
+                          {name}
+                        </a>
+                      ))}
+                    </div>
+                    <p className="d4-bubble-meta" style={{ fontSize: 11, margin: "8px 0 0", color: "var(--d4-muted)" }}>
+                      DEPTH4 does not execute trades. Links open your broker&apos;s platform.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
@@ -431,6 +480,9 @@ export function Depth4FeedBubble({
   onUpgrade,
   isGeneratingBrief,
   onGenerateBrief,
+  isIncoming,
+  trigger,
+  onDismissTrigger,
 }: {
   news: NewsItem;
   model: FeedViewModel;
@@ -445,6 +497,9 @@ export function Depth4FeedBubble({
   onUpgrade: () => void;
   isGeneratingBrief?: boolean;
   onGenerateBrief?: () => void;
+  isIncoming?: boolean;
+  trigger?: { tone: "gold" | "red"; text: string } | null;
+  onDismissTrigger?: () => void;
 }) {
   const [tab, setTab] = useState<TabK>("l1");
   const l1 = layer1FromView(model);
@@ -455,6 +510,7 @@ export function Depth4FeedBubble({
   const am = ageMinutes(publishedAt);
   const ws = am == null ? null : getWindowStatus(sl, am);
   const closed = ws === "closed";
+  const trigTone = trigger?.tone;
 
   const onOpen = useCallback(() => {
     onFocus();
@@ -463,7 +519,7 @@ export function Depth4FeedBubble({
 
   return (
     <div
-      className={cn("d4-bubble", expanded && "d4-bubble--active")}
+      className={cn("d4-bubble", expanded && "d4-bubble--active", isIncoming && "incoming")}
       style={{
         ...(sl >= 4
           ? { boxShadow: "0 0 0 1px rgba(194, 82, 82, 0.35)" }
@@ -471,6 +527,8 @@ export function Depth4FeedBubble({
             ? { boxShadow: "0 0 0 1px rgba(226, 164, 58, 0.3)" }
             : {}),
         ...(closed ? { opacity: 0.6 } : {}),
+        ...(trigTone === "gold" ? { borderColor: "var(--d4-goldring)" } : {}),
+        ...(trigTone === "red" ? { borderColor: "rgba(194,82,82,.35)" } : {}),
       }}
     >
       <div
@@ -489,6 +547,7 @@ export function Depth4FeedBubble({
         <span className={cn("d4-bubble-src", sourcePillClass(news.source))}>
           {news.source || "Wire"}
         </span>
+        {isIncoming && <span className="d4-new-badge">NEW</span>}
         <div className="d4-bubble-content" style={{ minWidth: 0 }}>
           <div className="d4-bubble-title" style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
             {model.headline}
@@ -526,6 +585,29 @@ export function Depth4FeedBubble({
         <span className="d4-caret-hint" aria-hidden>▼</span>
       </div>
       <FeedTags vm={model} publishedAt={publishedAt} overlapLabels={overlapLabelTickers} />
+
+      {trigger?.text && (
+        <div className={cn("watch-trigger-bar", trigger.tone)}>
+          <span
+            className="trigger-dot"
+            aria-hidden
+            style={{ background: trigger.tone === "red" ? "var(--d4-red)" : "var(--d4-gold)" }}
+          />
+          <span style={{ color: "inherit" }}>{trigger.text}</span>
+          <button
+            type="button"
+            className="watch-trigger-dismiss"
+            aria-label="Dismiss"
+            title="Dismiss"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDismissTrigger?.();
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div className="d4-depth-map" id={`dm-${model.id}`}>
         <div className="d4-dm-tabs" role="tablist">
