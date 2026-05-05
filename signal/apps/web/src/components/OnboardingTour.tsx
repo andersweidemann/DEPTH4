@@ -9,14 +9,19 @@ type TourStep = {
   cta?: { label: string; action: () => void };
 };
 
-let tourCompleted = false;
-
-export function OnboardingTour({ onOpenAddHolding }: { onOpenAddHolding: () => void }) {
-  const [visible, setVisible] = useState(false);
-  const [ready, setReady] = useState(false);
+export function OnboardingTour({
+  onOpenAddHolding,
+  onComplete,
+  onSkip,
+}: {
+  onOpenAddHolding: () => void;
+  onComplete: () => void;
+  onSkip: () => void;
+}) {
   const [idx, setIdx] = useState(0);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [tipPos, setTipPos] = useState<{ left: number; top: number }>({ left: 12, top: 12 });
+  const [hasTarget, setHasTarget] = useState(false);
 
   const steps: TourStep[] = useMemo(
     () => [
@@ -46,42 +51,29 @@ export function OnboardingTour({ onOpenAddHolding }: { onOpenAddHolding: () => v
   );
 
   useEffect(() => {
-    if (tourCompleted) return;
-    // Only start once all dashboard targets exist, then delay for paint.
     let alive = true;
-    let tries = 0;
     const tick = () => {
-      tries += 1;
-      const feedEl = document.querySelector(".main");
-      const tabsEl = document.querySelector(".dm-tabs");
-      const edgeEl = document.querySelector("#edgeList");
-      const addBtn = document.querySelector("#openModalSide");
-      if (feedEl && tabsEl && edgeEl && addBtn) {
-        window.setTimeout(() => {
-          if (!alive) return;
-          setReady(true);
-          setVisible(true);
-        }, 800);
-        return;
-      }
-      // Stop after ~6s to avoid endless polling.
-      if (tries < 60) window.setTimeout(tick, 100);
+      const el = document.querySelector(steps[idx].targetSelector);
+      if (!alive) return;
+      setHasTarget(Boolean(el));
+      if (!el) window.setTimeout(tick, 80);
     };
     tick();
     return () => {
       alive = false;
     };
-  }, []);
+  }, [idx, steps]);
 
   useEffect(() => {
-    if (!visible || !ready) return;
     const step = steps[idx];
     const measure = () => {
       const el = document.querySelector(step.targetSelector) as HTMLElement | null;
       if (!el) {
         setRect(null);
+        setHasTarget(false);
         return;
       }
+      setHasTarget(true);
       const r = el.getBoundingClientRect();
       setRect(r);
 
@@ -116,15 +108,9 @@ export function OnboardingTour({ onOpenAddHolding }: { onOpenAddHolding: () => v
       window.removeEventListener("resize", measure);
       window.removeEventListener("scroll", measure, true);
     };
-  }, [visible, ready, idx, steps]);
+  }, [idx, steps]);
 
-  const completeTour = () => {
-    tourCompleted = true;
-    setVisible(false);
-  };
-
-  if (tourCompleted) return null;
-  if (!ready || !visible) return null;
+  if (!hasTarget) return null;
 
   const step = steps[idx];
   const pad = 8;
@@ -157,7 +143,7 @@ export function OnboardingTour({ onOpenAddHolding }: { onOpenAddHolding: () => v
         <div className="d4-tour-title">{step.title}</div>
         <div className="d4-tour-body">{step.body}</div>
         <div className="d4-tour-actions">
-          <button type="button" className="d4-tour-skip" onClick={completeTour}>
+          <button type="button" className="d4-tour-skip" onClick={onSkip}>
             Skip tour
           </button>
           <span style={{ flex: 1 }} />
@@ -167,7 +153,7 @@ export function OnboardingTour({ onOpenAddHolding }: { onOpenAddHolding: () => v
               className="d4-tour-cta"
               onClick={() => {
                 step.cta?.action();
-                completeTour();
+                onComplete();
               }}
             >
               {step.cta.label}
@@ -178,7 +164,7 @@ export function OnboardingTour({ onOpenAddHolding }: { onOpenAddHolding: () => v
               type="button"
               className="d4-tour-next"
               onClick={() => {
-                if (idx >= steps.length - 1) completeTour();
+                if (idx >= steps.length - 1) onComplete();
                 else setIdx((v) => v + 1);
               }}
             >

@@ -28,6 +28,8 @@ const IDLE_INGEST_BOOTSTRAP_KEY = "depth4_idle_ingest_bootstrap_ok";
 let idleIngestBootstrapPromise: Promise<void> | null = null;
 
 type HealthzMeta = { background_llm_loops?: boolean };
+// Session-scoped: show onboarding tour once per refresh.
+let tourShown = false;
 
 /** When API has background loops off, run one ingest-session on first dashboard load (deduped). */
 async function tryIdleIngestBootstrap(
@@ -114,6 +116,7 @@ export function DashboardClient() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [pendingStories, setPendingStories] = useState<T.NewsItem[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
+  const [showTour, setShowTour] = useState(false);
 
   function isDeepBrief(x: unknown): x is DeepBrief {
     if (!x || typeof x !== "object") return false;
@@ -166,6 +169,25 @@ export function DashboardClient() {
   useEffect(() => {
     expIdRef.current = expId;
   }, [expId]);
+
+  useEffect(() => {
+    if (tourShown) return;
+    tourShown = true;
+    const t = window.setTimeout(() => setShowTour(true), 1000);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    if (!showTour) return;
+    if (expId) return;
+    const first = n[0];
+    if (!first) return;
+    // Ensure depth tabs (.dm-tabs) exist for step 2.
+    sExp(first.id);
+    feedFocusEventIdRef.current = first.id;
+    sAct(first);
+    sAT((treeMap as Record<string, T.Tree>)[first.id] ?? null);
+  }, [showTour, expId, n, treeMap]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1365,9 +1387,13 @@ export function DashboardClient() {
         <div className={cn("d4-main", "main", expId ? "has-focus" : "")}>
           {(!sp.get("tab") || sp.get("tab") === "feed") && (
             <>
-              <OnboardingTour
-                onOpenAddHolding={() => sAdd(true)}
-              />
+              {showTour && (
+                <OnboardingTour
+                  onOpenAddHolding={() => sAdd(true)}
+                  onComplete={() => setShowTour(false)}
+                  onSkip={() => setShowTour(false)}
+                />
+              )}
 
               {active && activeVm?.layer4 && (
                 <div className="action-strip" role="status" aria-live="polite">
