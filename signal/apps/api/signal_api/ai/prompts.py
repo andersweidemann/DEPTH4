@@ -157,6 +157,7 @@ def personalize_user_prompt(
 
 Event headline: {headline}
 User portfolio JSON: {portfolio}
+If a portfolio position contains "ticker_registry", treat it as trusted context for what the instrument is (themes, notes, keywords).
 User open orders JSON: {orders}
 
 Return JSON only: {{"portfolio_impact": {{"summary": "...", "affected_positions": ["TICK"], "estimated_impact_sek": "optional"}}, "order_recommendations": [{{"ticker": "T", "action": "hold|move|cancel", "reason": "one sentence"}}]}}"""

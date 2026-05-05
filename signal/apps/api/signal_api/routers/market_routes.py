@@ -10,6 +10,7 @@ from signal_api.ai import claude
 from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.db import supabase_admin
 from signal_api.services import news_ingest, prices, redis as redis_svc
+from signal_api.services.ticker_registry import get_registry_entries
 
 router = APIRouter()
 
@@ -122,7 +123,26 @@ async def premium_personalize(
     .execute()
   )
   headline = str(ev.get("headline") or "")[:1_200]
-  pj, oj = json.dumps(pos.data or []), json.dumps(ods.data or [])
+  # Enrich portfolio with ticker registry context for better LLM grounding.
+  syms = [str(x.get("ticker") or "") for x in (pos.data or []) if x.get("ticker")]
+  reg = get_registry_entries(syms)
+  enriched_pos: list[dict[str, Any]] = []
+  for row in (pos.data or []):
+    t = str(row.get("ticker") or "").strip().split(".", 1)[0].upper()
+    rr = reg.get(t)
+    if rr:
+      row = {
+        **row,
+        "ticker_registry": {
+          "symbol": rr.get("symbol"),
+          "short_name": rr.get("short_name"),
+          "themes": rr.get("themes"),
+          "keywords": rr.get("keywords"),
+          "notes": rr.get("notes"),
+        },
+      }
+    enriched_pos.append(row)
+  pj, oj = json.dumps(enriched_pos), json.dumps(ods.data or [])
 
   try:
     p = await claude.personalize_user_impact(

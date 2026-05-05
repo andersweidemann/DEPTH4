@@ -8,6 +8,7 @@ from typing import Any
 from signal_api.ai import claude
 from signal_api.db import supabase_admin
 from signal_api.services import one_signal
+from signal_api.services.ticker_registry import get_registry_entries, match_event_to_symbols
 
 
 def _up(t: str) -> str:
@@ -89,6 +90,10 @@ async def fan_out(
   tree_row: dict[str, Any] | None,
 ) -> None:
   tset = _affected([str(x) for x in (affected or [])])
+  # Registry keyword match (headline-only) as a second path to relevance.
+  # This helps instruments like XAUUSD match "gold"/"bullion" headlines even if ticker isn't mentioned.
+  text = (event_headline or "").strip().lower()
+  reg_cache: dict[str, dict[str, Any]] | None = None
   if signal_level >= 4:
     user_ids = await _all_onboarded()
   else:
@@ -129,6 +134,12 @@ async def fan_out(
       ph = {_up(str(p.get("ticker") or "")) for p in (pos.data or []) if p.get("ticker")}
       oh = {_up(str(o.get("ticker") or "")) for o in (ods.data or []) if o.get("ticker")}
       overlap = bool(tset and (tset & (ph | oh)))
+      if not overlap and text:
+        # Lazy-load registry for this user's symbols (bounded).
+        syms = sorted((ph | oh))[:120]
+        reg_cache = reg_cache or get_registry_entries(syms)
+        kw_hit = match_event_to_symbols(text=text, symbols=syms, registry=reg_cache)
+        overlap = bool(kw_hit)
       pj, oj = json.dumps(pos.data or []), json.dumps(ods.data or [])
       scen = (tree_row or {}).get("scenarios") or []
       tree_id = (tree_row or {}).get("id")

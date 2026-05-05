@@ -117,6 +117,20 @@ export function DashboardClient() {
   const [pendingStories, setPendingStories] = useState<T.NewsItem[]>([]);
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(() => new Set());
   const [showTour, setShowTour] = useState(false);
+  const [tickReg, setTickReg] = useState<{
+    symbol: string;
+    display_name: string;
+    short_name: string;
+    asset_class: string;
+    sector: string | null;
+    region: string | null;
+    themes: string[] | null;
+    keywords: string[] | null;
+    correlated: string[] | null;
+    notes: string | null;
+  } | null>(null);
+  const [tickRegState, setTickRegState] = useState<"idle" | "loading" | "found" | "missing" | "error">("idle");
+  const [posReg, setPosReg] = useState<Record<string, { short_name: string; display_name: string }>>({});
 
   function isDeepBrief(x: unknown): x is DeepBrief {
     if (!x || typeof x !== "object") return false;
@@ -141,6 +155,67 @@ export function DashboardClient() {
   const openUpgrade = useCallback(() => {
     setUpgradeOpen(true);
   }, []);
+
+  const lookupTicker = useCallback(async (sym: string) => {
+    const s = sym.trim().toUpperCase();
+    if (!s || s.length < 2) {
+      setTickReg(null);
+      setTickRegState("idle");
+      return;
+    }
+    setTickRegState("loading");
+    try {
+      const { data, error } = await sb
+        .from("ticker_registry")
+        .select("symbol,display_name,short_name,asset_class,sector,region,themes,keywords,correlated,notes")
+        .eq("symbol", s)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        setTickReg(null);
+        setTickRegState("missing");
+        return;
+      }
+      setTickReg(data as never);
+      setTickRegState("found");
+    } catch {
+      setTickReg(null);
+      setTickRegState("error");
+    }
+  }, [sb]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      void lookupTicker(tickerIn);
+    }, 240);
+    return () => window.clearTimeout(t);
+  }, [tickerIn, lookupTicker]);
+
+  useEffect(() => {
+    const run = async () => {
+      const syms = Array.from(new Set(p.map((x) => normT(x.ticker)).filter(Boolean)));
+      if (!syms.length) {
+        setPosReg({});
+        return;
+      }
+      try {
+        const { data } = await sb
+          .from("ticker_registry")
+          .select("symbol,short_name,display_name")
+          .in("symbol", syms)
+          .limit(500);
+        const map: Record<string, { short_name: string; display_name: string }> = {};
+        for (const r of (data || []) as Array<{ symbol: string; short_name: string; display_name: string }>) {
+          if (!r?.symbol) continue;
+          map[String(r.symbol).toUpperCase()] = { short_name: r.short_name, display_name: r.display_name };
+        }
+        setPosReg(map);
+      } catch {
+        setPosReg({});
+      }
+    };
+    void run();
+  }, [p, sb]);
 
   const toggleBookmark = useCallback((id: string) => {
     setBookmarkedIds((prev) => {
@@ -258,15 +333,42 @@ export function DashboardClient() {
           .eq("user_id", user.id);
         setP((pos as T.Pos[]) || []);
         const tset = new Set(((pos as T.Pos[]) || []).map((x) => normT(x.ticker)));
+
+        // Ticker registry keyword matching: helps map holdings to news even when tickers aren't mentioned.
+        let holdKeywords: string[] = [];
+        if (tset.size) {
+          try {
+            const { data: regRows } = await sb
+              .from("ticker_registry")
+              .select("symbol,keywords")
+              .in("symbol", Array.from(tset).slice(0, 200));
+            const kws: string[] = [];
+            for (const row of (regRows || []) as Array<{ symbol: string; keywords?: string[] | null }>) {
+              for (const kw of row.keywords || []) {
+                const k = String(kw || "").trim().toLowerCase();
+                if (k && !kws.includes(k)) kws.push(k);
+              }
+            }
+            holdKeywords = kws.slice(0, 200);
+          } catch { /* ignore */ }
+        }
+
         const { data: news } = await sb
           .from("news_events")
           .select("id, headline, body_text, source, published_at, signal_level, affected_tickers, one_line_summary, raw_json")
           .order("published_at", { ascending: false })
           .limit(200);
         let m = (news as T.NewsItem[]) || [];
+        const kwHitById: Record<string, boolean> = {};
+        if (holdKeywords.length) {
+          for (const e of m) {
+            const text = `${e.headline || ""} ${(e.one_line_summary as string | undefined) || ""} ${e.body_text || ""}`.toLowerCase();
+            kwHitById[e.id] = holdKeywords.some((kw) => text.includes(kw));
+          }
+        }
         m = [...m].sort((a, b) => {
-          const oa = (a.affected_tickers || []).some((t) => tset.has(normT(t)));
-          const ob = (b.affected_tickers || []).some((t) => tset.has(normT(t)));
+          const oa = (a.affected_tickers || []).some((t) => tset.has(normT(t))) || Boolean(kwHitById[a.id]);
+          const ob = (b.affected_tickers || []).some((t) => tset.has(normT(t))) || Boolean(kwHitById[b.id]);
           if (oa !== ob) return oa ? -1 : 1;
           return b.signal_level - a.signal_level;
         });
@@ -734,7 +836,7 @@ export function DashboardClient() {
     const { error } = await sb.from("portfolio_positions").insert({
       user_id: user.id,
       ticker: tick,
-      company_name: name || null,
+      company_name: name || tickReg?.short_name || null,
       quantity: q,
       avg_cost: c,
       currency: curIn,
@@ -752,7 +854,7 @@ export function DashboardClient() {
     sCost("");
     sCur("SEK");
     void load();
-  }, [atHoldingsLimit, plan, tickerIn, nameIn, qtyIn, costIn, curIn, sb, load]);
+  }, [atHoldingsLimit, plan, tickerIn, nameIn, qtyIn, costIn, curIn, sb, load, tickReg?.short_name]);
 
   const onSignOut = useCallback(async () => {
     await sb.auth.signOut();
@@ -838,6 +940,36 @@ export function DashboardClient() {
                 <label className="d4-flabel" htmlFor="fN">Company (optional)</label>
                 <input id="fN" className="d4-input" value={nameIn} onChange={(e) => sName(e.target.value)} placeholder="Name" />
               </div>
+            </div>
+            <div className="d4-bubble-meta" style={{ fontSize: 11, marginTop: 8 }}>
+              {tickRegState === "loading" && (
+                <span style={{ color: "var(--d4-muted)" }}>Looking up ticker…</span>
+              )}
+              {tickRegState === "found" && tickReg && (
+                <div style={{ border: "1px solid var(--d4-border)", background: "var(--d4-s3)", borderRadius: 10, padding: "8px 10px" }}>
+                  <div style={{ fontWeight: 700, color: "var(--d4-green)" }}>
+                    ✓ {tickReg.symbol} — {tickReg.display_name}
+                  </div>
+                  <div style={{ marginTop: 3, color: "var(--d4-muted)", lineHeight: 1.35 }}>
+                    {tickReg.asset_class}
+                    {tickReg.region ? ` · ${tickReg.region}` : ""}
+                    {tickReg.themes?.length ? ` · ${tickReg.themes.slice(0, 6).join(", ")}` : ""}
+                  </div>
+                </div>
+              )}
+              {tickRegState === "missing" && tickerIn.trim() && (
+                <div style={{ border: "1px solid var(--d4-border)", background: "var(--d4-s3)", borderRadius: 10, padding: "8px 10px" }}>
+                  <div style={{ fontWeight: 700, color: "var(--d4-gold)" }}>
+                    {tickerIn.trim().toUpperCase()} not in our registry yet.
+                  </div>
+                  <div style={{ marginTop: 3, color: "var(--d4-muted)", lineHeight: 1.35 }}>
+                    ⚠ We&apos;ll track this by symbol only — news matching may be limited.
+                  </div>
+                </div>
+              )}
+              {tickRegState === "error" && (
+                <span style={{ color: "var(--d4-muted)" }}>Ticker lookup failed (network). You can still add it.</span>
+              )}
             </div>
             <div className="d4-form-grid2">
               <div>
@@ -1337,6 +1469,7 @@ export function DashboardClient() {
             </div>
             <div className="d4-pos-list">
               {p.map((x) => {
+                const reg = posReg[normT(x.ticker)];
                 const q = pr[x.ticker] as T.Q | undefined;
                 const s = (q as T.Q | undefined)?.price_sek;
                 const v = s && x.quantity ? s * +x.quantity : null;
@@ -1344,7 +1477,7 @@ export function DashboardClient() {
                   <div className="d4-pos" key={x.id}>
                     <div>
                       <div className="d4-tick">{x.ticker}</div>
-                      <div className="d4-nm">{x.company_name || "—"}</div>
+                      <div className="d4-nm">{reg?.short_name || x.company_name || "—"}</div>
                     </div>
                     <div className="d4-val">
                       {v != null ? v.toLocaleString("sv-SE", { maximumFractionDigits: 0 }) : "—"}
