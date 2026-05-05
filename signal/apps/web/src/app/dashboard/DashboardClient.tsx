@@ -688,6 +688,82 @@ export function DashboardClient() {
                 levels.
               </p>
 
+              <div
+                style={{
+                  marginTop: 12,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 10,
+                  overflow: "hidden",
+                  background: "rgba(255,255,255,0.03)",
+                }}
+              >
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
+                    <thead>
+                      <tr>
+                        {["Level", "Name", "Question asked", "Time to price in", "Market awareness"].map((h) => (
+                          <th
+                            key={h}
+                            className="d4-bubble-meta"
+                            style={{
+                              fontSize: 11,
+                              textAlign: "left",
+                              padding: "10px 12px",
+                              borderBottom: "1px solid rgba(255,255,255,0.08)",
+                              color: "var(--d4-muted)",
+                              fontWeight: 600,
+                              letterSpacing: 0.2,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        ["1", "Direct Impact", "\"What does this news literally affect?\"", "Minutes–Hours", "~95% priced immediately"],
+                        ["2", "Sector Ripple", "\"What industries depend on / compete with Level 1?\"", "Hours–1 Day", "~60% priced same day"],
+                        [
+                          "3",
+                          "Macro Cascade",
+                          "\"What does the shift in Level 2 do to capital flows, currencies, commodities?\"",
+                          "1–5 Days",
+                          "~25% priced within a week",
+                        ],
+                        [
+                          "4",
+                          "Structural Drift",
+                          "\"What long-term behavioral or policy changes does this set in motion?\"",
+                          "Weeks–Months",
+                          "<10% priced at event time",
+                        ],
+                      ].map((row, idx) => (
+                        <tr key={row[0]} style={{ background: idx % 2 ? "rgba(255,255,255,0.015)" : "transparent" }}>
+                          {row.map((cell, j) => (
+                            <td
+                              key={j}
+                              className="d4-bubble-meta"
+                              style={{
+                                fontSize: 12,
+                                lineHeight: 1.45,
+                                padding: "10px 12px",
+                                borderBottom: idx === 3 ? "none" : "1px solid rgba(255,255,255,0.06)",
+                                color: j === 1 ? "var(--d4-text)" : "var(--d4-muted)",
+                                whiteSpace: j === 0 || j === 3 || j === 4 ? "nowrap" : "normal",
+                              }}
+                            >
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
               <div style={{ marginTop: 12 }}>
                 <div className="d4-kicker" style={{ marginBottom: 6 }}>Level 1: Direct Impact</div>
                 <p className="d4-bubble-meta" style={{ fontSize: 12, lineHeight: 1.6, margin: 0 }}>
