@@ -12,6 +12,7 @@ import * as T from "./types";
 import { Depth4FeedBubble } from "@/components/depth4/Depth4FeedBubble";
 import { Depth4L4Panel } from "@/components/depth4/Depth4L4Panel";
 import { edgeScoreForPosition } from "@/lib/depth4View";
+import { layer1FromView } from "@/lib/depth4View";
 import { Sheet } from "@/components/ui/sheet";
 import { OnboardingScreen } from "@/components/OnboardingScreen";
 import { SigBadge } from "@/components/ui/badge";
@@ -363,7 +364,8 @@ export function DashboardClient() {
       if (!e) throw new Error("Event not found.");
 
       const vm = mapToFeedViewModel(e, t, p, od, pr);
-      const depth1 = `${vm.layer1.event}\n\nWHY:\n${vm.layer1.why}\n\nNEXT:\n${vm.layer1.next}`;
+      const l1 = layer1FromView(vm);
+      const depth1 = `${l1.event}\n\nWHY:\n${l1.why}\n\nNEXT:\n${l1.next}`;
       const depth2 = `${vm.layer2.verdict}\n\nCHAIN:\n${vm.layer2.chain.map((s) => `- ${s.title}: ${s.text}`).join("\n")}`;
       const depth3 = vm.layer3.scenarios.length
         ? vm.layer3.scenarios

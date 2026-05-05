@@ -1,0 +1,13 @@
+# Vercel CLI was running out of memory uploading this monorepo.
+# Only deploy the Next.js app under signal/apps/web for this project.
+*
+
+!signal/
+signal/*
+
+!signal/apps/
+signal/apps/*
+
+!signal/apps/web/
+!signal/apps/web/**
+
