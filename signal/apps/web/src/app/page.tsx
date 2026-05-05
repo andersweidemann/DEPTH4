@@ -52,6 +52,11 @@ export default function Home() {
           <span className="text-rose-400/90">holdings</span> and{" "}
           <span className="text-amber-400/90">open orders</span> — not a generic news feed.
         </p>
+        <p className="text-base text-zinc-400/90 mt-4 max-w-2xl leading-relaxed">
+          Markets are efficient at pricing obvious information quickly, but they're slow and sloppy at pricing second and
+          third-order consequences — especially across asset classes, geographies, and supply chains.{" "}
+          <span className="text-zinc-200">DEPTH4's edge is exactly that gap. Stay ahead of the market.</span>
+        </p>
         <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
           <Link
             href="/signup?next=/onboarding"

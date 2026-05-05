@@ -484,6 +484,13 @@ export function Depth4FeedBubble({
             </button>
           ))}
         </div>
+        <div className="d4-bubble-meta" style={{ marginTop: 8, fontSize: 11, lineHeight: 1.35 }}>
+          <strong style={{ color: "var(--d4-text)", fontWeight: 600 }}>How to read it</strong>:{" "}
+          <span style={{ color: "var(--d4-muted)" }}>
+            Depth 1 = what just changed. Depth 2 = how it propagates into other markets (timing + priced‑in). Depth 3 =
+            branching scenarios + what would confirm each path.
+          </span>
+        </div>
 
         <div className={cn("d4-dm-panel", tab === "l1" && "d4-dm-panel--active")} role="tabpanel" aria-hidden={tab !== "l1"}>
           <div className="d4-dm-kicker">Event</div>
