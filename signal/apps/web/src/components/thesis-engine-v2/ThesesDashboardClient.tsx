@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
 import { ReadyPing } from "@/components/thesis-engine-v2/ReadyPing";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
+import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDrawer";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDetail, isEmerging, isTradeable, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
@@ -52,6 +52,7 @@ export function ThesesDashboardClient({
   const [show, setShow] = useState<"all" | "ready">("all");
   const [assetClass, setAssetClass] = useState<AssetClass>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
+  const [drawerSlug, setDrawerSlug] = useState<string | null>(null);
 
   useEffect(() => {
     setUserTheses(loadUserTheses());
@@ -176,7 +177,12 @@ export function ThesesDashboardClient({
 
       <div className="mt-10 flex flex-col gap-4">
         {tradeable.map((thesis) => (
-          <ThesisCard key={thesis.id} thesis={thesis} />
+          <ThesisCard
+            key={thesis.id}
+            thesis={thesis}
+            selectedSlug={drawerSlug}
+            onSelect={(s) => setDrawerSlug(s)}
+          />
         ))}
       </div>
 
@@ -192,10 +198,14 @@ export function ThesesDashboardClient({
           </div>
           <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
             {emerging.map((t) => (
-              <Link
+              <button
                 key={t.id}
-                href={`/theses/${t.slug}`}
-                className="block border-b border-white/[0.05] py-4 last:border-0"
+                type="button"
+                onClick={() => setDrawerSlug(t.slug)}
+                className={[
+                  "block w-full border-b border-white/[0.05] py-4 text-left last:border-0",
+                  drawerSlug === t.slug ? "bg-zinc-900/35" : "hover:bg-zinc-900/25",
+                ].join(" ")}
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="text-[12px] font-medium text-zinc-200">{t.title}</span>
@@ -207,7 +217,7 @@ export function ThesesDashboardClient({
                   <span className="text-zinc-600">Market misread · </span>
                   {t.marketMisread}
                 </p>
-              </Link>
+              </button>
             ))}
           </div>
         </section>
@@ -231,6 +241,8 @@ export function ThesesDashboardClient({
           setOpen(true);
         }}
       />
+
+      <ThesisDetailDrawer slug={drawerSlug} onClose={() => setDrawerSlug(null)} />
     </>
   );
 }

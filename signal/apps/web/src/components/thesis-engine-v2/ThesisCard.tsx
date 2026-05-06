@@ -1,21 +1,34 @@
 import Link from "next/link";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { cn } from "@/lib/utils";
 import { DirectionBadge } from "./DirectionBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 
-export function ThesisCard({ thesis }: { thesis: Thesis }) {
+export function ThesisCard({
+  thesis,
+  selectedSlug,
+  onSelect,
+}: {
+  thesis: Thesis;
+  /** When set with `onSelect`, highlights the card matching this slug. */
+  selectedSlug?: string | null;
+  /** Dashboard: open detail in drawer instead of navigating away. */
+  onSelect?: (slug: string) => void;
+}) {
   const tradeable = thesis.qualification === "tradeable";
   const isUser = thesis.origin === "user";
   const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
-  return (
-    <Link
-      href={`/theses/${thesis.slug}`}
-      className={[
-        "group block rounded-lg border bg-zinc-900/40 p-5 transition-colors hover:bg-zinc-900/70",
-        entrySetupValid ? "border-amber-500/25 hover:border-amber-500/35" : "border-white/[0.06] hover:border-amber-500/20",
-      ].join(" ")}
-    >
+  const selected = selectedSlug != null && selectedSlug === thesis.slug;
+
+  const className = cn(
+    "group block w-full rounded-lg border bg-zinc-900/40 p-5 text-left transition-colors hover:bg-zinc-900/70",
+    entrySetupValid ? "border-amber-500/25 hover:border-amber-500/35" : "border-white/[0.06] hover:border-amber-500/20",
+    selected && "ring-1 ring-amber-500/40 border-amber-500/30 bg-zinc-900/65",
+  );
+
+  const body = (
+    <>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h2 className="text-[13px] font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95">
@@ -65,6 +78,20 @@ export function ThesisCard({ thesis }: { thesis: Thesis }) {
           <span className="tabular-nums text-zinc-500">{thesis.lastUpdated}</span>
         </div>
       </div>
+    </>
+  );
+
+  if (onSelect) {
+    return (
+      <button type="button" onClick={() => onSelect(thesis.slug)} className={className}>
+        {body}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={`/theses/${thesis.slug}`} className={className}>
+      {body}
     </Link>
   );
 }
