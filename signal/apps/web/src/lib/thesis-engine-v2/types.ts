@@ -181,20 +181,24 @@ export type LiveSignalTickerItem =
 
 export type CommunityThesis = {
   id: string;
+  thesisSlug: string; // opens /theses/[slug]
   title: string;
-  author: string;
+  author: string; // e.g. "@macro_maven"
   reputationBadge: string; // e.g. "Top 5% accuracy"
   probability: number;
+  scoreTotal: number; // 0–100
   followers: number;
+  lastUpdated: string; // e.g. "Updated 4h ago"
   status: "published" | "active" | "resolved";
 };
 
 export type LeaderboardUser = {
   id: string;
   rank: number;
-  name: string;
+  name: string; // e.g. "@macro_maven"
   badge: string; // e.g. "Top 5% accuracy"
   winRate: string; // "68%"
   resolvedCount: number;
+  avgScore: string; // "82/100"
   followers: number;
 };

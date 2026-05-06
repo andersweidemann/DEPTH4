@@ -40,9 +40,22 @@ function kindChip(kind: LiveSignalTickerItem["kind"]) {
     return { cls: "bg-amber-500/10 text-amber-300 ring-amber-500/20", text: "Building new thesis" };
   }
   if (kind === "catalogued") {
-    return { cls: "bg-zinc-900 text-zinc-400 ring-zinc-700/50", text: "Catalogued" };
+    return { cls: "bg-amber-500/5 text-amber-200/80 ring-amber-500/15", text: "Catalogued" };
   }
   return { cls: "bg-zinc-900 text-zinc-300 ring-zinc-700/50", text: "Thesis update" };
+}
+
+function containerTone(it: LiveSignalTickerItem) {
+  if (it.kind === "thesis_update") {
+    const impact = impactStyle(it.impact);
+    if (impact.label === "Major positive") return "bg-emerald-500/[0.035] border-emerald-500/20";
+    if (impact.label === "Major negative") return "bg-red-500/[0.035] border-red-500/20";
+    if (impact.label === "Minor positive") return "bg-emerald-500/[0.02] border-emerald-500/15";
+    if (impact.label === "Minor negative") return "bg-red-500/[0.02] border-red-500/15";
+    return "bg-amber-500/[0.02] border-amber-500/15";
+  }
+  if (it.kind === "building_new_thesis") return "bg-amber-500/[0.02] border-amber-500/15";
+  return "bg-zinc-900/25 border-white/[0.07]";
 }
 
 export function LiveSignalTicker({
@@ -73,7 +86,7 @@ export function LiveSignalTicker({
   const k = kindChip(it.kind);
 
   return (
-    <div className="mt-5 rounded-lg border border-white/[0.07] bg-zinc-900/25 px-4 py-3">
+    <div className={cn("mt-5 rounded-lg border px-4 py-3", containerTone(it))}>
       <div
         className={cn(
           "transition-all duration-300",

@@ -96,12 +96,22 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
-            <span className="rounded border border-white/[0.06] bg-zinc-900/30 px-2 py-0.5 font-semibold uppercase tracking-wide text-zinc-400">
+            <button
+              type="button"
+              className="rounded border border-white/[0.06] bg-zinc-900/30 px-2 py-0.5 font-semibold uppercase tracking-wide text-zinc-400 hover:bg-zinc-900/50"
+              onClick={() => setNeedPro(true)}
+              title="See Pro upgrade prompt"
+            >
               Pro feature
-            </span>
-            <span className="rounded border border-white/[0.06] bg-zinc-900/30 px-2 py-0.5 font-semibold uppercase tracking-wide text-zinc-400">
+            </button>
+            <button
+              type="button"
+              className="rounded border border-white/[0.06] bg-zinc-900/30 px-2 py-0.5 font-semibold uppercase tracking-wide text-zinc-400 hover:bg-zinc-900/50"
+              onClick={() => setNeedCreator(true)}
+              title="See Creator upgrade prompt"
+            >
               Creator feature
-            </span>
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button

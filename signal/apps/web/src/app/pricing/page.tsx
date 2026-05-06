@@ -177,16 +177,16 @@ export default function PricingPage() {
               </thead>
               <tbody className="text-[12px] text-zinc-300">
                 {[
-                  ["View system theses", "Limited", "Full", "Full", "Full"],
+                  ["System theses access", "Limited", "Full", "Full", "Full"],
                   ["Create private theses", "—", "✓", "✓", "✓"],
-                  ["Advisory log + tracking", "—", "✓", "✓", "✓"],
-                  ["Exports", "—", "✓", "✓", "✓"],
-                  ["Publish publicly", "—", "—", "✓", "✓"],
-                  ["Leaderboard + followers", "—", "—", "✓", "✓"],
-                  ["Fork / remix", "—", "—", "✓", "✓"],
-                  ["Monetization", "—", "—", "—", "✓"],
-                  ["Creator analytics", "—", "—", "—", "✓"],
-                  ["API + advanced profile", "—", "—", "—", "✓"],
+                  ["Live probability updates", "Limited", "✓", "✓", "✓"],
+                  ["Evidence timeline", "Limited", "✓", "✓", "✓"],
+                  ["Email alerts", "Limited", "✓", "✓", "✓"],
+                  ["Publish theses publicly", "—", "—", "✓", "✓"],
+                  ["Leaderboard ranking", "—", "—", "✓", "✓"],
+                  ["Thesis analytics", "—", "—", "✓", "✓"],
+                  ["Monetization (revenue share)", "—", "—", "—", "✓"],
+                  ["API access", "—", "—", "—", "✓"],
                 ].map(([cap, a, b, c, d]) => (
                   <tr key={cap} className="border-t border-zinc-800">
                     <td className="py-2 pr-4 text-zinc-400">{cap}</td>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { CommunityThesis } from "@/lib/thesis-engine-v2/types";
 import { isFollowed, toggleFollow } from "@/components/thesis-engine-v2/community-store";
 import { ProbabilityBar } from "@/components/thesis-engine-v2/ProbabilityBar";
@@ -20,7 +21,12 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
     <div className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[12px] font-semibold leading-snug text-zinc-100 truncate">{item.title}</p>
+          <Link
+            href={`/theses/${item.thesisSlug}`}
+            className="block text-[12px] font-semibold leading-snug text-zinc-100 truncate hover:text-amber-200/90"
+          >
+            {item.title}
+          </Link>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
             <span className="text-zinc-300">{item.author}</span>
             <span className={cn("rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", badgeTone(item.reputationBadge))}>
@@ -49,6 +55,12 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
         <div className="min-w-0 flex-1">
           <ProbabilityBar value={item.probability} />
         </div>
+        <span className="text-[11px] tabular-nums text-zinc-500">score {item.scoreTotal}/100</span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600">
+        <span>{item.lastUpdated}</span>
+        <span className="text-zinc-500">{followed ? "Following" : "Tap Follow to track"}</span>
       </div>
     </div>
   );
