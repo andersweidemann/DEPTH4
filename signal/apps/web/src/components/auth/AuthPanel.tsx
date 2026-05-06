@@ -18,8 +18,12 @@ export function AuthPanel({ nextPath, intent }: Props) {
   const [e, se] = useState("");
   const [msg, sm] = useState("");
   const [err, setErr] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [agreeRisk, setAgreeRisk] = useState(false);
+  const [agreeNotAdvice, setAgreeNotAdvice] = useState(false);
 
   const next = useMemo(() => safeAppPath(nextPath), [nextPath]);
+  const canCreate = intent !== "signup" || (agreeTerms && agreeRisk && agreeNotAdvice);
 
   const google = useCallback(async () => {
     setErr("");
@@ -157,6 +161,7 @@ export function AuthPanel({ nextPath, intent }: Props) {
                 className="w-full bg-white text-zinc-900 hover:bg-zinc-200"
                 size="lg"
                 type="button"
+                disabled={!canCreate}
               >
                 Continue with Google
               </Button>
@@ -174,12 +179,66 @@ export function AuthPanel({ nextPath, intent }: Props) {
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-zinc-950"
                   type="button"
                   onClick={() => void em()}
-                  disabled={!e.includes("@")}
+                  disabled={!e.includes("@") || !canCreate}
                 >
                   Email me a sign-in link
                 </Button>
               </div>
             </div>
+
+            {intent === "signup" && (
+              <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-950/30 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">Required</p>
+                <div className="mt-3 space-y-3 text-sm text-zinc-300">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-emerald-500"
+                      checked={agreeTerms}
+                      onChange={(ev) => setAgreeTerms(ev.target.checked)}
+                    />
+                    <span className="leading-relaxed">
+                      I have read and agree to the{" "}
+                      <Link href="/terms" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                        Terms of Use
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-emerald-500"
+                      checked={agreeRisk}
+                      onChange={(ev) => setAgreeRisk(ev.target.checked)}
+                    />
+                    <span className="leading-relaxed">
+                      I have read and understand the{" "}
+                      <Link href="/risk" className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2">
+                        Risk Disclosure
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 accent-emerald-500"
+                      checked={agreeNotAdvice}
+                      onChange={(ev) => setAgreeNotAdvice(ev.target.checked)}
+                    />
+                    <span className="leading-relaxed">
+                      I understand DEPTH4 provides information, not investment advice.
+                    </span>
+                  </label>
+                </div>
+                {!canCreate && (
+                  <p className="mt-3 text-xs text-rose-300/90">
+                    You must check all three boxes before creating an account.
+                  </p>
+                )}
+              </div>
+            )}
 
             {err && <p className="text-sm text-rose-400/90 mt-4 break-words">{err}</p>}
             {msg && <p className="text-sm text-emerald-400/90 mt-4 break-words">{msg}</p>}
@@ -193,6 +252,20 @@ export function AuthPanel({ nextPath, intent }: Props) {
                 {intent === "signup" ? "Sign in" : "Sign up (same flow)"}
               </Link>
             </p>
+
+            {intent === "signup" && (
+              <p className="text-xs text-zinc-600 mt-4 leading-relaxed">
+                By creating an account, you agree to the Terms and acknowledge the Risk Disclosure. See also our{" "}
+                <Link href="/privacy" className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+                  Privacy Policy
+                </Link>{" "}
+                and{" "}
+                <Link href="/disclaimer" className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+                  Disclaimer
+                </Link>
+                .
+              </p>
+            )}
 
           </div>
         </div>

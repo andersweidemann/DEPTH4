@@ -4,6 +4,7 @@ import "./globals.css";
 import "@/styles/depth4.css";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { LegalFooter } from "@/components/legal/LegalFooter";
 
 const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-sans" });
 
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={cn(inter.variable, "dark")} suppressHydrationWarning>
       <body className={cn(inter.className, "d4-skin")} style={{ margin: 0, minHeight: "100dvh" }} suppressHydrationWarning>
         {children}
+        <LegalFooter />
       </body>
     </html>
   );

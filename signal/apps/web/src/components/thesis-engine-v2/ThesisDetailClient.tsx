@@ -143,6 +143,13 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
             >
               Monetize
             </button>
+            <Link
+              href="/risk"
+              className="rounded-md border border-white/[0.08] bg-zinc-900/20 px-3 py-2 text-[11px] font-medium text-zinc-400 hover:bg-zinc-900/40 hover:text-zinc-200"
+              title="Risk Disclosure"
+            >
+              Risk
+            </Link>
           </div>
         </div>
 
