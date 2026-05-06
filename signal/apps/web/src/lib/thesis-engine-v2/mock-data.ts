@@ -1,8 +1,10 @@
 import type {
   FeedSignal,
   Position,
+  ResolvedThesisRecord,
   Thesis,
   ThesisDetailBundle,
+  TrackRecordMetrics,
   WatchlistIdea,
 } from "./types";
 
@@ -744,6 +746,67 @@ export const MOCK_WATCHLIST: WatchlistIdea[] = [
     thesisTitle: "OPEC unity fracturing — Oil volatility",
     thesisSlug: "opec-unity-fracturing",
     note: "Vol expression only; directional stand aside.",
+  },
+];
+
+export const MOCK_TRACK_RECORD_METRICS: TrackRecordMetrics = {
+  winRate: "63%",
+  profitFactor: "1.8",
+  avgR: "+1.4R",
+  avgDuration: "10 days",
+  pctEverTradeable: "52%",
+};
+
+export const MOCK_RESOLVED_THESES: ResolvedThesisRecord[] = [
+  {
+    id: "rt-1",
+    title: "BANK LIQUIDITY REPRICING — USD STRENGTH",
+    asset: "UUP",
+    openedDate: "2026-03-02",
+    closedDate: "2026-03-11",
+    maxProbabilityPath: "41% → 58% → 79%",
+    result: "+3.2R",
+    duration: "9 days",
+  },
+  {
+    id: "rt-2",
+    title: "FRONT-END SHOCK — DURATION RESET",
+    asset: "TLT",
+    openedDate: "2026-02-08",
+    closedDate: "2026-02-21",
+    maxProbabilityPath: "38% → 61% → 72%",
+    result: "+2.1R",
+    duration: "13 days",
+  },
+  {
+    id: "rt-3",
+    title: "SOFT LANDING OVERPRICED — EQUITY MULTIPLE CLIP",
+    asset: "SPY",
+    openedDate: "2026-01-14",
+    closedDate: "2026-01-26",
+    maxProbabilityPath: "46% → 64% → 70%",
+    result: "-1.0R",
+    duration: "12 days",
+  },
+  {
+    id: "rt-4",
+    title: "SUPPLY DISLOCATION — ENERGY UPSIDE",
+    asset: "USOIL",
+    openedDate: "2025-12-03",
+    closedDate: "2025-12-15",
+    maxProbabilityPath: "44% → 67% → 82%",
+    result: "+4.2R",
+    duration: "12 days",
+  },
+  {
+    id: "rt-5",
+    title: "RISK-OFF BID — GOLD BREAKOUT FAIL",
+    asset: "XAUUSD",
+    openedDate: "2025-11-05",
+    closedDate: "2025-11-12",
+    maxProbabilityPath: "52% → 66% → 71%",
+    result: "+1.3R",
+    duration: "7 days",
   },
 ];
 

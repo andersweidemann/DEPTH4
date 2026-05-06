@@ -13,7 +13,7 @@ export function StatusBadge({ status }: { status: ThesisStatus }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded px-2 py-0.5 text-[10px] font-medium capitalize tracking-wide",
+        "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide",
         status === "actionable" && "bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25",
         status === "active" && "bg-zinc-800 text-zinc-300 ring-1 ring-zinc-600/35",
         status === "watching" && "bg-zinc-900 text-zinc-500 ring-1 ring-zinc-700/50",

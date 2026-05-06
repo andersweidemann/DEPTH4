@@ -5,6 +5,7 @@ import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 
 export function ThesisCard({ thesis }: { thesis: Thesis }) {
+  const tradeable = thesis.qualification === "tradeable";
   return (
     <Link
       href={`/theses/${thesis.slug}`}
@@ -20,26 +21,32 @@ export function ThesisCard({ thesis }: { thesis: Thesis }) {
         <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
           <DirectionBadge direction={thesis.direction} />
           <StatusBadge status={thesis.status} />
+          {tradeable && (
+            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300 ring-1 ring-amber-500/25 bg-amber-500/10">
+              Tradeable
+            </span>
+          )}
         </div>
       </div>
       <div className="mt-4 flex items-center gap-3">
-        <span className="text-[11px] tabular-nums text-zinc-400">{thesis.probability}%</span>
+        <span className="text-[14px] font-semibold tabular-nums text-amber-200/90">{thesis.probability}%</span>
         <div className="min-w-0 flex-1">
           <ProbabilityBar value={thesis.probability} />
         </div>
+        <span className="text-[10px] tabular-nums text-zinc-500">score {thesis.scores.total}</span>
       </div>
-      <div className="mt-4 space-y-1.5 border-t border-white/[0.04] pt-4 text-[11px] leading-relaxed text-zinc-500">
+      <div className="mt-4 space-y-2 border-t border-white/[0.04] pt-4 text-[11px] leading-relaxed text-zinc-500">
         <p>
-          <span className="text-zinc-600">Why now · </span>
+          <span className="text-zinc-400">Why now · </span>
           {thesis.whyNow}
         </p>
         <p>
-          <span className="text-zinc-600">What&apos;s unpriced · </span>
+          <span className="text-zinc-400">What&apos;s unpriced · </span>
           {thesis.whatsUnpriced}
         </p>
         <p className="font-mono text-[10px] text-zinc-400">{thesis.trade}</p>
         <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-zinc-600">
-          <span>{thesis.horizon}</span>
+          <span className="text-zinc-500">{thesis.horizon}</span>
           <span className="tabular-nums text-zinc-500">{thesis.lastUpdated}</span>
         </div>
       </div>

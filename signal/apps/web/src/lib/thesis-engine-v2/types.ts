@@ -129,3 +129,22 @@ export type ThesisDetailBundle = {
   advisoryLog: ThesisUpdate[];
   relatedAssets: RelatedAsset[];
 };
+
+export type ResolvedThesisRecord = {
+  id: string;
+  title: string;
+  asset: string;
+  openedDate: string;
+  closedDate: string;
+  maxProbabilityPath: string; // e.g. "41% → 67% → 82%"
+  result: string; // e.g. "+4.2R"
+  duration: string; // e.g. "9 days"
+};
+
+export type TrackRecordMetrics = {
+  winRate: string; // "62%"
+  profitFactor: string; // "1.9"
+  avgR: string; // "+1.6R"
+  avgDuration: string; // "11 days"
+  pctEverTradeable: string; // "48%"
+};
