@@ -7,6 +7,16 @@ export type ThesisStatus =
 
 export type AdvisoryAction = "watch" | "enter" | "hold" | "reduce" | "exit";
 
+export type ThesisQualification = "theme" | "emerging" | "tradeable";
+
+export type ThesisQualificationScores = {
+  driverStrength: number; // 0–20
+  timeCompression: number; // 0–25
+  marketMispricingScore: number; // 0–25
+  tradeClarityScore: number; // 0–15
+  triggerClarityScore: number; // 0–15
+};
+
 export type Thesis = {
   id: string;
   slug: string;
@@ -16,6 +26,14 @@ export type Thesis = {
   direction: "long" | "short" | "watch";
   probability: number;
   status: ThesisStatus;
+  probabilityRationale: string;
+
+  // causal framework
+  hiddenDriver: string;
+  likelyPath: string;
+  marketMisread: string;
+  tradeExpression: string;
+
   whyNow: string;
   whatsUnpriced: string;
   trigger: string;
@@ -24,6 +42,13 @@ export type Thesis = {
   horizon: string;
   advisoryAction: AdvisoryAction;
   lastUpdated: string;
+
+  // internal classification (derived from score total, but stored for convenience)
+  qualification: ThesisQualification;
+  scores: ThesisQualificationScores & { total: number };
+
+  // internal theme label for grouping (e.g. geopolitics, rates, energy)
+  theme: string;
   entryZone?: string;
   stop?: string;
   target1?: string;
