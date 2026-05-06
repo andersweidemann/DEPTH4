@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
-import { MOCK_THESES, isEmerging, isTradeable, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
+import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
+import { MOCK_LIVE_SIGNAL_TICKER, MOCK_THESES, isEmerging, isTradeable, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -37,6 +38,9 @@ export default function ThesesDashboardPage() {
             + New thesis
           </button>
         </div>
+
+        <LiveSignalTicker items={MOCK_LIVE_SIGNAL_TICKER} intervalMs={12_000} />
+
         <div className="mt-10 flex flex-col gap-4">
           {tradeable.map((thesis) => (
             <ThesisCard key={thesis.id} thesis={thesis} />

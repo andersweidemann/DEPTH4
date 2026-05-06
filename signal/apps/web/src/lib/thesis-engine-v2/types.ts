@@ -148,3 +148,32 @@ export type TrackRecordMetrics = {
   avgDuration: string; // "11 days"
   pctEverTradeable: string; // "48%"
 };
+
+export type LiveSignalTickerItem =
+  | {
+      id: string;
+      kind: "thesis_update";
+      source: string;
+      timestamp: string;
+      headline: string;
+      thesisName: string;
+      probabilityBefore: number;
+      probabilityAfter: number;
+      impact: "major_positive" | "minor_positive" | "neutral" | "minor_negative" | "major_negative";
+    }
+  | {
+      id: string;
+      kind: "building_new_thesis";
+      source: string;
+      timestamp: string;
+      headline: string;
+      topic: string;
+    }
+  | {
+      id: string;
+      kind: "catalogued";
+      source: string;
+      timestamp: string;
+      headline: string;
+      note: string;
+    };

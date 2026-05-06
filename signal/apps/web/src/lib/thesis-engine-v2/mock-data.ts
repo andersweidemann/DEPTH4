@@ -4,6 +4,7 @@ import type {
   ResolvedThesisRecord,
   Thesis,
   ThesisDetailBundle,
+  LiveSignalTickerItem,
   TrackRecordMetrics,
   WatchlistIdea,
 } from "./types";
@@ -669,6 +670,55 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     timestamp: "7h ago",
     headline: "Retail traders rotate into single-stock momentum",
     summary: "Positioning noise — DEPTH4 flags when it intersects narrative.",
+  },
+];
+
+export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
+  {
+    id: "lst-1",
+    kind: "thesis_update",
+    source: "Reuters",
+    timestamp: "09:12 UTC",
+    headline: "Delegations signal 'constructive' weekend talks",
+    thesisName: "WAR/PEACE—GOLD SHORT",
+    probabilityBefore: 54,
+    probabilityAfter: 67,
+    impact: "major_positive",
+  },
+  {
+    id: "lst-2",
+    kind: "building_new_thesis",
+    source: "Bloomberg",
+    timestamp: "08:03 UTC",
+    headline: "EU finalizes AI liability framework vote",
+    topic: "AI Regulation—Tech Multiples",
+  },
+  {
+    id: "lst-3",
+    kind: "catalogued",
+    source: "WSJ",
+    timestamp: "07:41 UTC",
+    headline: "Fed official reiterates data-dependent stance",
+    note: "No immediate thesis impact",
+  },
+  {
+    id: "lst-4",
+    kind: "thesis_update",
+    source: "Defense News",
+    timestamp: "10:26 UTC",
+    headline: "Pentagon accelerates award timeline on missile defense line",
+    thesisName: "US DEFENSE REPRICING—RTX LONG",
+    probabilityBefore: 49,
+    probabilityAfter: 55,
+    impact: "minor_positive",
+  },
+  {
+    id: "lst-5",
+    kind: "catalogued",
+    source: "FT",
+    timestamp: "11:04 UTC",
+    headline: "Freight rates firm as insurers reprice shipping lanes",
+    note: "Monitoring",
   },
 ];
 
