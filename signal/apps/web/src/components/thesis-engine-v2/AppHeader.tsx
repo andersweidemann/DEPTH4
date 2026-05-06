@@ -40,11 +40,14 @@ export function AppHeader({
   active,
   liveLine,
   alertsSlot,
+  bookSummarySlot,
 }: {
   active: ThesisNavTab;
   liveLine: string;
   /** Optional bell + notification panel (DEPTH4 v2 live alerts). */
   alertsSlot?: ReactNode;
+  /** Optional Book session performance summary (shown under live line). */
+  bookSummarySlot?: ReactNode;
 }) {
   const { plan, setPlan } = useV2Plan();
   const tab = (id: ThesisNavTab, href: string, label: string) => (
@@ -113,6 +116,7 @@ export function AppHeader({
           {tab("help", "/help", "Help")}
         </nav>
         <p className="mt-3 text-[12px] leading-relaxed text-zinc-500 sm:mt-4 sm:text-[11px]">{liveLine}</p>
+        {bookSummarySlot ? <div className="mt-3 sm:mt-4">{bookSummarySlot}</div> : null}
       </div>
     </header>
   );

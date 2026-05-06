@@ -17,7 +17,12 @@ import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionMod
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
-import { latestClosedForThesis, openPositionForThesis, upsertPosition } from "@/lib/thesis-engine-v2/positions-store";
+import {
+  DEPTH4_POSITIONS_CHANGED,
+  latestClosedForThesis,
+  openPositionForThesis,
+  upsertPosition,
+} from "@/lib/thesis-engine-v2/positions-store";
 import { cn } from "@/lib/utils";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { canUse } from "@/lib/thesis-engine-v2/plan";
@@ -57,6 +62,12 @@ export function ThesisDetailClient({
     const t = window.setInterval(() => setBookPulse((n) => n + 1), 2000);
     return () => window.clearInterval(t);
   }, [bundle]);
+
+  useEffect(() => {
+    const on = () => setBookPulse((n) => n + 1);
+    window.addEventListener(DEPTH4_POSITIONS_CHANGED, on);
+    return () => window.removeEventListener(DEPTH4_POSITIONS_CHANGED, on);
+  }, []);
 
   const bookSnap = useMemo(() => {
     void bookPulse;
@@ -295,6 +306,12 @@ export function ThesisDetailClient({
         </div>
       </div>
 
+      {layout === "drawer" && assistBundle ? (
+        <div className={cn("mt-4", "px-4 sm:px-5")}>
+          <ThesisAssistantPanel variant="drawer" bundle={assistBundle} openBookPosition={bookSnap.open} />
+        </div>
+      ) : null}
+
       <div className={cn("mt-8 grid gap-3 sm:grid-cols-2", layout === "drawer" && "px-4 sm:px-5")}>
         <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
         <AnswerBlock kicker="What the market hasn't priced in yet">{thesis.whatsUnpriced}</AnswerBlock>
@@ -309,7 +326,9 @@ export function ThesisDetailClient({
       </div>
 
       <div className={cn("mt-12 space-y-12", layout === "drawer" && "px-4 sm:px-5")}>
-        <ThesisAssistantPanel bundle={assistBundle!} />
+        {layout !== "drawer" && assistBundle ? (
+          <ThesisAssistantPanel bundle={assistBundle} openBookPosition={bookSnap.open} />
+        ) : null}
 
         <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why this thesis exists</h2>

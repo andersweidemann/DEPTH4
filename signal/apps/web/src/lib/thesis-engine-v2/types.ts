@@ -122,6 +122,8 @@ export type Position = {
   realizedPnl?: string;
   /** Signed PnL in dummy points for session aggregates (win rate, averages). */
   realizedPnlNumeric?: number;
+  /** Open-line mark-to-market in dummy points (Book performance). */
+  unrealizedPnlNumeric?: number;
 
   recommendation: AdvisoryAction; // thesis stance (not trade status)
   probability: number;

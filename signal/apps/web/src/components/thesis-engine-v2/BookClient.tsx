@@ -2,32 +2,14 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BookSessionInlineStrip } from "@/components/thesis-engine-v2/BookSessionPerformance";
 import { PositionRow } from "@/components/thesis-engine-v2/PositionRow";
+import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
-import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
+import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import { MOCK_THESES, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { Position, ResolvedThesisRecord, WatchlistIdea } from "@/lib/thesis-engine-v2/types";
-
-function sessionBookStats(userPositions: Position[]) {
-  const openCount = userPositions.filter((p) => p.tradeStatus === "open").length;
-  const settled = userPositions.filter((p) => p.tradeStatus === "closed" || p.tradeStatus === "stopped");
-  const closedCount = settled.length;
-  const withNum = settled.filter(
-    (p) => typeof p.realizedPnlNumeric === "number" && !Number.isNaN(p.realizedPnlNumeric),
-  );
-  const totalRealized = withNum.reduce((s, p) => s + (p.realizedPnlNumeric ?? 0), 0);
-  const wins = withNum.filter((p) => (p.realizedPnlNumeric ?? 0) > 0).length;
-  const losses = withNum.filter((p) => (p.realizedPnlNumeric ?? 0) < 0).length;
-  const denom = wins + losses;
-  const winRateStr = denom === 0 ? "—" : `${Math.round((wins / denom) * 100)}%`;
-  const avgStr =
-    withNum.length === 0
-      ? "—"
-      : `${totalRealized >= 0 ? "+" : ""}${(totalRealized / withNum.length).toFixed(2)} pts`;
-  const totalStr = `${totalRealized >= 0 ? "+" : ""}${totalRealized.toFixed(2)} pts`;
-  return { openCount, closedCount, totalRealizedStr: totalStr, winRateStr, avgStr };
-}
 
 export function BookClient({
   mockPositions,
@@ -52,6 +34,12 @@ export function BookClient({
     refreshFromStore();
   }, [refreshFromStore]);
 
+  useEffect(() => {
+    const onPos = () => refreshFromStore();
+    window.addEventListener(DEPTH4_POSITIONS_CHANGED, onPos);
+    return () => window.removeEventListener(DEPTH4_POSITIONS_CHANGED, onPos);
+  }, [refreshFromStore]);
+
   const thesisMeta = useMemo(() => {
     void metaNonce;
     const map = new Map<string, { title: string; slug?: string }>();
@@ -73,7 +61,7 @@ export function BookClient({
   const open = useMemo(() => allPositions.filter((p) => p.tradeStatus === "open"), [allPositions]);
   const closed = useMemo(() => allPositions.filter((p) => p.tradeStatus !== "open"), [allPositions]);
   const userIds = useMemo(() => new Set(userPositions.map((p) => p.id)), [userPositions]);
-  const stats = useMemo(() => sessionBookStats(userPositions), [userPositions]);
+  const stats = useMemo(() => computeSessionBookStats(userPositions), [userPositions]);
 
   return (
     <>
@@ -81,13 +69,14 @@ export function BookClient({
       <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
         Your positions, tracked against live macro theses. Session-only until backend wiring.
       </p>
+      <BookSessionInlineStrip stats={stats} />
 
       <section className="mt-8 rounded-lg border border-white/[0.06] bg-zinc-900/25 p-4 sm:p-5">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Your session book</h2>
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Performance · this session</h2>
         <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
           Counts and PnL are from positions you opened in this browser. Mock rows below do not affect these numbers.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
           <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-3 py-2.5">
             <p className="text-[10px] uppercase tracking-wider text-zinc-600">Open positions</p>
             <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-200">{stats.openCount}</p>
@@ -97,8 +86,12 @@ export function BookClient({
             <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-200">{stats.closedCount}</p>
           </div>
           <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-3 py-2.5">
-            <p className="text-[10px] uppercase tracking-wider text-zinc-600">Realized PnL (sum)</p>
-            <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-200">{stats.totalRealizedStr}</p>
+            <p className="text-[10px] uppercase tracking-wider text-zinc-600">Realized PnL</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-200">{stats.realizedStr}</p>
+          </div>
+          <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-3 py-2.5">
+            <p className="text-[10px] uppercase tracking-wider text-zinc-600">Unrealized PnL</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-200">{stats.unrealizedStr}</p>
           </div>
           <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-3 py-2.5">
             <p className="text-[10px] uppercase tracking-wider text-zinc-600">Win rate</p>
@@ -106,7 +99,7 @@ export function BookClient({
           </div>
           <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-3 py-2.5">
             <p className="text-[10px] uppercase tracking-wider text-zinc-600">Avg return / trade</p>
-            <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-200">{stats.avgStr}</p>
+            <p className="mt-1 text-sm font-semibold tabular-nums text-zinc-200">{stats.avgReturnStr}</p>
           </div>
         </div>
       </section>

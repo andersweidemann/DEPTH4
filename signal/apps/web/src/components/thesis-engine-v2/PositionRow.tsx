@@ -54,7 +54,11 @@ export function PositionRow({
   const thesisLink = thesisMeta.slug ? `/theses/${thesisMeta.slug}` : "/theses";
   const isOpen = position.tradeStatus === "open";
   const pnlDisplay =
-    position.tradeStatus === "open" ? position.currentPnl ?? "—" : position.realizedPnl ?? position.currentPnl ?? "—";
+    position.tradeStatus === "open"
+      ? typeof position.unrealizedPnlNumeric === "number" && !Number.isNaN(position.unrealizedPnlNumeric)
+        ? `${position.unrealizedPnlNumeric >= 0 ? "+" : ""}${position.unrealizedPnlNumeric.toFixed(2)}`
+        : (position.currentPnl ?? "—")
+      : position.realizedPnl ?? position.currentPnl ?? "—";
 
   return (
     <>

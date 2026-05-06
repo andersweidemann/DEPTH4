@@ -5,6 +5,9 @@ import type { CloseReason, Position, TradeStatus } from "@/lib/thesis-engine-v2/
 
 const KEY = "depth4.v2.positions.v1";
 
+/** Fired on same-tab session writes so Book header + lists stay in sync. */
+export const DEPTH4_POSITIONS_CHANGED = "depth4:positions-changed";
+
 function safeParse(raw: string | null): unknown {
   try {
     return raw ? JSON.parse(raw) : null;
@@ -34,6 +37,8 @@ function isPosition(x: unknown): x is Position {
   if (p.exitPrice !== undefined && (typeof p.exitPrice !== "number" || Number.isNaN(p.exitPrice))) return false;
   if (p.realizedPnlNumeric !== undefined && (typeof p.realizedPnlNumeric !== "number" || Number.isNaN(p.realizedPnlNumeric)))
     return false;
+  if (p.unrealizedPnlNumeric !== undefined && (typeof p.unrealizedPnlNumeric !== "number" || Number.isNaN(p.unrealizedPnlNumeric)))
+    return false;
   return true;
 }
 
@@ -49,6 +54,7 @@ export function savePositions(next: Position[]) {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify(next));
+    window.dispatchEvent(new CustomEvent(DEPTH4_POSITIONS_CHANGED));
   } catch {
     // ignore
   }

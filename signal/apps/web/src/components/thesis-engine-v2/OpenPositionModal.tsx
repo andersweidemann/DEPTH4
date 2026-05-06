@@ -72,7 +72,8 @@ export function OpenPositionModal({
       stopLoss: numOrUndef(form.stopLoss),
       takeProfit: numOrUndef(form.takeProfit),
       notes: form.notes.trim() || undefined,
-      currentPnl: "—",
+      unrealizedPnlNumeric: 0,
+      currentPnl: "+0.00",
 
       recommendation: thesis.advisoryAction,
       probability: thesis.probability,
