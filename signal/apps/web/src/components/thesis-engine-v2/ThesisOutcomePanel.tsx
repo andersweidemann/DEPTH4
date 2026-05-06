@@ -80,6 +80,7 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
+          data-testid="thesis-mark-resolved"
           disabled={!live || ended}
           onClick={() => live?.setManualThesisOutcome(thesis.id, "resolved", thesis.title)}
           className={cn(

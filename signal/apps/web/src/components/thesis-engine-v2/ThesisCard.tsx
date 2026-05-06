@@ -45,6 +45,7 @@ export function ThesisCard({
       <div className="absolute right-3 top-3 z-[1] sm:right-4 sm:top-4">
         <ThesisStarButton
           size="sm"
+          dataTestId={`thesis-star-${thesis.slug}`}
           filled={starred}
           disabled={starDisabled}
           title={
@@ -111,14 +112,19 @@ export function ThesisCard({
 
   if (onSelect) {
     return (
-      <button type="button" onClick={() => onSelect(thesis.slug)} className={className}>
+      <button
+        type="button"
+        data-testid={`thesis-card-${thesis.slug}`}
+        onClick={() => onSelect(thesis.slug)}
+        className={className}
+      >
         {body}
       </button>
     );
   }
 
   return (
-    <Link href={`/theses/${thesis.slug}`} className={className}>
+    <Link href={`/theses/${thesis.slug}`} data-testid={`thesis-card-${thesis.slug}`} className={className}>
       {body}
     </Link>
   );

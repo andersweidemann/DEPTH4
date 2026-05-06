@@ -14,3 +14,15 @@ reports/final/*/raw_xml/
 *.swp
 .vercel
 .env*.local
+
+# Local agent / scan outputs (regenerated; do not commit)
+reports/factory_hunt/
+reports/factory_autopilot.pid
+
+# Node & frontend build / test artifacts (signal monorepo)
+node_modules/
+signal/apps/web/.next/
+signal/apps/web/out/
+signal/apps/web/playwright-report/
+signal/apps/web/test-results/
+signal/apps/web/.turbo/

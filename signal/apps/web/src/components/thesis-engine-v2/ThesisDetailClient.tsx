@@ -231,6 +231,7 @@ export function ThesisDetailClient({
         <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
           {liveOpt ? (
             <ThesisStarButton
+              dataTestId={`thesis-star-${thesis.slug}`}
               filled={liveStarred}
               disabled={starDisabled}
               title={
@@ -263,6 +264,7 @@ export function ThesisDetailClient({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
+            data-testid="thesis-drawer-open-position"
             className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-200/90 hover:bg-emerald-500/15"
             onClick={() => setOpenPos(true)}
             title="Open a linked position in your Book (dummy)"

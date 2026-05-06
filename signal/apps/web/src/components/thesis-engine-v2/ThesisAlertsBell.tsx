@@ -23,6 +23,7 @@ export function ThesisAlertsBell() {
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        data-testid="thesis-alerts-bell"
         className="relative flex h-10 w-10 items-center justify-center rounded-md text-zinc-400 ring-1 ring-white/[0.08] hover:bg-zinc-900/50 hover:text-zinc-200"
         aria-label="Thesis alerts"
         title="Starred & open-position theses"
@@ -58,14 +59,16 @@ export function ThesisAlertsBell() {
             {alerts.length === 0 ? (
               <p className="px-3 py-4 text-[12px] text-zinc-500">No alerts in your tray. Star a thesis or open a position to subscribe.</p>
             ) : (
-              alerts.map((a) => (
+              alerts.map((a, i) => (
                 <div
                   key={a.id}
+                  data-testid={i === 0 ? "thesis-alert-row" : undefined}
                   className="group relative border-b border-white/[0.04] border-l-2 border-l-amber-500/45 bg-zinc-900/20 pl-3 pr-2 py-3 last:border-0"
                 >
                   <div className="absolute right-1 top-2">
                     <button
                       type="button"
+                      data-testid={i === 0 ? "thesis-alert-dismiss" : undefined}
                       className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 opacity-70 hover:bg-zinc-900/60 hover:text-zinc-200 hover:opacity-100"
                       aria-label="Dismiss alert"
                       title="Dismiss"

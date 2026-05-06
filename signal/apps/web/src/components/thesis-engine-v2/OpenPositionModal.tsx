@@ -152,6 +152,7 @@ export function OpenPositionModal({
                   Entry price
                 </label>
                 <input
+                  data-testid="open-position-entry"
                   value={form.entryPrice}
                   onChange={(e) => set("entryPrice", e.target.value)}
                   inputMode="decimal"
@@ -165,6 +166,7 @@ export function OpenPositionModal({
                   Position size
                 </label>
                 <input
+                  data-testid="open-position-size"
                   value={form.size}
                   onChange={(e) => set("size", e.target.value)}
                   inputMode="decimal"
@@ -216,6 +218,7 @@ export function OpenPositionModal({
               </Dialog.Close>
               <button
                 type="button"
+                data-testid="open-position-save"
                 disabled={!canSave}
                 onClick={save}
                 className={cn(

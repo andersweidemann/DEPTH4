@@ -97,6 +97,7 @@ export function ClosePositionModal({
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Exit price</label>
                 <input
+                  data-testid="close-position-exit"
                   value={exitPrice}
                   onChange={(e) => setExitPrice(e.target.value)}
                   inputMode="decimal"
@@ -109,6 +110,7 @@ export function ClosePositionModal({
                   Realized PnL (dummy points)
                 </label>
                 <input
+                  data-testid="close-position-realized"
                   value={realized}
                   onChange={(e) => setRealized(e.target.value)}
                   inputMode="decimal"
@@ -140,6 +142,7 @@ export function ClosePositionModal({
             </Dialog.Close>
             <button
               type="button"
+              data-testid="close-position-save"
               disabled={!canSave}
               onClick={save}
               className={cn(

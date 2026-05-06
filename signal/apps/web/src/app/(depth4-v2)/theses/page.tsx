@@ -9,7 +9,15 @@ export const metadata: Metadata = {
   description: "Tracks macro events the market hasn't priced in yet.",
 };
 
-export default function ThesesDashboardPage() {
+export default function ThesesDashboardPage({
+  searchParams,
+}: {
+  searchParams?: { openDrawer?: string | string[] };
+}) {
+  const raw = searchParams?.openDrawer;
+  const initialDrawerSlug =
+    typeof raw === "string" ? raw : Array.isArray(raw) && raw.length ? String(raw[0]) : null;
+
   const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
   const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
 
@@ -17,7 +25,7 @@ export default function ThesesDashboardPage() {
     <>
       <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-6">
-        <ThesesDashboardClient systemTheses={MOCK_THESES} />
+        <ThesesDashboardClient systemTheses={MOCK_THESES} initialDrawerSlug={initialDrawerSlug} />
       </main>
     </>
   );

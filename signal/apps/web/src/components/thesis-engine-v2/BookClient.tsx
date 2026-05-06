@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookPagePerformanceBoard } from "@/components/thesis-engine-v2/BookSessionPerformance";
 import { PositionRow } from "@/components/thesis-engine-v2/PositionRow";
 import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
@@ -36,14 +36,16 @@ export function BookClient({
   resolved: ResolvedThesisRecord[];
 }) {
   const live = useThesisLiveOptional();
+  const liveRef = useRef(live);
+  liveRef.current = live;
   const [userPositions, setUserPositions] = useState<Position[]>([]);
   const [metaNonce, setMetaNonce] = useState(0);
 
   const refreshFromStore = useCallback(() => {
     setUserPositions(loadPositions());
     setMetaNonce((n) => n + 1);
-    live?.syncOpenIdsFromBook();
-  }, [live]);
+    liveRef.current?.syncOpenIdsFromBook();
+  }, []);
 
   useEffect(() => {
     refreshFromStore();
@@ -92,7 +94,9 @@ export function BookClient({
       <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Your session · Open</h2>
-          <span className="text-[11px] tabular-nums text-zinc-600">{userOpen.length}</span>
+          <span data-testid="book-session-open-count" className="text-[11px] tabular-nums text-zinc-600">
+            {userOpen.length}
+          </span>
         </div>
         <div className="mt-3 rounded-lg border border-white/[0.07] bg-zinc-900/25 px-4 sm:px-5">
           {userOpen.length ? (
@@ -130,7 +134,9 @@ export function BookClient({
       <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Your session · Closed</h2>
-          <span className="text-[11px] tabular-nums text-zinc-600">{userClosed.length}</span>
+          <span data-testid="book-session-closed-count" className="text-[11px] tabular-nums text-zinc-600">
+            {userClosed.length}
+          </span>
         </div>
         <p className="mt-1 text-[11px] text-zinc-600">Drafts and cancelled lines stay here; full close moves an open row out of Open.</p>
         <div className="mt-3 rounded-lg border border-white/[0.07] bg-zinc-900/25 px-4 sm:px-5">

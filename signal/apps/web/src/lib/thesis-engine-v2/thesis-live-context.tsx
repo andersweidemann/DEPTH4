@@ -11,7 +11,10 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname } from "next/navigation";
-import type { AdvisoryAction, LiveSignalTickerItem, Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
+import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
+
+export type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
+import { mergeThesis } from "@/lib/thesis-engine-v2/thesis-merge";
 import { MOCK_LIVE_SIGNAL_TICKER, MOCK_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import {
@@ -19,19 +22,14 @@ import {
   getThesisOutcome,
   setThesisOutcome,
 } from "@/lib/thesis-engine-v2/thesis-outcomes-store";
+import { createMockThesisStream } from "@/lib/thesis-engine-v2/thesis-mock-stream";
+import { runMockThesisTick } from "@/lib/thesis-engine-v2/thesis-mock-tick";
+import type { Overrides } from "@/lib/thesis-engine-v2/thesis-mock-tick";
+import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 
 const STAR_KEY = "depth4.v2.starred.v1";
-const TICK_MS = 11_000;
 const MAX_TICKER = 14;
 const MAX_ALERTS = 20;
-
-export type ThesisAlertImpact =
-  | "major_positive"
-  | "minor_positive"
-  | "neutral"
-  | "minor_negative"
-  | "major_negative"
-  | "invalidated";
 
 export type ThesisAlertEntry = {
   id: string;
@@ -41,12 +39,6 @@ export type ThesisAlertEntry = {
   body: string;
   impact: ThesisAlertImpact;
 };
-
-type Overrides = Record<string, Partial<Thesis>>;
-
-function clamp(n: number, a: number, b: number) {
-  return Math.min(b, Math.max(a, n));
-}
 
 function loadStarred(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -77,31 +69,6 @@ function openPositionThesisIds(): Set<string> {
   return ids;
 }
 
-function scoreTotalFromParts(s: Thesis["scores"]): number {
-  return clamp(
-    s.driverStrength + s.timeCompression + s.marketMispricingScore + s.tradeClarityScore + s.triggerClarityScore,
-    0,
-    100,
-  );
-}
-
-function qualificationFromTotal(total: number): Thesis["qualification"] {
-  if (total >= 65) return "tradeable";
-  if (total >= 40) return "emerging";
-  return "theme";
-}
-
-function mergeThesis(base: Thesis, patch: Partial<Thesis> | undefined): Thesis {
-  if (!patch || Object.keys(patch).length === 0) return base;
-  if (patch.scores) {
-    const sp = { ...base.scores, ...patch.scores };
-    const total = scoreTotalFromParts(sp);
-    const scores = { ...sp, total };
-    return { ...base, ...patch, scores, qualification: qualificationFromTotal(total) };
-  }
-  return { ...base, ...patch, scores: base.scores, qualification: base.qualification };
-}
-
 function applyManualOutcome(t: Thesis): Thesis {
   const o = getThesisOutcome(t.id);
   if (!o) return t;
@@ -110,25 +77,6 @@ function applyManualOutcome(t: Thesis): Thesis {
     return { ...t, status: "resolved", advisoryAction: "exit", lastUpdated: `Marked resolved · ${when} (session)` };
   }
   return { ...t, status: "invalidated", advisoryAction: "exit", lastUpdated: `Marked invalidated · ${when} (session)` };
-}
-
-function stanceLabel(a: AdvisoryAction): string {
-  switch (a) {
-    case "enter":
-      return "Entry possible — use your plan and risk limits.";
-    case "hold":
-      return "Hold — thesis intact; manage risk.";
-    case "reduce":
-      return "Reduce — take risk down until the picture clears.";
-    case "exit":
-      return "Exit — thesis closed or invalidation hit.";
-    default:
-      return "Watch — wait for a cleaner trigger before sizing up.";
-  }
-}
-
-function randomPick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)]!;
 }
 
 function newAlertId(): string {
@@ -316,131 +264,41 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!simActive) return;
-    const tick = () => {
+    const stream = createMockThesisStream();
+    return stream.subscribe((ev) => {
+      if (ev.kind !== "mock_tick") return;
       setOpenIds(openPositionThesisIds());
-      const pool = MOCK_THESES.filter((t) => {
-        if (getThesisOutcome(t.id)) return false;
-        const cur = mergeThesis(t, overridesRef.current[t.id]);
-        return cur.status !== "resolved" && cur.status !== "invalidated";
+      const tick = runMockThesisTick({
+        mockTheses: MOCK_THESES,
+        overrides: overridesRef.current,
+        hasManualOutcome: (id) => !!getThesisOutcome(id),
+        isSubscribed: (id) => starredRef.current.has(id) || openIdsRef.current.has(id),
+        random: Math.random,
       });
-      if (!pool.length) return;
-
-      const base = randomPick(pool);
-      const prev = mergeThesis(base, overridesRef.current[base.id]);
-      const roll = Math.random();
-      let patch: Partial<Thesis> = {};
-      let majorSignal = false;
-      let statusChanged = false;
-      let invalidated = false;
-
-      if (roll < 0.04 && prev.status !== "invalidated" && prev.status !== "resolved") {
-        invalidated = true;
-        patch = { status: "invalidated" as ThesisStatus, probability: clamp(prev.probability - 8, 15, 85) };
-        statusChanged = true;
-      } else if (roll < 0.1 && prev.status === "watching" && prev.probability >= 48) {
-        patch = { status: "ready" as ThesisStatus, probability: clamp(prev.probability + 4, 45, 88) };
-        statusChanged = true;
-      } else if (roll < 0.24) {
-        const d = Math.floor(Math.random() * 7) + 4;
-        const sign = Math.random() < 0.55 ? 1 : -1;
-        patch = { probability: clamp(prev.probability + sign * d, 18, 92) };
-      } else if (roll < 0.34) {
-        const parts = { ...prev.scores };
-        const k = randomPick(["driverStrength", "timeCompression", "marketMispricingScore"] as const);
-        const bump = Math.random() < 0.5 ? 1 : 2;
-        parts[k] = clamp(parts[k] + bump, 0, k === "driverStrength" ? 20 : 25);
-        patch = { scores: parts };
-      } else {
-        const d = Math.floor(Math.random() * 3) + 1;
-        const sign = Math.random() < 0.5 ? 1 : -1;
-        patch = { probability: clamp(prev.probability + sign * d, 18, 92) };
-      }
-
-      if (roll > 0.92 && !invalidated) {
-        majorSignal = true;
-      }
-
-      const next = mergeThesis(prev, patch);
-      const probDelta = next.probability - prev.probability;
+      if (!tick) return;
 
       setOverrides((o) => ({
         ...o,
-        [base.id]: { ...(o[base.id] ?? {}), ...patch },
+        [tick.thesisId]: { ...(o[tick.thesisId] ?? {}), ...tick.patch },
       }));
-      setPulseMap((m) => ({ ...m, [base.id]: (m[base.id] ?? 0) + 1 }));
+      setPulseMap((m) => ({ ...m, [tick.pulseThesisId]: (m[tick.pulseThesisId] ?? 0) + 1 }));
 
-      const thesisAwareLine = invalidated
-        ? "Invalidation conditions are now in play — treat the thesis as broken until re-tested."
-        : majorSignal
-          ? "Desk read: flow still matches the thesis; price reaction matters more than the headline."
-          : statusChanged && next.status === "ready"
-            ? "Trigger window is cleaner — entry setup is now valid enough to act on with a plan."
-            : Math.abs(probDelta) >= 5
-              ? "Evidence moved enough to change conviction — compare this move to your risk plan."
-              : "Routine tape check — thesis unchanged at this confidence level.";
-
-      const impact: ThesisAlertImpact = invalidated
-        ? "invalidated"
-        : probDelta >= 4
-          ? "major_positive"
-          : probDelta <= -4
-            ? "major_negative"
-            : Math.abs(probDelta) >= 2
-              ? probDelta > 0
-                ? "minor_positive"
-                : "minor_negative"
-              : "neutral";
-
-      const eff = starredRef.current.has(base.id) || openIdsRef.current.has(base.id);
-      const notifyProb = Math.abs(probDelta) >= 5;
-      const shouldNotify = eff && (statusChanged || invalidated || notifyProb || majorSignal);
-
-      if (shouldNotify) {
-        const body = [
-          `${prev.title}`,
-          thesisAwareLine,
-          `Thesis impact: ${impact === "invalidated" ? "Invalidated" : impact.replace(/_/g, " ")}.`,
-          `Probability: ${prev.probability}% → ${next.probability}%.`,
-          `Stance: ${stanceLabel(next.advisoryAction)}`,
-        ].join("\n");
-        pushAlert({
-          thesisId: base.id,
-          thesisTitle: prev.title,
-          body,
-          impact,
-        });
+      if (tick.alert) {
+        pushAlert(tick.alert);
       }
 
-      if (eff && (notifyProb || invalidated || (statusChanged && next.status === "ready"))) {
-        const msg =
-          invalidated || (statusChanged && next.status === "ready")
-            ? `DEPTH4 Alert: ${prev.title} — ${invalidated ? "Invalidated." : "Now Ready. Entry setup valid."} Probability: ${next.probability}%.`
-            : `DEPTH4 Alert: ${prev.title} — Probability moved materially (${prev.probability}% → ${next.probability}%).`;
+      if (tick.toastMessage) {
         const tid = newAlertId();
-        setOutToast({ id: tid, message: msg });
+        setOutToast({ id: tid, message: tick.toastMessage });
         window.setTimeout(() => {
           setOutToast((cur) => (cur?.id === tid ? null : cur));
         }, 6200);
       }
 
-      if (majorSignal && !invalidated) {
-        const ti: LiveSignalTickerItem = {
-          id: `tick-${Date.now()}`,
-          kind: "thesis_update",
-          source: "DEPTH4 Desk",
-          timestamp: "Live · now",
-          headline: `${prev.title}: desk read unchanged — watch follow-through vs. your entry zone.`,
-          thesisName: prev.title,
-          probabilityBefore: prev.probability,
-          probabilityAfter: next.probability,
-          impact: probDelta >= 0 ? "major_positive" : "major_negative",
-        };
-        setTickerItems((cur) => [ti, ...cur].slice(0, MAX_TICKER));
+      if (tick.tickerItem) {
+        setTickerItems((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
       }
-    };
-
-    const idt = window.setInterval(tick, TICK_MS);
-    return () => window.clearInterval(idt);
+    });
   }, [simActive, pushAlert]);
 
   const value = useMemo<Ctx>(() => {

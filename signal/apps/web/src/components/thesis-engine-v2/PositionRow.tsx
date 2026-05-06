@@ -88,6 +88,7 @@ export function PositionRow({
             {manageable && isOpen ? (
               <button
                 type="button"
+                data-testid={`book-close-position-${position.id}`}
                 className="shrink-0 rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-zinc-900/70"
                 onClick={() => setCloseOpen(true)}
               >

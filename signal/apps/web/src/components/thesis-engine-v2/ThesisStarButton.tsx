@@ -9,18 +9,21 @@ export function ThesisStarButton({
   title,
   onClick,
   size = "md",
+  dataTestId,
 }: {
   filled: boolean;
   disabled?: boolean;
   title?: string;
   onClick: () => void;
   size?: "sm" | "md";
+  dataTestId?: string;
 }) {
   const sz = size === "sm" ? "h-8 w-8" : "h-9 w-9";
   const icon = size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4";
   return (
     <button
       type="button"
+      data-testid={dataTestId}
       title={title}
       disabled={disabled}
       onClick={(e) => {

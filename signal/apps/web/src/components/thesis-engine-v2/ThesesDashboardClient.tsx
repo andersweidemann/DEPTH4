@@ -41,8 +41,11 @@ function assetClassFor(thesis: Thesis): AssetClass {
 
 export function ThesesDashboardClient({
   systemTheses,
+  initialDrawerSlug = null,
 }: {
   systemTheses: Thesis[];
+  /** From `/theses?openDrawer=<slug>` (server). */
+  initialDrawerSlug?: string | null;
 }) {
   const live = useThesisLive();
   const { plan } = useV2Plan();
@@ -52,11 +55,12 @@ export function ThesesDashboardClient({
   const [show, setShow] = useState<"all" | "ready">("all");
   const [assetClass, setAssetClass] = useState<AssetClass>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
-  const [drawerSlug, setDrawerSlug] = useState<string | null>(null);
+  const [drawerSlug, setDrawerSlug] = useState<string | null>(initialDrawerSlug ?? null);
 
   useEffect(() => {
     setUserTheses(loadUserTheses());
   }, []);
+
 
   const sorted = useMemo(() => sortThesesForDashboard([...systemTheses, ...userTheses]), [systemTheses, userTheses]);
   const liveSorted = useMemo(() => live.sortPinnedFirst(sorted), [live, sorted]);
