@@ -29,9 +29,13 @@ export function ThesisCard({
   const starred = live.isEffectivelyStarred(thesis.id);
   const starDisabled = !!live.starDisabledReason(thesis.id);
 
+  const terminal = thesis.status === "resolved" || thesis.status === "invalidated";
   const className = cn(
     "group relative block w-full rounded-lg border bg-zinc-900/40 p-5 text-left transition-colors hover:bg-zinc-900/70",
-    entrySetupValid ? "border-amber-500/25 hover:border-amber-500/35" : "border-white/[0.06] hover:border-amber-500/20",
+    !terminal &&
+      (entrySetupValid ? "border-amber-500/25 hover:border-amber-500/35" : "border-white/[0.06] hover:border-amber-500/20"),
+    terminal && thesis.status === "resolved" && "border-emerald-500/20 bg-zinc-900/50 hover:border-emerald-500/30",
+    terminal && thesis.status === "invalidated" && "border-red-500/25 bg-zinc-900/50 hover:border-red-500/35",
     selected && "ring-1 ring-amber-500/40 border-amber-500/30 bg-zinc-900/65",
     pulseKey > 0 && "animate-[thesis-pulse_0.85s_ease-out_1]",
   );

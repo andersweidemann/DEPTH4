@@ -14,6 +14,11 @@ import { usePathname } from "next/navigation";
 import type { AdvisoryAction, LiveSignalTickerItem, Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { MOCK_LIVE_SIGNAL_TICKER, MOCK_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
+import {
+  DEPTH4_THESIS_OUTCOMES_CHANGED,
+  getThesisOutcome,
+  setThesisOutcome,
+} from "@/lib/thesis-engine-v2/thesis-outcomes-store";
 
 const STAR_KEY = "depth4.v2.starred.v1";
 const TICK_MS = 11_000;
@@ -97,6 +102,16 @@ function mergeThesis(base: Thesis, patch: Partial<Thesis> | undefined): Thesis {
   return { ...base, ...patch, scores: base.scores, qualification: base.qualification };
 }
 
+function applyManualOutcome(t: Thesis): Thesis {
+  const o = getThesisOutcome(t.id);
+  if (!o) return t;
+  const when = new Date(o.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  if (o.status === "resolved") {
+    return { ...t, status: "resolved", advisoryAction: "exit", lastUpdated: `Marked resolved · ${when} (session)` };
+  }
+  return { ...t, status: "invalidated", advisoryAction: "exit", lastUpdated: `Marked invalidated · ${when} (session)` };
+}
+
 function stanceLabel(a: AdvisoryAction): string {
   switch (a) {
     case "enter":
@@ -129,6 +144,8 @@ type Ctx = {
   isEffectivelyStarred: (thesisId: string) => boolean;
   toggleStar: (thesisId: string) => void;
   starDisabledReason: (thesisId: string) => string | null;
+  /** Session-only: mark thesis resolved or invalidated (or clear). Fires alerts when starred / open book. */
+  setManualThesisOutcome: (thesisId: string, status: "resolved" | "invalidated" | null, thesisTitle: string) => void;
   /** Re-read positions from session storage (call after opening/closing a book position). */
   syncOpenIdsFromBook: () => void;
   tickerItems: LiveSignalTickerItem[];
@@ -166,6 +183,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [alerts, setAlerts] = useState<ThesisAlertEntry[]>([]);
   const [pulseMap, setPulseMap] = useState<Record<string, number>>({});
   const [outToast, setOutToast] = useState<Toast>(null);
+  const [outcomeEpoch, setOutcomeEpoch] = useState(0);
 
   const overridesRef = useRef(overrides);
   overridesRef.current = overrides;
@@ -178,7 +196,16 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     setStarred(loadStarred());
   }, []);
 
-  const mergeThesisCb = useCallback((t: Thesis) => mergeThesis(t, overrides[t.id]), [overrides]);
+  useEffect(() => {
+    const on = () => setOutcomeEpoch((e) => e + 1);
+    window.addEventListener(DEPTH4_THESIS_OUTCOMES_CHANGED, on);
+    return () => window.removeEventListener(DEPTH4_THESIS_OUTCOMES_CHANGED, on);
+  }, []);
+
+  const mergeThesisCb = useCallback(
+    (t: Thesis) => applyManualOutcome(mergeThesis(t, overrides[t.id])),
+    [overrides],
+  );
 
   const isManuallyStarred = useCallback((thesisId: string) => starred.has(thesisId), [starred]);
 
@@ -205,7 +232,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   const sortPinnedFirst = useCallback(
     (list: Thesis[]) => {
-      const merged = list.map((t) => mergeThesis(t, overrides[t.id]));
+      const merged = list.map((t) => applyManualOutcome(mergeThesis(t, overrides[t.id])));
       const pinned = merged.filter((t) => starred.has(t.id) || openIds.has(t.id));
       const rest = merged.filter((t) => !starred.has(t.id) && !openIds.has(t.id));
       return [...sortThesesForDashboard(pinned), ...sortThesesForDashboard(rest)];
@@ -221,6 +248,45 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     };
     setAlerts((cur) => [entry, ...cur].slice(0, MAX_ALERTS));
   }, []);
+
+  const setManualThesisOutcome = useCallback(
+    (thesisId: string, status: "resolved" | "invalidated" | null, thesisTitle: string) => {
+      if (status === null) setThesisOutcome(thesisId, null);
+      else setThesisOutcome(thesisId, { status, at: new Date().toISOString() });
+      setOutcomeEpoch((e) => e + 1);
+      setPulseMap((m) => ({ ...m, [thesisId]: (m[thesisId] ?? 0) + 1 }));
+
+      if (status !== null) {
+        const eff = starredRef.current.has(thesisId) || openIdsRef.current.has(thesisId);
+        const human = status === "resolved" ? "Resolved" : "Invalidated";
+        const line =
+          status === "resolved"
+            ? "You marked this thesis resolved — optional context only unless you reopen the idea."
+            : "You marked this thesis invalidated — stand down on new risk from this thread until you rebuild the case.";
+        const body = [
+          thesisTitle,
+          line,
+          `Thesis impact: ${human.toLowerCase()} (manual).`,
+          `Check Book for open or closed lines linked to this thesis.`,
+          `Stance: Exit / stand down on new risk from this thread.`,
+        ].join("\n");
+        if (eff) {
+          pushAlert({
+            thesisId,
+            thesisTitle,
+            body,
+            impact: status === "invalidated" ? "invalidated" : "neutral",
+          });
+          const tid = newAlertId();
+          setOutToast({ id: tid, message: `DEPTH4: ${thesisTitle} — ${human} (manual). Review Book in context.` });
+          window.setTimeout(() => {
+            setOutToast((cur) => (cur?.id === tid ? null : cur));
+          }, 6200);
+        }
+      }
+    },
+    [pushAlert],
+  );
 
   const dismissAlert = useCallback((id: string) => {
     setAlerts((cur) => cur.filter((x) => x.id !== id));
@@ -252,7 +318,11 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     if (!simActive) return;
     const tick = () => {
       setOpenIds(openPositionThesisIds());
-      const pool = MOCK_THESES;
+      const pool = MOCK_THESES.filter((t) => {
+        if (getThesisOutcome(t.id)) return false;
+        const cur = mergeThesis(t, overridesRef.current[t.id]);
+        return cur.status !== "resolved" && cur.status !== "invalidated";
+      });
       if (!pool.length) return;
 
       const base = randomPick(pool);
@@ -373,14 +443,16 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(idt);
   }, [simActive, pushAlert]);
 
-  const value = useMemo<Ctx>(
-    () => ({
+  const value = useMemo<Ctx>(() => {
+    void outcomeEpoch;
+    return {
       mergeThesis: mergeThesisCb,
       sortPinnedFirst,
       isManuallyStarred,
       isEffectivelyStarred,
       toggleStar,
       starDisabledReason,
+      setManualThesisOutcome,
       syncOpenIdsFromBook,
       tickerItems,
       alerts,
@@ -390,7 +462,8 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       pulseKey,
       outToast,
       dismissToast,
-    }),
+    };
+  },
     [
       mergeThesisCb,
       sortPinnedFirst,
@@ -398,6 +471,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       isEffectivelyStarred,
       toggleStar,
       starDisabledReason,
+      setManualThesisOutcome,
       syncOpenIdsFromBook,
       tickerItems,
       alerts,
@@ -407,6 +481,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       pulseKey,
       outToast,
       dismissToast,
+      outcomeEpoch,
     ],
   );
 

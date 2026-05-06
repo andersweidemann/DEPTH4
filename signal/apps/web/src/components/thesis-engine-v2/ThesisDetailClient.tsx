@@ -11,6 +11,7 @@ import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
+import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomePanel";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
@@ -376,6 +377,7 @@ export function ThesisDetailClient({
         <EvidenceTimeline items={evidence} />
         <ScenarioPanel scenarios={scenarios} />
         <AdvisoryLog updates={advisoryLog} />
+        <ThesisOutcomePanel thesis={thesis} layout={layout} />
         <section>
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Related assets</h2>
           <div className="mt-3 flex flex-wrap gap-2">
