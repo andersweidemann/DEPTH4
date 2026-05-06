@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 import { computeSessionBookStats, type SessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
 import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
+
+/** Restrained positive / negative coloring for PnL-like strings. */
+export function bookStatTone(raw: string): string {
+  if (raw === "—") return "text-zinc-500";
+  const t = raw.trim();
+  if (t.startsWith("-")) return "text-rose-300/95";
+  if (t.startsWith("+")) return "text-emerald-300/95";
+  return "text-zinc-100";
+}
 
 function useSessionBookStats(): SessionBookStats {
   const [stats, setStats] = useState<SessionBookStats>(() => computeSessionBookStats(loadPositions()));
@@ -21,51 +31,125 @@ function useSessionBookStats(): SessionBookStats {
   return stats;
 }
 
-/** Compact summary for Book route under AppHeader live line. */
+function StatCell({
+  label,
+  value,
+  sub,
+  valueClassName,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-white/[0.07] bg-zinc-950/40 px-3 py-2.5 sm:px-3.5 sm:py-3">
+      <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">{label}</p>
+      <p className={cn("mt-1.5 text-lg font-semibold tabular-nums tracking-tight sm:text-xl", valueClassName ?? "text-zinc-50")}>
+        {value}
+      </p>
+      {sub ? <p className="mt-0.5 text-[10px] leading-snug text-zinc-600">{sub}</p> : null}
+    </div>
+  );
+}
+
+/** Book route: summary under AppHeader live line. */
 export function BookHeaderSummary() {
   const s = useSessionBookStats();
   return (
     <div
-      className="mt-3 rounded-lg border border-amber-500/15 bg-amber-500/[0.04] px-3 py-2.5 sm:mt-4"
+      className="mt-3 rounded-xl border border-white/[0.08] bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 px-3 py-3 shadow-sm sm:mt-4 sm:px-4 sm:py-3.5"
       aria-label="Session book performance summary"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/70">Your book · this session</p>
-      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-[11px] tabular-nums text-zinc-300 sm:text-[12px]">
-        <span>
-          <span className="text-zinc-600">Open </span>
-          <span className="font-semibold text-zinc-100">{s.openCount}</span>
-        </span>
-        <span>
-          <span className="text-zinc-600">Closed </span>
-          <span className="font-semibold text-zinc-100">{s.closedCount}</span>
-        </span>
-        <span>
-          <span className="text-zinc-600">Realized </span>
-          <span className="font-semibold text-zinc-100">{s.realizedStr}</span>
-        </span>
-        <span>
-          <span className="text-zinc-600">Unrealized </span>
-          <span className="font-semibold text-zinc-100">{s.unrealizedStr}</span>
-        </span>
-        <span>
-          <span className="text-zinc-600">Win rate </span>
-          <span className="font-semibold text-zinc-100">{s.winRateStr}</span>
-        </span>
-        <span>
-          <span className="text-zinc-600">Avg / trade </span>
-          <span className="font-semibold text-zinc-100">{s.avgReturnStr}</span>
-        </span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Your book · session</p>
+        <p className="text-[9px] text-zinc-600">Full closes only for win rate and averages</p>
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCell label="Open" value={s.openCount} />
+        <StatCell label="Closed trades" value={s.closedTradeCount} sub="User exits" />
+        <StatCell label="Realized" value={s.realizedStr} valueClassName={bookStatTone(s.realizedStr)} />
+        <StatCell label="Unrealized" value={s.unrealizedStr} valueClassName={bookStatTone(s.unrealizedStr)} />
+        <StatCell label="Win rate" value={s.winRateStr} />
+        <StatCell label="Avg / close" value={s.avgReturnStr} sub="Per closed trade" valueClassName={bookStatTone(s.avgReturnStr)} />
+      </div>
+      <div className="mt-2 hidden border-t border-white/[0.06] pt-2.5 sm:grid sm:grid-cols-2 sm:gap-2 lg:grid-cols-4">
+        <div className="rounded-md bg-zinc-900/50 px-2.5 py-2">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Best close</p>
+          <p className={cn("mt-0.5 text-sm font-semibold tabular-nums", bookStatTone(s.bestClosedStr))}>{s.bestClosedStr}</p>
+        </div>
+        <div className="rounded-md bg-zinc-900/50 px-2.5 py-2">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Worst close</p>
+          <p className={cn("mt-0.5 text-sm font-semibold tabular-nums", bookStatTone(s.worstClosedStr))}>{s.worstClosedStr}</p>
+        </div>
+        <div className="rounded-md bg-zinc-900/50 px-2.5 py-2">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Last close</p>
+          <p className="mt-0.5 truncate text-sm font-medium text-zinc-200" title={s.lastClosedStr}>
+            {s.lastClosedStr}
+          </p>
+        </div>
+        <div className="rounded-md bg-zinc-900/50 px-2.5 py-2">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Avg hold</p>
+          <p className="mt-0.5 text-sm font-semibold tabular-nums text-zinc-200">{s.avgHoldStr}</p>
+        </div>
       </div>
     </div>
   );
 }
 
-/** One-line strip for inside Book body (optional echo of header metrics). */
-export function BookSessionInlineStrip({ stats }: { stats: SessionBookStats }) {
+/** Main Book page performance board (replaces duplicate strip + basic grid). */
+export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats }) {
   return (
-    <p className="mt-2 rounded-md border border-white/[0.06] bg-zinc-900/35 px-3 py-2 font-mono text-[10px] leading-relaxed text-zinc-400 sm:text-[11px]">
-      <span className="text-zinc-600">Strip · </span>
-      O:{stats.openCount} C:{stats.closedCount} R:{stats.realizedStr} U:{stats.unrealizedStr} WR:{stats.winRateStr}       Avg: {stats.avgReturnStr}
-    </p>
+    <section className="mt-8 rounded-xl border border-white/[0.08] bg-gradient-to-b from-zinc-900/50 to-zinc-950/80 p-4 shadow-sm sm:p-5">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <div>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Performance</h2>
+          <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-zinc-600">
+            Metrics use your session positions only. Closed-trade stats count <span className="text-zinc-500">full exits</span>{" "}
+            (<code className="text-[10px] text-zinc-500">closed</code>) with recorded PnL. Demo rows are listed separately below.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCell label="Open positions" value={stats.openCount} />
+        <StatCell label="Closed trades" value={stats.closedTradeCount} sub="Full user exits" />
+        <StatCell label="Realized PnL" value={stats.realizedStr} valueClassName={bookStatTone(stats.realizedStr)} />
+        <StatCell label="Unrealized PnL" value={stats.unrealizedStr} valueClassName={bookStatTone(stats.unrealizedStr)} />
+        <StatCell label="Win rate" value={stats.winRateStr} sub="Closed · decisive" />
+        <StatCell
+          label="Avg return"
+          value={stats.avgReturnStr}
+          sub="Per closed trade"
+          valueClassName={bookStatTone(stats.avgReturnStr)}
+        />
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 border-t border-white/[0.06] pt-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border border-white/[0.05] bg-zinc-950/35 px-3 py-2.5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Best closed trade</p>
+          <p className={cn("mt-1 text-base font-semibold tabular-nums sm:text-lg", bookStatTone(stats.bestClosedStr))}>
+            {stats.bestClosedStr}
+          </p>
+        </div>
+        <div className="rounded-lg border border-white/[0.05] bg-zinc-950/35 px-3 py-2.5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Worst closed trade</p>
+          <p className={cn("mt-1 text-base font-semibold tabular-nums sm:text-lg", bookStatTone(stats.worstClosedStr))}>
+            {stats.worstClosedStr}
+          </p>
+        </div>
+        <div className="rounded-lg border border-white/[0.05] bg-zinc-950/35 px-3 py-2.5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Last closed trade</p>
+          <p className="mt-1 truncate text-sm font-semibold text-zinc-100 sm:text-base" title={stats.lastClosedStr}>
+            {stats.lastClosedStr}
+          </p>
+        </div>
+        <div className="rounded-lg border border-white/[0.05] bg-zinc-950/35 px-3 py-2.5">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Avg hold time</p>
+          <p className="mt-1 text-base font-semibold tabular-nums text-zinc-100 sm:text-lg">{stats.avgHoldStr}</p>
+          <p className="mt-0.5 text-[9px] text-zinc-600">Mean open → exit (closed)</p>
+        </div>
+      </div>
+    </section>
   );
 }
