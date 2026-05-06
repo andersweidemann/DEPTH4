@@ -63,8 +63,11 @@ export function UpgradeModal({
         <Dialog.Overlay className="fixed inset-0 z-[220] bg-black/55" />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-[221] w-[92vw] max-w-lg -translate-x-1/2 -translate-y-1/2",
-            "rounded-xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl",
+            // Mobile: bottom-sheet. Desktop: centered modal.
+            "fixed inset-x-0 bottom-0 z-[221] w-full max-w-none translate-x-0 translate-y-0",
+            "rounded-t-2xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl",
+            "sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[92vw] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2",
+            "sm:rounded-xl",
             "focus:outline-none",
           )}
           aria-describedby={undefined}
@@ -86,7 +89,7 @@ export function UpgradeModal({
           </div>
 
           <div className="px-5 py-4">
-            <p className="text-[12px] leading-relaxed text-zinc-400">{subcopy}</p>
+            <p className="text-[13px] leading-relaxed text-zinc-400 sm:text-[12px]">{subcopy}</p>
 
             <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/25 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">At a glance</p>
@@ -103,7 +106,7 @@ export function UpgradeModal({
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                className="rounded-md bg-amber-500 px-3 py-2 text-[11px] font-semibold text-zinc-950 hover:bg-amber-400"
+                className="min-h-11 rounded-md bg-amber-500 px-4 py-2.5 text-[14px] font-semibold text-zinc-950 hover:bg-amber-400 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
                 onClick={() => {
                   setPlan(requiredPlan);
                   onOpenChange(false);
@@ -116,20 +119,20 @@ export function UpgradeModal({
               {requiredPlan === "creator" ? (
                 <a
                   href="mailto:sales@depth4.example?subject=DEPTH4%20Creator%20plan"
-                  className="rounded-md bg-amber-500/15 px-3 py-2 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20"
+                  className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
                 >
                   {secondary}
                 </a>
               ) : (
                 <Link
                   href="/pricing"
-                  className="rounded-md bg-amber-500/15 px-3 py-2 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20"
+                  className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
                 >
                   {secondary}
                 </Link>
               )}
 
-              <Dialog.Close className="rounded-md px-3 py-2 text-[11px] font-medium text-zinc-500 hover:bg-zinc-900/60">
+              <Dialog.Close className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500">
                 Not now
               </Dialog.Close>
             </div>

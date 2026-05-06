@@ -44,17 +44,25 @@ export default function PricingPage() {
             Start free. Upgrade when you&apos;re ready to create your own theses, publish them, or turn your track record into revenue.
           </p>
         </div>
-        <div className="flex items-center justify-center gap-2 text-xs text-zinc-400">
+        <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-400">
           <button
             type="button"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), billing === "monthly" && "bg-zinc-800 text-white")}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "min-h-11 px-4 text-[14px] sm:min-h-0 sm:px-3 sm:text-xs",
+              billing === "monthly" && "bg-zinc-800 text-white",
+            )}
             onClick={() => setBilling("monthly")}
           >
             Monthly
           </button>
           <button
             type="button"
-            className={cn(buttonVariants({ variant: "ghost", size: "sm" }), billing === "yearly" && "bg-zinc-800 text-white")}
+            className={cn(
+              buttonVariants({ variant: "ghost", size: "sm" }),
+              "min-h-11 px-4 text-[14px] sm:min-h-0 sm:px-3 sm:text-xs",
+              billing === "yearly" && "bg-zinc-800 text-white",
+            )}
             onClick={() => setBilling("yearly")}
           >
             Yearly (2 months free)
@@ -161,10 +169,11 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 sm:p-6">
           <h2 className="text-sm font-semibold text-zinc-100">Comparison</h2>
           <p className="mt-2 text-sm text-zinc-500">{annualNote}</p>
-          <div className="mt-5 overflow-x-auto">
+          <p className="mt-4 text-[11px] text-zinc-600 sm:hidden">Tip: swipe the table to see all columns.</p>
+          <div className="mt-4 overflow-x-auto sm:mt-5">
             <table className="w-full text-left text-sm">
               <thead className="text-[11px] uppercase tracking-wider text-zinc-500">
                 <tr>

@@ -26,7 +26,7 @@ export function LeaderboardClient() {
           <select
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value as typeof timeframe)}
-            className="h-9 rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 text-[11px] font-medium text-zinc-200 outline-none"
+            className="h-11 rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 text-[16px] font-medium text-zinc-200 outline-none sm:h-9 sm:text-[11px]"
           >
             <option value="all">All-time</option>
             <option value="6m">Last 6 months</option>
@@ -37,7 +37,7 @@ export function LeaderboardClient() {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as typeof category)}
-            className="h-9 rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 text-[11px] font-medium text-zinc-200 outline-none"
+            className="h-11 rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 text-[16px] font-medium text-zinc-200 outline-none sm:h-9 sm:text-[11px]"
           >
             <option value="all">All</option>
             <option value="macro">Macro</option>
@@ -51,6 +51,7 @@ export function LeaderboardClient() {
         <p className="text-[11px] text-zinc-600">Controls are non-functional in the dummy.</p>
       </div>
 
+      <p className="mt-3 text-[11px] text-zinc-600 sm:hidden">Tip: swipe the table to see all columns.</p>
       <div className="mt-10 overflow-x-auto rounded-lg border border-white/[0.06] bg-zinc-900/20">
         <table className="w-full min-w-[560px] text-left">
           <thead className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">

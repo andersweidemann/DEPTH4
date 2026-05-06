@@ -159,8 +159,11 @@ export function CreateThesisModal({
         <Dialog.Overlay className="fixed inset-0 z-[200] bg-black/55" />
         <Dialog.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-[201] w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2",
-            "rounded-xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl",
+            // Mobile: fullscreen sheet. Desktop: centered modal.
+            "fixed inset-0 z-[201] w-full max-w-none translate-x-0 translate-y-0",
+            "rounded-none border-0 bg-[#0c0c0e] shadow-2xl",
+            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2",
+            "sm:rounded-xl sm:border sm:border-white/[0.08]",
             "focus:outline-none",
           )}
           aria-describedby={undefined}
@@ -180,7 +183,7 @@ export function CreateThesisModal({
             </Dialog.Close>
           </div>
 
-          <div className="max-h-[70vh] overflow-y-auto px-5 py-4">
+          <div className="h-[calc(100dvh-132px)] overflow-y-auto px-5 py-4 sm:max-h-[70vh] sm:h-auto">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
@@ -189,7 +192,7 @@ export function CreateThesisModal({
                 <input
                   value={form.title}
                   onChange={(e) => set("title", e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200 placeholder:text-zinc-600"
+                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -201,7 +204,7 @@ export function CreateThesisModal({
                   value={form.thesisStatement}
                   onChange={(e) => set("thesisStatement", e.target.value)}
                   rows={3}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] leading-relaxed text-zinc-200 placeholder:text-zinc-600"
+                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -210,7 +213,7 @@ export function CreateThesisModal({
                 <input
                   value={form.asset}
                   onChange={(e) => set("asset", e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 font-mono text-[12px] text-zinc-200 placeholder:text-zinc-600"
+                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 font-mono text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -222,7 +225,7 @@ export function CreateThesisModal({
                   <input
                     value={form.probability}
                     onChange={(e) => set("probability", e.target.value)}
-                    className="w-28 rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200 placeholder:text-zinc-600"
+                    className="w-28 rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                     inputMode="numeric"
                   />
                   <span className="text-[11px] text-zinc-500">%</span>
@@ -237,7 +240,7 @@ export function CreateThesisModal({
                   value={form.marketMisread}
                   onChange={(e) => set("marketMisread", e.target.value)}
                   rows={2}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] leading-relaxed text-zinc-200 placeholder:text-zinc-600"
+                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -247,7 +250,7 @@ export function CreateThesisModal({
                   value={form.trigger}
                   onChange={(e) => set("trigger", e.target.value)}
                   rows={2}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] leading-relaxed text-zinc-200 placeholder:text-zinc-600"
+                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -257,7 +260,7 @@ export function CreateThesisModal({
                   value={form.invalidation}
                   onChange={(e) => set("invalidation", e.target.value)}
                   rows={2}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] leading-relaxed text-zinc-200 placeholder:text-zinc-600"
+                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -266,7 +269,7 @@ export function CreateThesisModal({
                 <input
                   value={form.horizon}
                   onChange={(e) => set("horizon", e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200 placeholder:text-zinc-600"
+                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -279,19 +282,19 @@ export function CreateThesisModal({
                     value={form.entry}
                     onChange={(e) => set("entry", e.target.value)}
                     placeholder="Entry"
-                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200 placeholder:text-zinc-600"
+                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                   />
                   <input
                     value={form.stop}
                     onChange={(e) => set("stop", e.target.value)}
                     placeholder="Stop"
-                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200 placeholder:text-zinc-600"
+                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                   />
                   <input
                     value={form.target}
                     onChange={(e) => set("target", e.target.value)}
                     placeholder="Target"
-                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200 placeholder:text-zinc-600"
+                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                   />
                 </div>
               </div>
@@ -303,13 +306,13 @@ export function CreateThesisModal({
               DEPTH4 will monitor signals against your trigger and log probability changes over time (dummy).
             </p>
             <div className="flex items-center gap-2">
-              <Dialog.Close className="rounded-md px-3 py-2 text-[11px] font-medium text-zinc-500 hover:bg-zinc-900/60">
+              <Dialog.Close className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500">
                 Cancel
               </Dialog.Close>
               <button
                 type="button"
                 className={cn(
-                  "rounded-md px-3 py-2 text-[11px] font-semibold",
+                  "min-h-11 rounded-md px-4 py-2.5 text-[14px] font-semibold sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]",
                   canSubmit
                     ? "bg-amber-500/15 text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20"
                     : "bg-zinc-900/40 text-zinc-600 ring-1 ring-white/[0.06] cursor-not-allowed",

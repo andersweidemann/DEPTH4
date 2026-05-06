@@ -47,7 +47,7 @@ export function AppHeader({
     <Link
       href={href}
       className={cn(
-        "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
+        "min-h-11 rounded-md px-3 py-2 text-[13px] font-medium transition-colors sm:min-h-0 sm:py-1.5 sm:text-xs",
         active === id
           ? "bg-zinc-800 text-zinc-100"
           : "text-zinc-500 hover:text-zinc-300",
@@ -59,7 +59,7 @@ export function AppHeader({
 
   return (
     <header className="border-b border-white/[0.06] bg-[#0c0c0e]/95 backdrop-blur-sm">
-      <div className="mx-auto max-w-3xl px-5 pt-7 pb-4">
+      <div className="mx-auto max-w-3xl px-4 pt-6 pb-4 sm:px-5 sm:pt-7">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -76,13 +76,13 @@ export function AppHeader({
           <div className="flex items-center gap-2">
             <Link
               href="/pricing"
-              className="rounded border border-white/[0.08] bg-zinc-900/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-300 hover:bg-zinc-900/60"
+              className="min-h-11 rounded border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] font-semibold text-zinc-200 hover:bg-zinc-900/60 sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[10px] sm:uppercase sm:tracking-wider sm:text-zinc-300"
               title="View plans"
             >
               Upgrade
             </Link>
             <select
-              className="rounded border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-200/90 outline-none"
+              className="min-h-11 rounded border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[16px] font-semibold text-amber-100 outline-none sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[10px] sm:uppercase sm:tracking-wider sm:text-amber-200/90"
               value={plan}
               onChange={(e) => setPlan(e.target.value as (typeof V2_PLAN_ORDER)[number])}
               aria-label="Plan (demo)"
@@ -96,14 +96,17 @@ export function AppHeader({
             </select>
           </div>
         </div>
-        <nav className="mt-6 flex flex-wrap items-center gap-1" aria-label="Primary">
+        <nav
+          className="mt-5 -mx-1 flex flex-nowrap items-center gap-1 overflow-x-auto px-1 pb-1 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+          aria-label="Primary"
+        >
           {tab("theses", "/theses", "Theses")}
           {tab("feed", "/feed-2", "Feed")}
           {tab("book", "/book-2", "Book")}
           {tab("community", "/community", "Community")}
           {tab("leaderboard", "/leaderboard", "Leaderboard")}
         </nav>
-        <p className="mt-4 text-[11px] text-zinc-500">{liveLine}</p>
+        <p className="mt-3 text-[12px] leading-relaxed text-zinc-500 sm:mt-4 sm:text-[11px]">{liveLine}</p>
       </div>
     </header>
   );
