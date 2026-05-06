@@ -6,6 +6,7 @@ import { StatusBadge } from "./StatusBadge";
 
 export function ThesisCard({ thesis }: { thesis: Thesis }) {
   const tradeable = thesis.qualification === "tradeable";
+  const isUser = thesis.origin === "user";
   return (
     <Link
       href={`/theses/${thesis.slug}`}
@@ -24,6 +25,11 @@ export function ThesisCard({ thesis }: { thesis: Thesis }) {
           {tradeable && (
             <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300 ring-1 ring-amber-500/25 bg-amber-500/10">
               Tradeable
+            </span>
+          )}
+          {isUser && (
+            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300 ring-1 ring-white/[0.08] bg-zinc-900/40">
+              User thesis
             </span>
           )}
         </div>

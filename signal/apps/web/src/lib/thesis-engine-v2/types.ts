@@ -27,6 +27,7 @@ export type Thesis = {
   probability: number;
   status: ThesisStatus;
   probabilityRationale: string;
+  origin?: "system" | "user";
 
   // causal framework
   hiddenDriver: string;
