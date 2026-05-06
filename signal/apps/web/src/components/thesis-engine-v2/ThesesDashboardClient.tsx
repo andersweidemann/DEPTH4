@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
+import { ActionablePing } from "@/components/thesis-engine-v2/ActionablePing";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
@@ -91,6 +92,7 @@ export function ThesesDashboardClient({
   return (
     <>
       <LiveSignalTicker items={liveSignals} intervalMs={12_000} />
+      <ActionablePing theses={sorted} />
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

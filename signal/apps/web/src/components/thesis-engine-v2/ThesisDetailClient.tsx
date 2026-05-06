@@ -11,8 +11,10 @@ import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
+import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
+import { openPositionForThesis, upsertPosition } from "@/lib/thesis-engine-v2/positions-store";
 import { cn } from "@/lib/utils";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { canUse } from "@/lib/thesis-engine-v2/plan";
@@ -23,6 +25,8 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => getThesisDetail(slug) ?? null);
   const [needPro, setNeedPro] = useState(false);
   const [needCreator, setNeedCreator] = useState(false);
+  const [openPos, setOpenPos] = useState(false);
+  const [hasOpen, setHasOpen] = useState(false);
 
   useEffect(() => {
     const sys = getThesisDetail(slug);
@@ -34,6 +38,11 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
     if (ut) setBundle(bundleForUserThesis(ut));
     else setBundle(null);
   }, [slug]);
+
+  useEffect(() => {
+    if (!bundle) return;
+    setHasOpen(!!openPositionForThesis(bundle.thesis.id));
+  }, [bundle]);
 
   const actionable = useMemo(() => MOCK_THESES.filter((t) => t.status === "actionable").length, []);
   const liveLine = `${MOCK_THESES.length} theses tracked · ${actionable} ready to trade · last update 2 minutes ago`;
@@ -80,6 +89,7 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
   }
 
   const { thesis, evidence, scenarios, advisoryLog, relatedAssets } = bundle;
+  const entrySetupValid = thesis.status === "actionable" && thesis.probability >= 55;
 
   return (
     <>
@@ -94,6 +104,30 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
         <div className="mt-6">
           <ThesisHero thesis={thesis} />
         </div>
+
+        {(entrySetupValid || hasOpen) && (
+          <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/25 px-4 py-3 text-[12px] text-zinc-300">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {entrySetupValid && (
+                  <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/20">
+                    Entry setup valid
+                  </span>
+                )}
+                {hasOpen && (
+                  <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200 ring-1 ring-emerald-500/20">
+                    In your book · Active position
+                  </span>
+                )}
+              </div>
+              {!hasOpen && (
+                <span className="text-[11px] text-zinc-500">
+                  Probability crossed threshold{thesis.entryZone ? ` · entry zone ${thesis.entryZone}` : ""}.
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
@@ -115,6 +149,14 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
             </button>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-200/90 hover:bg-emerald-500/15"
+              onClick={() => setOpenPos(true)}
+              title="Open a linked position in your Book (dummy)"
+            >
+              Open position
+            </button>
             <button
               type="button"
               className="rounded-md border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
@@ -249,6 +291,16 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
         onOpenChange={setNeedCreator}
         requiredPlan="creator"
         featureLabel="Monetization tools"
+      />
+
+      <OpenPositionModal
+        open={openPos}
+        onOpenChange={setOpenPos}
+        thesis={thesis}
+        onCreate={(p) => {
+          upsertPosition(p);
+          setHasOpen(true);
+        }}
       />
     </>
   );

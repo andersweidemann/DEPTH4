@@ -89,13 +89,28 @@ export type ThesisUpdate = {
   text: string;
 };
 
+export type TradeStatus = "draft" | "open" | "closed" | "stopped" | "cancelled";
+
 export type Position = {
   id: string;
   symbol: string;
   side: "long" | "short";
   linkedThesisId: string;
   thesisStatus: ThesisStatus;
-  recommendation: AdvisoryAction;
+  tradeStatus: TradeStatus;
+  openedAt: string; // ISO
+  closedAt?: string; // ISO
+  entryPrice?: number;
+  size?: number; // contracts/shares/units
+  stopLoss?: number;
+  takeProfit?: number;
+  notes?: string;
+
+  // dummy analytics (optional / best-effort)
+  currentPnl?: string; // "+$120" / "-0.6R" / "—"
+  realizedPnl?: string;
+
+  recommendation: AdvisoryAction; // thesis stance (not trade status)
   probability: number;
   latestUpdate: string;
 };

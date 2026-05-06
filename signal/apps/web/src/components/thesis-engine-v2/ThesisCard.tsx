@@ -7,10 +7,14 @@ import { StatusBadge } from "./StatusBadge";
 export function ThesisCard({ thesis }: { thesis: Thesis }) {
   const tradeable = thesis.qualification === "tradeable";
   const isUser = thesis.origin === "user";
+  const entrySetupValid = thesis.status === "actionable" && thesis.probability >= 55;
   return (
     <Link
       href={`/theses/${thesis.slug}`}
-      className="group block rounded-lg border border-white/[0.06] bg-zinc-900/40 p-5 transition-colors hover:border-amber-500/20 hover:bg-zinc-900/70"
+      className={[
+        "group block rounded-lg border bg-zinc-900/40 p-5 transition-colors hover:bg-zinc-900/70",
+        entrySetupValid ? "border-amber-500/25 hover:border-amber-500/35" : "border-white/[0.06] hover:border-amber-500/20",
+      ].join(" ")}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -22,6 +26,11 @@ export function ThesisCard({ thesis }: { thesis: Thesis }) {
         <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
           <DirectionBadge direction={thesis.direction} />
           <StatusBadge status={thesis.status} />
+          {entrySetupValid && (
+            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/25 bg-amber-500/10">
+              Entry setup valid
+            </span>
+          )}
           {tradeable && (
             <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300 ring-1 ring-amber-500/25 bg-amber-500/10">
               Tradeable
