@@ -8,6 +8,7 @@ import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
+import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
@@ -170,6 +171,8 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
         </div>
 
         <div className="mt-12 space-y-12">
+          <ThesisAssistantPanel bundle={bundle} />
+
           <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why this thesis exists</h2>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
