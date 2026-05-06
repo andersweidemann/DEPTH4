@@ -160,6 +160,15 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
           <AnswerBlock kicker="Trade">{thesis.trade}</AnswerBlock>
         </div>
 
+        <div className="mt-3">
+          <Link
+            href="/help#read-a-thesis"
+            className="text-[11px] font-medium text-zinc-600 hover:text-amber-200/90"
+          >
+            How to read a thesis →
+          </Link>
+        </div>
+
         <div className="mt-12 space-y-12">
           <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why this thesis exists</h2>

@@ -16,6 +16,9 @@ export function LegalFooter({ variant = "default" }: { variant?: "default" | "mi
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-3 text-[12px] text-zinc-500">
           <div className="flex flex-wrap items-center gap-3">
+            <Link className="hover:text-zinc-300" href="/help">
+              Help
+            </Link>
             <Link className="hover:text-zinc-300" href="/terms">
               Terms
             </Link>

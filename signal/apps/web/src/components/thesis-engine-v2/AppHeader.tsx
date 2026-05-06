@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { V2_PLAN_LABEL, V2_PLAN_ORDER } from "@/lib/thesis-engine-v2/plan";
 
-export type ThesisNavTab = "theses" | "feed" | "book" | "community" | "leaderboard";
+export type ThesisNavTab = "theses" | "feed" | "book" | "community" | "leaderboard" | "help";
 
 function DepthMark({ className }: { className?: string }) {
   // Minimal, institutional mark: 4 nodes with forward path.
@@ -105,6 +105,7 @@ export function AppHeader({
           {tab("book", "/book-2", "Book")}
           {tab("community", "/community", "Community")}
           {tab("leaderboard", "/leaderboard", "Leaderboard")}
+          {tab("help", "/help", "Help")}
         </nav>
         <p className="mt-3 text-[12px] leading-relaxed text-zinc-500 sm:mt-4 sm:text-[11px]">{liveLine}</p>
       </div>
