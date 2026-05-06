@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
+import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
+import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { AdvisoryLog } from "@/components/thesis-engine-v2/AdvisoryLog";
 import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
@@ -18,6 +20,7 @@ import { openPositionForThesis, upsertPosition } from "@/lib/thesis-engine-v2/po
 import { cn } from "@/lib/utils";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { canUse } from "@/lib/thesis-engine-v2/plan";
+import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 
 export function ThesisDetailClient({
@@ -30,6 +33,7 @@ export function ThesisDetailClient({
   onClose?: () => void;
 }) {
   const { plan } = useV2Plan();
+  const liveOpt = useThesisLiveOptional();
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => getThesisDetail(slug) ?? null);
   const [needPro, setNeedPro] = useState(false);
   const [needCreator, setNeedCreator] = useState(false);
@@ -49,8 +53,21 @@ export function ThesisDetailClient({
 
   useEffect(() => {
     if (!bundle) return;
-    setHasOpen(!!openPositionForThesis(bundle.thesis.id));
+    const sync = () => setHasOpen(!!openPositionForThesis(bundle.thesis.id));
+    sync();
+    const t = window.setInterval(sync, 2000);
+    return () => window.clearInterval(t);
   }, [bundle]);
+
+  const thesisLive = useMemo(() => {
+    if (!bundle) return null;
+    return liveOpt ? liveOpt.mergeThesis(bundle.thesis) : bundle.thesis;
+  }, [bundle, liveOpt]);
+
+  const assistBundle = useMemo(() => {
+    if (!bundle || !thesisLive) return null;
+    return { ...bundle, thesis: thesisLive };
+  }, [bundle, thesisLive]);
 
   const readyCount = useMemo(() => MOCK_THESES.filter((t) => t.status === "ready").length, []);
   const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
@@ -96,7 +113,7 @@ export function ThesisDetailClient({
     }
     return (
       <>
-        <AppHeader active="theses" liveLine={liveLine} />
+        <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
         <main className="mx-auto max-w-3xl px-5 pb-24 pt-8">
           <Link
             href="/theses"
@@ -115,8 +132,11 @@ export function ThesisDetailClient({
     );
   }
 
-  const { thesis, evidence, scenarios, advisoryLog, relatedAssets } = bundle;
+  const { evidence, scenarios, advisoryLog, relatedAssets } = bundle;
+  const thesis = thesisLive!;
   const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
+  const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
+  const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
 
   const inner = (
     <>
@@ -160,6 +180,20 @@ export function ThesisDetailClient({
         )}
       >
         <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
+          {liveOpt ? (
+            <ThesisStarButton
+              filled={liveStarred}
+              disabled={starDisabled}
+              title={
+                starDisabled
+                  ? (liveOpt.starDisabledReason(thesis.id) ?? undefined)
+                  : liveStarred
+                    ? "Starred — alerts on"
+                    : "Star — bookmark and subscribe"
+              }
+              onClick={() => liveOpt.toggleStar(thesis.id)}
+            />
+          ) : null}
           <button
             type="button"
             className="rounded border border-white/[0.06] bg-zinc-900/30 px-2 py-0.5 font-semibold uppercase tracking-wide text-zinc-400 hover:bg-zinc-900/50"
@@ -238,7 +272,7 @@ export function ThesisDetailClient({
       </div>
 
       <div className={cn("mt-12 space-y-12", layout === "drawer" && "px-4 sm:px-5")}>
-        <ThesisAssistantPanel bundle={bundle} />
+        <ThesisAssistantPanel bundle={assistBundle!} />
 
         <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why this thesis exists</h2>
@@ -325,6 +359,7 @@ export function ThesisDetailClient({
         onCreate={(p) => {
           upsertPosition(p);
           setHasOpen(true);
+          liveOpt?.syncOpenIdsFromBook();
         }}
       />
     </>
@@ -341,7 +376,7 @@ export function ThesisDetailClient({
 
   return (
     <>
-      <AppHeader active="theses" liveLine={liveLine} />
+      <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8">
         <Link href="/theses" className="text-[11px] font-medium text-zinc-500 transition-colors hover:text-amber-500/90">
           ← All theses

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
+import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { CommunityThesisCard } from "@/components/thesis-engine-v2/CommunityThesisCard";
 import { MOCK_COMMUNITY_THESES, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
@@ -14,7 +15,7 @@ export default function CommunityPage() {
 
   return (
     <>
-      <AppHeader active="community" liveLine={liveLine} />
+      <AppHeader active="community" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>

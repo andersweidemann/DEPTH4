@@ -5,6 +5,8 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailClient";
+import { getThesisDetail } from "@/lib/thesis-engine-v2/mock-data";
+import { getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 
 const TRANSITION_MS = 300;
 
@@ -70,6 +72,9 @@ export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onC
 
   if (!slug) return null;
 
+  const drawerTitle =
+    getThesisDetail(slug)?.thesis.title ?? getUserThesisBySlug(slug)?.title ?? slug.replace(/-/g, " ");
+
   return (
     <div className="fixed inset-0 z-[85] flex justify-end" role="dialog" aria-modal="true" aria-label="Thesis detail">
       <button
@@ -91,12 +96,17 @@ export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onC
         onKeyDown={(e) => e.stopPropagation()}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] bg-[#151518] px-4 py-3 sm:px-5">
-          <Link
-            href={`/theses/${slug}`}
-            className="text-[11px] font-semibold text-amber-200/90 underline-offset-2 hover:text-amber-100 hover:underline"
-          >
-            Open full thesis
-          </Link>
+          <div className="min-w-0 flex-1 pr-2">
+            <p className="truncate text-[12px] font-semibold leading-snug text-zinc-100" title={drawerTitle}>
+              {drawerTitle}
+            </p>
+            <Link
+              href={`/theses/${slug}`}
+              className="mt-1 inline-block text-[10px] font-semibold text-amber-200/90 underline-offset-2 hover:text-amber-100 hover:underline"
+            >
+              Open full page →
+            </Link>
+          </div>
           <button
             ref={closeBtnRef}
             type="button"

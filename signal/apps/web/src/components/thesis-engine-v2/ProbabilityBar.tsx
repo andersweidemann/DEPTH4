@@ -5,7 +5,7 @@ export function ProbabilityBar({ value }: { value: number }) {
   return (
     <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800/80">
       <div
-        className="h-full rounded-full bg-amber-600/90 transition-[width] duration-500"
+        className="h-full rounded-full bg-amber-600/90 transition-[width] duration-700 ease-out"
         style={{ width: `${v}%` }}
         role="progressbar"
         aria-valuenow={v}

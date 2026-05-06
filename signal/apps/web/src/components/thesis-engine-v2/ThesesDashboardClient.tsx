@@ -7,10 +7,11 @@ import { ReadyPing } from "@/components/thesis-engine-v2/ReadyPing";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDrawer";
-import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
+import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDetail, isEmerging, isTradeable, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { canUse } from "@/lib/thesis-engine-v2/plan";
+import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 
 type AssetClass = "all" | "equity" | "rates" | "fx" | "commodities" | "crypto";
@@ -40,11 +41,10 @@ function assetClassFor(thesis: Thesis): AssetClass {
 
 export function ThesesDashboardClient({
   systemTheses,
-  liveSignals,
 }: {
   systemTheses: Thesis[];
-  liveSignals: LiveSignalTickerItem[];
 }) {
+  const live = useThesisLive();
   const { plan } = useV2Plan();
   const [open, setOpen] = useState(false);
   const [userTheses, setUserTheses] = useState<Thesis[]>([]);
@@ -59,9 +59,10 @@ export function ThesesDashboardClient({
   }, []);
 
   const sorted = useMemo(() => sortThesesForDashboard([...systemTheses, ...userTheses]), [systemTheses, userTheses]);
+  const liveSorted = useMemo(() => live.sortPinnedFirst(sorted), [live, sorted]);
   const moveBySlug = useMemo(() => {
     const m = new Map<string, number>();
-    for (const t of sorted) {
+    for (const t of liveSorted) {
       const b = getThesisDetail(t.slug);
       const ev = b?.evidence?.[0];
       if (!ev) {
@@ -71,10 +72,10 @@ export function ThesesDashboardClient({
       m.set(t.slug, Math.abs(ev.probabilityAfter - ev.probabilityBefore));
     }
     return m;
-  }, [sorted]);
+  }, [liveSorted]);
 
   const filtered = useMemo(() => {
-    let list = sorted;
+    let list = liveSorted;
     if (show === "ready") list = list.filter((t) => t.status === "ready");
     if (assetClass !== "all") list = list.filter((t) => assetClassFor(t) === assetClass);
 
@@ -85,15 +86,15 @@ export function ThesesDashboardClient({
       return parseRelativeMinutes(a.lastUpdated) - parseRelativeMinutes(b.lastUpdated);
     });
     return next;
-  }, [assetClass, moveBySlug, show, sortKey, sorted]);
+  }, [assetClass, moveBySlug, show, sortKey, liveSorted]);
 
   const tradeable = useMemo(() => filtered.filter(isTradeable), [filtered]);
   const emerging = useMemo(() => filtered.filter(isEmerging), [filtered]);
 
   return (
     <>
-      <LiveSignalTicker items={liveSignals} intervalMs={12_000} />
-      <ReadyPing theses={sorted} />
+      <LiveSignalTicker items={live.tickerItems} intervalMs={12_000} />
+      <ReadyPing theses={liveSorted} />
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -181,6 +182,7 @@ export function ThesesDashboardClient({
             key={thesis.id}
             thesis={thesis}
             selectedSlug={drawerSlug}
+            pulseKey={live.pulseKey(thesis.id)}
             onSelect={(s) => setDrawerSlug(s)}
           />
         ))}

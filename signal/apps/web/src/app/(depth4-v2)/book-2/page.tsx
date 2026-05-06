@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
+import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { BookClient } from "@/components/thesis-engine-v2/BookClient";
 import {
   MOCK_POSITIONS,
@@ -20,7 +21,7 @@ export default function Book2Page() {
 
   return (
     <>
-      <AppHeader active="book" liveLine={liveLine} />
+      <AppHeader active="book" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
         <BookClient
           mockPositions={MOCK_POSITIONS}

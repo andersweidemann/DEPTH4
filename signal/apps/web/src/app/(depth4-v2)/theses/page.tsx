@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
+import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { ThesesDashboardClient } from "@/components/thesis-engine-v2/ThesesDashboardClient";
-import { MOCK_LIVE_SIGNAL_TICKER, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Live theses",
@@ -14,9 +15,9 @@ export default function ThesesDashboardPage() {
 
   return (
     <>
-      <AppHeader active="theses" liveLine={liveLine} />
+      <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-6">
-        <ThesesDashboardClient systemTheses={MOCK_THESES} liveSignals={MOCK_LIVE_SIGNAL_TICKER} />
+        <ThesesDashboardClient systemTheses={MOCK_THESES} />
       </main>
     </>
   );

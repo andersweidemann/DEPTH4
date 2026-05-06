@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
@@ -38,9 +39,12 @@ function DepthMark({ className }: { className?: string }) {
 export function AppHeader({
   active,
   liveLine,
+  alertsSlot,
 }: {
   active: ThesisNavTab;
   liveLine: string;
+  /** Optional bell + notification panel (DEPTH4 v2 live alerts). */
+  alertsSlot?: ReactNode;
 }) {
   const { plan, setPlan } = useV2Plan();
   const tab = (id: ThesisNavTab, href: string, label: string) => (
@@ -74,6 +78,7 @@ export function AppHeader({
             <p className="mt-2 text-[10px] text-zinc-600">See how news will move markets before it happens</p>
           </div>
           <div className="flex items-center gap-2">
+            {alertsSlot}
             <Link
               href="/pricing"
               className="min-h-11 rounded border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] font-semibold text-zinc-200 hover:bg-zinc-900/60 sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[10px] sm:uppercase sm:tracking-wider sm:text-zinc-300"

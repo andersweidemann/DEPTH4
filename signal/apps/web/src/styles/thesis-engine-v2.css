@@ -15,3 +15,15 @@
 .te2-surface {
   background-color: var(--te2-surface);
 }
+
+@keyframes thesis-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 165, 116, 0);
+  }
+  35% {
+    box-shadow: 0 0 0 1px rgba(212, 165, 116, 0.22);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 165, 116, 0);
+  }
+}

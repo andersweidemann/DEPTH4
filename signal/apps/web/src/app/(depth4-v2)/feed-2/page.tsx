@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
+import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { FeedSignalCard } from "@/components/thesis-engine-v2/FeedSignalCard";
 import { MOCK_FEED_SIGNALS, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
@@ -14,7 +15,7 @@ export default function Feed2Page() {
 
   return (
     <>
-      <AppHeader active="feed" liveLine={liveLine} />
+      <AppHeader active="feed" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
         <h1 className="text-lg font-semibold tracking-tight text-zinc-100">Feed</h1>
         <p className="mt-3 max-w-xl text-[12px] leading-relaxed text-zinc-500">
