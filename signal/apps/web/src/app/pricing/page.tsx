@@ -6,25 +6,16 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { TIER_OFFERS } from "@/lib/tier";
-import { CheckoutButton } from "./CheckoutButton";
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
 
-  const prices = useMemo(() => {
-    const analyst = billing === "yearly"
-      ? process.env.NEXT_PUBLIC_STRIPE_PRICE_ANALYST_YEARLY || ""
-      : process.env.NEXT_PUBLIC_STRIPE_PRICE_ANALYST_MONTHLY || "";
-    const pro = billing === "yearly"
-      ? process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_YEARLY || ""
-      : process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY || "";
-    return { analyst, pro };
-  }, [billing]);
+  const annualNote = useMemo(() => "Annual pricing reflects 2 months free.", []);
 
   return (
     <div className="min-h-dvh bg-zinc-950 text-zinc-100">
       <header className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between max-w-5xl mx-auto w-full">
-        <Link href="/" className="font-semibold tracking-tight text-emerald-400">
+        <Link href="/" className="font-semibold tracking-tight text-amber-300">
           DEPTH4
         </Link>
         <div className="flex items-center gap-2">
@@ -39,17 +30,18 @@ export default function PricingPage() {
           </Link>
           <Link
             href="/signup?next=/onboarding"
-            className={cn(buttonVariants({ size: "sm" }), "bg-emerald-600 text-zinc-950 hover:bg-emerald-500")}
+            className={cn(buttonVariants({ size: "sm" }), "bg-amber-500 text-zinc-950 hover:bg-amber-400")}
           >
             Create account
           </Link>
         </div>
       </header>
-      <main className="max-w-5xl mx-auto px-4 py-12 space-y-10">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl md:text-4xl font-semibold">Plans</h1>
-          <p className="text-zinc-400 max-w-xl mx-auto text-sm">
-            Quality-first tiers for macro traders. Yearly saves 2 months.
+      <main className="max-w-5xl mx-auto px-4 py-12 space-y-12">
+        <div className="text-center space-y-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">DEPTH4</p>
+          <h1 className="text-3xl md:text-4xl font-semibold">Pricing</h1>
+          <p className="text-zinc-400 max-w-2xl mx-auto text-sm leading-relaxed">
+            Pricing is product logic. Each tier unlocks specific workflows: private theses → public publishing → creator monetization.
           </p>
         </div>
         <div className="flex items-center justify-center gap-2 text-xs text-zinc-400">
@@ -69,7 +61,7 @@ export default function PricingPage() {
           </button>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 flex flex-col text-left">
             <h2 className="text-lg font-semibold text-zinc-200">{TIER_OFFERS.free.name}</h2>
             <p className="text-3xl font-bold mt-2 text-zinc-50">{TIER_OFFERS.free.priceMonthly}</p>
@@ -93,25 +85,29 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          <div className="rounded-2xl border-2 border-emerald-500/50 bg-zinc-900/80 p-6 flex flex-col text-left relative overflow-hidden">
-            <span className="absolute top-3 right-3 text-[10px] font-bold uppercase bg-emerald-500 text-zinc-950 px-2 py-0.5 rounded">
+          <div className="rounded-2xl border-2 border-amber-500/40 bg-zinc-900/80 p-6 flex flex-col text-left relative overflow-hidden">
+            <span className="absolute top-3 right-3 text-[10px] font-bold uppercase bg-amber-500 text-zinc-950 px-2 py-0.5 rounded">
               {TIER_OFFERS.analyst.badge}
             </span>
-            <h2 className="text-lg font-semibold text-emerald-300">{TIER_OFFERS.analyst.name}</h2>
+            <h2 className="text-lg font-semibold text-amber-200/90">{TIER_OFFERS.analyst.name}</h2>
             <p className="text-3xl font-bold mt-2 text-zinc-50">
               {billing === "yearly" ? TIER_OFFERS.analyst.priceYearly : TIER_OFFERS.analyst.priceMonthly}
             </p>
-            <p className="text-sm text-zinc-500 mt-1">Stripe checkout · cancel in portal</p>
             <p className="text-sm text-zinc-400 mt-2">{TIER_OFFERS.analyst.description}</p>
             <ul className="mt-4 space-y-2.5 text-sm text-zinc-200 flex-1">
               {TIER_OFFERS.analyst.features.map((t) => (
                 <li key={t} className="flex gap-2">
-                  <Check className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <Check className="h-4 w-4 text-amber-300 shrink-0 mt-0.5" />
                   {t}
                 </li>
               ))}
             </ul>
-            <CheckoutButton priceId={prices.analyst} label="Go to Analyst checkout" cancelPath="/pricing" />
+            <Link
+              href="/signup?next=/onboarding"
+              className={cn(buttonVariants({ size: "default" }), "mt-6 w-full justify-center bg-amber-500 text-zinc-950 hover:bg-amber-400")}
+            >
+              Choose Analyst
+            </Link>
           </div>
 
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 flex flex-col text-left">
@@ -119,7 +115,6 @@ export default function PricingPage() {
             <p className="text-3xl font-bold mt-2 text-zinc-50">
               {billing === "yearly" ? TIER_OFFERS.pro.priceYearly : TIER_OFFERS.pro.priceMonthly}
             </p>
-            <p className="text-sm text-zinc-500 mt-1">Stripe checkout · cancel in portal</p>
             <p className="text-sm text-zinc-400 mt-2">{TIER_OFFERS.pro.description}</p>
             <ul className="mt-4 space-y-2.5 text-sm text-zinc-200 flex-1">
               {TIER_OFFERS.pro.features.map((t) => (
@@ -129,11 +124,126 @@ export default function PricingPage() {
                 </li>
               ))}
             </ul>
-            <CheckoutButton priceId={prices.pro} label="Go to Pro checkout" cancelPath="/pricing" />
+            <Link
+              href="/signup?next=/onboarding"
+              className={cn(
+                buttonVariants({ variant: "secondary" }),
+                "mt-6 w-full justify-center bg-zinc-800 text-zinc-200 border border-zinc-700",
+              )}
+            >
+              Choose Pro
+            </Link>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 flex flex-col text-left">
+            <h2 className="text-lg font-semibold text-zinc-200">{TIER_OFFERS.creator.name}</h2>
+            <p className="text-3xl font-bold mt-2 text-zinc-50">
+              {billing === "yearly" ? TIER_OFFERS.creator.priceYearly : TIER_OFFERS.creator.priceMonthly}
+            </p>
+            <p className="text-sm text-zinc-400 mt-2">{TIER_OFFERS.creator.description}</p>
+            <ul className="mt-4 space-y-2.5 text-sm text-zinc-200 flex-1">
+              {TIER_OFFERS.creator.features.map((t) => (
+                <li key={t} className="flex gap-2">
+                  <Check className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/signup?next=/onboarding"
+              className={cn(
+                buttonVariants({ variant: "secondary" }),
+                "mt-6 w-full justify-center bg-zinc-800 text-zinc-200 border border-zinc-700",
+              )}
+            >
+              Choose Creator
+            </Link>
           </div>
         </div>
 
-        <p className="text-center text-xs text-zinc-600">Tax and final price may vary by region. Free tier and alert limits are subject to product updates.</p>
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+          <h2 className="text-sm font-semibold text-zinc-100">Comparison</h2>
+          <p className="mt-2 text-sm text-zinc-500">{annualNote}</p>
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="text-[11px] uppercase tracking-wider text-zinc-500">
+                <tr>
+                  <th className="py-2 pr-4">Capability</th>
+                  <th className="py-2 pr-4">Free</th>
+                  <th className="py-2 pr-4">Analyst</th>
+                  <th className="py-2 pr-4">Pro</th>
+                  <th className="py-2">Creator</th>
+                </tr>
+              </thead>
+              <tbody className="text-[12px] text-zinc-300">
+                {[
+                  ["View system theses", "Limited", "Full", "Full", "Full"],
+                  ["Create private theses", "—", "✓", "✓", "✓"],
+                  ["Advisory log + tracking", "—", "✓", "✓", "✓"],
+                  ["Exports", "—", "✓", "✓", "✓"],
+                  ["Publish publicly", "—", "—", "✓", "✓"],
+                  ["Leaderboard + followers", "—", "—", "✓", "✓"],
+                  ["Fork / remix", "—", "—", "✓", "✓"],
+                  ["Monetization", "—", "—", "—", "✓"],
+                  ["Creator analytics", "—", "—", "—", "✓"],
+                  ["API + advanced profile", "—", "—", "—", "✓"],
+                ].map(([cap, a, b, c, d]) => (
+                  <tr key={cap} className="border-t border-zinc-800">
+                    <td className="py-2 pr-4 text-zinc-400">{cap}</td>
+                    <td className="py-2 pr-4">{a}</td>
+                    <td className="py-2 pr-4">{b}</td>
+                    <td className="py-2 pr-4">{c}</td>
+                    <td className="py-2">{d}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+            <h2 className="text-sm font-semibold text-zinc-100">FAQ</h2>
+            <div className="mt-4 space-y-4 text-sm text-zinc-400">
+              <div>
+                <p className="font-medium text-zinc-200">Is this real billing?</p>
+                <p className="mt-1">Not yet. This is a proof-of-concept: the product logic and gating are real; billing comes later.</p>
+              </div>
+              <div>
+                <p className="font-medium text-zinc-200">Why four tiers?</p>
+                <p className="mt-1">DEPTH4 supports individual workflow, community publishing, and creator economics. Each tier unlocks the next loop.</p>
+              </div>
+              <div>
+                <p className="font-medium text-zinc-200">What’s included in annual?</p>
+                <p className="mt-1">Annual is transparent: pay for 10 months, get 12.</p>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6">
+            <h2 className="text-sm font-semibold text-zinc-100">Ready to run DEPTH4 as your macro workspace?</h2>
+            <p className="mt-2 text-sm text-zinc-400">
+              Start Free. Upgrade when you need private thesis tracking, then publish and monetize as you build a track record.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/theses"
+                className={cn(buttonVariants({ variant: "secondary" }), "bg-zinc-800 text-zinc-200 border border-zinc-700")}
+              >
+                Open thesis engine
+              </Link>
+              <Link
+                href="/signup?next=/onboarding"
+                className={cn(buttonVariants({ size: "default" }), "bg-amber-500 text-zinc-950 hover:bg-amber-400")}
+              >
+                Create account
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-zinc-600">
+          Prices shown in USD. Free tier limits and feature availability may change as DEPTH4 evolves.
+        </p>
       </main>
     </div>
   );

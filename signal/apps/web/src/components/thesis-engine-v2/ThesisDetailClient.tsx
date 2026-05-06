@@ -9,13 +9,19 @@ import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
+import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { cn } from "@/lib/utils";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
+import { canUse } from "@/lib/thesis-engine-v2/plan";
+import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 
 export function ThesisDetailClient({ slug }: { slug: string }) {
+  const { plan } = useV2Plan();
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => getThesisDetail(slug) ?? null);
+  const [needPro, setNeedPro] = useState(false);
+  const [needCreator, setNeedCreator] = useState(false);
 
   useEffect(() => {
     const sys = getThesisDetail(slug);
@@ -87,6 +93,49 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
         <div className="mt-6">
           <ThesisHero thesis={thesis} />
         </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
+            <span className="rounded border border-white/[0.06] bg-zinc-900/30 px-2 py-0.5 font-semibold uppercase tracking-wide text-zinc-400">
+              Pro feature
+            </span>
+            <span className="rounded border border-white/[0.06] bg-zinc-900/30 px-2 py-0.5 font-semibold uppercase tracking-wide text-zinc-400">
+              Creator feature
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
+              onClick={() => {
+                if (!canUse(plan, "publishPublicly")) {
+                  setNeedPro(true);
+                  return;
+                }
+                // dummy: no-op
+                alert("Dummy: published. (In the real product this creates a public thesis + leaderboard entry.)");
+              }}
+              title="Publish this thesis publicly (dummy)"
+            >
+              Publish
+            </button>
+            <button
+              type="button"
+              className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
+              onClick={() => {
+                if (!canUse(plan, "monetization")) {
+                  setNeedCreator(true);
+                  return;
+                }
+                alert("Dummy: monetization enabled. (In the real product this opens monetization tools.)");
+              }}
+              title="Enable monetization tools (dummy)"
+            >
+              Monetize
+            </button>
+          </div>
+        </div>
+
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
           <AnswerBlock kicker="What’s unpriced">{thesis.whatsUnpriced}</AnswerBlock>
@@ -159,6 +208,19 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
           </section>
         </div>
       </main>
+
+      <UpgradeModal
+        open={needPro}
+        onOpenChange={setNeedPro}
+        requiredPlan="pro"
+        featureLabel="Publish theses publicly"
+      />
+      <UpgradeModal
+        open={needCreator}
+        onOpenChange={setNeedCreator}
+        requiredPlan="creator"
+        featureLabel="Monetization tools"
+      />
     </>
   );
 }

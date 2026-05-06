@@ -71,7 +71,7 @@ export function AuthPanel({ nextPath, intent }: Props) {
       <div className="grid gap-8 lg:grid-cols-[1fr_minmax(0,24rem)] lg:gap-10 items-stretch">
         <div className="space-y-4 text-left order-2 lg:order-1">
           <p className="text-xs font-mono text-emerald-500/80 uppercase tracking-[0.2em]">Tiers</p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-2">
             <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
               <div>
                 <h2 className="text-lg font-semibold text-zinc-100">{TIER_OFFERS.free.name}</h2>
@@ -118,12 +118,28 @@ export function AuthPanel({ nextPath, intent }: Props) {
                 ))}
               </ul>
             </div>
+
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+              <div>
+                <h2 className="text-lg font-semibold text-zinc-100">{TIER_OFFERS.creator.name}</h2>
+                <p className="text-2xl font-bold text-zinc-50 mt-0.5">{TIER_OFFERS.creator.priceMonthly}</p>
+                <p className="text-xs text-zinc-500 mt-1">{TIER_OFFERS.creator.description}</p>
+              </div>
+              <ul className="space-y-1.5 text-sm text-zinc-400">
+                {TIER_OFFERS.creator.features.map((t) => (
+                  <li key={t} className="flex gap-2">
+                    <Check className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
+                    <span>{t}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
           <p className="text-xs text-zinc-600">
             <Link href="/pricing" className="text-emerald-500/90 hover:text-emerald-400">
               Full comparison
             </Link>{" "}
-            · Paid plans are billed in Stripe.
+            · Billing is not wired yet (dummy).
           </p>
         </div>
 

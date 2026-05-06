@@ -1,60 +1,71 @@
-/** Public pricing tiers (UI only). DB tier uses: free | analyst | pro */
-export type Tier = "free" | "analyst" | "pro";
+/** Public pricing tiers (UI only). DB tier uses: free | analyst | pro | creator */
+export type Tier = "free" | "analyst" | "pro" | "creator";
 
 export function isAnalystOrAbove(tier: string | null | undefined): boolean {
-  return tier === "analyst" || tier === "pro";
+  return tier === "analyst" || tier === "pro" || tier === "creator";
 }
 
 export function isPro(tier: string | null | undefined): boolean {
-  return tier === "pro";
+  return tier === "pro" || tier === "creator";
+}
+
+export function isCreator(tier: string | null | undefined): boolean {
+  return tier === "creator";
 }
 
 export function tierLabel(tier: string | null | undefined): string {
   if (tier === "analyst") return "Analyst";
   if (tier === "pro") return "Pro";
-  return "Observer";
+  if (tier === "creator") return "Creator";
+  return "Free";
 }
 
 export const TIER_OFFERS = {
   free: {
-    name: "Observer" as const,
+    name: "Free" as const,
     priceMonthly: "$0" as const,
-    description: "Fast macro feed + L1–L2 depth.",
+    description: "Browse and learn. Limited system theses and alerts.",
     features: [
-      "Depth 1 + Depth 2 analysis",
-      "Live macro event feed",
-      "1 portfolio holding",
-      "Feed refreshes every 60s",
-      "No Deep Brief, alerts, broker links",
+      "View limited system theses",
+      "Limited alerts",
+      "Community browsing (read-only)",
     ] as const,
   },
   analyst: {
     name: "Analyst" as const,
-    priceMonthly: "$19 / mo" as const,
-    priceYearly: "$190 / yr" as const,
-    description: "Add scenarios + Deep Brief (partial) + alerts.",
+    priceMonthly: "$29 / mo" as const,
+    priceYearly: "$290 / yr" as const,
+    description: "Private theses + full tracking. Your macro workspace.",
     badge: "Most popular" as const,
     features: [
-      "Depth 1–3 analysis",
-      "Deep Brief (Situation + Market Read)",
-      "Up to 10 holdings",
-      "Desktop alerts",
-      "Broker links",
-      "Feed refreshes every 60s",
+      "Create private theses",
+      "Full thesis tracking + advisory log",
+      "Exports",
+      "Unlimited saved theses (dummy)",
     ] as const,
   },
   pro: {
     name: "Pro" as const,
-    priceMonthly: "$49 / mo" as const,
-    priceYearly: "$490 / yr" as const,
-    description: "Full L1–L4 + Depth Clock + full Deep Brief.",
+    priceMonthly: "$79 / mo" as const,
+    priceYearly: "$790 / yr" as const,
+    description: "Publish theses, build reputation, and collaborate.",
     features: [
-      "Full L1–L4 + Depth Clock",
-      "Deep Brief with Stock Conviction",
-      "Unlimited holdings",
-      "Priority refresh (30s) + your exposure",
-      "Broker links",
-      "API access (coming soon)",
+      "Publish theses publicly",
+      "Leaderboard + public profile/followers",
+      "Fork/remix theses",
+      "Community participation (dummy)",
+    ] as const,
+  },
+  creator: {
+    name: "Creator" as const,
+    priceMonthly: "$149 / mo" as const,
+    priceYearly: "$1490 / yr" as const,
+    description: "Monetize your edge and run a thesis business on DEPTH4.",
+    features: [
+      "Monetization tools",
+      "Creator analytics",
+      "API + advanced profile tools",
+      "Priority support (dummy)",
     ] as const,
   },
 } as const;

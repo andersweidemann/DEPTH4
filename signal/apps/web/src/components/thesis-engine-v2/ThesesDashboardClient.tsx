@@ -5,9 +5,12 @@ import Link from "next/link";
 import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
+import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 import { isEmerging, isTradeable, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import { canUse } from "@/lib/thesis-engine-v2/plan";
+import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 
 export function ThesesDashboardClient({
   systemTheses,
@@ -16,8 +19,10 @@ export function ThesesDashboardClient({
   systemTheses: Thesis[];
   liveSignals: LiveSignalTickerItem[];
 }) {
+  const { plan } = useV2Plan();
   const [open, setOpen] = useState(false);
   const [userTheses, setUserTheses] = useState<Thesis[]>([]);
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
 
   useEffect(() => {
     setUserTheses(loadUserTheses());
@@ -37,13 +42,24 @@ export function ThesesDashboardClient({
             Tracks unpriced macro narratives before the market catches up.
           </p>
         </div>
-        <button
-          type="button"
-          className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
-          onClick={() => setOpen(true)}
-        >
-          + New thesis
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+            Analyst feature
+          </span>
+          <button
+            type="button"
+            className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
+            onClick={() => {
+              if (!canUse(plan, "createPrivateTheses")) {
+                setUpgradeOpen(true);
+                return;
+              }
+              setOpen(true);
+            }}
+          >
+            + New thesis
+          </button>
+        </div>
       </div>
 
       <LiveSignalTicker items={liveSignals} intervalMs={12_000} />
@@ -96,6 +112,13 @@ export function ThesesDashboardClient({
           const next = upsertUserThesis(t);
           setUserTheses(next);
         }}
+      />
+
+      <UpgradeModal
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        requiredPlan="analyst"
+        featureLabel="Create private theses"
       />
     </>
   );

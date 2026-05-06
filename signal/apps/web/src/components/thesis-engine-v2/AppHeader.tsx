@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
+import { V2_PLAN_LABEL, V2_PLAN_ORDER } from "@/lib/thesis-engine-v2/plan";
 
 export type ThesisNavTab = "theses" | "feed" | "book";
 
@@ -33,13 +37,12 @@ function DepthMark({ className }: { className?: string }) {
 
 export function AppHeader({
   active,
-  planLabel = "Pro",
   liveLine,
 }: {
   active: ThesisNavTab;
-  planLabel?: string;
   liveLine: string;
 }) {
+  const { plan, setPlan } = useV2Plan();
   const tab = (id: ThesisNavTab, href: string, label: string) => (
     <Link
       href={href}
@@ -71,9 +74,26 @@ export function AppHeader({
             <p className="mt-2 text-[10px] text-zinc-600">Trade four moves ahead</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="rounded border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-500/90">
-              {planLabel}
-            </span>
+            <Link
+              href="/pricing"
+              className="rounded border border-white/[0.08] bg-zinc-900/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-zinc-300 hover:bg-zinc-900/60"
+              title="View plans"
+            >
+              Upgrade
+            </Link>
+            <select
+              className="rounded border border-amber-500/25 bg-amber-500/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-200/90 outline-none"
+              value={plan}
+              onChange={(e) => setPlan(e.target.value as (typeof V2_PLAN_ORDER)[number])}
+              aria-label="Plan (demo)"
+              title="Plan (demo)"
+            >
+              {V2_PLAN_ORDER.map((p) => (
+                <option key={p} value={p}>
+                  {V2_PLAN_LABEL[p]}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
         <nav className="mt-6 flex flex-wrap items-center gap-1" aria-label="Primary">
