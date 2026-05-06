@@ -37,25 +37,25 @@ function impactStyle(impact: "major_positive" | "minor_positive" | "neutral" | "
 
 function kindChip(kind: LiveSignalTickerItem["kind"]) {
   if (kind === "building_new_thesis") {
-    return { cls: "bg-amber-500/10 text-amber-300 ring-amber-500/20", text: "Building new thesis" };
+    return { cls: "text-amber-200/90", text: "Building" };
   }
   if (kind === "catalogued") {
-    return { cls: "bg-amber-500/5 text-amber-200/80 ring-amber-500/15", text: "Catalogued" };
+    return { cls: "text-zinc-400", text: "Catalogued" };
   }
-  return { cls: "bg-zinc-900 text-zinc-300 ring-zinc-700/50", text: "Thesis update" };
+  return { cls: "text-zinc-300", text: "Update" };
 }
 
 function containerTone(it: LiveSignalTickerItem) {
   if (it.kind === "thesis_update") {
     const impact = impactStyle(it.impact);
-    if (impact.label === "Major positive") return "bg-emerald-500/[0.035] border-emerald-500/20";
-    if (impact.label === "Major negative") return "bg-red-500/[0.035] border-red-500/20";
-    if (impact.label === "Minor positive") return "bg-emerald-500/[0.02] border-emerald-500/15";
-    if (impact.label === "Minor negative") return "bg-red-500/[0.02] border-red-500/15";
-    return "bg-amber-500/[0.02] border-amber-500/15";
+    if (impact.label === "Major positive") return "bg-emerald-500/[0.02] border-emerald-500/15";
+    if (impact.label === "Major negative") return "bg-red-500/[0.02] border-red-500/15";
+    if (impact.label === "Minor positive") return "bg-emerald-500/[0.015] border-emerald-500/10";
+    if (impact.label === "Minor negative") return "bg-red-500/[0.015] border-red-500/10";
+    return "bg-zinc-900/20 border-white/[0.06]";
   }
-  if (it.kind === "building_new_thesis") return "bg-amber-500/[0.02] border-amber-500/15";
-  return "bg-zinc-900/25 border-white/[0.07]";
+  if (it.kind === "building_new_thesis") return "bg-amber-500/[0.015] border-amber-500/10";
+  return "bg-zinc-900/15 border-white/[0.06]";
 }
 
 export function LiveSignalTicker({
@@ -86,32 +86,31 @@ export function LiveSignalTicker({
   const k = kindChip(it.kind);
 
   return (
-    <div className={cn("mt-5 rounded-lg border px-4 py-3", containerTone(it))}>
+    <div className={cn("rounded-md border px-3 py-2", containerTone(it))}>
       <div
         className={cn(
           "transition-all duration-300",
           phase === "in" ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-0.5",
         )}
       >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500">
-            <span className="font-medium text-zinc-400">{it.source}</span>
-            <span className="tabular-nums">{it.timestamp}</span>
-          </div>
-          <span className={cn("rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", k.cls)}>
-            {k.text}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-zinc-500">
+          <span className="rounded bg-zinc-950/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300 ring-1 ring-white/[0.06]">
+            Live signal
           </span>
+          <span className="font-medium text-zinc-400">{it.source}</span>
+          <span className="text-zinc-700">·</span>
+          <span className="tabular-nums">{it.timestamp}</span>
+          <span className="text-zinc-700">·</span>
+          <span className={cn("font-semibold uppercase tracking-wide", k.cls)}>{k.text}</span>
+          <span className="text-zinc-700">·</span>
+          <span className="min-w-0 flex-1 truncate text-zinc-300">“{it.headline}”</span>
         </div>
 
-        <p className="mt-2 text-[12px] font-medium leading-snug text-zinc-200">“{it.headline}”</p>
-
         {it.kind === "thesis_update" ? (
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-            <span className="text-zinc-400">→</span>
-            <span className="text-zinc-300">{it.thesisName} updated</span>
-            <span className="tabular-nums text-zinc-400">
-              · {it.probabilityBefore}% → {it.probabilityAfter}%
-            </span>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+            <span className="text-zinc-500">→</span>
+            <span className="text-zinc-200">{it.thesisName}</span>
+            <span className="tabular-nums text-zinc-400">{it.probabilityBefore}% → {it.probabilityAfter}%</span>
             {(() => {
               const s = impactStyle(it.impact);
               return (
@@ -127,14 +126,12 @@ export function LiveSignalTicker({
             })()}
           </div>
         ) : it.kind === "building_new_thesis" ? (
-          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-            <span className="text-zinc-400">→</span> Building new thesis ·{" "}
-            <span className="text-amber-200/85">{it.topic}</span>
+          <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+            <span className="text-zinc-500">→</span> Building new thesis · <span className="text-amber-200/85">{it.topic}</span>
           </p>
         ) : (
-          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-            <span className="text-zinc-400">→</span> Catalogued ·{" "}
-            <span className="text-zinc-400">{it.note}</span>
+          <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+            <span className="text-zinc-500">→</span> Catalogued · <span className="text-zinc-400">{it.note}</span>
           </p>
         )}
       </div>

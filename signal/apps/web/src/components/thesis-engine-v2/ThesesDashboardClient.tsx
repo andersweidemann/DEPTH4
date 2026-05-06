@@ -90,6 +90,8 @@ export function ThesesDashboardClient({
 
   return (
     <>
+      <LiveSignalTicker items={liveSignals} intervalMs={12_000} />
+
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">DEPTH4</p>
@@ -117,8 +119,6 @@ export function ThesesDashboardClient({
           </button>
         </div>
       </div>
-
-      <LiveSignalTicker items={liveSignals} intervalMs={12_000} />
 
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-zinc-900/20 p-1">

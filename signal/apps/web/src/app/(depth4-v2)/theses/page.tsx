@@ -15,7 +15,7 @@ export default function ThesesDashboardPage() {
   return (
     <>
       <AppHeader active="theses" liveLine={liveLine} />
-      <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
+      <main className="mx-auto max-w-3xl px-5 pb-20 pt-6">
         <ThesesDashboardClient systemTheses={MOCK_THESES} liveSignals={MOCK_LIVE_SIGNAL_TICKER} />
       </main>
     </>
