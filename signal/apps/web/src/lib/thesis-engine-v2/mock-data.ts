@@ -64,7 +64,7 @@ export const MOCK_THESES: Thesis[] = [
     asset: "XAUUSD",
     direction: "short",
     probability: 67,
-    status: "actionable",
+    status: "ready",
     probabilityRationale:
       "Peace talk momentum improved, but gold still trades like escalation risk is the base case.",
 
@@ -216,7 +216,7 @@ export const MOCK_THESES: Thesis[] = [
     asset: "RTX",
     direction: "long",
     probability: 55,
-    status: "actionable",
+    status: "ready",
     probabilityRationale:
       "Contract cadence and appropriations language are turning into numbers; the market is still trading vibes.",
 
@@ -290,7 +290,7 @@ export const MOCK_THESES: Thesis[] = [
     asset: "HG",
     direction: "long",
     probability: 52,
-    status: "actionable",
+    status: "ready",
     probabilityRationale:
       "Policy tone + early HF data suggest impulse stabilization; copper pricing still reflects the prior regime.",
 
@@ -362,11 +362,12 @@ export const MOCK_THESES: Thesis[] = [
 ];
 
 const STATUS_RANK: Record<string, number> = {
-  actionable: 0,
+  ready: 0,
   active: 1,
   watching: 2,
-  resolved: 3,
-  invalidated: 4,
+  forming: 3,
+  resolved: 4,
+  invalidated: 5,
 };
 
 export function sortThesesForDashboard(list: Thesis[]): Thesis[] {
@@ -926,7 +927,7 @@ export const MOCK_POSITIONS: Position[] = [
     symbol: "RTX",
     side: "long",
     linkedThesisId: TID.defense,
-    thesisStatus: "actionable",
+    thesisStatus: "ready",
     tradeStatus: "closed",
     openedAt: "2026-04-22T14:05:00Z",
     closedAt: "2026-05-02T15:30:00Z",
@@ -945,7 +946,7 @@ export const MOCK_POSITIONS: Position[] = [
     symbol: "HG",
     side: "long",
     linkedThesisId: TID.copper,
-    thesisStatus: "actionable",
+    thesisStatus: "ready",
     tradeStatus: "cancelled",
     openedAt: "2026-05-04T11:12:00Z",
     entryPrice: 4.15,

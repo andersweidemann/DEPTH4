@@ -1347,7 +1347,7 @@ export function DashboardClient() {
                   the semiconductor tariff example, this includes EV manufacturers reliant on chips, data center
                   operators facing capex uncertainty, and cloud providers dealing with GPU scarcity. Level 2 effects
                   typically take hours to one full trading day to price in, and are often only 50–60% reflected in prices
-                  on the day of the event. This is where most actionable same-day trades live.
+                  on the day of the event. This is where most clear same-day setups tend to live.
                 </p>
               </div>
 

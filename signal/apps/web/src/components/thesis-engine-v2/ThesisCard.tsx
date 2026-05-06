@@ -7,7 +7,7 @@ import { StatusBadge } from "./StatusBadge";
 export function ThesisCard({ thesis }: { thesis: Thesis }) {
   const tradeable = thesis.qualification === "tradeable";
   const isUser = thesis.origin === "user";
-  const entrySetupValid = thesis.status === "actionable" && thesis.probability >= 55;
+  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
   return (
     <Link
       href={`/theses/${thesis.slug}`}

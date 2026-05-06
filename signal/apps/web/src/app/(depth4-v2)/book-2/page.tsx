@@ -15,8 +15,8 @@ export const metadata: Metadata = {
 };
 
 export default function Book2Page() {
-  const actionable = MOCK_THESES.filter((t) => t.status === "actionable").length;
-  const liveLine = `${MOCK_THESES.length} theses tracked · ${actionable} ready to trade · last update 2 minutes ago`;
+  const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
+  const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
 
   return (
     <>

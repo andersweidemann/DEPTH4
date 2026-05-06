@@ -68,7 +68,7 @@ function buildUserThesis(form: FormState): Thesis {
     asset: asset || "—",
     direction: "watch",
     probability: p || 50,
-    status: p >= 65 ? "actionable" : p >= 50 ? "active" : "watching",
+    status: p >= 65 ? "ready" : p >= 50 ? "active" : "watching",
     probabilityRationale:
       "Starting conviction reflects your framing. DEPTH4 will update probability as signals confirm or break the trigger.",
     origin: "user",

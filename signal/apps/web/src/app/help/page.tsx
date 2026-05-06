@@ -141,7 +141,7 @@ export default function HelpPage() {
                 <Bullet>The thesis name</Bullet>
                 <Bullet>The asset it affects</Bullet>
                 <Bullet>The current probability (confidence level)</Bullet>
-                <Bullet>Whether it is actionable now</Bullet>
+                <Bullet>Whether the setup is Ready (entry conditions valid or close)</Bullet>
                 <Bullet>What changed recently</Bullet>
                 <Bullet>The current trade idea</Bullet>
               </ul>
@@ -186,16 +186,16 @@ export default function HelpPage() {
               <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Thesis states</h3>
               <ul className="space-y-2">
                 <Bullet>
-                  <strong className="text-zinc-100">Forming</strong>: the idea is early and still developing
+                  <strong className="text-zinc-100">Forming</strong>: early idea; still taking shape
                 </Bullet>
                 <Bullet>
-                  <strong className="text-zinc-100">Watching</strong>: the narrative matters, but there is no clear trade yet
+                  <strong className="text-zinc-100">Watching</strong>: important, but not ready yet
                 </Bullet>
                 <Bullet>
-                  <strong className="text-zinc-100">Actionable</strong>: conditions are improving and the setup is worth watching closely
+                  <strong className="text-zinc-100">Ready</strong>: entry/setup conditions are valid or close enough to act on (entry setup valid)
                 </Bullet>
                 <Bullet>
-                  <strong className="text-zinc-100">Active</strong>: a trade is open against this thesis
+                  <strong className="text-zinc-100">Active</strong>: you have an open position linked to this thesis (position open)
                 </Bullet>
                 <Bullet>
                   <strong className="text-zinc-100">Resolved</strong>: the thesis played out
@@ -269,7 +269,7 @@ export default function HelpPage() {
                 <li>DEPTH4 detects a pattern of improving diplomacy.</li>
                 <li>The thesis probability rises.</li>
                 <li>A trigger is crossed, such as a confirmed meeting.</li>
-                <li>The system marks the thesis as actionable.</li>
+                <li>The system marks the thesis as Ready.</li>
                 <li>You wait for the price setup, not just the news.</li>
                 <li>Once in the trade, DEPTH4 keeps updating the thesis as new developments appear.</li>
                 <li>If the thesis strengthens, you may hold.</li>

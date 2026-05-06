@@ -18,11 +18,17 @@ function safeParse(raw: string | null): Stored {
   }
 }
 
+function normalizeThesisStatus(t: Thesis): Thesis {
+  const st = t.status as Thesis["status"] | "actionable";
+  if (st === "actionable") return { ...t, status: "ready" };
+  return t;
+}
+
 export function loadUserTheses(): Thesis[] {
   if (typeof window === "undefined") return [];
   const s = safeParse(window.sessionStorage.getItem(USER_THESES_KEY));
   // avoid collisions with system slugs
-  return s.theses.filter((t) => !getThesisBySlug(t.slug));
+  return s.theses.filter((t) => !getThesisBySlug(t.slug)).map(normalizeThesisStatus);
 }
 
 export function saveUserTheses(theses: Thesis[]) {
@@ -117,7 +123,7 @@ function mkAdvisoryLog(thesis: Thesis): ThesisUpdate[] {
       id: `${thesis.id}-u2`,
       thesisId: thesis.id,
       timestamp: "Next",
-      text: "This becomes actionable if the trigger confirms while the market still hasn’t caught up yet.",
+      text: "This becomes Ready if the trigger confirms while the market still hasn’t caught up yet.",
     },
   ];
 }

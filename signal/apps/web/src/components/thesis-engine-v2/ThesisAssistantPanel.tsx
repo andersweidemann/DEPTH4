@@ -24,10 +24,11 @@ function evidenceDelta(ev?: ThesisEvidence) {
 
 function statusStance(status: ThesisStatus) {
   switch (status) {
-    case "actionable":
+    case "ready":
       return "entry possible";
     case "active":
       return "manage";
+    case "forming":
     case "watching":
       return "wait";
     case "resolved":
@@ -53,14 +54,14 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle): AssistantA
   const weakening = d < 0;
 
   const baseWhy =
-    t.status === "actionable"
+    t.status === "ready"
       ? "The thesis has crossed your confidence threshold, but the trigger and price setup still matter."
       : t.status === "active"
         ? "A position is open against this thesis. Manage risk first, then reassess on new evidence."
         : "This is not in a trade-ready state yet. Treat it as monitoring until the trigger is clearer.";
 
   const whatWouldChange =
-    t.status === "actionable"
+    t.status === "ready"
       ? `Clear trigger confirmation plus price acceptance around the setup zone (${t.entryZone ?? "your entry zone"}).`
       : t.status === "active"
         ? "A meaningful probability drop, a failed reaction to good news, or invalidation."
@@ -109,11 +110,11 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle): AssistantA
   }
 
   if (question === "enter") {
-    const stance = t.status === "actionable" ? "entry possible" : "wait";
+    const stance = t.status === "ready" ? "entry possible" : "wait";
     const why =
-      t.status === "actionable"
-        ? `Probability is elevated (${t.probability}%) and the thesis is marked actionable. The remaining question is whether price is in your setup zone (${t.entryZone ?? "not specified"}).`
-        : "This thesis is not marked actionable. Treat it as monitoring until the trigger and setup are clearer.";
+      t.status === "ready"
+        ? `Probability is elevated (${t.probability}%) and the thesis is marked Ready (entry setup valid). The remaining question is whether price is in your setup zone (${t.entryZone ?? "not specified"}).`
+        : "This thesis is not marked Ready. Treat it as monitoring until the trigger and setup are clearer.";
     return {
       stance,
       why,
@@ -150,7 +151,7 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle): AssistantA
 
   // explain_simply
   return {
-    stance: `current stance: ${t.status === "actionable" ? "entry possible" : t.status === "active" ? "manage" : "wait"}`,
+    stance: `current stance: ${t.status === "ready" ? "entry possible" : t.status === "active" ? "manage" : "wait"}`,
     why: t.marketMisread,
     change: `Trigger: ${t.trigger}`,
     risk: `Invalidation: ${t.invalidation}`,

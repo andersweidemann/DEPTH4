@@ -30,7 +30,7 @@ export default function RiskDisclosurePage() {
         <ul>
           <li>DEPTH4 thesis probabilities are analytical estimates, not predictions.</li>
           <li>Thesis accuracy is not guaranteed.</li>
-          <li>“Actionable” does not mean “profitable”. Losses are possible.</li>
+          <li>“Ready” (entry setup valid) does not mean “profitable”. Losses are possible.</li>
           <li>User track records and leaderboard rankings do not guarantee future success.</li>
         </ul>
 

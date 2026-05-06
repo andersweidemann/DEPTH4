@@ -1,6 +1,7 @@
 export type ThesisStatus =
+  | "forming"
   | "watching"
-  | "actionable"
+  | "ready"
   | "active"
   | "resolved"
   | "invalidated";

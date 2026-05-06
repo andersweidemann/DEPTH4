@@ -44,8 +44,8 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
     setHasOpen(!!openPositionForThesis(bundle.thesis.id));
   }, [bundle]);
 
-  const actionable = useMemo(() => MOCK_THESES.filter((t) => t.status === "actionable").length, []);
-  const liveLine = `${MOCK_THESES.length} theses tracked · ${actionable} ready to trade · last update 2 minutes ago`;
+  const readyCount = useMemo(() => MOCK_THESES.filter((t) => t.status === "ready").length, []);
+  const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
 
   const scoreRow = (label: string, value: number, max: number) => {
     const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
@@ -89,7 +89,7 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
   }
 
   const { thesis, evidence, scenarios, advisoryLog, relatedAssets } = bundle;
-  const entrySetupValid = thesis.status === "actionable" && thesis.probability >= 55;
+  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
 
   return (
     <>

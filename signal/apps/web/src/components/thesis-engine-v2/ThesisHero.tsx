@@ -40,7 +40,7 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs text-zinc-500">{thesis.asset}</span>
         <DirectionBadge direction={thesis.direction} />
-        <StatusBadge status={thesis.status} />
+        <StatusBadge status={thesis.status} showHint />
         <QualificationBadge q={thesis.qualification} />
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">

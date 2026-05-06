@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
-import { ActionablePing } from "@/components/thesis-engine-v2/ActionablePing";
+import { ReadyPing } from "@/components/thesis-engine-v2/ReadyPing";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
@@ -49,7 +49,7 @@ export function ThesesDashboardClient({
   const [open, setOpen] = useState(false);
   const [userTheses, setUserTheses] = useState<Thesis[]>([]);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [show, setShow] = useState<"all" | "actionable">("all");
+  const [show, setShow] = useState<"all" | "ready">("all");
   const [assetClass, setAssetClass] = useState<AssetClass>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
 
@@ -74,7 +74,7 @@ export function ThesesDashboardClient({
 
   const filtered = useMemo(() => {
     let list = sorted;
-    if (show === "actionable") list = list.filter((t) => t.status === "actionable");
+    if (show === "ready") list = list.filter((t) => t.status === "ready");
     if (assetClass !== "all") list = list.filter((t) => assetClassFor(t) === assetClass);
 
     const next = [...list];
@@ -92,7 +92,7 @@ export function ThesesDashboardClient({
   return (
     <>
       <LiveSignalTicker items={liveSignals} intervalMs={12_000} />
-      <ActionablePing theses={sorted} />
+      <ReadyPing theses={sorted} />
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -138,11 +138,11 @@ export function ThesesDashboardClient({
             type="button"
             className={[
               "rounded-md px-3 py-1.5 text-[11px] font-semibold",
-              show === "actionable" ? "bg-zinc-900/60 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
+              show === "ready" ? "bg-zinc-900/60 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
             ].join(" ")}
-            onClick={() => setShow("actionable")}
+            onClick={() => setShow("ready")}
           >
-            Actionable only
+            Ready only
           </button>
         </div>
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
-const KEY = "depth4.v2.actionable.seen.v1";
+const KEY = "depth4.v2.ready.seen.v1";
 
 function loadSeen(): Record<string, boolean> {
   if (typeof window === "undefined") return {};
@@ -27,9 +27,10 @@ function saveSeen(next: Record<string, boolean>) {
   }
 }
 
-export function ActionablePing({ theses }: { theses: Thesis[] }) {
-  const actionable = useMemo(
-    () => theses.filter((t) => t.status === "actionable" && t.probability >= 55),
+/** One-time-style alert when a thesis becomes Ready with a strong probability (dummy threshold). */
+export function ReadyPing({ theses }: { theses: Thesis[] }) {
+  const readyNow = useMemo(
+    () => theses.filter((t) => t.status === "ready" && t.probability >= 55),
     [theses],
   );
   const [seen, setSeen] = useState<Record<string, boolean>>({});
@@ -38,7 +39,7 @@ export function ActionablePing({ theses }: { theses: Thesis[] }) {
     setSeen(loadSeen());
   }, []);
 
-  const firstUnseen = actionable.find((t) => !seen[t.id]);
+  const firstUnseen = readyNow.find((t) => !seen[t.id]);
   if (!firstUnseen) return null;
 
   return (
@@ -50,10 +51,13 @@ export function ActionablePing({ theses }: { theses: Thesis[] }) {
           </span>
           <p className="mt-1 truncate">
             <span className="text-zinc-400">Ping · </span>
-            <Link className="text-amber-200 hover:text-amber-100 underline underline-offset-2" href={`/theses/${firstUnseen.slug}`}>
+            <Link
+              className="text-amber-200 underline underline-offset-2 hover:text-amber-100"
+              href={`/theses/${firstUnseen.slug}`}
+            >
               {firstUnseen.title}
             </Link>{" "}
-            is now actionable.
+            is now <span className="font-medium text-zinc-200">Ready</span>.
           </p>
         </div>
         <button
@@ -74,4 +78,3 @@ export function ActionablePing({ theses }: { theses: Thesis[] }) {
     </div>
   );
 }
-
