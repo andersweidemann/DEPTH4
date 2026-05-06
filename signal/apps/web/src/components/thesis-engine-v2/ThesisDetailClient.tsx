@@ -16,7 +16,8 @@ import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
-import { openPositionForThesis, upsertPosition } from "@/lib/thesis-engine-v2/positions-store";
+import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
+import { latestClosedForThesis, openPositionForThesis, upsertPosition } from "@/lib/thesis-engine-v2/positions-store";
 import { cn } from "@/lib/utils";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { canUse } from "@/lib/thesis-engine-v2/plan";
@@ -38,7 +39,7 @@ export function ThesisDetailClient({
   const [needPro, setNeedPro] = useState(false);
   const [needCreator, setNeedCreator] = useState(false);
   const [openPos, setOpenPos] = useState(false);
-  const [hasOpen, setHasOpen] = useState(false);
+  const [bookPulse, setBookPulse] = useState(0);
 
   useEffect(() => {
     const sys = getThesisDetail(slug);
@@ -53,11 +54,20 @@ export function ThesisDetailClient({
 
   useEffect(() => {
     if (!bundle) return;
-    const sync = () => setHasOpen(!!openPositionForThesis(bundle.thesis.id));
-    sync();
-    const t = window.setInterval(sync, 2000);
+    const t = window.setInterval(() => setBookPulse((n) => n + 1), 2000);
     return () => window.clearInterval(t);
   }, [bundle]);
+
+  const bookSnap = useMemo(() => {
+    void bookPulse;
+    if (!bundle) return { open: null as ReturnType<typeof openPositionForThesis>, latest: null as ReturnType<typeof latestClosedForThesis> };
+    return {
+      open: openPositionForThesis(bundle.thesis.id),
+      latest: latestClosedForThesis(bundle.thesis.id),
+    };
+  }, [bundle, bookPulse]);
+
+  const hasOpen = !!bookSnap.open;
 
   const thesisLive = useMemo(() => {
     if (!bundle) return null;
@@ -144,7 +154,7 @@ export function ThesisDetailClient({
         <ThesisHero thesis={thesis} />
       </div>
 
-      {(entrySetupValid || hasOpen) && (
+      {(entrySetupValid || hasOpen || bookSnap.latest) && (
         <div
           className={cn(
             "mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/25 px-4 py-3 text-[12px] text-zinc-300",
@@ -163,13 +173,40 @@ export function ThesisDetailClient({
                   In your book · Active position
                 </span>
               )}
+              {!hasOpen && bookSnap.latest ? (
+                <span className="rounded bg-zinc-800/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-200 ring-1 ring-white/[0.08]">
+                  Closed in Book
+                </span>
+              ) : null}
             </div>
-            {!hasOpen && (
+            {!hasOpen && entrySetupValid && !bookSnap.latest ? (
               <span className="text-[11px] text-zinc-500">
                 Probability crossed threshold{thesis.entryZone ? ` · entry zone ${thesis.entryZone}` : ""}.
               </span>
-            )}
+            ) : null}
           </div>
+          {!hasOpen && bookSnap.latest ? (
+            <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[11px] text-zinc-400">
+              <span className="font-semibold text-zinc-200">Realized {bookSnap.latest.realizedPnl ?? "—"}</span>
+              {bookSnap.latest.closeReason ? (
+                <span className="text-zinc-500">· {closeReasonLabel(bookSnap.latest.closeReason)}</span>
+              ) : null}
+              {bookSnap.latest.closedAt ? (
+                <span className="text-zinc-600">
+                  ·{" "}
+                  {new Date(bookSnap.latest.closedAt).toLocaleString([], {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              ) : null}
+              <Link href="/book-2" className="ml-auto text-[11px] font-semibold text-amber-200/90 hover:text-amber-100">
+                View in Book →
+              </Link>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -358,8 +395,8 @@ export function ThesisDetailClient({
         thesis={thesis}
         onCreate={(p) => {
           upsertPosition(p);
-          setHasOpen(true);
           liveOpt?.syncOpenIdsFromBook();
+          setBookPulse((n) => n + 1);
         }}
       />
     </>

@@ -1,6 +1,7 @@
 "use client";
 
-import type { Position, TradeStatus } from "@/lib/thesis-engine-v2/types";
+import { closeReasonLabel, isCloseReason } from "@/lib/thesis-engine-v2/close-reason";
+import type { CloseReason, Position, TradeStatus } from "@/lib/thesis-engine-v2/types";
 
 const KEY = "depth4.v2.positions.v1";
 
@@ -19,14 +20,21 @@ function isTradeStatus(x: unknown): x is TradeStatus {
 function isPosition(x: unknown): x is Position {
   if (!x || typeof x !== "object") return false;
   const p = x as Record<string, unknown>;
-  return (
-    typeof p.id === "string" &&
-    typeof p.symbol === "string" &&
-    (p.side === "long" || p.side === "short") &&
-    typeof p.linkedThesisId === "string" &&
-    typeof p.openedAt === "string" &&
-    isTradeStatus(p.tradeStatus)
-  );
+  if (
+    typeof p.id !== "string" ||
+    typeof p.symbol !== "string" ||
+    (p.side !== "long" && p.side !== "short") ||
+    typeof p.linkedThesisId !== "string" ||
+    typeof p.openedAt !== "string" ||
+    !isTradeStatus(p.tradeStatus)
+  ) {
+    return false;
+  }
+  if (p.closeReason !== undefined && !isCloseReason(p.closeReason)) return false;
+  if (p.exitPrice !== undefined && (typeof p.exitPrice !== "number" || Number.isNaN(p.exitPrice))) return false;
+  if (p.realizedPnlNumeric !== undefined && (typeof p.realizedPnlNumeric !== "number" || Number.isNaN(p.realizedPnlNumeric)))
+    return false;
+  return true;
 }
 
 export function loadPositions(): Position[] {
@@ -60,5 +68,48 @@ export function positionsForThesis(thesisId: string): Position[] {
 
 export function openPositionForThesis(thesisId: string): Position | null {
   return loadPositions().find((p) => p.linkedThesisId === thesisId && p.tradeStatus === "open") ?? null;
+}
+
+export function latestClosedForThesis(thesisId: string): Position | null {
+  const settled = loadPositions().filter((p) => p.linkedThesisId === thesisId && (p.tradeStatus === "closed" || p.tradeStatus === "stopped"));
+  if (!settled.length) return null;
+  settled.sort((a, b) => (b.closedAt ?? "").localeCompare(a.closedAt ?? ""));
+  return settled[0] ?? null;
+}
+
+export type ClosePositionInput = {
+  exitPrice: number;
+  realizedPnlNumeric: number;
+  closeReason: CloseReason;
+};
+
+export function closePosition(id: string, input: ClosePositionInput): Position | null {
+  const cur = loadPositions();
+  const p = cur.find((x) => x.id === id);
+  if (!p || p.tradeStatus !== "open") return null;
+
+  const closedAt = new Date().toISOString();
+  const sign = input.realizedPnlNumeric >= 0 ? "+" : "";
+  const realizedPnl = `${sign}${input.realizedPnlNumeric.toFixed(2)}`;
+  const reasonLine = closeReasonLabel(input.closeReason);
+
+  const next: Position = {
+    ...p,
+    tradeStatus: "closed",
+    closedAt,
+    exitPrice: input.exitPrice,
+    closeReason: input.closeReason,
+    realizedPnlNumeric: input.realizedPnlNumeric,
+    realizedPnl,
+    currentPnl: undefined,
+    latestUpdate: [
+      `Position closed (${reasonLine}).`,
+      `Exit ${input.exitPrice} · Realized ${realizedPnl} (dummy units).`,
+      `Thesis link kept so you can compare outcome to the idea.`,
+    ].join(" "),
+  };
+
+  upsertPosition(next);
+  return next;
 }
 

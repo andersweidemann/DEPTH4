@@ -92,6 +92,14 @@ export type ThesisUpdate = {
 
 export type TradeStatus = "draft" | "open" | "closed" | "stopped" | "cancelled";
 
+/** Why the user closed the book line (dummy, session-only). */
+export type CloseReason =
+  | "target_hit"
+  | "stop_hit"
+  | "manual_exit"
+  | "thesis_weakened"
+  | "thesis_invalidated";
+
 export type Position = {
   id: string;
   symbol: string;
@@ -102,14 +110,18 @@ export type Position = {
   openedAt: string; // ISO
   closedAt?: string; // ISO
   entryPrice?: number;
+  exitPrice?: number;
   size?: number; // contracts/shares/units
   stopLoss?: number;
   takeProfit?: number;
   notes?: string;
+  closeReason?: CloseReason;
 
   // dummy analytics (optional / best-effort)
   currentPnl?: string; // "+$120" / "-0.6R" / "—"
   realizedPnl?: string;
+  /** Signed PnL in dummy points for session aggregates (win rate, averages). */
+  realizedPnlNumeric?: number;
 
   recommendation: AdvisoryAction; // thesis stance (not trade status)
   probability: number;

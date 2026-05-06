@@ -2,13 +2,7 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { BookClient } from "@/components/thesis-engine-v2/BookClient";
-import {
-  MOCK_POSITIONS,
-  MOCK_RESOLVED_THESES,
-  MOCK_THESES,
-  MOCK_TRACK_RECORD_METRICS,
-  MOCK_WATCHLIST,
-} from "@/lib/thesis-engine-v2/mock-data";
+import { MOCK_POSITIONS, MOCK_RESOLVED_THESES, MOCK_THESES, MOCK_WATCHLIST } from "@/lib/thesis-engine-v2/mock-data";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Book",
@@ -23,12 +17,7 @@ export default function Book2Page() {
     <>
       <AppHeader active="book" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
-        <BookClient
-          mockPositions={MOCK_POSITIONS}
-          watchlist={MOCK_WATCHLIST}
-          resolved={MOCK_RESOLVED_THESES}
-          metrics={MOCK_TRACK_RECORD_METRICS}
-        />
+        <BookClient mockPositions={MOCK_POSITIONS} watchlist={MOCK_WATCHLIST} resolved={MOCK_RESOLVED_THESES} />
       </main>
     </>
   );
