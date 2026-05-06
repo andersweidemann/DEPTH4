@@ -24,7 +24,7 @@ export const TIER_OFFERS = {
   free: {
     name: "Free" as const,
     priceMonthly: "$0" as const,
-    description: "Browse and learn. Limited system theses and alerts.",
+    description: "See how DEPTH4 tracks macro events. Watch a few theses update in real time.",
     features: [
       "View limited system theses",
       "Limited alerts",
@@ -35,7 +35,7 @@ export const TIER_OFFERS = {
     name: "Analyst" as const,
     priceMonthly: "$29 / mo" as const,
     priceYearly: "$290 / yr" as const,
-    description: "Private theses + full tracking. Your macro workspace.",
+    description: "Track your own macro ideas. Get alerts when news moves your theses.",
     badge: "Most popular" as const,
     features: [
       "Create private theses",
@@ -48,7 +48,7 @@ export const TIER_OFFERS = {
     name: "Pro" as const,
     priceMonthly: "$79 / mo" as const,
     priceYearly: "$790 / yr" as const,
-    description: "Publish theses, build reputation, and collaborate.",
+    description: "Share your theses publicly. Build a following based on your track record.",
     features: [
       "Publish theses publicly",
       "Leaderboard + public profile/followers",
@@ -60,7 +60,7 @@ export const TIER_OFFERS = {
     name: "Creator" as const,
     priceMonthly: "$149 / mo" as const,
     priceYearly: "$1490 / yr" as const,
-    description: "Monetize your edge and run a thesis business on DEPTH4.",
+    description: "Turn your published theses into subscription revenue. Get paid for being right.",
     features: [
       "Monetization tools",
       "Creator analytics",

@@ -5,7 +5,7 @@ import { MOCK_LIVE_SIGNAL_TICKER, MOCK_THESES } from "@/lib/thesis-engine-v2/moc
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Live theses",
-  description: "Tracks unpriced macro narratives before the market catches up.",
+  description: "Tracks macro events the market hasn't priced in yet.",
 };
 
 export default function ThesesDashboardPage() {

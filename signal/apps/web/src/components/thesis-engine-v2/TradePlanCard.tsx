@@ -2,6 +2,10 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { StatusBadge } from "./StatusBadge";
 
 export function TradePlanCard({ thesis }: { thesis: Thesis }) {
+  const explainer =
+    thesis.entryZone || thesis.stop || thesis.target1
+      ? `Entry: ${thesis.entryZone ?? "—"} | Stop-loss: ${thesis.stop ?? "—"} | Target: ${thesis.target2 ?? thesis.target1 ?? "—"}`
+      : null;
   return (
     <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -37,6 +41,11 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
       <p className="mt-4 border-t border-white/[0.04] pt-4 font-mono text-[11px] leading-relaxed text-zinc-400">
         {thesis.trade}
       </p>
+      {explainer && (
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+          {explainer}
+        </p>
+      )}
     </section>
   );
 }

@@ -41,7 +41,7 @@ export default function PricingPage() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">DEPTH4</p>
           <h1 className="text-3xl md:text-4xl font-semibold">Pricing</h1>
           <p className="text-zinc-400 max-w-2xl mx-auto text-sm leading-relaxed">
-            Pricing is product logic. Each tier unlocks specific workflows: private theses → public publishing → creator monetization.
+            Start free. Upgrade when you&apos;re ready to create your own theses, publish them, or turn your track record into revenue.
           </p>
         </div>
         <div className="flex items-center justify-center gap-2 text-xs text-zinc-400">
@@ -220,7 +220,7 @@ export default function PricingPage() {
             </div>
           </div>
           <div className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-6">
-            <h2 className="text-sm font-semibold text-zinc-100">Ready to run DEPTH4 as your macro workspace?</h2>
+            <h2 className="text-sm font-semibold text-zinc-100">Ready to track your ideas inside DEPTH4?</h2>
             <p className="mt-2 text-sm text-zinc-400">
               Start Free. Upgrade when you need private thesis tracking, then publish and monetize as you build a track record.
             </p>

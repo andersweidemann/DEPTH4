@@ -39,7 +39,7 @@ export function ThesesDashboardClient({
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">DEPTH4</p>
           <h1 className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">Live theses</h1>
           <p className="mt-1 max-w-md text-[12px] leading-relaxed text-zinc-500">
-            Tracks unpriced macro narratives before the market catches up.
+            Tracks macro events the market hasn&apos;t priced in yet.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -74,9 +74,7 @@ export function ThesesDashboardClient({
         <section className="mt-14">
           <div className="flex items-end justify-between gap-3">
             <div>
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                Forming narratives
-              </h2>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Forming ideas</h2>
               <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
                 Real drivers, not enough timing compression yet.
               </p>

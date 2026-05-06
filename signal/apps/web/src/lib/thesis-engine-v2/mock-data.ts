@@ -66,16 +66,16 @@ export const MOCK_THESES: Thesis[] = [
     probability: 67,
     status: "actionable",
     probabilityRationale:
-      "Diplomatic track improved and risk proxies aren’t confirming the premium in gold; pricing looks late to unwind.",
+      "Peace talk momentum improved, but gold still trades like escalation risk is the base case.",
 
     hiddenDriver: "Diplomacy is the real driver, not ‘risk sentiment’.",
     likelyPath: "Headline cadence shifts from escalation to negotiated sequencing; tail risk compresses first, then spot follows.",
-    marketMisread: "The market still underprices de-escalation odds and overpays for escalation convexity in gold.",
+    marketMisread: "The market still prices gold for escalation risk, even though de-escalation odds are rising.",
     tradeExpression: "Fade the premium via XAUUSD/GLD; keep tight invalidation above the local high.",
 
-    whyNow: "Peace probability crossed the threshold where premium should compress, but price hasn’t repriced.",
+    whyNow: "The odds of peace talks succeeding are now high enough that gold should be falling — but it hasn't yet.",
     whatsUnpriced: "The escalation premium is still embedded in spot and short-dated hedges.",
-    trigger: "Second confirmation headline within 24h + risk proxies (oil/vol) stay calm.",
+    trigger: "Second positive headline within 24 hours, and oil/volatility stay calm.",
     trade: "Short 3285–3295 · Stop 3312 · TP 3180",
     invalidation: "New kinetic escalation or acceptance above 3312 that holds through the close.",
     horizon: "Days to weeks",
@@ -108,9 +108,9 @@ export const MOCK_THESES: Thesis[] = [
       "Chokepoint risk is rising faster than inventory/flow data is normalizing; the market is too anchored to spot balances.",
 
     hiddenDriver: "Chokepoint fragility (insurance, routing, and policy signaling).",
-    likelyPath: "Friction shows up first in freight/insurance, then physical diffs, then flat price reprices abruptly.",
+    likelyPath: "Friction shows up first in freight/insurance, then physical diffs, then flat price jumps.",
     marketMisread: "The market still prices a smooth flow regime; it’s a discontinuity risk.",
-    tradeExpression: "Own upside convexity through crude exposure; keep defined risk and respect headline gaps.",
+    tradeExpression: "Be positioned for upside moves in oil, with defined risk, and respect headline gaps.",
 
     whyNow: "The posture has shifted and routing chatter is real — this is when the curve misprices discontinuity.",
     whatsUnpriced: "The jump risk from a single incident is not reflected in flat price.",

@@ -71,7 +71,7 @@ export function AppHeader({
                 </p>
               </div>
             </div>
-            <p className="mt-2 text-[10px] text-zinc-600">Trade four moves ahead</p>
+            <p className="mt-2 text-[10px] text-zinc-600">See how news will move markets before it happens</p>
           </div>
           <div className="flex items-center gap-2">
             <Link
