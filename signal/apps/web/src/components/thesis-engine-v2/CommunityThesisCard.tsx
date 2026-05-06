@@ -1,0 +1,56 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { CommunityThesis } from "@/lib/thesis-engine-v2/types";
+import { isFollowed, toggleFollow } from "@/components/thesis-engine-v2/community-store";
+import { ProbabilityBar } from "@/components/thesis-engine-v2/ProbabilityBar";
+import { cn } from "@/lib/utils";
+
+function badgeTone(b: string) {
+  if (/top\s*5%/i.test(b)) return "bg-amber-500/12 text-amber-200 ring-amber-500/20";
+  if (/top\s*10%/i.test(b)) return "bg-zinc-900 text-zinc-300 ring-zinc-700/50";
+  return "bg-zinc-950 text-zinc-400 ring-zinc-800/60";
+}
+
+export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
+  const [followed, setFollowed] = useState(false);
+  useEffect(() => setFollowed(isFollowed(item.id)), [item.id]);
+
+  return (
+    <div className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-[12px] font-semibold leading-snug text-zinc-100 truncate">{item.title}</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+            <span className="text-zinc-300">{item.author}</span>
+            <span className={cn("rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", badgeTone(item.reputationBadge))}>
+              {item.reputationBadge}
+            </span>
+            <span className="text-zinc-600">·</span>
+            <span className="tabular-nums">{item.followers.toLocaleString()} followers</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setFollowed(toggleFollow(item.id))}
+          className={cn(
+            "rounded-md px-3 py-2 text-[11px] font-semibold ring-1 transition-colors",
+            followed
+              ? "bg-zinc-800 text-zinc-200 ring-zinc-600/40 hover:bg-zinc-700"
+              : "bg-amber-500/12 text-amber-200 ring-amber-500/25 hover:bg-amber-500/18",
+          )}
+        >
+          {followed ? "Following" : "Follow"}
+        </button>
+      </div>
+
+      <div className="mt-4 flex items-center gap-3">
+        <span className="text-[14px] font-semibold tabular-nums text-amber-200/90">{item.probability}%</span>
+        <div className="min-w-0 flex-1">
+          <ProbabilityBar value={item.probability} />
+        </div>
+      </div>
+    </div>
+  );
+}
+

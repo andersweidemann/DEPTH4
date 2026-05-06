@@ -178,3 +178,23 @@ export type LiveSignalTickerItem =
       headline: string;
       note: string;
     };
+
+export type CommunityThesis = {
+  id: string;
+  title: string;
+  author: string;
+  reputationBadge: string; // e.g. "Top 5% accuracy"
+  probability: number;
+  followers: number;
+  status: "published" | "active" | "resolved";
+};
+
+export type LeaderboardUser = {
+  id: string;
+  rank: number;
+  name: string;
+  badge: string; // e.g. "Top 5% accuracy"
+  winRate: string; // "68%"
+  resolvedCount: number;
+  followers: number;
+};

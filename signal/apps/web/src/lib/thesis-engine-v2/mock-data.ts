@@ -1,5 +1,7 @@
 import type {
   FeedSignal,
+  CommunityThesis,
+  LeaderboardUser,
   Position,
   ResolvedThesisRecord,
   Thesis,
@@ -720,6 +722,53 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     headline: "Freight rates firm as insurers reprice shipping lanes",
     note: "Monitoring",
   },
+];
+
+export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
+  {
+    id: "ct-1",
+    title: "SOFT LANDING OVERPRICED — EQUITY MULTIPLE CLIP",
+    author: "M. Kline",
+    reputationBadge: "Top 5% accuracy",
+    probability: 62,
+    followers: 1842,
+    status: "published",
+  },
+  {
+    id: "ct-2",
+    title: "JAPAN YCC EXIT — USDJPY REGIME SHIFT",
+    author: "Akira S.",
+    reputationBadge: "Top 10% accuracy",
+    probability: 57,
+    followers: 931,
+    status: "active",
+  },
+  {
+    id: "ct-3",
+    title: "EM CREDIT CRACK — HIGH YIELD SPREAD WIDENING",
+    author: "V. Ionescu",
+    reputationBadge: "High conviction",
+    probability: 54,
+    followers: 612,
+    status: "published",
+  },
+  {
+    id: "ct-4",
+    title: "US RE-INDUSTRIALIZATION — COPPER + GRID CAPEX",
+    author: "S. Dahl",
+    reputationBadge: "Top 20% accuracy",
+    probability: 49,
+    followers: 407,
+    status: "published",
+  },
+];
+
+export const MOCK_LEADERBOARD: LeaderboardUser[] = [
+  { id: "lb-1", rank: 1, name: "M. Kline", badge: "Top 5% accuracy", winRate: "68%", resolvedCount: 41, followers: 1842 },
+  { id: "lb-2", rank: 2, name: "Akira S.", badge: "Top 10% accuracy", winRate: "64%", resolvedCount: 33, followers: 931 },
+  { id: "lb-3", rank: 3, name: "N. Patel", badge: "Top 15% accuracy", winRate: "61%", resolvedCount: 29, followers: 812 },
+  { id: "lb-4", rank: 4, name: "V. Ionescu", badge: "High conviction", winRate: "59%", resolvedCount: 22, followers: 612 },
+  { id: "lb-5", rank: 5, name: "S. Dahl", badge: "Top 20% accuracy", winRate: "57%", resolvedCount: 18, followers: 407 },
 ];
 
 export const MOCK_POSITIONS: Position[] = [
