@@ -1,0 +1,84 @@
+{
+  "id": "03_bb_meanrev_us500_m5_v1",
+  "name": "US500 M5 BB+RSI Mean Reversion with Volatility Gate",
+  "family": "mean_reversion",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "hypothesis": "US500 on M5 is structurally mean-reverting during RTH (13:30-20:00 UTC) when not in strong trend (ADX<20). A close outside BB(20, 2.0) with RSI(7)<10 (long) or >90 (short), filtered by BB-width above 30th percentile, reverts to the middle band within 30 bars with positive expectancy. Falsifiable: if ADX<20 subset does not outperform ADX>=20 subset, the regime filter is invalid.",
+  "signals": [
+    {
+      "type": "bollinger",
+      "period": 20,
+      "std": 2.0
+    },
+    {
+      "type": "bb_width",
+      "period": 20,
+      "std": 2.0,
+      "percentile_lookback": 200
+    },
+    {
+      "type": "rsi",
+      "period": 7
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "sessions": [
+        "newyork_rth"
+      ]
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "operator": "<",
+        "threshold": 20
+      },
+      {
+        "indicator": "bb_width_percentile",
+        "period": 200,
+        "operator": ">",
+        "threshold": 30
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 100,
+        "operator": "<",
+        "threshold": 85
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry_rules": {
+    "long": "close < bb_lower AND rsi(7) < 10 AND regime_active AND session_active AND bars_since_last_trade >= 3",
+    "short": "close > bb_upper AND rsi(7) > 90 AND regime_active AND session_active AND bars_since_last_trade >= 3"
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "multiplier": 1.5,
+      "period": 14
+    },
+    "take_profit": {
+      "type": "bb_middle",
+      "band_period": 20
+    },
+    "time_stop": {
+      "bars": 30
+    }
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 3
+  },
+  "notes": "Mean reversion applied to an index (US500) rather than XAU \u2014 per generation review, XAU M15 mean-rev failed due to trending regime. ADX<20 filter explicitly excludes trending conditions, directly testing whether regime gating rescues the family."
+}

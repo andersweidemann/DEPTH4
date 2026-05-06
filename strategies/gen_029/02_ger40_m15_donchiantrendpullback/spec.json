@@ -1,0 +1,73 @@
+{
+  "name": "GER40_M15_DonchianTrendPullback",
+  "hypothesis": "On GER40 M15, after a Donchian(20) breakout confirming a trending regime, pullbacks to EMA(20) that hold above/below ATR-defined structure resume the trend for at least 2R.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "family": "trend_pullback",
+  "regime_filter": {
+    "type": "composite",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "op": ">=",
+        "value": 22
+      },
+      {
+        "primitive": "classify",
+        "method": "ema_slope",
+        "ema_fast": 20,
+        "ema_slow": 50,
+        "require": "aligned"
+      },
+      {
+        "primitive": "session_mask",
+        "sessions": [
+          "frankfurt",
+          "london"
+        ],
+        "window_utc": "07:00-16:00"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": [
+      "within last 30 bars: close > Donchian_high(20)[prior]",
+      "EMA(20) > EMA(50) and both rising",
+      "current bar low touches EMA(20) within 0.3*ATR(14)",
+      "current bar close > EMA(20)",
+      "close > close[1] (bullish confirmation candle)"
+    ],
+    "short": [
+      "within last 30 bars: close < Donchian_low(20)[prior]",
+      "EMA(20) < EMA(50) and both falling",
+      "current bar high touches EMA(20) within 0.3*ATR(14)",
+      "current bar close < EMA(20)",
+      "close < close[1] (bearish confirmation candle)"
+    ]
+  },
+  "exit_rules": {
+    "stop_loss": "1.8 * ATR(14) below entry (long) / above entry (short), or below/above swing point \u2014 whichever wider",
+    "take_profit": "3.6 * ATR(14) (R:R 2.0) scaled: 50% at 1.8R, remainder trails",
+    "time_stop": "close after 40 M15 bars",
+    "trailing": "after +1R, trail by 2.0*ATR(14) Chandelier-style"
+  },
+  "sizing": {
+    "method": "risk_per_trade",
+    "risk_pct": 0.75,
+    "max_concurrent": 1,
+    "cooldown_bars": 6
+  },
+  "params": {
+    "donchian_period": 20,
+    "ema_fast": 20,
+    "ema_slow": 50,
+    "atr_period": 14,
+    "adx_min": 22,
+    "pullback_tolerance_atr": 0.3,
+    "sl_atr_mult": 1.8,
+    "tp_atr_mult": 3.6,
+    "time_stop_bars": 40
+  },
+  "falsification": "Reject if trades<200, or if performance in trending regime (ADX>=22) is not materially better than in chop (indicating filter adds no edge)."
+}

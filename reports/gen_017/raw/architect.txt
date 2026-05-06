@@ -1,0 +1,183 @@
+[
+  {
+    "name": "XAU_AsiaLondon_RangeBreak_M5",
+    "family": "breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "hypothesis": "On XAUUSD M5, when the Asia session (00:00-06:00 UTC) builds a compressed range of 0.5x-2.0x ATR(14), the first ATR-confirmed break of that range during the London window (07:00-10:00 UTC) extends at least 1R before mean-reverting, producing positive expectancy.",
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile", "session_mask"],
+      "rules": [
+        {"type": "session_mask", "window_utc": "07:00-10:00"},
+        {"type": "adx", "period": 14, "min": 18},
+        {"type": "atr_percentile", "period": 14, "lookback": 200, "min_pct": 30, "max_pct": 95}
+      ]
+    },
+    "entry": {
+      "signal_primitives": ["atr", "atr_breakout_levels", "session_mask"],
+      "rules": [
+        "Record asia_high/asia_low between 00:00-06:00 UTC.",
+        "Require (asia_high - asia_low) / ATR14 in [0.5, 2.0].",
+        "During 07:00-10:00 UTC, LONG if close > asia_high + 0.5*ATR14 AND candle_body >= 1.0*ATR14.",
+        "SHORT mirror on asia_low.",
+        "Only first breakout per day; skip if prior bar already triggered."
+      ]
+    },
+    "exit": {
+      "sl": {"type": "atr", "mult": 0.75, "period": 14},
+      "tp": {"type": "atr", "mult": 2.25, "period": 14},
+      "time_stop": {"bars": 36, "action": "close_at_market"},
+      "trailing": {"type": "atr", "mult": 1.5, "activate_at_r": 1.0}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "params": {
+      "atr_period": 14,
+      "asia_start_utc": "00:00",
+      "asia_end_utc": "06:00",
+      "london_start_utc": "07:00",
+      "london_end_utc": "10:00",
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0,
+      "break_buffer_atr": 0.5,
+      "min_body_atr": 1.0
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "XAU_BB_RSI_MeanReversion_M15",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "hypothesis": "On XAUUSD M15, closes outside BB(20,2.0) with simultaneous RSI(7) extreme (<10 or >90), filtered by BB-width above the 30th percentile and active session, revert to the 20-SMA midline more often than they extend, yielding positive expectancy with a 1.5x ATR stop.",
+    "regime_filter": {
+      "primitives": ["bb_width", "adx", "session_mask"],
+      "rules": [
+        {"type": "bb_width", "period": 20, "dev": 2.0, "min_percentile": 30, "lookback": 500},
+        {"type": "adx", "period": 14, "max": 28, "note": "avoid strong trend regimes"},
+        {"type": "session_mask", "window_utc": "07:00-20:00"}
+      ]
+    },
+    "entry": {
+      "signal_primitives": ["bollinger", "rsi"],
+      "rules": [
+        "LONG: close < lower_BB(20,2.0) AND RSI(7) < 10.",
+        "SHORT: close > upper_BB(20,2.0) AND RSI(7) > 90.",
+        "Cooldown: no new entry within 3 bars of last close.",
+        "No new entry if open position in same direction."
+      ]
+    },
+    "exit": {
+      "sl": {"type": "atr", "mult": 1.5, "period": 14},
+      "tp": {"type": "indicator_level", "target": "middle_BB_20", "min_r": 1.0},
+      "time_stop": {"bars": 24, "action": "close_at_market"},
+      "trailing": null
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "params": {
+      "bb_period": 20,
+      "bb_dev": 2.0,
+      "rsi_period": 7,
+      "rsi_long_thr": 10,
+      "rsi_short_thr": 90,
+      "atr_period": 14,
+      "cooldown_bars": 3
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "GER40_Donchian_Breakout_M15",
+    "family": "breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "hypothesis": "On GER40 M15 during the European cash session, a 20-bar Donchian breakout with ADX(14) rising above 22 and ATR above median produces trend-following expectancy of >=1.8R before reversal, while the session filter avoids overnight thin-liquidity fake breaks.",
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile", "session_mask"],
+      "rules": [
+        {"type": "session_mask", "window_utc": "07:00-16:30"},
+        {"type": "adx", "period": 14, "min": 22},
+        {"type": "atr_percentile", "period": 14, "lookback": 300, "min_pct": 40}
+      ]
+    },
+    "entry": {
+      "signal_primitives": ["donchian", "ema", "adx"],
+      "rules": [
+        "LONG: close > Donchian_high(20)[1] AND close > EMA(50).",
+        "SHORT: close < Donchian_low(20)[1] AND close < EMA(50).",
+        "Require ADX(14) rising (ADX[0] > ADX[3]).",
+        "Skip entry if current bar range > 3*ATR14 (exhaustion guard)."
+      ]
+    },
+    "exit": {
+      "sl": {"type": "atr", "mult": 2.0, "period": 14},
+      "tp": {"type": "atr", "mult": 4.0, "period": 14},
+      "time_stop": {"bars": 48, "action": "close_at_market"},
+      "trailing": {"type": "atr", "mult": 2.5, "activate_at_r": 1.5}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "params": {
+      "donchian_period": 20,
+      "ema_period": 50,
+      "adx_period": 14,
+      "adx_min": 22,
+      "atr_period": 14
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "US500_EMA_Pullback_Trend_M15",
+    "family": "trend_pullback",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "hypothesis": "On US500 M15, during the NY session in an established trend (EMA20>EMA50>EMA200 or inverse) with ADX>=20, pullbacks that tag EMA20 and close back in the trend direction with RSI(14) crossing 50 continue for at least 1.5R before failure.",
+    "regime_filter": {
+      "primitives": ["ema", "adx", "session_mask"],
+      "rules": [
+        {"type": "session_mask", "window_utc": "13:30-20:00"},
+        {"type": "adx", "period": 14, "min": 20},
+        {"type": "ema_stack", "periods": [20, 50, 200], "require_aligned": true}
+      ]
+    },
+    "entry": {
+      "signal_primitives": ["ema", "rsi", "atr"],
+      "rules": [
+        "LONG: EMA20>EMA50>EMA200; prior bar low <= EMA20; current bar closes > EMA20 AND RSI(14) crosses above 50.",
+        "SHORT: mirror with EMA20<EMA50<EMA200; RSI crosses below 50.",
+        "Skip if distance (close - EMA50) > 2.5*ATR14 (overextended).",
+        "One entry per pullback leg (require RSI to have touched 40/60 before re-arming)."
+      ]
+    },
+    "exit": {
+      "sl": {"type": "swing", "lookback": 5, "buffer_atr": 0.25, "period": 14},
+      "tp": {"type": "r_multiple", "r": 2.0},
+      "time_stop": {"bars": 32, "action": "close_at_market"},
+      "trailing": {"type": "ema", "ema_period": 20, "activate_at_r": 1.0}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.4,
+      "max_concurrent_positions": 1
+    },
+    "params": {
+      "ema_fast": 20,
+      "ema_mid": 50,
+      "ema_slow": 200,
+      "rsi_period": 14,
+      "rsi_trigger": 50,
+      "atr_period": 14,
+      "adx_min": 20
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  }
+]

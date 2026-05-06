@@ -1,0 +1,131 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during London session with high volatility",
+    "regime_filter": {
+      "type": "london_session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "displacement": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "fixed_pips",
+        "sl": "fixed_pips",
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to mean after extreme movements",
+    "regime_filter": {
+      "type": "volatility_gate",
+      "params": {
+        "threshold": 1.5
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "middle_bb",
+        "sl": "1.2_atr",
+        "time_stop": 45
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs during active sessions",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "start_hour": 8,
+        "end_hour": 17
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "touch_tolerance": 0.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "fixed_pips",
+        "time_stop": 90
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]

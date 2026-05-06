@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Trend following works on US500 M5 when price closes above/below Donchian channels",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_channel",
+    "params": {
+      "channel_period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_rr",
+      "sl": "1_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

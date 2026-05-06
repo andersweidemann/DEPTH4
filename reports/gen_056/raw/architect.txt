@@ -1,0 +1,180 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings, and volatility is above the 30th percentile.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Price breaks out of the Asia range during the London session, and the breakout is followed by a retest or reversal.",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > 0 && retest == true"
+      },
+      "short": {
+        "condition": "breakout < 0 && retest == true"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "The RSI(7) indicator can be used to identify overbought and oversold conditions, and a mean reversion strategy can be applied.",
+    "regime_filter": {
+      "type": "rsi",
+      "params": {
+        "period": 7,
+        "threshold": 70
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "rsi(7) < 30"
+      },
+      "short": {
+        "condition": "rsi(7) > 70"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_rsi",
+        "params": {
+          "period": 7,
+          "threshold": 30
+        }
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "The Donchian channel can be used to identify breakouts, and a trend-following strategy can be applied.",
+    "regime_filter": {
+      "type": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > donchian_high"
+      },
+      "short": {
+        "condition": "close < donchian_low"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  }
+]

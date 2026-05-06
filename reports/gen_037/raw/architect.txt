@@ -1,0 +1,210 @@
+[
+  {
+    "name": "bb_rsi_mean_reversion_xau_m15",
+    "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands with extreme RSI(7) and BB-width is above its 30th percentile (volatility present, not dead chop), price reverts to the middle band within 30 bars with positive expectancy.",
+    "family": "mean_reversion",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "signals": {
+      "entry_long": "close < lower_bb(20, 2.0) AND rsi(7) < 15",
+      "entry_short": "close > upper_bb(20, 2.0) AND rsi(7) > 85",
+      "indicators": ["bollinger(20,2.0)", "rsi(7)", "bb_width(20,2.0)", "atr(14)"]
+    },
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "lookback_bars": 500,
+      "min_percentile": 30,
+      "max_percentile": 95,
+      "rationale": "Avoid dead-range chop (<30th) and chaotic expansions (>95th)."
+    },
+    "entry_rules": {
+      "confirmation": "Signal bar must close; enter at next bar open.",
+      "cooldown_bars": 3,
+      "max_concurrent_positions": 1
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr_mult", "atr_period": 14, "mult": 1.8},
+      "take_profit": {"type": "opposite_bb", "bb_period": 20, "bb_dev": 2.0},
+      "time_stop": {"type": "bars", "n": 30},
+      "breakeven": {"trigger_r": 1.0, "offset_r": 0.1}
+    },
+    "sizing": {
+      "type": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "min_lot": 0.01
+    },
+    "params_to_optimize": {
+      "bb_dev": [1.75, 2.0, 2.25],
+      "rsi_period": [5, 7, 10],
+      "rsi_long_th": [10, 15, 20],
+      "rsi_short_th": [80, 85, 90],
+      "atr_sl_mult": [1.5, 1.8, 2.2]
+    },
+    "diagnostics_required": [
+      "bar_count_loaded",
+      "indicator_nan_count_first_100_bars",
+      "raw_signal_count_before_regime_filter",
+      "raw_signal_count_after_regime_filter",
+      "orders_submitted_vs_filled"
+    ],
+    "falsification_criteria": "PF < 1.3 OR trades < 200 OR max_dd > 15% on IS."
+  },
+  {
+    "name": "asia_london_range_breakout_xau_m5",
+    "hypothesis": "On XAUUSD M5, the Asia-session (00:00-06:00 UTC) range, when sized 0.5-2.0 ATR, is broken during London (07:00-10:00 UTC) with continuation, yielding positive expectancy on the first breakout of the day.",
+    "family": "breakout_session",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": {
+      "asia_range": "high/low from 00:00 UTC to 06:00 UTC (72 M5 bars)",
+      "entry_long": "breakout_window AND close > asia_high + 0.5*atr(14) AND body >= 1.0*atr(14) AND first_breakout_of_day",
+      "entry_short": "breakout_window AND close < asia_low - 0.5*atr(14) AND body >= 1.0*atr(14) AND first_breakout_of_day",
+      "indicators": ["atr(14)", "session_mask(asia=00:00-06:00 UTC, london=07:00-10:00 UTC)"]
+    },
+    "regime_filter": {
+      "type": "range_size_atr",
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0,
+      "atr_period": 14,
+      "rationale": "Skip days where Asia range is too tight (no fuel) or too wide (already exhausted)."
+    },
+    "entry_rules": {
+      "trade_window_utc": "07:00-10:00",
+      "max_breakout_bars_from_window_start": 9,
+      "one_trade_per_day": true,
+      "confirmation": "Close of breakout bar; enter next bar open."
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "opposite_range_side_plus_buffer", "atr_buffer_mult": 0.3},
+      "take_profit": {"type": "r_multiple", "r": 2.0},
+      "time_stop": {"type": "utc_time", "close_at": "16:00"},
+      "trailing": {"type": "atr_chandelier", "atr_period": 14, "mult": 3.0, "activate_r": 1.0}
+    },
+    "sizing": {
+      "type": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "min_lot": 0.01
+    },
+    "params_to_optimize": {
+      "breakout_distance_atr": [0.3, 0.5, 0.7],
+      "breakout_body_atr": [0.8, 1.0, 1.2],
+      "min_range_atr": [0.4, 0.5, 0.7],
+      "max_range_atr": [1.8, 2.0, 2.5],
+      "r_target": [1.5, 2.0, 2.5]
+    },
+    "diagnostics_required": [
+      "bar_count_loaded_per_day",
+      "asia_range_computed_days_count",
+      "days_with_range_in_regime_band",
+      "breakouts_detected_total",
+      "entries_after_first_breakout_filter",
+      "session_mask_sample_timestamps"
+    ],
+    "falsification_criteria": "trades < 200 OR PF < 1.4 OR divergence between local and MT5 >20%."
+  },
+  {
+    "name": "donchian_breakout_trend_ger40_m15",
+    "hypothesis": "On GER40 M15, Donchian(40) breakouts filtered by ADX(14) > 22 (trending regime) produce positive expectancy during the European cash session, because index futures tend to trend on confirmed volatility expansion.",
+    "family": "breakout_trend",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "signals": {
+      "entry_long": "close > donchian_high(40)[1] AND adx(14) > 22 AND session_mask(07:00-15:30 UTC)",
+      "entry_short": "close < donchian_low(40)[1] AND adx(14) > 22 AND session_mask(07:00-15:30 UTC)",
+      "indicators": ["donchian(40)", "adx(14)", "atr(14)", "ema(50)"]
+    },
+    "regime_filter": {
+      "type": "adx_trend",
+      "adx_period": 14,
+      "adx_min": 22,
+      "atr_percentile_min": 35,
+      "atr_percentile_lookback": 500,
+      "rationale": "Breakouts only in trending + non-dead volatility regimes."
+    },
+    "entry_rules": {
+      "trend_alignment": "long requires close > ema(50); short requires close < ema(50)",
+      "cooldown_bars": 8,
+      "max_concurrent_positions": 1,
+      "confirmation": "Bar close beyond donchian, enter next bar open."
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr_mult", "atr_period": 14, "mult": 2.0},
+      "take_profit": {"type": "r_multiple", "r": 2.5},
+      "time_stop": {"type": "bars", "n": 40},
+      "trailing": {"type": "donchian_opposite", "period": 20, "activate_r": 1.0}
+    },
+    "sizing": {
+      "type": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "min_lot": 0.1
+    },
+    "params_to_optimize": {
+      "donchian_period": [30, 40, 55],
+      "adx_min": [18, 22, 26],
+      "atr_sl_mult": [1.5, 2.0, 2.5],
+      "r_target": [2.0, 2.5, 3.0],
+      "ema_period": [50, 100]
+    },
+    "diagnostics_required": [
+      "bar_count_loaded",
+      "donchian_warmup_nan_count",
+      "bars_with_adx_above_threshold",
+      "raw_breakouts_detected",
+      "breakouts_after_trend_and_session_filter",
+      "orders_submitted_vs_filled"
+    ],
+    "falsification_criteria": "PF < 1.5 OR trades < 200 OR max_dd > 15%."
+  },
+  {
+    "name": "atr_breakout_volatility_expansion_us500_m5",
+    "hypothesis": "On US500 M5, when price breaks a 1.5*ATR(14) band around the prior 20-bar EMA during the NY cash session opening hours AND ATR percentile > 60 (volatility expansion), short-term continuation produces positive expectancy.",
+    "family": "breakout_trend",
+    "symbols": ["US500"],
+    "timeframes": ["M5"],
+    "signals": {
+      "entry_long": "close > ema(20) + 1.5*atr(14) AND atr_percentile(100) > 60 AND session_mask(13:30-20:00 UTC)",
+      "entry_short": "close < ema(20) - 1.5*atr(14) AND atr_percentile(100) > 60 AND session_mask(13:30-20:00 UTC)",
+      "indicators": ["atr_breakout_levels(ema=20, atr=14, mult=1.5)", "atr_percentile(100)", "ema(20)"]
+    },
+    "regime_filter": {
+      "type": "atr_percentile",
+      "lookback_bars": 500,
+      "min_percentile": 60,
+      "max_percentile": 98,
+      "rationale": "Only trade when current ATR is in the upper volatility regime."
+    },
+    "entry_rules": {
+      "session_utc": "13:30-20:00",
+      "cooldown_bars": 6,
+      "max_concurrent_positions": 1,
+      "confirmation": "Bar close beyond band; enter next bar open."
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr_mult", "atr_period": 14, "mult": 1.5},
+      "take_profit": {"type": "r_multiple", "r": 2.0},
+      "time_stop": {"type": "bars", "n": 24},
+      "trailing": {"type": "atr_chandelier", "atr_period": 14, "mult": 2.5, "activate_r": 1.0}
+    },
+    "sizing": {
+      "type": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "min_lot": 0.1
+    },
+    "params_to_optimize": {
+      "breakout_mult": [1.0, 1.5, 2.0],
+      "ema_period": [15, 20, 30],
+      "atr_percentile_min": [50, 60, 70],
+      "atr_sl_mult": [1.2, 1.5, 2.0],
+      "r_target": [1.5, 2.0, 2.5]
+    },
+    "diagnostics_required": [
+      "bar_count_loaded",
+      "session_mask_sample_timestamps_utc",
+      "atr_percentile_distribution_summary",
+      "raw_breakout_count",
+      "breakouts_after_regime_and_session_filter",
+      "orders_submitted_vs_filled"
+    ],
+    "falsification_criteria": "PF < 1.4 OR trades < 200 OR sharpe < 1.2."
+  }
+]

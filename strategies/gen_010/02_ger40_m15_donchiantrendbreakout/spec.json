@@ -1,0 +1,52 @@
+{
+  "name": "GER40_M15_DonchianTrendBreakout",
+  "family": "trend_breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "GER40 M15 Donchian(20) breakouts filtered by ADX>22 (trending regime) during European/US cash sessions capture sustained directional moves, yielding PF>=2.0 and DD<15%.",
+  "regime_filter": {
+    "primitive": "adx",
+    "period": 14,
+    "min_value": 22,
+    "notes": "Only trade when ADX confirms trending regime."
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "allow_utc_hours": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16
+    ]
+  },
+  "entry_rules": {
+    "long": "Close > Donchian(20).upper of prior bar AND EMA(50) > EMA(200) AND ADX(14) > 22",
+    "short": "Close < Donchian(20).lower of prior bar AND EMA(50) < EMA(200) AND ADX(14) > 22",
+    "cooldown_bars": 6
+  },
+  "exit_rules": {
+    "stop_loss": "2.0 * ATR(14) from entry",
+    "take_profit": "4.0 * ATR(14) (RR 2:1)",
+    "time_stop_bars": 48,
+    "trailing": "After +1.5 ATR, trail stop at Donchian(10) opposite extreme"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "primitives_used": [
+    "donchian",
+    "ema",
+    "adx",
+    "atr",
+    "session_mask"
+  ],
+  "falsifier": "If <200 trades over 3yr or PF<1.5, kill branch. Also kill if DD>18%."
+}

@@ -1,0 +1,61 @@
+{
+  "name": "xauusd_m15_bb_bounce_threebar",
+  "hypothesis": "On XAUUSD M15, a confirmed three-bar Bollinger Band bounce (prior-bar pierce, current-bar close back inside) marks a high-probability mean-reversion entry with 2.5R target, provided it happens during session hours and outside extreme ADX trend regimes.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "family": "mean_reversion",
+  "signals": {
+    "bollinger": {
+      "period": 20,
+      "dev": 2.0,
+      "source": "close"
+    },
+    "atr": {
+      "period": 14
+    },
+    "adx": {
+      "period": 14
+    },
+    "session_mask": {
+      "sessions": [
+        "london",
+        "newyork"
+      ],
+      "utc_hours": [
+        7,
+        20
+      ]
+    }
+  },
+  "entry_rules": {
+    "long": "bar[-2].close > lower_bb AND bar[-1].low <= lower_bb AND bar[0].close > lower_bb AND session_active",
+    "short": "bar[-2].close < upper_bb AND bar[-1].high >= upper_bb AND bar[0].close < upper_bb AND session_active",
+    "cooldown_bars": 4
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "rule": "ADX(14) < 28",
+    "classify": "range_or_mild_trend_only"
+  },
+  "exit_rules": {
+    "sl": "1.8 * ATR(14) below/above entry bar low/high",
+    "tp": "2.5R fixed OR opposite BB touch, whichever first",
+    "time_stop_bars": 24,
+    "trailing": "activate after 1.5R, trail at 1.0 * ATR(14)"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  }
+}

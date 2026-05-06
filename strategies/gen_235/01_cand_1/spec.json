@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Breakouts occur during London session with high volatility",
+  "regime_filter": {
+    "type": "london_session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0,
+      "displacement": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

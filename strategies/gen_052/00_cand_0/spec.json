@@ -1,0 +1,79 @@
+{
+  "id": "00_xau_asia_london_breakout_m5",
+  "family": "breakout",
+  "hypothesis": "On XAUUSD M5, the Asia session (00:00-06:00 UTC) builds a compressed range, and the London open (07:00-10:00 UTC) expands it. A true breakout with a displacement candle >= 1.2x ATR beyond the Asia range by >= 0.5x ATR produces positive expectancy when the range is neither too tight nor too wide (0.5-2.0x ATR).",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "name": "atr14",
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "asia_range",
+      "primitive": "donchian",
+      "params": {
+        "period": 72,
+        "session": "asia_0000_0600_utc"
+      }
+    },
+    {
+      "name": "london_session",
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "10:00"
+      }
+    },
+    {
+      "name": "breakout_levels",
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_period": 14,
+        "mult": 0.5
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "period": 100,
+      "min_pct": 30,
+      "max_pct": 95
+    },
+    "description": "Require Asia range/ATR14 in [0.5, 2.0] and ATR percentile above 30 to avoid dead tape."
+  },
+  "entry_rules": {
+    "long": "During London window (07:00-10:00 UTC), close > Asia_high + 0.5*ATR14 AND candle body >= 1.2*ATR14. Only first breakout per day.",
+    "short": "During London window, close < Asia_low - 0.5*ATR14 AND candle body >= 1.2*ATR14. Only first breakout per day.",
+    "gates": [
+      "Asia range between 0.5x and 2.0x ATR14",
+      "breakout within first 9 London bars",
+      "max 1 entry per UTC day"
+    ]
+  },
+  "exit_rules": {
+    "stop_loss": "opposite side of Asia range or 1.5x ATR14, whichever is closer",
+    "take_profit": "2.0x ATR14 (R:R ~1.3-1.5), with partial at 1.0x ATR and trail remainder by 1.0x ATR",
+    "time_stop": "close at 16:00 UTC if neither SL/TP hit (max ~9h hold)"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "falsifiable_kpis": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  },
+  "diversity_tag": "session_breakout"
+}

@@ -1,0 +1,188 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "opposite_bb"
+        },
+        "stop_loss": {
+          "type": "atr",
+          "params": {
+            "atr_period": 14,
+            "atr_multiplier": 1.5
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion leads to breakout opportunities",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_min": 0.5,
+        "range_atr_max": 2.0,
+        "breakout_atr_multiplier": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "fixed",
+          "params": {
+            "pips": 500
+          }
+        },
+        "stop_loss": {
+          "type": "fixed",
+          "params": {
+            "pips": 100
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M15",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "min_width": 0.01
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "touch_tolerance": 0.2,
+        "close_back_inside": 0.3
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "fixed",
+          "params": {
+            "pips": 500
+          }
+        },
+        "stop_loss": {
+          "type": "fixed",
+          "params": {
+            "pips": 100
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR-based breakout occurs during high-volatility regimes",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 70
+      }
+    },
+    "entry_rule": {
+      "type": "atr_breakout",
+      "params": {
+        "atr_multiplier": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "fixed",
+          "params": {
+            "pips": 500
+          }
+        },
+        "stop_loss": {
+          "type": "fixed",
+          "params": {
+            "pips": 100
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  }
+]
+```

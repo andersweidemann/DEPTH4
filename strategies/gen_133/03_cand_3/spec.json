@@ -1,0 +1,33 @@
+{
+  "hypothesis": "RSI extremes combined with ATR-based stops lead to profitable trades",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_extreme",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl",
+    "params": {
+      "tp_pips": 200,
+      "sl_pips": 50
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_risk",
+    "params": {
+      "risk_fraction": 0.01
+    }
+  }
+}

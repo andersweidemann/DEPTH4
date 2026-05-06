@@ -1,0 +1,193 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings on XAUUSD M5",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 30
+      }
+    },
+    "sizing": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakout of the Asia range occurs with high probability during the London session on GER40 M15",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_range_expansion",
+      "params": {
+        "asia_range_start": 0,
+        "asia_range_end": 6,
+        "london_breakout_threshold": 0.5
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 1.0
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "risk_reward",
+      "params": {
+        "risk_reward_ratio": 2.0
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "hours": 2
+      }
+    },
+    "sizing": {
+      "type": "proportional",
+      "params": {
+        "percentage": 2.0
+      }
+    }
+  },
+  {
+    "hypothesis": "Price bouncing off the Bollinger Band with a specific 3-bar pattern occurs frequently on XAUUSD M15",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "min_width": 10,
+        "max_width": 50
+      }
+    },
+    "entry_rule": {
+      "type": "bb_bounce",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.0
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 20
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    },
+    "sizing": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.05
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR breakout occurs frequently during high-volatility regimes on US500 M5",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "period": 14,
+        "percentile": 70
+      }
+    },
+    "entry_rule": {
+      "type": "atr_breakout",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 1.0
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "tp": {
+      "type": "risk_reward",
+      "params": {
+        "risk_reward_ratio": 1.5
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "hours": 1
+      }
+    },
+    "sizing": {
+      "type": "proportional",
+      "params": {
+        "percentage": 1.5
+      }
+    }
+  }
+]

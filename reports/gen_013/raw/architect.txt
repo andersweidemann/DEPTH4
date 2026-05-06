@@ -1,0 +1,152 @@
+[
+  {
+    "name": "donchian_breakout_baseline_v1",
+    "hypothesis": "A plain 20-bar Donchian breakout with ATR stop produces a non-zero, measurable trade count on XAUUSD and GER40 M15. This is a sanity-anchor baseline to confirm the harness fires orders at all; if this trades, prior zero-trade failures were due to over-filtering.",
+    "family": "breakout",
+    "symbols": ["XAUUSD", "GER40", "US500"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"primitive": "donchian", "params": {"period": 20}},
+      {"primitive": "atr", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "close crosses above donchian_upper[1]",
+      "short": "close crosses below donchian_lower[1]"
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"lookback": 200, "min_percentile": 20, "max_percentile": 95},
+      "description": "Skip only dead-flat or blow-off regimes; deliberately permissive to guarantee trade flow."
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "3.0 * ATR(14) from entry (2R)",
+      "time_stop": "48 bars (12h on M15)",
+      "trailing": "none"
+    },
+    "sizing": {
+      "method": "risk_percent",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session_filter": "none",
+    "max_spread_points": {"XAUUSD": 80, "GER40": 200, "US500": 150},
+    "instrumentation_required": ["bars_loaded", "signals_generated", "signals_filtered", "orders_attempted", "orders_rejected_reason"],
+    "diversity_tag": "baseline_breakout"
+  },
+  {
+    "name": "asia_london_range_expansion_xauusd_v1",
+    "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) breaks the Asia range (00:00-06:00 UTC) with follow-through when the Asia range is between 0.5x and 2.0x ATR(14). A true-breakout entry (close beyond range by >=0.5 ATR) will produce >=200 trades over 4.5y and positive expectancy.",
+    "family": "session_breakout",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"asia_start": "00:00", "asia_end": "06:00", "london_start": "07:00", "london_end": "10:00", "tz": "UTC"}}
+    ],
+    "entry_rules": {
+      "long": "During london window, close > asia_range_high + 0.5*ATR AND candle_body >= 1.0*ATR AND only first breakout of day",
+      "short": "During london window, close < asia_range_low - 0.5*ATR AND candle_body >= 1.0*ATR AND only first breakout of day",
+      "preconditions": "0.5*ATR <= (asia_range_high - asia_range_low) <= 2.0*ATR"
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"lookback": 200, "min_percentile": 25, "max_percentile": 90},
+      "description": "Avoid dead and blow-off volatility days only."
+    },
+    "exit_rules": {
+      "stop_loss": "0.75 * ATR(14) from entry (below range for long, above for short)",
+      "take_profit": "2.25 * ATR(14) from entry (3R)",
+      "time_stop": "close at 15:00 UTC (end of London/NY overlap) if neither hit",
+      "trailing": "move to breakeven after +1.0 ATR in favor"
+    },
+    "sizing": {
+      "method": "risk_percent",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session_filter": "london_only_07_10_UTC",
+    "max_spread_points": {"XAUUSD": 60},
+    "instrumentation_required": ["bars_loaded", "signals_generated", "signals_filtered", "orders_attempted", "orders_rejected_reason"],
+    "diversity_tag": "session_breakout"
+  },
+  {
+    "name": "bb_rsi_mean_reversion_xauusd_v1",
+    "hypothesis": "On XAUUSD M15, closes outside Bollinger(20,2.0) combined with RSI(2) extremes produce a short-horizon mean reversion edge when BB width is above its 30th percentile (not dead) and below its 90th (not crisis). Expected >=200 trades with PF>1.5.",
+    "family": "mean_reversion",
+    "symbols": ["XAUUSD", "US500"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "stddev": 2.0}},
+      {"primitive": "bb_width", "params": {"period": 20, "lookback": 500}},
+      {"primitive": "rsi", "params": {"period": 2}},
+      {"primitive": "atr", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi(2) < 10",
+      "short": "close > upper_bb AND rsi(2) > 90"
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {
+        "bb_width_percentile_min": 30,
+        "bb_width_percentile_max": 90,
+        "adx_max": 30
+      },
+      "description": "Trade only when volatility is alive but market is not strongly trending (ADX<30); this is the single regime filter, no additional stacking."
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "opposite Bollinger Band (middle BB as fallback if band crossed in < 3 bars)",
+      "time_stop": "30 bars (7.5h on M15)",
+      "trailing": "none"
+    },
+    "sizing": {
+      "method": "risk_percent",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 3
+    },
+    "session_filter": "07:00-20:00 UTC",
+    "max_spread_points": {"XAUUSD": 60, "US500": 100},
+    "instrumentation_required": ["bars_loaded", "signals_generated", "signals_filtered", "orders_attempted", "orders_rejected_reason"],
+    "diversity_tag": "mean_reversion"
+  },
+  {
+    "name": "ema_pullback_trend_indices_v1",
+    "hypothesis": "On GER40 and US500 M15, a simple EMA(20)/EMA(50) trend alignment plus RSI(14) pullback to 40 (longs) or 60 (shorts) captures continuation moves. Using a single momentum filter (ADX>=18) avoids chop without over-constraining. Expected >=200 trades per combo.",
+    "family": "trend_pullback",
+    "symbols": ["GER40", "US500"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"primitive": "ema", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "rsi", "params": {"period": 14}},
+      {"primitive": "atr", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "ema20 > ema50 AND close > ema50 AND rsi(14) crosses up through 45 from below 45",
+      "short": "ema20 < ema50 AND close < ema50 AND rsi(14) crosses down through 55 from above 55"
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "params": {"period": 14, "min": 18, "max": 60},
+      "description": "Single ADX band filter; no additional confluence to avoid the zero-trade trap from prior generation."
+    },
+    "exit_rules": {
+      "stop_loss": "2.0 * ATR(14) from entry",
+      "take_profit": "3.0 * ATR(14) from entry (1.5R)",
+      "time_stop": "32 bars (8h on M15)",
+      "trailing": "after +1.5 ATR, trail by 1.5 ATR"
+    },
+    "sizing": {
+      "method": "risk_percent",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session_filter": "07:00-21:00 UTC (cash session coverage for both indices)",
+    "max_spread_points": {"GER40": 200, "US500": 150},
+    "instrumentation_required": ["bars_loaded", "signals_generated", "signals_filtered", "orders_attempted", "orders_rejected_reason"],
+    "diversity_tag": "trend_pullback"
+  }
+]

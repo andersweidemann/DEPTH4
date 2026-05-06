@@ -1,0 +1,178 @@
+```python
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        super().init()
+
+        try:
+            spec_file = Path(__file__).parent / self.spec_path
+            if spec_file.exists():
+                with open(spec_file, "r") as f:
+                    loaded = json.load(f)
+                    if loaded:
+                        self.spec = {**self.spec, **loaded}
+        except Exception:
+            pass
+
+        self._donchian_period = 20
+        self._atr_period = 14
+        self._atr_pct_lookback = 200
+        self._atr_pct_min = 20.0
+        self._atr_pct_max = 95.0
+
+        self._sl_atr_mult = 1.5
+        self._tp_atr_mult = 3.0
+        self._time_stop_bars = 48
+        self._risk_pct = 0.5
+
+        max_spread_map = {
+            "XAUUSD": 80,
+            "GER40": 200,
+            "US500": 150,
+        }
+        self._max_spread_points = max_spread_map.get(self._symbol, 200)
+
+        self._atr_series = self.I(signals.atr, self.data, self._atr_period)
+        dcu, dcl = self.I(signals.donchian, self.data, self._donchian_period)
+        self._donchian_upper = dcu
+        self._donchian_lower = dcl
+
+        self._atr_pct_series = self.I(
+            regime.atr_percentile, self.data, self._atr_period, self._atr_pct_lookback
+        )
+
+    def _regime_ok(self) -> bool:
+        if len(self._atr_pct_series) < 1:
+            return False
+        pct = float(self._atr_pct_series[-1])
+        if np.isnan(pct):
+            return False
+        return self._atr_pct_min <= pct <= self._atr_pct_max
+
+    def _filters_ok(self) -> bool:
+        if not risk.spread_ok(self._broker_spread_points, self._max_spread_points):
+            return False
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        daily_kill_pct = self.spec.get("risk", {}).get("daily_dd_kill_pct", 5.0)
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, daily_kill_pct):
+            return False
+        return True
+
+    def next(self):
+        if len(self.data) < max(self._donchian_period, self._atr_period, self._atr_pct_lookback) + 2:
+            return
+
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+
+        self._enter_if_signal()
+        self._manage_open()
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+
+        close_now = float(self.data.Close[-1])
+        close_prev = float(self.data.Close[-2])
+
+        upper_prev = float(self._donchian_upper[-2])
+        lower_prev = float(self._donchian_lower[-2])
+
+        if np.isnan(upper_prev) or np.isnan(lower_prev):
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        long_signal = close_prev <= upper_prev and close_now > upper_prev
+        short_signal = close_prev >= lower_prev and close_now < lower_prev
+
+        if not (long_signal or short_signal):
+            return
+
+        if long_signal:
+            sl = close_now - self._sl_atr_mult * atr_now
+            tp = close_now + self._tp_atr_mult * atr_now
+            if sl >= close_now:
+                return
+            stop_dist = close_now - sl
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self._risk_pct,
+                stop_distance=stop_dist,
+                price=close_now,
+                symbol=self._symbol,
+            )
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                if isinstance(size, float) and 0 < size < 1:
+                    self.buy(size=size, sl=sl, tp=tp)
+                else:
+                    self.buy(size=max(1, int(size)), sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    return
+
+        elif short_signal:
+            sl = close_now + self._sl_atr_mult * atr_now
+            tp = close_now - self._tp_atr_mult * atr_now
+            if sl <= close_now:
+                return
+            stop_dist = sl - close_now
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self._risk_pct,
+                stop_distance=stop_dist,
+                price=close_now,
+                symbol=self._symbol,
+            )
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                if isinstance(size, float) and 0 < size < 1:
+                    self.sell(size=size, sl=sl, tp=tp)
+                else:
+                    self.sell(size=max(1, int(size)), sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    return
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        if self._time_stop_bars is not None and self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self._time_stop_bars:
+                self.position.close()
+                return
+```

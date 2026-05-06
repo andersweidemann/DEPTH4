@@ -1,0 +1,65 @@
+{
+  "id": "gen30_02_bb_rsi_meanrev_us500_m5",
+  "name": "BB+RSI Mean Reversion US500 M5",
+  "family": "mean_reversion",
+  "hypothesis": "On US500 M5, a close beyond BB(20,1.75) with RSI(7) at extreme reverts to the middle band within a few hours; a BB-width percentile floor removes dead ranges.",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "stddev": 1.75,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "stddev": 1.75,
+        "percentile_lookback": 500
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "rule": "bb_width_percentile >= 25",
+      "description": "Avoid dead-range chop but keep most of the distribution."
+    }
+  },
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi7 < 15",
+    "short": "close > upper_bb AND rsi7 > 85",
+    "notes": "No session filter to avoid gen29 timezone failure; rely purely on volatility regime."
+  },
+  "exit_rules": {
+    "take_profit": "middle BB (SMA20)",
+    "stop_loss": "1.5 * ATR(14)",
+    "time_stop_bars": 36,
+    "trailing": "none"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.4,
+    "max_concurrent": 1,
+    "cooldown_bars": 3
+  },
+  "diagnostics": {
+    "expect_signal_count_per_year_min": 120
+  }
+}

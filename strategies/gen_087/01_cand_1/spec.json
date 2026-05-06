@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Breakouts from Asia range to London session are profitable",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_breakout",
+    "params": {
+      "asia_range_atr_min": 0.5,
+      "asia_range_atr_max": 2.0,
+      "london_breakout_atr": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "trailing_stop_atr": 1.0
+    }
+  },
+  "sl_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 100
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 500
+    }
+  },
+  "time_stop": 60,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "Mean Reversion Scalper",
+  "hypothesis": "Mean reversion after extreme RSI readings outside Bollinger Bands",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": "bb_width(20, 2.0) > 30th percentile",
+  "entry_rules": [
+    {
+      "type": "long",
+      "condition": "rsi(7) < 10 and close < lower_bollinger_band(20, 2.0)"
+    },
+    {
+      "type": "short",
+      "condition": "rsi(7) > 90 and close > upper_bollinger_band(20, 2.0)"
+    }
+  ],
+  "exit_rules": {
+    "stop_loss": "1.2 * atr(14)",
+    "take_profit": "1.8 * atr(14)",
+    "time_stop": "20 minutes"
+  },
+  "sizing": {
+    "type": "fixed",
+    "value": 0.2
+  }
+}

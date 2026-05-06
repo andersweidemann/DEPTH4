@@ -1,0 +1,42 @@
+{
+  "strategy_id": "bb_rsi_mean_reversion_v1",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M5 and M15, price closes outside Bollinger(20, 2.0) combined with extreme RSI(7) readings revert to the band midline with positive expectancy, provided BB width is above its 30th percentile (filters dead ranges). Inspired by the BB+RSI scalper scout card; adapted to our primitives.",
+  "symbols": [
+    "XAUUSD",
+    "US500"
+  ],
+  "timeframes": [
+    "M5",
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "close < lower_bb(20, 2.0) AND rsi(7) < 15",
+    "entry_short": "close > upper_bb(20, 2.0) AND rsi(7) > 85",
+    "primitives": [
+      "bollinger",
+      "bb_width",
+      "rsi"
+    ]
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rule": "bb_width(20, 2.0) > 30th percentile over last 200 bars AND adx(14) < 25",
+    "purpose": "Trade mean-reversion only in sufficiently volatile but non-strongly-trending regimes."
+  },
+  "exits": {
+    "stop_loss": "1.5 * atr(14) from entry",
+    "take_profit": "opposite Bollinger Band (middle BB as partial at 50%)",
+    "time_stop": "30 bars",
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": "07:00-20:00 UTC",
+  "diagnostic_intent": "Mean-reversion family, different edge from breakout/trend candidates. Should generate 150-300 trades/yr/symbol on M5.",
+  "expected_trade_count_per_year": 200,
+  "family_tag": "mean_reversion"
+}

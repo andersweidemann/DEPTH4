@@ -1,0 +1,97 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "GER40"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("filters", {}).get("session_utc") or []
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, sessions), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self.atr = self.I(atr, self.data, 14)
+        self.atr_percentile = self.I(atr_percentile, self.data, 14, 50)
+        self.upper_range = self.I(donchian, self.data, 14, 'high')
+        self.lower_range = self.I(donchian, self.data, 14, 'low')
+        self.breakout = self.data.Close
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        if rf.get("type") == "atr_percentile":
+            atr_now = float(self.atr[-1])
+            atr_percentile_now = float(self.atr_percentile[-1])
+            return atr_now > atr_percentile_now
+        return True
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        entry_cfg = self.spec.get("entry_rules")
+        if entry_cfg:
+            long_condition = entry_cfg.get("long", {}).get("condition")
+            short_condition = entry_cfg.get("short", {}).get("condition")
+            if long_condition and self.breakout[-1] > self.upper_range[-1] and self.atr[-1] > self.atr_percentile[-1]:
+                self.position.enter_long(self.data.Close[-1])
+                self.sl_price = self.data.Close[-1] - 50 * self.data._pip
+                self.tp_price = self.data.Close[-1] + 100 * self.data._pip
+            elif short_condition and self.breakout[-1] < self.lower_range[-1] and self.atr[-1] > self.atr_percentile[-1]:
+                self.position.enter_short(self.data.Close[-1])
+                self.sl_price = self.data.Close[-1] + 50 * self.data._pip
+                self.tp_price = self.data.Close[-1] - 100 * self.data._pip
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rules")
+        time_stop = exit_cfg.get("time_stop", {}).get("hours")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            hours_open = bars_open * self.data._timedelta.total_seconds() / 3600
+            if hours_open >= time_stop:
+                self.position.close()
+                return
+        sl_pips = exit_cfg.get("sl", {}).get("pips")
+        tp_pips = exit_cfg.get("tp", {}).get("pips")
+        if sl_pips is not None:
+            if self.position.is_long:
+                self.sl_price = self.data.Close[-1] - sl_pips * self.data._pip
+            else:
+                self.sl_price = self.data.Close[-1] + sl_pips * self.data._pip
+        if tp_pips is not None:
+            if self.position.is_long:
+                self.tp_price = self.data.Close[-1] + tp_pips * self.data._pip
+            else:
+                self.tp_price = self.data.Close[-1] - tp_pips * self.data._pip

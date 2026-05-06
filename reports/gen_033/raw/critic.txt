@@ -1,0 +1,22 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_cand_2",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    },
+    {
+      "candidate": "03_cand_3",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nBoth candidates (`02_cand_2`, `03_cand_3`) produced **zero trades** across all four symbol/TF combos (XAUUSD M5/M15, GER40 M5/M15) over the full IS window 2020-01-01 to 2024-06-30. All metrics are NaN/0.\n\n### Root-cause hypothesis\nZero trades across 4.5 years on two highly active instruments at M5/M15 is not a signal-quality issue — it is a **wiring/gating failure**. Likely causes, in order of probability:\n1. Entry conditions are logically unsatisfiable (e.g., AND of mutually exclusive conditions, or a threshold that never triggers such as `rsi < 0` or `atr > price`).\n2. Session/time filter excludes all bars (wrong broker TZ offset, or session window in UTC vs. server time mismatch).\n3. Symbol/TF handle mismatch — indicators requested on a series that returns empty, so `OnTick` returns early.\n4. Risk/margin guard rejects every order (e.g., lot size rounds to 0, or min-distance-to-SL check fails).\n5. Pending-order logic where the trigger price is always beyond max deviation.\n\n### Recommendation\n**Do not tune parameters.** Pivot to diagnostics: add a trade-attempt counter and log rejection reasons (`TRADE_RETCODE_*`, filter-gate booleans) before generating the next candidate batch. Validate that a trivial always-on baseline (`if (Bars%100==0) BuyMarket()`) produces >0 trades on the same harness to confirm the backtest plumbing works.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Re-submitting the same entry/exit logic family without first instrumenting trade-attempt rejection logging — any candidate that cannot prove it fires at least N>=200 signals in IS is a waste of a generation slot.",
+    "Parameter sweeps on candidates 02_cand_2 and 03_cand_3 in their current form — zero-trade outputs carry no gradient information."
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "id": "gen40_04_xau_m5_atr_momentum_pullback",
+  "hypothesis": "On XAUUSD M5, after a strong ATR-scaled momentum impulse (1.5*ATR move in 5 bars), a shallow pullback to EMA(20) resumes the trend; EMA50>EMA200 (or inverse) gates direction.",
+  "family": "trend_pullback",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "ema_50 > ema_200 AND (high[5] - low[5..1].min) impulse >= 1.5*ATR14 AND close crosses back above ema_20 from below within 10 bars of impulse",
+    "short": "ema_50 < ema_200 AND inverse impulse AND close crosses below ema_20 from above within 10 bars",
+    "simplified_alt": "If 'crosses back' plumbing is fragile: use close > ema_20 AND low[1] <= ema_20[1] (touch-and-hold) as entry trigger."
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "condition": "adx_14 > 18",
+    "comment": "Mild trend filter; not stacked with ATR percentile."
+  },
+  "exit_rules": {
+    "tp": "2.0 * ATR14",
+    "sl": "1.2 * ATR14 (below/above ema_20 touch extreme)",
+    "time_stop": "60 bars (~5h M5)",
+    "trailing": "after +1R, trail by 1.5*ATR14"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": {
+    "enabled": true,
+    "window_utc": "07:00-20:00",
+    "comment": "London + NY overlap where gold M5 momentum is cleanest."
+  },
+  "diagnostics": {
+    "dry_run_required": true,
+    "log_raw_signals": true,
+    "min_expected_signals_per_year": 150
+  },
+  "diversity_tag": "trend_pullback_ema"
+}

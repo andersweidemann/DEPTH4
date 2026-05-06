@@ -1,0 +1,137 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price touches the upper or lower Bollinger Band with RSI(7) extreme readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "London breakout strategy is profitable on GER40 M15 when combined with ATR-based volatility filters",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "london_breakout",
+      "params": {
+        "asia_range_start": "00:00",
+        "asia_range_end": "06:00",
+        "london_window_start": "07:00",
+        "london_window_end": "10:00",
+        "breakout_threshold": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "500_pips",
+        "sl": "100_pips",
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal strategy is profitable on XAUUSD M5",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start": "07:00",
+        "end": "20:00"
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch_bounce",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "500_pips",
+        "sl": "100_pips",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion strategy using RSI and Bollinger Bands is profitable on US500 M15",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion_rsi",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90],
+        "bb_period": 20,
+        "bb_deviation": 1.75
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]
+```

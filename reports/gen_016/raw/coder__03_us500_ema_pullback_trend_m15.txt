@@ -1,0 +1,242 @@
+```python
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+
+        # Indicators
+        self._ema_fast = self.I(signals.ema, self.data.Close, 20)
+        self._ema_mid = self.I(signals.ema, self.data.Close, 50)
+        self._ema_slow = self.I(signals.ema, self.data.Close, 200)
+        self._rsi = self.I(signals.rsi, self.data.Close, 14)
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atr_pct = self.I(regime.atr_percentile, self.data, 14, 250)
+
+        # Session mask
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(
+            signals.session_mask(idx, ["13:30-20:00"]), dtype=bool
+        )
+
+        # Daily trade tracking
+        self._trades_today = 0
+        self._current_day = None
+        self._day_start_equity = self._equity_start
+
+    def _session_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        if self._session_mask_full is not None and 0 <= bar_i < len(self._session_mask_full):
+            return bool(self._session_mask_full[bar_i])
+        return True
+
+    def _regime_ok(self) -> bool:
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val < 18:
+            return False
+        atr_p = float(self._atr_pct[-1])
+        if np.isnan(atr_p):
+            return False
+        if atr_p < 30 or atr_p > 90:
+            return False
+        return True
+
+    def _update_day(self):
+        now = pd.Timestamp(self.data.index[-1])
+        day = now.strftime("%Y-%m-%d")
+        if day != self._current_day:
+            self._current_day = day
+            self._trades_today = 0
+            self._day_start_equity = float(self.equity)
+
+    def _daily_limits_ok(self) -> bool:
+        if self._trades_today >= 3:
+            return False
+        dd_pct = (self._day_start_equity - float(self.equity)) / self._day_start_equity * 100.0
+        if dd_pct >= 2.0:
+            return False
+        return True
+
+    def _swing_low(self, lookback: int = 10) -> float:
+        n = min(lookback, len(self.data) - 1)
+        if n <= 0:
+            return float(self.data.Low[-1])
+        return float(np.min(np.asarray(self.data.Low)[-n:]))
+
+    def _swing_high(self, lookback: int = 10) -> float:
+        n = min(lookback, len(self.data) - 1)
+        if n <= 0:
+            return float(self.data.High[-1])
+        return float(np.max(np.asarray(self.data.High)[-n:]))
+
+    def next(self):
+        self._update_day()
+
+        # Manage open positions
+        self._manage_positions()
+
+        if self.position:
+            return
+
+        if not self._session_ok():
+            return
+        if not self._regime_ok():
+            return
+        if not self._daily_limits_ok():
+            return
+
+        if len(self.data) < 210:
+            return
+
+        close = float(self.data.Close[-1])
+        high_prev = float(self.data.High[-2])
+        low_prev = float(self.data.Low[-2])
+        ema20 = float(self._ema_fast[-1])
+        ema50 = float(self._ema_mid[-1])
+        ema200 = float(self._ema_slow[-1])
+        rsi_now = float(self._rsi[-1])
+        rsi_prev = float(self._rsi[-2])
+        atr_now = float(self._atr_series[-1])
+
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        long_trend = ema20 > ema50 > ema200
+        short_trend = ema20 < ema50 < ema200
+
+        long_signal = (
+            long_trend
+            and low_prev <= ema20
+            and close > ema20
+            and rsi_prev < 50 <= rsi_now
+            and close > high_prev
+        )
+
+        short_signal = (
+            short_trend
+            and high_prev >= ema20
+            and close < ema20
+            and rsi_prev > 50 >= rsi_now
+            and close < low_prev
+        )
+
+        if long_signal:
+            swing = self._swing_low(10)
+            sl = min(swing, close - 1.2 * atr_now)
+            if sl >= close:
+                return
+            risk_per_unit = close - sl
+            tp = close + 2.5 * atr_now
+            size = risk.lots_by_risk_pct(
+                equity=float(self.equity),
+                risk_pct=0.4,
+                stop_distance=risk_per_unit,
+                price=close,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+                self._trades_today += 1
+            except Exception:
+                pass
+
+        elif short_signal:
+            swing = self._swing_high(10)
+            sl = max(swing, close + 1.2 * atr_now)
+            if sl <= close:
+                return
+            risk_per_unit = sl - close
+            tp = close - 2.5 * atr_now
+            size = risk.lots_by_risk_pct(
+                equity=float(self.equity),
+                risk_pct=0.4,
+                stop_distance=risk_per_unit,
+                price=close,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+                self._trades_today += 1
+            except Exception:
+                pass
+
+    def _manage_positions(self):
+        if not self.trades:
+            return
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+        price = float(self.data.Close[-1])
+        current_bar = len(self.data) - 1
+
+        for trade in list(self.trades):
+            entry = trade.entry_price
+            bars_open = current_bar - trade.entry_bar
+
+            # Time stop
+            if bars_open >= 28:
+                trade.close()
+                continue
+
+            if trade.is_long:
+                init_risk = entry - (trade.sl if trade.sl is not None else entry - 1.2 * atr_now)
+                if init_risk <= 0:
+                    continue
+                r_mult = (price - entry) / init_risk
+
+                # Breakeven at 1R
+                if r_mult >= 1.0 and (trade.sl is None or trade.sl < entry):
+                    trade.sl = entry
+
+                # Scale 50% at 1.5R
+                if r_mult >= 1.5 and trade.size > 0 and not getattr(trade, "_scaled", False):
+                    try:
+                        trade.close(portion=0.5)
+                        trade._scaled = True
+                    except Exception:
+                        pass
+
+                # Trail after scale
+                if getattr(trade, "_scaled", False):
+                    new_sl = price - 1.5 * atr_now
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                init_risk = (trade.sl if trade.sl is not None else entry + 1.2 * atr_now) - entry
+                if init_risk <= 0:
+                    continue
+                r_mult = (entry - price) / init_risk
+
+                if r_mult >= 1.0 and (trade.sl is None or trade.sl > entry):
+                    trade.sl = entry
+
+                if r_mult >= 1.5 and abs(trade.size) > 0 and not getattr(trade, "_scaled", False):
+                    try:
+                        trade.close(portion=0.5)
+                        trade._scaled = True
+                    except Exception:
+                        pass
+
+                if getattr(trade, "_scaled", False):
+                    new_sl = price + 1.5 * atr_now
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+```

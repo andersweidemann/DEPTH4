@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Breakouts occur during London session on GER40 M15 with ATR-based volatility filters",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 14
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "atr_period": 14,
+      "atr_threshold": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

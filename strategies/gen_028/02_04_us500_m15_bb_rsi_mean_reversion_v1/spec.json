@@ -1,0 +1,96 @@
+{
+  "name": "04_us500_m15_bb_rsi_mean_reversion_v1",
+  "hypothesis": "On US500 M15 during RTH, extreme BB(20,2.0) excursions combined with RSI(7) extremes revert toward the BB mid within 20 bars, and a BB-width percentile filter suppresses dead-range chop, yielding PF>=2.0.",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "family": "mean_reversion",
+  "regime_filter": {
+    "primitives": [
+      "bb_width",
+      "atr_percentile",
+      "adx"
+    ],
+    "rules": [
+      {
+        "indicator": "bb_width_percentile",
+        "period": 200,
+        "op": ">=",
+        "value": 0.3
+      },
+      {
+        "indicator": "adx",
+        "period": 14,
+        "op": "<=",
+        "value": 22
+      }
+    ],
+    "description": "Only mean-revert when volatility is alive but ADX is low (non-trending regime)."
+  },
+  "signals": {
+    "primitives": [
+      "bollinger",
+      "rsi",
+      "atr",
+      "session_mask"
+    ],
+    "entry_long": "Close < LowerBB(20,2.0) AND RSI(7) < 10",
+    "entry_short": "Close > UpperBB(20,2.0) AND RSI(7) > 90",
+    "session_window_entry": "13:30-20:00 UTC (US RTH)",
+    "cooldown_bars": 4
+  },
+  "exits": {
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "take_profit": "Opposite BB band OR BB middle (whichever hit first); fallback fixed 2.0*ATR",
+    "time_stop_bars": 20,
+    "breakeven_trigger": "none",
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.4,
+    "max_concurrent_positions": 1,
+    "min_stop_points": 20
+  },
+  "parameter_grid": {
+    "bb_period": [
+      20
+    ],
+    "bb_dev": [
+      1.75,
+      2.0,
+      2.25
+    ],
+    "rsi_period": [
+      5,
+      7,
+      9
+    ],
+    "rsi_long_thr": [
+      8,
+      10,
+      15
+    ],
+    "rsi_short_thr": [
+      85,
+      90,
+      92
+    ],
+    "sl_atr_mult": [
+      1.2,
+      1.5,
+      2.0
+    ],
+    "bb_width_pct_min": [
+      0.25,
+      0.3,
+      0.4
+    ]
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  },
+  "diversity_tag": "mean_reversion_equity"
+}

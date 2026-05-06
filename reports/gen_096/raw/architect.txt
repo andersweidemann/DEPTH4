@@ -1,0 +1,180 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion occurs on GER40 M15",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session_start": "07:00",
+        "session_end": "10:00"
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > 1.2 * atr(14) && breakout > 0.5 * range_atr"
+      },
+      "short": {
+        "condition": "breakout < -1.2 * atr(14) && breakout < -0.5 * range_atr"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M15",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "min_width": 10,
+        "max_width": 50
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > lower_bb && close < upper_bb"
+      },
+      "short": {
+        "condition": "close < upper_bb && close > lower_bb"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Volatility normalization using ATR occurs on US500 M5",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 50
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > sma(20) && rsi(7) < 30"
+      },
+      "short": {
+        "condition": "close < sma(20) && rsi(7) > 70"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 200
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  }
+]
+```

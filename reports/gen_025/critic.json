@@ -1,0 +1,44 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_xauusd_m5_asialondonrangebreakout",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "01_xauusd_m15_bbrsi_meanreversion",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "03_us500_m5_emapullbacktrend",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nAll three candidates produced **zero trades** across all four symbol/timeframe combos (XAUUSD M5/M15, GER40 M5/M15). This is not a strategy-quality problem \u2014 it is a **pipeline / entry-gate problem**. No metrics are computable (all NaN), so fitness ranking is meaningless.\n\n### Likely root causes (in priority order)\n1. **Data loading / symbol mapping failure** \u2014 backtester may not be finding bars for the configured symbols (e.g., `XAUUSD` vs `XAU/USD`, `GER40` vs `DE40`/`GER40.cash`). Zero trades on every combo including the strategy's *native* symbol is the tell.\n2. **Session / time filter too restrictive** \u2014 Asia-London range breakout in particular depends on correct broker server time; a TZ offset bug would kill all entries.\n3. **Entry conditions logically unreachable** \u2014 e.g., requiring `close > upper_band AND rsi > 70 AND trend_up` simultaneously with wrong operator, or indicator warmup consuming the entire series.\n4. **Candidates run on wrong symbols** \u2014 `03_us500_m5_emapullbacktrend` was tested on XAUUSD/GER40, not US500. Likely produces no signals by design if it hard-filters on symbol name.\n\n### Recommendation\nDo **not** iterate on strategy parameters. Halt generation and fix the harness: (a) verify data frames have >0 bars per combo, (b) log signal counts pre-filter, pre-risk, pre-order, (c) ensure each candidate is run on its intended symbol at minimum.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not revisit any of these 3 candidates until harness produces >0 trades on a sanity-check buy-and-hold or always-in baseline",
+    "Do not spawn new candidates this generation \u2014 the evaluation pipeline is broken and will reject everything",
+    "Stop testing strategies on symbols they were not designed for (e.g., US500 EMA pullback on XAUUSD/GER40) until per-candidate symbol routing is fixed"
+  ]
+}

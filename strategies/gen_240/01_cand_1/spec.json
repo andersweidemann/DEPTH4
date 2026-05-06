@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Breakouts occur when price displaces the Asia range during the London session",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "displacement_candle >= 1.2 * atr(14) && displacement_candle >= 0.5 * asia_range"
+    },
+    "short": {
+      "condition": "displacement_candle <= -1.2 * atr(14) && displacement_candle <= -0.5 * asia_range"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "distance": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "distance": 500
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_bb_rsi_mean_reversion_xau_m15",
+      "fitness": 0.12,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.92,
+        "sharpe_avg": -0.45,
+        "max_dd_pct": 15.33,
+        "trades_total": 1067
+      }
+    },
+    {
+      "candidate": "01_asia_london_range_breakout_xau_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\nBoth candidates fail acceptance thresholds decisively. This is a **full generation failure** and warrants a strategy-family review rather than parameter tweaks on these specific ideas.\n\n- **00_bb_rsi_mean_reversion_xau_m15**: PF 0.92 (<2.0), Sharpe -0.45 (<1.5), return -11.4%, win rate 41.3%, DD 15.3% (>15.0). Trade count is healthy (1067) so the signal is simply unprofitable — classic mean-reversion bleed on XAU which is a strongly trending/impulsive instrument on M15. Expectancy is negative (-0.011), meaning no edge exists to optimize around.\n- **01_asia_london_range_breakout_xau_m5**: Zero trades. Entry filter is too restrictive or the session/range definition never triggers. Unfit to evaluate — treat as an implementation/config defect, not a strategy validation.\n\n**Recommendation**: Pivot mean-reversion away from XAU M15. Debug the range-breakout entry logic before drawing conclusions on the family.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Bollinger+RSI mean reversion on XAUUSD intraday (M5–M15) — XAU's fat-tailed impulsive moves punish fade entries; 1067 trades confirm the edge is absent, not undersampled. Do not re-tune BB/RSI params on gold; if mean-reversion is desired, move to ranging FX majors (EURGBP, EURCHF) or to higher TFs (H1+) with volatility regime filter (ADX<20 or ATR percentile<40).",
+    "Asia/London session range breakout on XAU M5 as currently specified — zero fills indicates the range/trigger definition is broken or impossibly narrow. Before re-attempting: (1) log range-size distribution vs breakout threshold, (2) verify session timestamps against broker server time, (3) ensure the breakout confirmation bar is achievable on M5 ATR. If after fix trade count stays <100/yr, abandon M5 for this family and retest on M15."
+  ]
+}

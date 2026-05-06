@@ -1,0 +1,42 @@
+{
+  "strategy_id": "donchian_breakout_atr_v1",
+  "family": "breakout",
+  "hypothesis": "On trending instruments (XAUUSD, GER40, US500) M15, a 20-bar Donchian channel breakout filtered by ADX>20 captures volatility-expansion moves with positive expectancy. Breakouts that occur during ADX-confirmed regimes outperform naive breakouts by avoiding chop whipsaws.",
+  "symbols": [
+    "XAUUSD",
+    "GER40",
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "close > highest(high, 20)[1] AND close > ema(close, 50)",
+    "entry_short": "close < lowest(low, 20)[1] AND close < ema(close, 50)",
+    "primitives": [
+      "donchian",
+      "ema",
+      "atr_breakout_levels"
+    ]
+  },
+  "regime_filter": {
+    "type": "adx",
+    "rule": "adx(14) > 20",
+    "purpose": "Require directional regime; skip ranging markets where breakouts fail."
+  },
+  "exits": {
+    "stop_loss": "1.5 * atr(14) from entry",
+    "take_profit": "4.0 * atr(14) from entry (~2.67R)",
+    "time_stop": "32 bars (8 hours on M15)",
+    "trailing": "chandelier: 3.0 * atr(14) from highest-high-since-entry, activated after +1.5R"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": "07:00-20:00 UTC (London + NY overlap, avoid Asia low-liquidity chop)",
+  "diagnostic_intent": "Classic trend/breakout family. Should trade ~100-200/yr/symbol.",
+  "expected_trade_count_per_year": 120,
+  "family_tag": "breakout_trend"
+}

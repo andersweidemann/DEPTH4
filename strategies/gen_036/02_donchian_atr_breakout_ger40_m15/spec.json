@@ -1,0 +1,80 @@
+{
+  "name": "donchian_atr_breakout_ger40_m15",
+  "hypothesis": "On GER40 M15, a 20-bar Donchian breakout confirmed by a wide-range candle during the London/Frankfurt session, filtered by rising ADX and ATR percentile, captures persistent European equity trend thrusts.",
+  "family": "breakout_trend",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signals": {
+    "entry_long": "close > donchian_high(20)[1] AND candle_body > 0.8*ATR(14) AND ema(20) > ema(50)",
+    "entry_short": "close < donchian_low(20)[1] AND candle_body > 0.8*ATR(14) AND ema(20) < ema(50)",
+    "primitives_used": [
+      "donchian",
+      "atr",
+      "ema",
+      "session_mask",
+      "adx"
+    ]
+  },
+  "regime_filter": {
+    "type": "trend_gate",
+    "rules": [
+      "adx(14) >= 20",
+      "atr_percentile(14, 200) between 30 and 95",
+      "session_mask: 07:00-16:00 broker time (Frankfurt/London cash hours)",
+      "classify: trending"
+    ]
+  },
+  "exits": {
+    "take_profit": "2.5 * ATR(14) fixed, plus trail at 2.0*ATR after +1.5*ATR",
+    "stop_loss": "1.8 * ATR(14) below/above entry candle",
+    "time_stop": "close after 20 M15 bars if neither SL/TP hit",
+    "breakeven": "move SL to entry after +1.0*ATR"
+  },
+  "sizing": {
+    "type": "risk_pct_per_trade",
+    "risk_pct": 0.6,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 6
+  },
+  "params_to_optimize": {
+    "donchian_len": [
+      15,
+      20,
+      30
+    ],
+    "body_atr_mult": [
+      0.6,
+      0.8,
+      1.0
+    ],
+    "ema_fast": [
+      10,
+      20
+    ],
+    "ema_slow": [
+      50,
+      100
+    ],
+    "atr_sl_mult": [
+      1.5,
+      1.8,
+      2.2
+    ],
+    "tp_atr_mult": [
+      2.0,
+      2.5,
+      3.0
+    ],
+    "time_stop_bars": [
+      16,
+      20,
+      30
+    ]
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

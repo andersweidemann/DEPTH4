@@ -1,0 +1,45 @@
+# Discovery phase: GER40 (DAX CFD) on M15 only. Merged over repo config.yaml.
+# Run: python -m agents.run_loop --gens 15 --config config/campaigns/ger40_m15.discovery.yaml
+# Phase 2 (promotion): switch to ger40_m15.strict.yaml for the same symbol/TF.
+
+timeframes: [M15]
+
+factory_backtest_symbols: [GER40]
+
+acceptance:
+  pf_min: 1.12
+  return_cagr_pct_min: 0.2
+  max_dd_pct: 32.0
+  sharpe_min: 0.05
+  trades_min: 72
+  require_all_combos_positive: true
+  max_local_vs_mt5_divergence_pct: 20.0
+
+loop:
+  candidates_per_gen: 4
+  survivors: 2
+  scout_every_n_gens: 3
+
+llm:
+  temperature: 0.38
+
+scout:
+  max_results_per_query: 36
+  default_queries:
+    - "GER40 DAX M15 breakout MQL5 Expert Advisor"
+    - "MT5 DE40 15 minute opening range breakout strategy"
+    - "DAX London session trend following MQL5"
+    - "GER40 CFD intraday momentum 15 minute chart"
+    - "MQL5 ADX trend filter breakout index CFD"
+    - "donchian channel breakout MQL5 stop loss take profit"
+
+campaign:
+  name: ger40_m15_discovery
+  architect_brief: |
+    CAMPAIGN (discovery): GER40 (Dax CFD) on M15 ONLY.
+    Every spec MUST set "symbols": ["GER40"] and "timeframes": ["M15"].
+    Falsifiable hypotheses only: e.g. London open range, pullback to EMA in trend,
+    volatility squeeze → expansion, session-filtered breakouts. regime_filter must
+    be a JSON object (e.g. {"indicator":"adx","period":14,"min":20}), never a bare string;
+    never all-on. Explicit SL, TP, time_stop, sizing. Diversity: at least two
+    distinct strategy families in each batch. Do not include XAUUSD, US500, or BTC.

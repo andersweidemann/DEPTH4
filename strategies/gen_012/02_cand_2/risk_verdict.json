@@ -1,0 +1,7 @@
+{
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    "no_spread_filter_reference"
+  ]
+}

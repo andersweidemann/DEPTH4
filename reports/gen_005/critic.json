@@ -1,0 +1,21 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_ger40_donchian_trend_adx_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Status: Complete failure \u2014 zero trades across all 4 symbol/TF combos.**\n\nThe sole candidate `02_ger40_donchian_trend_adx_m15` produced 0 trades on XAUUSD M5/M15 and GER40 M5/M15 over the full IS window (2020-01-01 \u2192 2024-06-30). This is not a performance issue but an **execution/signal-generation failure**. Either:\n\n1. Entry conditions (Donchian breakout + ADX filter) are mutually exclusive with the data/session filter as wired, or\n2. The ADX threshold is too high / Donchian lookback too long relative to M5\u2013M15 bars available, or\n3. Symbol mapping (GER40 vs DE40/GER40.cash) mismatch caused the bar feed to be empty, or\n4. The strategy module wasn't correctly registered in the runner.\n\nNo fitness math is meaningful with `trades=0`; the candidate is auto-rejected.\n\n**Recommendation:** Do NOT iterate parameters. First run a sanity harness \u2014 log bar counts, signal-eligible bars, and rejections by filter \u2014 before spending further compute. If GER40 is the target, confirm the feed symbol actually resolved.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not re-submit Donchian+ADX trend on M5/M15 until a signal-diagnostics harness proves the entry logic fires at least 500 times per symbol over the IS window. The combination of Donchian breakout confirmation + ADX gating on sub-M15 timeframes historically produces <50 trades/yr on index CFDs \u2014 likely structurally trade-starved even when wired correctly.",
+    "Avoid XAUUSD M5 for breakout-trend families without an explicit session filter; noise dominates and breakouts on M5 gold are dominated by liquidity sweeps."
+  ]
+}

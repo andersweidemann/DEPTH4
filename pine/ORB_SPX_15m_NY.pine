@@ -1,0 +1,323 @@
+//@version=5
+strategy("ORB 15m – First 15m OR (baseline + options)",
+     overlay=true, initial_capital=25000, pyramiding=0,
+     calc_on_every_tick=false, process_orders_on_close=true,
+     // Costs: % is applied to each fill’s cash volume. Slippage is in ticks (syminfo.mintick; SPX is usually 0.01).
+     // Rough sanity for index CFDs: try 0.005–0.03 % per fill and 1–5 ticks; stress-test higher. Match your broker statement, not forums.
+     commission_type=strategy.commission.percent,
+     commission_value=input.float(0.0, "Commission % per filled order", minval=0.0, maxval=1.0, step=0.005, group="Backtest costs", tooltip="0.01 = 0.01% of notional for that fill. You pay on entry and again on exit (and on partial fills if any)."),
+     slippage=input.int(2, "Slippage (ticks) per order", minval=0, maxval=500, step=1, group="Backtest costs", tooltip="Each market-like fill is slipped by this many minimum price increments."))
+
+// ===== Inputs =====
+grpCore = "Core"
+accountSize     = input.float(25000, "Account Size", minval=1, group=grpCore)
+riskPct         = input.float(1.0,   "Risk per Trade (%)", minval=0.01, step=0.1, group=grpCore)
+oneTradePerDay  = input.bool(true,   "Limit to 1 Trade per Day?", group=grpCore)
+useLongs        = input.bool(true,   "Allow Longs?", group=grpCore)
+useShorts       = input.bool(true,   "Allow Shorts?", group=grpCore)
+tpMode          = input.string("10R", "Take Profit Mode", options=["10R", "EoDOnly"], group=grpCore)
+R_multiple      = input.float(10.0,  "TP = R multiple (if 10R)", minval=0.1, step=0.5, group=grpCore)
+
+grpSess = "Session (defaults = your original Stockholm script)"
+tz              = input.string("Europe/Stockholm", "Timezone for ORB open + flatten clock", group=grpSess)
+sessionOpenHour = input.int(15, "Session Open Hour", minval=0, maxval=23, group=grpSess)
+sessionOpenMin  = input.int(30, "Session Open Minute", minval=0, maxval=59, group=grpSess)
+flattenEoD      = input.bool(true, "Flatten all at session end (original: on)", group=grpSess)
+sessEndHour     = input.int(22, "Session End Hour (flatten)", minval=0, maxval=23, group=grpSess)
+sessEndMin      = input.int(0,  "Session End Minute", minval=0, maxval=59, group=grpSess)
+
+nyRth = "America/New_York"
+nyRthSession    = input.string("0930-1600", "US cash session (NY clock, for optional filters only)", group=grpSess)
+requireRTH      = input.bool(false, "Only enter if bar is inside US cash session (original: off)", group=grpSess)
+
+sltpBracketMode = input.string(
+     "ALWAYS_ON",
+     "SL / TP when SPX has no session",
+     options=["ALWAYS_ON", "RTH_PAUSE"],
+     tooltip="ALWAYS_ON = your original (bracket on every bar).\nRTH_PAUSE = cancel SL/TP off US cash hours; re-arm next session.\nNote: break-even / trail below require ALWAYS_ON.",
+     group=grpSess)
+
+// Preset defaults match your TV settings (min/max OR vs ATR, BE @ +2R); toggles still editable.
+grpFilt = "Optional setup filters"
+useMinRangeATR  = input.bool(true, "Skip if OR range < min × ATR(14)", group=grpFilt)
+minRangeATR     = input.float(0.35, "Min OR range = ATR ×", minval=0.05, step=0.05, group=grpFilt)
+useMaxRangeATR  = input.bool(true, "Skip if OR range > max × ATR(14)", group=grpFilt)
+maxRangeATR     = input.float(2.50, "Max OR range = ATR ×", minval=0.10, step=0.10, group=grpFilt)
+useMinBodyPct   = input.bool(false, "Skip weak ref candle (min body % of OR)", group=grpFilt)
+minBodyPct      = input.float(40.0, "Min body % of OR range", minval=5, maxval=95, step=1, group=grpFilt)
+useD1Bias       = input.bool(false, "Require prior completed-day bias", group=grpFilt)
+skipFriday      = input.bool(false, "Skip trades on Friday (exchange weekday)", group=grpFilt)
+orbMinAtrMult   = input.float(0.0, "Min OR range = this × ATR(14) (0 = off)", minval=0.0, step=0.05, group=grpFilt)
+useGapFilter    = input.bool(false, "Skip if cash open gap vs prior daily close is huge", group=grpFilt)
+maxGapPct       = input.float(1.25, "Max |gap| vs prior D close (%)", minval=0.05, step=0.05, group=grpFilt)
+
+grpLoss = "Loss control: early exits (optional; complements trail)"
+useScratch      = input.bool(false, "Scratch: market-close if no follow-through", group=grpLoss)
+scratchBars     = input.int(12, "Scratch after this many 15m bars in trade", minval=2, maxval=96, group=grpLoss)
+scratchMfeR     = input.float(0.35, "Scratch if MFE still below (× R)", minval=0.05, step=0.05, group=grpLoss)
+useMidAbort     = input.bool(false, "Abort if price fails OR midpoint early", group=grpLoss)
+midAbortBars    = input.int(10, "Midpoint abort only within N bars", minval=2, maxval=48, group=grpLoss)
+midAbortUnlessMfeR = input.float(0.5, "…unless MFE already reached (× R)", minval=0.1, step=0.1, group=grpLoss)
+
+grpAdv = "Advanced exits (BE/trail; off both = classic fixed SL/TP only)"
+useBreakEven    = input.bool(true, "Move stop to break-even after +MFE", group=grpAdv)
+beAfterR        = input.float(2.0, "Arm BE after +MFE (× R)", minval=0.25, step=0.25, group=grpAdv)
+beBufferTicks   = input.int(2, "BE stop: entry ± ticks (avoid noise)", minval=0, maxval=50, group=grpAdv)
+useTrail        = input.bool(false, "Chandelier trail after +MFE", group=grpAdv)
+trailAfterR     = input.float(2.0, "Start trail after +MFE (× R)", minval=0.5, step=0.25, group=grpAdv)
+trailGivebackR  = input.float(1.0, "Trail distance under HH / above LL (× R)", minval=0.25, step=0.25, group=grpAdv)
+
+// ===== Timeframe =====
+is15m = timeframe.isintraday and timeframe.multiplier == 15
+plotchar(not is15m, title="Timeframe Warning", char="X", location=location.top, color=color.red, size=size.tiny)
+
+// ===== First 15m bar after session open =====
+isSessionOpen = hour(time, tz) == sessionOpenHour and minute(time, tz) == sessionOpenMin
+inUSCash = not na(time(timeframe.period, nyRthSession, nyRth))
+
+var int   refBarIndex = na
+var float refOpen     = na
+var float refHigh     = na
+var float refLow      = na
+var float refClose    = na
+
+if barstate.isnew and isSessionOpen
+    refBarIndex := bar_index
+    refOpen     := open
+    refHigh     := high
+    refLow      := low
+    refClose    := close
+
+if bar_index == refBarIndex
+    refHigh  := math.max(refHigh, high)
+    refLow   := math.min(refLow, low)
+    refClose := close
+
+refIsGreen = not na(refOpen) and not na(refClose) and (refClose > refOpen)
+refIsRed   = not na(refOpen) and not na(refClose) and (refClose < refOpen)
+
+// ===== Filters (information at ref bar close only) =====
+atr15 = ta.atr(14)
+orRange = not na(refHigh) and not na(refLow) ? (refHigh - refLow) : na
+refBody = not na(refOpen) and not na(refClose) ? math.abs(refClose - refOpen) : na
+bodyPct = (not na(orRange) and orRange > 0 and not na(refBody)) ? (refBody / orRange) * 100.0 : na
+
+passRange =
+     (not useMinRangeATR or na(orRange) or na(atr15) or atr15 <= 0 or (orRange >= atr15 * minRangeATR)) and
+     (not useMaxRangeATR or na(orRange) or na(atr15) or atr15 <= 0 or (orRange <= atr15 * maxRangeATR))
+
+passBody = not useMinBodyPct or na(bodyPct) or bodyPct >= minBodyPct
+
+passOrbAtr = orbMinAtrMult <= 0 or na(orRange) or na(atr15) or atr15 <= 0 or (orRange >= atr15 * orbMinAtrMult)
+
+d1c = request.security(syminfo.tickerid, "D", close[1], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+d2c = request.security(syminfo.tickerid, "D", close[2], gaps=barmerge.gaps_off, lookahead=barmerge.lookahead_off)
+d1Bull = not na(d1c) and not na(d2c) and d1c > d2c
+d1Bear = not na(d1c) and not na(d2c) and d1c < d2c
+
+passBiasLong  = not useD1Bias or d1Bull
+passBiasShort = not useD1Bias or d1Bear
+
+gapPct = not na(refOpen) and not na(d1c) and d1c != 0 ? math.abs(refOpen - d1c) / d1c * 100.0 : na
+passGap = not useGapFilter or na(gapPct) or gapPct <= maxGapPct
+
+setupOK = passRange and passBody and passOrbAtr and passGap
+
+// ===== One trade per day =====
+var int lastTradeYmd = 0
+todayYmd = year * 10000 + month * 100 + dayofmonth
+tradedToday = lastTradeYmd == todayYmd
+allowNewEntry = not oneTradePerDay or not tradedToday
+
+isFriday = dayofweek == dayofweek.friday
+allowWeekday = not skipFriday or not isFriday
+
+// ===== Bracket pause (RTH_PAUSE) =====
+var float savStop = na
+var float savLimit = na
+var bool  savIsLong = false
+var bool  savHasLimit = false
+var int   savBar = na
+
+rthPause = sltpBracketMode == "RTH_PAUSE"
+
+usCashCloseTs = timestamp(nyRth, year(time, nyRth), month(time, nyRth), dayofmonth(time, nyRth), 16, 0)
+bracketActive = inUSCash and time_close < usCashCloseTs
+
+sessEndTs = timestamp(tz, year, month, dayofmonth, sessEndHour, sessEndMin)
+
+// ===== Trade state for ratchet stops (BE / trail) =====
+var float tEntry = na
+var float tR = na
+var float tStop0 = na
+var float tTp = na
+var bool  tLong = false
+var int   tBar0 = na
+var bool  beArmed = false
+var bool  trailArmed = false
+var float orbMidSave = na
+
+bufPx = beBufferTicks * syminfo.mintick
+manageStops = (useBreakEven or useTrail) and not rthPause
+barsInTrade = not na(tBar0) ? (bar_index - tBar0 + 1) : 0
+hhTrade = barsInTrade > 0 ? ta.highest(high, barsInTrade) : na
+llTrade = barsInTrade > 0 ? ta.lowest(low, barsInTrade) : na
+mfeLong = not na(tEntry) and not na(hhTrade) ? (hhTrade - tEntry) : na
+mfeShort = not na(tEntry) and not na(llTrade) ? (tEntry - llTrade) : na
+
+if strategy.position_size == 0 and not na(tBar0) and bar_index > tBar0
+    tEntry := na
+    tR := na
+    tStop0 := na
+    tTp := na
+    tLong := false
+    tBar0 := na
+    beArmed := false
+    trailArmed := false
+    orbMidSave := na
+
+// ===== Orders =====
+var float entry     = na
+var float stopPrice = na
+var float r         = na
+var float tp        = na
+var int   qty       = 0
+
+isRefBarClose = barstate.isconfirmed and not na(refBarIndex) and (bar_index == refBarIndex)
+entrySessionOK = not requireRTH or inUSCash
+
+if isRefBarClose and entrySessionOK and allowNewEntry and allowWeekday and strategy.position_size == 0
+    entry := close
+
+    // Long
+    if refIsGreen and useLongs and setupOK and passBiasLong
+        stopPrice := refLow
+        r := math.abs(entry - stopPrice)
+        qty := r > 0 ? int(math.floor((accountSize * (riskPct * 0.01)) / r)) : 1
+        qty := qty < 1 ? 1 : qty
+        strategy.entry("L", strategy.long, qty=qty)
+        savIsLong := true
+        savStop := stopPrice
+        savHasLimit := tpMode == "10R"
+        savLimit := savHasLimit ? entry + (R_multiple * r) : na
+        savBar := bar_index
+        tEntry := entry
+        tR := r
+        tStop0 := stopPrice
+        tTp := savHasLimit ? entry + (R_multiple * r) : na
+        tLong := true
+        tBar0 := bar_index
+        beArmed := false
+        trailArmed := false
+        orbMidSave := (refHigh + refLow) * 0.5
+        if not rthPause
+            if manageStops
+                if tpMode == "10R"
+                    strategy.exit("L-Exit", from_entry="L", stop=stopPrice, limit=tTp)
+                else
+                    strategy.exit("L-Exit", from_entry="L", stop=stopPrice)
+            else
+                if tpMode == "10R"
+                    tp := entry + (R_multiple * r)
+                    strategy.exit("L-Exit", from_entry="L", stop=stopPrice, limit=tp)
+                else
+                    strategy.exit("L-Exit", from_entry="L", stop=stopPrice)
+        lastTradeYmd := todayYmd
+
+    // Short
+    if refIsRed and useShorts and setupOK and passBiasShort
+        stopPrice := refHigh
+        r := math.abs(entry - stopPrice)
+        qty := r > 0 ? int(math.floor((accountSize * (riskPct * 0.01)) / r)) : 1
+        qty := qty < 1 ? 1 : qty
+        strategy.entry("S", strategy.short, qty=qty)
+        savIsLong := false
+        savStop := stopPrice
+        savHasLimit := tpMode == "10R"
+        savLimit := savHasLimit ? entry - (R_multiple * r) : na
+        savBar := bar_index
+        tEntry := entry
+        tR := r
+        tStop0 := stopPrice
+        tTp := savHasLimit ? entry - (R_multiple * r) : na
+        tLong := false
+        tBar0 := bar_index
+        beArmed := false
+        trailArmed := false
+        orbMidSave := (refHigh + refLow) * 0.5
+        if not rthPause
+            if manageStops
+                if tpMode == "10R"
+                    strategy.exit("S-Exit", from_entry="S", stop=stopPrice, limit=tTp)
+                else
+                    strategy.exit("S-Exit", from_entry="S", stop=stopPrice)
+            else
+                if tpMode == "10R"
+                    tp := entry - (R_multiple * r)
+                    strategy.exit("S-Exit", from_entry="S", stop=stopPrice, limit=tp)
+                else
+                    strategy.exit("S-Exit", from_entry="S", stop=stopPrice)
+        lastTradeYmd := todayYmd
+
+// Early loss-control exits (market) — run before ratchet updates
+scratchLong = useScratch and strategy.position_size > 0 and tLong and bar_index > tBar0 and not na(tR) and tR > 0 and barsInTrade >= scratchBars and not na(mfeLong) and mfeLong < scratchMfeR * tR
+scratchShort = useScratch and strategy.position_size < 0 and not tLong and bar_index > tBar0 and not na(tR) and tR > 0 and barsInTrade >= scratchBars and not na(mfeShort) and mfeShort < scratchMfeR * tR
+midAbortLong = useMidAbort and strategy.position_size > 0 and tLong and bar_index > tBar0 and not na(tR) and tR > 0 and barsInTrade <= midAbortBars and not na(orbMidSave) and close < orbMidSave and not na(mfeLong) and mfeLong < midAbortUnlessMfeR * tR
+midAbortShort = useMidAbort and strategy.position_size < 0 and not tLong and bar_index > tBar0 and not na(tR) and tR > 0 and barsInTrade <= midAbortBars and not na(orbMidSave) and close > orbMidSave and not na(mfeShort) and mfeShort < midAbortUnlessMfeR * tR
+
+if scratchLong or midAbortLong
+    strategy.close("L", comment="LossCtrl")
+if scratchShort or midAbortShort
+    strategy.close("S", comment="LossCtrl")
+
+// Ratchet SL/TP (classic ORB: many small losers; BE cuts “+0.5R then full −1R”, trail locks trend legs)
+if manageStops and not rthPause and strategy.position_size != 0 and not na(tEntry) and not na(tR) and tR > 0 and bar_index > tBar0 and not scratchLong and not scratchShort and not midAbortLong and not midAbortShort
+    if strategy.position_size > 0 and tLong
+        if useBreakEven and not beArmed and not na(mfeLong) and mfeLong >= beAfterR * tR
+            beArmed := true
+        if useTrail and not na(mfeLong) and mfeLong >= trailAfterR * tR
+            trailArmed := true
+        beLvl = beArmed ? (tEntry - bufPx) : tStop0
+        trLvl = trailArmed and not na(hhTrade) ? (hhTrade - trailGivebackR * tR) : tStop0
+        effStop = math.max(tStop0, beLvl, trLvl)
+        if tpMode == "10R" and not na(tTp)
+            strategy.exit("L-Exit", from_entry="L", stop=effStop, limit=tTp)
+        else
+            strategy.exit("L-Exit", from_entry="L", stop=effStop)
+    if strategy.position_size < 0 and not tLong
+        if useBreakEven and not beArmed and not na(mfeShort) and mfeShort >= beAfterR * tR
+            beArmed := true
+        if useTrail and not na(mfeShort) and mfeShort >= trailAfterR * tR
+            trailArmed := true
+        beLvlS = beArmed ? (tEntry + bufPx) : tStop0
+        trLvlS = trailArmed and not na(llTrade) ? (llTrade + trailGivebackR * tR) : tStop0
+        effStopS = math.min(tStop0, beLvlS, trLvlS)
+        if tpMode == "10R" and not na(tTp)
+            strategy.exit("S-Exit", from_entry="S", stop=effStopS, limit=tTp)
+        else
+            strategy.exit("S-Exit", from_entry="S", stop=effStopS)
+
+if rthPause
+    if strategy.position_size == 0 and not na(savStop) and not na(savBar) and bar_index > savBar
+        savStop := na
+        savLimit := na
+        savHasLimit := false
+        savBar := na
+    else if strategy.position_size != 0 and not na(savStop)
+        if bracketActive
+            if savIsLong
+                if savHasLimit and not na(savLimit)
+                    strategy.exit("L-Exit", from_entry="L", stop=savStop, limit=savLimit)
+                else
+                    strategy.exit("L-Exit", from_entry="L", stop=savStop)
+            else
+                if savHasLimit and not na(savLimit)
+                    strategy.exit("S-Exit", from_entry="S", stop=savStop, limit=savLimit)
+                else
+                    strategy.exit("S-Exit", from_entry="S", stop=savStop)
+        else
+            strategy.cancel("L-Exit")
+            strategy.cancel("S-Exit")
+
+if flattenEoD and time_close == sessEndTs and strategy.position_size != 0
+    strategy.close_all()

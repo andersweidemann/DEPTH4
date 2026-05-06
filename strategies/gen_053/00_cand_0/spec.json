@@ -1,0 +1,33 @@
+{
+  "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "threshold": 30
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "bb_period": 20,
+    "bb_deviation": 1.75,
+    "rsi_period": 7,
+    "rsi_thresholds": [
+      10,
+      90
+    ]
+  },
+  "exit_rule": {
+    "type": "take_profit",
+    "target": "opposite_bb"
+  },
+  "stop_loss": {
+    "type": "fixed",
+    "distance": "1.5 * atr(14)"
+  },
+  "time_stop": {
+    "type": "fixed",
+    "bars": 30
+  },
+  "sizing": {
+    "type": "fixed",
+    "size": 0.01
+  }
+}

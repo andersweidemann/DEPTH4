@@ -1,0 +1,166 @@
+[
+  {
+    "name": "bb_rsi_mean_reversion_xauusd_m15",
+    "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands with an extreme RSI(7) reading during active sessions and sufficient volatility, price reverts to the middle band within 30 bars.",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "dev": 1.75, "condition": "close_below_lower"},
+          {"primitive": "rsi", "period": 7, "condition": "lt", "value": 12},
+          {"primitive": "bb_width", "period": 20, "percentile_min": 30, "lookback": 500}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "dev": 1.75, "condition": "close_above_upper"},
+          {"primitive": "rsi", "period": 7, "condition": "gt", "value": 88},
+          {"primitive": "bb_width", "period": 20, "percentile_min": 30, "lookback": 500}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "min": 25, "max": 95},
+        {"primitive": "session_mask", "sessions": ["london", "ny"]}
+      ]
+    },
+    "exits": {
+      "stop_loss": {"type": "atr", "period": 14, "mult": 1.5},
+      "take_profit": {"type": "bollinger_middle", "period": 20},
+      "time_stop": {"bars": 30},
+      "cooldown_bars": 3
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "notes": "Direct adaptation of MIT-licensed mean-reversion-scalper-mql5 tuned for XAUUSD M15. Previous gen had zero-trade failure; this uses well-known BB+RSI primitives that fire multiple times per week on gold."
+  },
+  {
+    "name": "bb_bounce_3bar_us500_m15",
+    "hypothesis": "On US500 M15, a 3-bar Bollinger rejection pattern (poke through band, close back inside) signals short-term mean reversion with favorable R:R when volatility is moderate.",
+    "family": "mean_reversion",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "dev": 2.0, "condition": "three_bar_bounce_lower"}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "dev": 2.0, "condition": "three_bar_bounce_upper"}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "adx", "period": 14, "max": 30},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "min": 20, "max": 90},
+        {"primitive": "session_mask", "sessions": ["london", "ny"]}
+      ]
+    },
+    "exits": {
+      "stop_loss": {"type": "atr", "period": 14, "mult": 2.0},
+      "take_profit": {"type": "atr", "period": 14, "mult": 3.0},
+      "time_stop": {"bars": 24},
+      "early_exit": {"type": "opposite_bb_touch", "period": 20, "dev": 2.0},
+      "cooldown_bars": 4
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "notes": "Inspired by BB-Gold-Scalper 3-bar pattern, ported to US500 where ADX<30 filter keeps us in range-bound regimes. Simple pattern ensures trade frequency exceeds 200."
+  },
+  {
+    "name": "asia_london_range_breakout_xauusd_m5",
+    "hypothesis": "On XAUUSD M5, the Asia-session range (00:00-06:00 UTC) contains accumulated liquidity; a decisive break during the London window (07:00-10:00 UTC) with ATR-normalized displacement yields continuation moves.",
+    "family": "breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "donchian", "period_bars": 72, "window_utc": "00:00-06:00", "condition": "break_high"},
+          {"primitive": "atr_breakout_levels", "period": 14, "distance_mult": 0.3, "direction": "long"}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "donchian", "period_bars": 72, "window_utc": "00:00-06:00", "condition": "break_low"},
+          {"primitive": "atr_breakout_levels", "period": 14, "distance_mult": 0.3, "direction": "short"}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "session_mask", "sessions_utc": ["07:00-11:00"]},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "min": 30, "max": 95},
+        {"primitive": "classify", "range_atr_min": 0.5, "range_atr_max": 2.5}
+      ]
+    },
+    "exits": {
+      "stop_loss": {"type": "opposite_range_edge", "buffer_atr": 0.2},
+      "take_profit": {"type": "atr", "period": 14, "mult": 2.0},
+      "time_stop": {"bars": 36},
+      "max_breakout_bars_from_window_start": 12,
+      "one_trade_per_day": true
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "notes": "Fixes previous-gen zero-trade issue by using looser 0.3xATR breakout threshold (not 2.0x) and wider range acceptance. UTC sessions explicit to avoid timezone bug. Based on LVC-EA idea card."
+  },
+  {
+    "name": "donchian_trend_breakout_ger40_m15",
+    "hypothesis": "On GER40 M15, strong-trend regimes (ADX>22) produce persistent directional moves after fresh 40-bar Donchian breakouts during European cash hours.",
+    "family": "trend_breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "donchian", "period": 40, "condition": "break_high"},
+          {"primitive": "ema", "period": 50, "condition": "close_above"},
+          {"primitive": "ema", "fast": 20, "slow": 50, "condition": "fast_above_slow"}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "donchian", "period": 40, "condition": "break_low"},
+          {"primitive": "ema", "period": 50, "condition": "close_below"},
+          {"primitive": "ema", "fast": 20, "slow": 50, "condition": "fast_below_slow"}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "adx", "period": 14, "min": 22},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "min": 25, "max": 95},
+        {"primitive": "session_mask", "sessions_utc": ["07:00-16:00"]}
+      ]
+    },
+    "exits": {
+      "stop_loss": {"type": "atr", "period": 14, "mult": 2.0},
+      "take_profit": {"type": "atr", "period": 14, "mult": 3.5},
+      "trailing_stop": {"type": "chandelier", "period": 14, "mult": 2.5, "activate_after_atr": 1.0},
+      "time_stop": {"bars": 48},
+      "cooldown_bars": 2
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "notes": "Trend-following family distinct from the other three mean-reversion/range ideas. Uses EMA trend filter + Donchian breakout, a robust pattern on DAX. ADX>22 is moderate (not 30) to keep enough trades."
+  }
+]

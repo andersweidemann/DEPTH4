@@ -1,0 +1,101 @@
+[
+  {
+    "id": "gen040_ger40_m15",
+    "path": "strategies/gen_040/00_cand_0",
+    "symbol": "XAUUSD",
+    "tf": "M5",
+    "pf": 0.941850080825534,
+    "return_pct": -13.62729340666231,
+    "trades": 3996,
+    "sharpe": -0.5897559327698492,
+    "max_dd_pct": 24.887548437950525
+  },
+  {
+    "id": "gen040_ger40_m15",
+    "path": "strategies/gen_040/00_cand_0",
+    "symbol": "XAUUSD",
+    "tf": "M15",
+    "pf": 0.9811776783920886,
+    "return_pct": -3.5287268138814603,
+    "trades": 1544,
+    "sharpe": -0.14347156692868795,
+    "max_dd_pct": 9.282872965368005
+  },
+  {
+    "id": "gen040_ger40_m15",
+    "path": "strategies/gen_040/00_cand_0",
+    "symbol": "GER40",
+    "tf": "M5",
+    "pf": 0.959565462856619,
+    "return_pct": -11.406308790771279,
+    "trades": 4066,
+    "sharpe": -0.38177515612159946,
+    "max_dd_pct": 21.570313533503484
+  },
+  {
+    "id": "gen040_ger40_m15",
+    "path": "strategies/gen_040/00_cand_0",
+    "symbol": "GER40",
+    "tf": "M15",
+    "pf": 1.04632462801842,
+    "return_pct": 8.016281077432097,
+    "trades": 1615,
+    "sharpe": 0.2163347521744367,
+    "max_dd_pct": 13.790504276170113
+  },
+  {
+    "id": "gen002_xau_m5",
+    "path": "strategies/gen_002/00_cand_0",
+    "symbol": "XAUUSD",
+    "tf": "M5",
+    "pf": NaN,
+    "return_pct": 0.0,
+    "trades": 0,
+    "sharpe": NaN,
+    "max_dd_pct": 0.0
+  },
+  {
+    "id": "gen023_matrix",
+    "path": "strategies/gen_023/02_cand_2",
+    "symbol": "XAUUSD",
+    "tf": "M5",
+    "pf": 1.0581696819365998,
+    "return_pct": 6.018112694678339,
+    "trades": 1101,
+    "sharpe": 0.2677768713070824,
+    "max_dd_pct": 7.686858193784596
+  },
+  {
+    "id": "gen023_matrix",
+    "path": "strategies/gen_023/02_cand_2",
+    "symbol": "XAUUSD",
+    "tf": "M15",
+    "pf": 0.8428132403024706,
+    "return_pct": -10.424742880460666,
+    "trades": 453,
+    "sharpe": -0.622209591248847,
+    "max_dd_pct": 16.330344063801782
+  },
+  {
+    "id": "gen023_matrix",
+    "path": "strategies/gen_023/02_cand_2",
+    "symbol": "US500",
+    "tf": "M5",
+    "pf": 0.8981790075148139,
+    "return_pct": -2.1358376633245846,
+    "trades": 297,
+    "sharpe": -0.4948969328673323,
+    "max_dd_pct": 3.658735166164828
+  },
+  {
+    "id": "gen023_matrix",
+    "path": "strategies/gen_023/02_cand_2",
+    "symbol": "US500",
+    "tf": "M15",
+    "pf": 0.9074449283102389,
+    "return_pct": -1.7195431402122836,
+    "trades": 153,
+    "sharpe": -0.32128182094922975,
+    "max_dd_pct": 4.023244780831825
+  }
+]

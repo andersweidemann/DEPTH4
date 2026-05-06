@@ -1,0 +1,44 @@
+{
+  "hypothesis": "US500 on M15 can be traded using a breakout strategy with a volatility filter, where the breakout occurs when price closes outside the Donchian channel, and a proper stop loss and take profit can be set based on ATR.",
+  "regime_filter": {
+    "type": "donchian_channel",
+    "params": {
+      "period": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > donchian_high"
+    },
+    "short": {
+      "condition": "close < donchian_low"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

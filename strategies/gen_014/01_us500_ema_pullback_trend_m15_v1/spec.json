@@ -1,0 +1,56 @@
+{
+  "name": "us500_ema_pullback_trend_m15_v1",
+  "family": "trend_pullback",
+  "hypothesis": "On US500 M15, during an established uptrend (EMA50 > EMA200 AND ADX>20), pullbacks to EMA20 that close with bullish rejection resume the trend with >1.5R expectancy. Mirror for shorts. Trend regime filter prevents counter-trend whipsaw.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "adx",
+        "period": 14,
+        "min": 20,
+        "max": 45
+      },
+      {
+        "name": "ema_alignment",
+        "fast": 50,
+        "slow": 200
+      }
+    ],
+    "require_all": true
+  },
+  "entry": {
+    "long": "ema50 > ema200 AND low <= ema20 AND close > ema20 AND close > open",
+    "short": "ema50 < ema200 AND high >= ema20 AND close < ema20 AND close < open",
+    "primitives": [
+      "ema",
+      "adx"
+    ],
+    "cooldown_bars": 6,
+    "max_concurrent_positions": 1
+  },
+  "exit": {
+    "take_profit": "2.0 * risk (2R)",
+    "stop_loss": "1.2 * ATR(14) below swing low (long) / above swing high (short)",
+    "time_stop_bars": 32,
+    "trailing": "activate at 1R, trail by 1.0*ATR(14)"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "min_lots": 0.01,
+    "max_lots": 10.0
+  },
+  "instrumentation": {
+    "log_bars_loaded": true,
+    "log_signal_eval_counts": true,
+    "log_rejection_reasons": true
+  },
+  "notes": "Verify US500 alias (SPX500/SP500). No session filter used \u2014 full 24h to maximize trade count toward 200 min."
+}

@@ -1,0 +1,178 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur on GER40 M15 during London session with high volatility",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "high > upper_bb && atr(14) > 10"
+      },
+      "short": {
+        "condition": "low < lower_bb && atr(14) > 10"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 2
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion occurs on XAUUSD M5 with high volatility",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 70
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > upper_bb && atr(14) > 10"
+      },
+      "short": {
+        "condition": "close < lower_bb && atr(14) > 10"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 2
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on US500 M15 with low volatility",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 200
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "hours": 1
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 1
+      }
+    }
+  }
+]
+```

@@ -1,0 +1,39 @@
+{
+  "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings and high ATR",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 70,
+      "lookback": 20
+    }
+  },
+  "symbol": "US500",
+  "timeframe": "M15",
+  "entry_rule": {
+    "type": "bb_rsi_atr_mean_reversion",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ],
+      "atr_period": 14
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "1.5_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,103 @@
+{
+  "spec_id": "33_01_bb_rsi_mean_reversion_xauusd_m15",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "On XAUUSD M15, when price closes outside a Bollinger Band with an extreme short-period RSI reading during active London/NY sessions and sufficient BB-width, price reverts toward the middle band within 30 bars, yielding PF>=2.0 and Sharpe>=1.5 over 200+ trades.",
+  "regime_filter": {
+    "type": "volatility_and_session",
+    "rules": [
+      {
+        "primitive": "bb_width",
+        "params": {
+          "period": 20,
+          "stddev": 1.75
+        },
+        "condition": "percentile_rank_over_500 > 30"
+      },
+      {
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 500
+        },
+        "condition": "between(20, 95)"
+      },
+      {
+        "primitive": "session_mask",
+        "params": {
+          "sessions": [
+            "london",
+            "ny"
+          ],
+          "hours_utc": [
+            7,
+            20
+          ]
+        },
+        "condition": "true"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close < lower_bb(20,1.75) AND rsi(7) < 10 AND bb_width_pctile > 30 AND session_active",
+    "short": "close > upper_bb(20,1.75) AND rsi(7) > 90 AND bb_width_pctile > 30 AND session_active",
+    "cooldown_bars": 3,
+    "max_spread_points": 40
+  },
+  "exit_rules": {
+    "take_profit": "opposite_bollinger_band(20,1.75)",
+    "stop_loss": "1.5 * atr(14) from entry",
+    "time_stop_bars": 30,
+    "breakeven_trigger": "1.0 * atr(14) in favor -> move SL to entry"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "max_daily_loss_pct": 3.0
+  },
+  "params_to_optimize": {
+    "bb_period": [
+      18,
+      20,
+      24
+    ],
+    "bb_stddev": [
+      1.5,
+      1.75,
+      2.0
+    ],
+    "rsi_period": [
+      5,
+      7,
+      9
+    ],
+    "rsi_long_threshold": [
+      5,
+      10,
+      15
+    ],
+    "rsi_short_threshold": [
+      85,
+      90,
+      95
+    ],
+    "atr_sl_mult": [
+      1.25,
+      1.5,
+      2.0
+    ],
+    "time_stop_bars": [
+      20,
+      30,
+      40
+    ],
+    "bb_width_pctile_min": [
+      20,
+      30,
+      40
+    ]
+  },
+  "notes": "Inspired by BB+RSI mean-reversion cards; ported to XAUUSD M15. Session mask avoids thin Asia hours. Time stop is critical to prevent stuck trades in drift regimes."
+}

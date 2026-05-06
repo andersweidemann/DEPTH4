@@ -1,0 +1,130 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "opposite_bollinger_band",
+        "stop_loss": "1.5x_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur after consolidation during the Asia session",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "atr_period": 14,
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "100_pips",
+        "stop_loss": "100_pips",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_size",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Price bounces off Bollinger Bands",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "bollinger_bounce",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "50_pips",
+        "stop_loss": "50_pips",
+        "time_stop": 20
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Volatility increases during the London session",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rule": {
+      "type": "volatility_breakout",
+      "params": {
+        "atr_period": 14,
+        "min_atr": 10,
+        "max_atr": 50
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "200_pips",
+        "stop_loss": "100_pips",
+        "time_stop": 40
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_size",
+      "params": {
+        "size": 0.2
+      }
+    }
+  }
+]
+```

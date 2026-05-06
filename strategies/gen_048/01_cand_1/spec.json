@@ -1,0 +1,57 @@
+{
+  "id": "48_xau_asia_london_range_expansion_m5",
+  "hypothesis": "On XAUUSD M5, the Asia session (00:00-06:00 UTC) forms a compression range that expands directionally at London open (07:00-10:00 UTC); a confirmed displacement breakout beyond the Asia range by >=0.5*ATR captures the liquidity-driven expansion leg.",
+  "family": "session_range_breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signal": {
+    "type": "asia_range_breakout",
+    "primitives": [
+      "atr",
+      "session_mask",
+      "atr_breakout_levels"
+    ],
+    "params": {
+      "asia_start_utc": "00:00",
+      "asia_end_utc": "06:00",
+      "london_start_utc": "07:00",
+      "london_end_utc": "10:00",
+      "max_breakout_bars_into_london": 24,
+      "min_range_atr_mult": 0.5,
+      "max_range_atr_mult": 2.0,
+      "breakout_displacement_atr": 0.5,
+      "min_body_atr": 1.0,
+      "one_breakout_per_day": true
+    }
+  },
+  "regime_filter": {
+    "type": "volatility_regime",
+    "primitives": [
+      "atr_percentile"
+    ],
+    "params": {
+      "atr_period": 14,
+      "atr_percentile_period": 200,
+      "atr_percentile_min": 30,
+      "atr_percentile_max": 95
+    },
+    "rationale": "Reject dead days and extreme-news days; Asia range breakouts need moderate volatility to have follow-through without getting chopped."
+  },
+  "entry": {
+    "long": "close > AsiaHigh + 0.5*ATR14 AND body >= 1.0*ATR14 AND bar_of_london <= 24 AND no_prior_breakout_today AND regime_on",
+    "short": "close < AsiaLow - 0.5*ATR14 AND body >= 1.0*ATR14 AND bar_of_london <= 24 AND no_prior_breakout_today AND regime_on"
+  },
+  "exit": {
+    "sl": "opposite side of Asia range - 0.2*ATR14 (structural stop)",
+    "tp": "2.0 * (AsiaHigh - AsiaLow) projection from breakout level",
+    "time_stop_bars": 36,
+    "trailing": "move SL to breakeven at +1R, then trail 2*ATR14"
+  },
+  "sizing": {
+    "type": "risk_pct_of_equity",
+    "risk_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "max_daily_trades": 1
+  },
+  "diversity_tag": "session_breakout_gold"
+}

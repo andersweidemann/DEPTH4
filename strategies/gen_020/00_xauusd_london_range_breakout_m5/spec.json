@@ -1,0 +1,63 @@
+{
+  "name": "xauusd_london_range_breakout_m5",
+  "hypothesis": "XAUUSD exhibits volatility expansion during the London open following Asia-session accumulation; a breakout of the Asia range during 07:00-10:00 UTC with an ATR-normalized body produces positive expectancy when the range is neither too tight nor exhausted.",
+  "family": "session_breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "donchian",
+      "period": 72,
+      "scope": "asia_session_00_06_utc"
+    },
+    {
+      "type": "session_mask",
+      "windows": [
+        {
+          "start": "07:00",
+          "end": "10:00",
+          "tz": "UTC"
+        }
+      ]
+    }
+  ],
+  "regime_filter": {
+    "type": "atr_percentile",
+    "lookback": 200,
+    "min_percentile": 30,
+    "max_percentile": 95,
+    "description": "Only trade when current ATR is in mid-to-high volatility regime; avoid dead Asia sessions and post-news exhaustion."
+  },
+  "entry_rules": {
+    "long": "Price closes above Asia range high by >= 0.5*ATR(14) with candle body >= 1.2*ATR(14), within first 12 bars of London window, Asia range between 0.5*ATR and 2.0*ATR.",
+    "short": "Mirror of long on Asia range low.",
+    "max_signals_per_day": 1
+  },
+  "exit_rules": {
+    "stop_loss": "0.75 * ATR(14) from entry",
+    "take_profit": "2.25 * ATR(14) from entry (3R)",
+    "time_stop": "Close at 15:00 UTC if neither hit",
+    "trailing": "Move SL to breakeven after +1.0*ATR favorable"
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "parameters": {
+    "atr_period": 14,
+    "asia_start_utc": "00:00",
+    "asia_end_utc": "06:00",
+    "london_start_utc": "07:00",
+    "london_end_utc": "10:00",
+    "breakout_atr_mult": 0.5,
+    "body_atr_mult": 1.2,
+    "min_range_atr": 0.5,
+    "max_range_atr": 2.0,
+    "max_breakout_bars": 12
+  }
+}

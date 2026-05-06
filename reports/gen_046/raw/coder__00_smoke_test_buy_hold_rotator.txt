@@ -1,0 +1,153 @@
+```python
+import json
+import os
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        spec_file = Path(__file__).parent / self.spec_path
+        if spec_file.exists():
+            try:
+                with open(spec_file, "r") as f:
+                    self._spec = json.load(f)
+            except Exception:
+                pass
+
+        spec = dict(self._spec) if self._spec else {}
+        exit_cfg = spec.get("exit", {}) or {}
+        sl_cfg = exit_cfg.get("sl", {}) or {}
+        tp_cfg = exit_cfg.get("tp", {}) or {}
+        time_stop_cfg = exit_cfg.get("time_stop", {}) or {}
+
+        atr_period = int(sl_cfg.get("params", {}).get("atr_period", 14))
+        self._sl_mult = float(sl_cfg.get("params", {}).get("multiplier", 2.0))
+        self._tp_mult = float(tp_cfg.get("params", {}).get("multiplier", 3.0))
+        self._time_stop_bars = int(time_stop_cfg.get("value", 96))
+
+        normalized_spec = {
+            "filters": {
+                "session_utc": ["london", "ny"],
+            },
+            "exit": {
+                "time_stop_bars": self._time_stop_bars,
+            },
+            "risk": spec.get("risk", {}),
+        }
+        self._spec = normalized_spec
+
+        super().init()
+
+        self._atr_series = self.I(signals.atr, self.data, atr_period)
+        self._ema20 = self.I(signals.ema, self.data.Close, 20)
+
+        rf = (spec.get("regime_filter") or {})
+        rf_params = rf.get("params", {}) or {}
+        self._atr_pct_period = int(rf_params.get("atr_period", 14))
+        self._atr_pct_lookback = int(rf_params.get("lookback", 500))
+        self._atr_pct_min = float(rf_params.get("min_percentile", 0.05))
+        self._atr_pct_max = float(rf_params.get("max_percentile", 1.0))
+
+        self._atr_pct_series = self.I(
+            regime.atr_percentile,
+            self.data,
+            self._atr_pct_period,
+            self._atr_pct_lookback,
+        )
+
+        entry_cfg = spec.get("entry", {}) or {}
+        long_cfg = entry_cfg.get("long", {}) or {}
+        self._trigger_every = int(long_cfg.get("trigger_every_n_bars", 48))
+
+        self._last_entry_bar = -10**9
+
+        sizing = spec.get("sizing", {}) or {}
+        self._risk_pct = float(sizing.get("risk_per_trade_pct", 0.5))
+        self._max_positions = int(sizing.get("max_positions", 1))
+
+    def _regime_ok(self) -> bool:
+        if len(self._atr_pct_series) == 0:
+            return False
+        val = float(self._atr_pct_series[-1])
+        if np.isnan(val):
+            return False
+        return self._atr_pct_min <= val <= self._atr_pct_max
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.trades) >= self._max_positions:
+            return
+
+        bar_i = len(self.data) - 1
+
+        close = float(self.data.Close[-1])
+        ema_val = float(self._ema20[-1]) if len(self._ema20) > 0 else np.nan
+        if np.isnan(ema_val) or close <= ema_val:
+            return
+
+        if bar_i - self._last_entry_bar < self._trigger_every:
+            return
+
+        atr_val = float(self._atr_series[-1]) if len(self._atr_series) > 0 else np.nan
+        if np.isnan(atr_val) or atr_val <= 0:
+            return
+
+        sl = close - self._sl_mult * atr_val
+        tp = close + self._tp_mult * atr_val
+        if sl >= close:
+            return
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        try:
+            lots = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self._risk_pct,
+                entry=close,
+                sl=sl,
+                symbol=self._symbol,
+            )
+        except Exception:
+            lots = 0.0
+
+        size: Optional[float] = None
+        if lots and lots > 0:
+            size = lots
+        else:
+            size = 0.01
+
+        try:
+            if isinstance(size, float) and 0 < size < 1:
+                self.buy(sl=sl, tp=tp, size=size)
+            else:
+                units = max(1, int(size)) if size else 1
+                self.buy(sl=sl, tp=tp, size=units)
+        except Exception:
+            try:
+                self.buy(sl=sl, tp=tp)
+            except Exception:
+                return
+
+        self._last_entry_bar = bar_i
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

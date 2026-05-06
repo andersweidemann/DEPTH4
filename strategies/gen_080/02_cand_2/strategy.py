@@ -1,0 +1,39 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, atr
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.upper_bb, self.lower_bb = self.I(bollinger, self.data, n=20, dev=2.0)
+        self.atr = self.I(atr, self.data, n=14)
+        self.bb_width = self.I(bb_width, self.data, n=20, dev=2.0)
+
+    def _regime_ok(self):
+        return self.bb_width[-1] > 0
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if not self.position:
+            if self.data.Close[-1] > self.lower_bb[-1] and self.data.Close[-2] < self.lower_bb[-1]:
+                self.position.enter_long(lots_by_risk_pct(self._equity_start, self.spec.get("risk", {}).get("entry_risk_pct", 2.0)))
+                self.sl_price = self.data.Close[-1] - 1.5 * self.atr[-1]
+                self.tp_price = self.upper_bb[-1]
+            elif self.data.Close[-1] < self.upper_bb[-1] and self.data.Close[-2] > self.upper_bb[-1]:
+                self.position.enter_short(lots_by_risk_pct(self._equity_start, self.spec.get("risk", {}).get("entry_risk_pct", 2.0)))
+                self.sl_price = self.data.Close[-1] + 1.5 * self.atr[-1]
+                self.tp_price = self.lower_bb[-1]
+
+    def _manage_open(self):
+        if self.position:
+            if self.data.Close[-1] < self.lower_bb[-1] and self.position.is_long:
+                self.position.close()
+            elif self.data.Close[-1] > self.upper_bb[-1] and not self.position.is_long:
+                self.position.close()
+            if len(self.data) - self.position.entry_bar >= 30:
+                self.position.close()

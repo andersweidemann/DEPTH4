@@ -1,0 +1,49 @@
+{
+  "hypothesis": "RSI divergence occurs on US500 M5 with high BB width",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "period": 20,
+      "deviation": 1.75,
+      "percentile": 80
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_divergence",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "multi_exit",
+    "params": {
+      "take_profit": {
+        "type": "opposite_bb",
+        "params": {}
+      },
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.2
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 25
+        }
+      }
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.015
+    }
+  }
+}

@@ -1,0 +1,119 @@
+[
+  {
+    "name": "xau_m5_bb_rsi_mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "mean_reversion",
+    "hypothesis": "On XAUUSD M5, when price closes outside a 20-period Bollinger Band with RSI(7) at an extreme, price reverts to the middle band within ~2.5 hours, provided volatility regime is active (BB width above 30th percentile) and session is London/NY.",
+    "entry_rules": {
+      "long": "close < lower_bb(20, 1.75) AND rsi(7) < 15 AND bb_width > bb_width_pctile_30 AND session in [london, ny] AND bars_since_last_trade >= 3",
+      "short": "close > upper_bb(20, 1.75) AND rsi(7) > 85 AND bb_width > bb_width_pctile_30 AND session in [london, ny] AND bars_since_last_trade >= 3"
+    },
+    "exit_rules": {
+      "tp": "opposite bollinger band (middle BB as early exit option)",
+      "sl": "1.8 * ATR(14) from entry",
+      "time_stop": "close after 30 bars (~2.5h)"
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "rule": "atr_percentile(14, lookback=500) between 20 and 85; reject extreme-low vol (dead) and extreme-high vol (trend) regimes"
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "sl_basis": "atr",
+      "max_concurrent_positions": 1
+    },
+    "indicators": ["bollinger(20,1.75)", "rsi(7)", "atr(14)", "bb_width", "session_mask"],
+    "instrumentation_required": ["bars_received", "indicator_ready_bar", "signal_true_count", "order_attempt_count", "order_reject_reason"],
+    "diversity_tag": "mean_reversion_bb_rsi"
+  },
+  {
+    "name": "xau_m15_bb_bounce_3bar",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "family": "mean_reversion",
+    "hypothesis": "On XAUUSD M15, a 3-bar Bollinger Band rejection pattern (poke-and-close-back-inside) signals short-term mean reversion with asymmetric R:R when ATR-normalized band width is moderate.",
+    "entry_rules": {
+      "long": "bar[-2].close > lower_bb(20,2.0) AND bar[-1].low <= lower_bb(20,2.0) AND bar[0].close > lower_bb(20,2.0) AND bar[0].close > bar[0].open AND bb_width/atr(14) between 0.8 and 3.0",
+      "short": "bar[-2].close < upper_bb(20,2.0) AND bar[-1].high >= upper_bb(20,2.0) AND bar[0].close < upper_bb(20,2.0) AND bar[0].close < bar[0].open AND bb_width/atr(14) between 0.8 and 3.0"
+    },
+    "exit_rules": {
+      "tp": "2.5 * ATR(14) from entry (targets middle/opposite band zone)",
+      "sl": "1.2 * ATR(14) from entry",
+      "time_stop": "close after 24 bars (~6h)",
+      "optional": "early close on opposite BB touch"
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "rule": "adx(14) < 28 (avoid strong trend); atr_percentile(14,500) >= 25 (avoid dead vol)"
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "sl_basis": "atr",
+      "max_concurrent_positions": 1
+    },
+    "indicators": ["bollinger(20,2.0)", "atr(14)", "adx(14)", "atr_percentile"],
+    "instrumentation_required": ["bars_received", "indicator_ready_bar", "signal_true_count", "order_attempt_count", "order_reject_reason"],
+    "diversity_tag": "mean_reversion_bb_pattern"
+  },
+  {
+    "name": "xau_m5_asia_london_range_expansion",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "session_breakout",
+    "hypothesis": "On XAUUSD M5, the Asia session (00:00-06:00 UTC) forms an accumulation range; the first ATR-qualified breakout during London window (07:00-10:00 UTC) captures the volatility expansion edge.",
+    "entry_rules": {
+      "long": "time in [07:00, 10:00 UTC] AND close > asia_high AND (close - asia_high) >= 0.5 * ATR(14) AND breakout_candle_body >= 1.0 * ATR(14) AND asia_range/ATR(14) between 0.5 and 2.0 AND no_prior_breakout_today",
+      "short": "time in [07:00, 10:00 UTC] AND close < asia_low AND (asia_low - close) >= 0.5 * ATR(14) AND breakout_candle_body >= 1.0 * ATR(14) AND asia_range/ATR(14) between 0.5 and 2.0 AND no_prior_breakout_today"
+    },
+    "exit_rules": {
+      "tp": "2.0 * asia_range (measured move)",
+      "sl": "opposite side of asia_range OR 1.5 * ATR(14), whichever is tighter",
+      "time_stop": "close at 15:00 UTC (end of London lunch) or after 36 bars"
+    },
+    "regime_filter": {
+      "primitive": "session_mask",
+      "rule": "strict session gating: range-build window 00:00-06:00 UTC, trade-only window 07:00-10:00 UTC, max 9 bars after London open"
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.75,
+      "sl_basis": "range_or_atr",
+      "max_concurrent_positions": 1
+    },
+    "indicators": ["atr(14)", "session_mask", "donchian (for asia H/L tracking)"],
+    "instrumentation_required": ["bars_received", "indicator_ready_bar", "asia_range_built_count", "signal_true_count", "order_attempt_count", "order_reject_reason"],
+    "diversity_tag": "session_range_breakout"
+  },
+  {
+    "name": "us500_m15_trend_pullback_ema",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "family": "trend_pullback",
+    "hypothesis": "US500 M15 exhibits persistent intraday trend; pullbacks to EMA(20) within an uptrend (EMA20 > EMA50, ADX > 20) during RTH offer asymmetric long continuation; symmetric for shorts.",
+    "entry_rules": {
+      "long": "ema(20) > ema(50) AND adx(14) > 20 AND low <= ema(20) AND close > ema(20) AND rsi(14) between 40 and 65 AND session == us_rth",
+      "short": "ema(20) < ema(50) AND adx(14) > 20 AND high >= ema(20) AND close < ema(20) AND rsi(14) between 35 and 60 AND session == us_rth"
+    },
+    "exit_rules": {
+      "tp": "2.5 * ATR(14) from entry",
+      "sl": "1.5 * ATR(14) from entry (below swing low / above swing high)",
+      "time_stop": "close after 20 bars (~5h) or at RTH close"
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "rule": "adx(14) > 20 AND atr_percentile(14,500) >= 30; only trade when trend regime confirmed"
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "sl_basis": "atr",
+      "max_concurrent_positions": 1
+    },
+    "indicators": ["ema(20)", "ema(50)", "adx(14)", "rsi(14)", "atr(14)", "session_mask"],
+    "instrumentation_required": ["bars_received", "indicator_ready_bar", "signal_true_count", "order_attempt_count", "order_reject_reason"],
+    "diversity_tag": "trend_pullback_ema"
+  }
+]

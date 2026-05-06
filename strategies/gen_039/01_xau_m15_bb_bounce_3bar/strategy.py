@@ -1,0 +1,225 @@
+from __future__ import annotations
+
+import json
+import os
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+def _lower_bb(data, n, k):
+    mid, upper, lower = signals.bollinger(data, n, k)
+    return lower
+
+
+def _upper_bb(data, n, k):
+    mid, upper, lower = signals.bollinger(data, n, k)
+    return upper
+
+
+def _mid_bb(data, n, k):
+    mid, upper, lower = signals.bollinger(data, n, k)
+    return mid
+
+
+def _bb_width(data, n, k):
+    return signals.bb_width(data, n, k)
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        super().init()
+
+        self._lower_bb = self.I(_lower_bb, self.data, 20, 2.0)
+        self._upper_bb = self.I(_upper_bb, self.data, 20, 2.0)
+        self._mid_bb = self.I(_mid_bb, self.data, 20, 2.0)
+        self._bbw = self.I(_bb_width, self.data, 20, 2.0)
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atr_pct_series = self.I(regime.atr_percentile, self.data, 14, 500)
+
+        self._bars_received = 0
+        self._indicator_ready_bar: Optional[int] = None
+        self._signal_true_count = 0
+        self._order_attempt_count = 0
+        self._order_reject_reason: Dict[str, int] = {}
+
+        self.sl_price = None
+        self.tp_price = None
+
+    def _record_reject(self, reason: str) -> None:
+        self._order_reject_reason[reason] = self._order_reject_reason.get(reason, 0) + 1
+
+    def _regime_ok_custom(self) -> bool:
+        adx_val = float(self._adx_series[-1]) if len(self._adx_series) else np.nan
+        atr_pct = float(self._atr_pct_series[-1]) if len(self._atr_pct_series) else np.nan
+        if np.isnan(adx_val) or np.isnan(atr_pct):
+            return False
+        if adx_val >= 28:
+            return False
+        if atr_pct < 25:
+            return False
+        return True
+
+    def next(self):
+        self._bars_received += 1
+
+        if len(self.data) < 25:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        lb_now = float(self._lower_bb[-1])
+        ub_now = float(self._upper_bb[-1])
+        mb_now = float(self._mid_bb[-1])
+        bbw_now = float(self._bbw[-1])
+
+        if any(np.isnan(x) for x in (atr_now, lb_now, ub_now, bbw_now)):
+            return
+
+        if self._indicator_ready_bar is None:
+            self._indicator_ready_bar = len(self.data) - 1
+
+        if self._manage_open_custom():
+            return
+
+        if self.position:
+            return
+
+        if not self._filters_ok():
+            self._record_reject("filters")
+            return
+
+        if not self._regime_ok_custom():
+            self._record_reject("regime")
+            return
+
+        if len(self.data) < 4:
+            return
+
+        c0 = float(self.data.Close[-1])
+        o0 = float(self.data.Open[-1])
+        h0 = float(self.data.High[-1])
+        l0 = float(self.data.Low[-1])
+
+        c_prev = float(self.data.Close[-2])
+        h_prev = float(self.data.High[-2])
+        l_prev = float(self.data.Low[-2])
+
+        c_prev2 = float(self.data.Close[-3])
+
+        lb_prev = float(self.data.Close[-2]) if np.isnan(self._lower_bb[-2]) else float(self._lower_bb[-2])
+        ub_prev = float(self.data.Close[-2]) if np.isnan(self._upper_bb[-2]) else float(self._upper_bb[-2])
+        lb_prev2 = float(self._lower_bb[-3]) if not np.isnan(self._lower_bb[-3]) else lb_prev
+        ub_prev2 = float(self._upper_bb[-3]) if not np.isnan(self._upper_bb[-3]) else ub_prev
+
+        if atr_now <= 0:
+            return
+
+        bbw_ratio = bbw_now / atr_now
+        if not (0.8 <= bbw_ratio <= 3.0):
+            self._record_reject("bbw_ratio")
+            return
+
+        long_sig = (
+            c_prev2 > lb_prev2
+            and l_prev <= lb_prev
+            and c0 > lb_now
+            and c0 > o0
+        )
+        short_sig = (
+            c_prev2 < ub_prev2
+            and h_prev >= ub_prev
+            and c0 < ub_now
+            and c0 < o0
+        )
+
+        if not (long_sig or short_sig):
+            return
+
+        self._signal_true_count += 1
+
+        price = float(self.data.Close[-1])
+        risk_cfg = self.spec.get("sizing", {})
+        risk_pct = float(risk_cfg.get("risk_per_trade_pct", 0.5))
+
+        if long_sig:
+            sl = price - 1.2 * atr_now
+            tp = price + 2.5 * atr_now
+            if sl >= price:
+                self._record_reject("bad_sl_long")
+                return
+            sl_dist = price - sl
+        else:
+            sl = price + 1.2 * atr_now
+            tp = price - 2.5 * atr_now
+            if sl <= price:
+                self._record_reject("bad_sl_short")
+                return
+            sl_dist = sl - price
+
+        try:
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=risk_pct,
+                sl_distance=sl_dist,
+                price=price,
+                symbol=self._symbol,
+            )
+        except Exception:
+            self._record_reject("sizing_error")
+            return
+
+        if size is None or size <= 0:
+            self._record_reject("size_zero")
+            return
+
+        if isinstance(size, float) and size < 1:
+            if size <= 0 or size >= 1:
+                self._record_reject("size_invalid_frac")
+                return
+        else:
+            size = max(1, int(size))
+
+        self._order_attempt_count += 1
+        self.sl_price = sl
+        self.tp_price = tp
+
+        try:
+            if long_sig:
+                self.buy(size=size, sl=sl, tp=tp)
+            else:
+                self.sell(size=size, sl=sl, tp=tp)
+        except Exception as e:
+            self._record_reject(f"order_ex:{type(e).__name__}")
+
+    def _manage_open_custom(self) -> bool:
+        if not self.position:
+            return False
+        if not self.trades:
+            return False
+
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= 24:
+            self.position.close()
+            return True
+
+        lb_now = float(self._lower_bb[-1])
+        ub_now = float(self._upper_bb[-1])
+        high = float(self.data.High[-1])
+        low = float(self.data.Low[-1])
+
+        if trade.is_long and not np.isnan(ub_now) and high >= ub_now:
+            self.position.close()
+            return True
+        if (not trade.is_long) and not np.isnan(lb_now) and low <= lb_now:
+            self.position.close()
+            return True
+
+        return False

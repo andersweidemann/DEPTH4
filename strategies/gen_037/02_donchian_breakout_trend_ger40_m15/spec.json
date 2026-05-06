@@ -1,0 +1,95 @@
+{
+  "name": "donchian_breakout_trend_ger40_m15",
+  "hypothesis": "On GER40 M15, Donchian(40) breakouts filtered by ADX(14) > 22 (trending regime) produce positive expectancy during the European cash session, because index futures tend to trend on confirmed volatility expansion.",
+  "family": "breakout_trend",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "close > donchian_high(40)[1] AND adx(14) > 22 AND session_mask(07:00-15:30 UTC)",
+    "entry_short": "close < donchian_low(40)[1] AND adx(14) > 22 AND session_mask(07:00-15:30 UTC)",
+    "indicators": [
+      "donchian(40)",
+      "adx(14)",
+      "atr(14)",
+      "ema(50)"
+    ]
+  },
+  "regime_filter": {
+    "type": "adx_trend",
+    "adx_period": 14,
+    "adx_min": 22,
+    "atr_percentile_min": 35,
+    "atr_percentile_lookback": 500,
+    "rationale": "Breakouts only in trending + non-dead volatility regimes."
+  },
+  "entry_rules": {
+    "trend_alignment": "long requires close > ema(50); short requires close < ema(50)",
+    "cooldown_bars": 8,
+    "max_concurrent_positions": 1,
+    "confirmation": "Bar close beyond donchian, enter next bar open."
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "mult": 2.0
+    },
+    "take_profit": {
+      "type": "r_multiple",
+      "r": 2.5
+    },
+    "time_stop": {
+      "type": "bars",
+      "n": 40
+    },
+    "trailing": {
+      "type": "donchian_opposite",
+      "period": 20,
+      "activate_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "min_lot": 0.1
+  },
+  "params_to_optimize": {
+    "donchian_period": [
+      30,
+      40,
+      55
+    ],
+    "adx_min": [
+      18,
+      22,
+      26
+    ],
+    "atr_sl_mult": [
+      1.5,
+      2.0,
+      2.5
+    ],
+    "r_target": [
+      2.0,
+      2.5,
+      3.0
+    ],
+    "ema_period": [
+      50,
+      100
+    ]
+  },
+  "diagnostics_required": [
+    "bar_count_loaded",
+    "donchian_warmup_nan_count",
+    "bars_with_adx_above_threshold",
+    "raw_breakouts_detected",
+    "breakouts_after_trend_and_session_filter",
+    "orders_submitted_vs_filled"
+  ],
+  "falsification_criteria": "PF < 1.5 OR trades < 200 OR max_dd > 15%."
+}

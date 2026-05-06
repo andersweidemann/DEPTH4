@@ -1,0 +1,57 @@
+{
+  "name": "xau_asia_london_range_breakout_m5",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "On XAUUSD M5, when the Asia session (00:00-06:00 UTC) range is between 0.5x and 2.0x ATR(14), a London-session (07:00-10:00 UTC) true breakout (close beyond range by >=0.5 ATR with body >=1.0 ATR) within the first 9 bars continues in the breakout direction for at least 1.5R before reverting, producing PF>=2.0 over 200+ trades.",
+  "regime_filter": {
+    "primitives": [
+      "atr_percentile",
+      "session_mask",
+      "adx"
+    ],
+    "rules": {
+      "atr_percentile_min": 20,
+      "atr_percentile_lookback": 200,
+      "asia_session_utc": [
+        "00:00",
+        "06:00"
+      ],
+      "london_window_utc": [
+        "07:00",
+        "10:00"
+      ],
+      "adx_min": 15,
+      "adx_period": 14,
+      "block_if_all_on": true
+    }
+  },
+  "entry": {
+    "long": "price closes above asia_high + 0.5*ATR(14), candle body >= 1.0*ATR(14), within first 9 bars of london_window, first_breakout_of_day=true, range/ATR in [0.5,2.0]",
+    "short": "price closes below asia_low - 0.5*ATR(14), candle body >= 1.0*ATR(14), within first 9 bars of london_window, first_breakout_of_day=true, range/ATR in [0.5,2.0]"
+  },
+  "exit": {
+    "tp": "2.0 * ATR(14) from entry",
+    "sl": "opposite side of asia range or 1.2*ATR(14), whichever is tighter",
+    "time_stop_bars": 24,
+    "breakeven_after_R": 1.0,
+    "trailing": "chandelier 2.5*ATR after 1.0R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "max_daily_loss_pct": 3.0
+  },
+  "params": {
+    "atr_period": 14,
+    "min_range_atr": 0.5,
+    "max_range_atr": 2.0,
+    "breakout_buffer_atr": 0.5,
+    "body_min_atr": 1.0,
+    "max_breakout_bars": 9,
+    "sl_atr_mult": 1.2,
+    "tp_atr_mult": 2.0
+  },
+  "diversification_tag": "session_range_breakout"
+}

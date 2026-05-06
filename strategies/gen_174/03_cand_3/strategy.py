@@ -1,0 +1,63 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "US500"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_period = self.spec["entry_rule"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["entry_rule"]["params"]["bb_deviation"]
+        self._rsi_period = self.spec["entry_rule"]["params"]["rsi_period"]
+        self._rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        self._tp_pips = self.spec["exit_rule"]["params"]["tp_pips"]
+        self._sl_pips = self.spec["exit_rule"]["params"]["sl_pips"]
+        self._risk_fraction = self.spec["sizing_rule"]["params"]["risk_fraction"]
+        self._adx_period = self.spec["regime_filter"]["params"]["period"]
+        self._adx_percentile = self.spec["regime_filter"]["params"]["percentile"]
+        self._adx_series = self.I(adx, self.data, self._adx_period)
+        self._bb_series = self.I(bollinger, self.data, self._bb_period, self._bb_deviation)
+        self._rsi_series = self.I(rsi, self.data, self._rsi_period)
+
+    def _regime_ok(self) -> bool:
+        adx_val = float(self._adx_series[-1])
+        adx_percentile = np.percentile(self._adx_series, self._adx_percentile)
+        return adx_val > adx_percentile
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        close = self.data.Close[-1]
+        bb_lower = self._bb_series[-1][0]
+        bb_upper = self._bb_series[-1][1]
+        rsi = self._rsi_series[-1]
+        if (close < bb_lower and rsi < self._rsi_thresholds[0]) or (close > bb_upper and rsi > self._rsi_thresholds[1]):
+            lots = lots_by_risk_pct(self._risk_fraction, self.equity, self.data)
+            self.position.enter(lots)
+            self.sl_price = close - self._sl_pips * self.data.pip
+            self.tp_price = close + self._tp_pips * self.data.pip
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        if self.position.pl_pct > 0:
+            self.sl_price = max(self.sl_price, self.data.Close[-1] - self._sl_pips * self.data.pip)
+        elif self.position.pl_pct < 0:
+            self.sl_price = min(self.sl_price, self.data.Close[-1] + self._sl_pips * self.data.pip)
+        if self.data.Close[-1] > self.tp_price:
+            self.position.close()
+        elif self.data.Close[-1] < self.sl_price:
+            self.position.close()

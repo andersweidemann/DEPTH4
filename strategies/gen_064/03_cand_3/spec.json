@@ -1,0 +1,30 @@
+{
+  "hypothesis": "ATR-based breakout occurs on BTCUSD M15 with donchian channel confirmation",
+  "regime_filter": {
+    "type": "donchian_channel",
+    "params": {
+      "period": 20
+    }
+  },
+  "entry_rule": {
+    "type": "atr_breakout",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

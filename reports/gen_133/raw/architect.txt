@@ -1,0 +1,124 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion leads to breakout opportunities",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_min": 0.5,
+        "range_atr_max": 2.0,
+        "breakout_atr_multiplier": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl",
+      "params": {
+        "tp_pips": 500,
+        "sl_pips": 100
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_risk",
+      "params": {
+        "risk_fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversals occur during high volatility",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "width_threshold": 0.05
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "touch_threshold": 0.2
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "RSI extremes combined with ATR-based stops lead to profitable trades",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_extreme",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl",
+      "params": {
+        "tp_pips": 200,
+        "sl_pips": 50
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_risk",
+      "params": {
+        "risk_fraction": 0.01
+      }
+    }
+  }
+]

@@ -1,0 +1,46 @@
+{
+  "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings on XAUUSD M5",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "period": 20,
+      "percentile": 30
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rsi_mean_reversion",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {}
+  },
+  "sl_rule": {
+    "type": "atr",
+    "params": {
+      "period": 14,
+      "multiplier": 1.5
+    }
+  },
+  "tp_rule": {
+    "type": "fixed",
+    "params": {
+      "pips": 50
+    }
+  },
+  "time_stop": 30,
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "lots": 0.1
+    }
+  }
+}

@@ -1,0 +1,67 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        super().init()
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("filters", {}).get("session_utc") or []
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, sessions), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self.bb_period = self.spec["entry_rule"]["params"]["bb_period"]
+        self.bb_deviation = self.spec["entry_rule"]["params"]["bb_deviation"]
+        self.rsi_period = self.spec["entry_rule"]["params"]["rsi_period"]
+        self.rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        self.bb_width_percentile = self.spec["regime_filter"]["params"]["percentile"]
+        self.lookback = self.spec["regime_filter"]["params"]["lookback"]
+        self.I_bollinger = self.I(bollinger, self.data, self.bb_period, self.bb_deviation)
+        self.I_rsi = self.I(rsi, self.data, self.rsi_period)
+        self.I_bb_width = self.I(bb_width, self.data, self.bb_period)
+        self.I_atr = self.I(atr, self.data, 14)
+
+    def _regime_ok(self):
+        bb_width_percentile = self.spec["regime_filter"]["params"]["percentile"]
+        lookback = self.spec["regime_filter"]["params"]["lookback"]
+        bb_width = self.I_bb_width[-1]
+        bb_widths = self.I_bb_width[-lookback:]
+        if np.isnan(bb_width):
+            return False
+        percentile = np.percentile(bb_widths, bb_width_percentile)
+        return bb_width < percentile
+
+    def _filters_ok(self):
+        super()._filters_ok()
+        return True
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        close = self.data.Close[-1]
+        upper_bb = self.I_bollinger['upper'][-1]
+        lower_bb = self.I_bollinger['lower'][-1]
+        rsi = self.I_rsi[-1]
+        if close > upper_bb and rsi > self.rsi_thresholds[1]:
+            self.position = self.buy(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self._equity_start, self.data))
+            self.sl_price = close - 1.5 * self.I_atr[-1]
+            self.tp_price = lower_bb
+        elif close < lower_bb and rsi < self.rsi_thresholds[0]:
+            self.position = self.sell(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self._equity_start, self.data))
+            self.sl_price = close + 1.5 * self.I_atr[-1]
+            self.tp_price = upper_bb
+
+    def _manage_open(self):
+        super()._manage_open()
+        time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        if self.position and len(self.data) - self.position.entry_bar >= time_stop:
+            self.position.close()
+```

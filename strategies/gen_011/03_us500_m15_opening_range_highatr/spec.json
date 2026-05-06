@@ -1,0 +1,72 @@
+{
+  "name": "us500_m15_opening_range_highatr",
+  "hypothesis": "On US500 M15, the first 30-minute range after NY cash open (13:30-14:00 UTC) produces a tradable breakout only on days where daily ATR is in the top 40th percentile (high-volatility regime), avoiding chop days that killed generic breakout systems. Breakouts taken only in the direction of the prior-day close vs open bias.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "family": "opening_range_breakout",
+  "signals": {
+    "atr": [
+      {
+        "period": 14,
+        "timeframe": "D1"
+      },
+      {
+        "period": 14
+      }
+    ],
+    "atr_percentile": {
+      "lookback": 100,
+      "timeframe": "D1",
+      "min_rank": 60
+    },
+    "atr_breakout_levels": {
+      "range_start_utc": "13:30",
+      "range_end_utc": "14:00",
+      "buffer_atr_mult": 0.1
+    },
+    "ema": {
+      "period": 200
+    },
+    "session_mask": {
+      "sessions": [
+        "newyork"
+      ],
+      "utc_hours": [
+        14,
+        19
+      ]
+    }
+  },
+  "entry_rules": {
+    "long": "close > OR_high + 0.1*ATR(14) AND daily_ATR_percentile >= 60 AND close > EMA200 AND first_breakout_of_day AND time between 14:00-17:00 UTC",
+    "short": "close < OR_low - 0.1*ATR(14) AND daily_ATR_percentile >= 60 AND close < EMA200 AND first_breakout_of_day AND time between 14:00-17:00 UTC",
+    "cooldown_bars": 0,
+    "max_trades_per_day": 1
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "rule": "daily ATR(14) percentile_rank(100) >= 60",
+    "classify": "high_volatility_days_only"
+  },
+  "exit_rules": {
+    "sl": "opposite side of opening range OR 1.0 * OR_width, whichever tighter",
+    "tp": "2.0 * OR_width from breakout level, partial 50% at 1.0 * OR_width",
+    "time_stop_bars": 16,
+    "trailing": "after partial, trail at 1.2 * ATR(14)"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Breakout occurs on GER40 M15 when price breaks out of Asia range with increased volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "high > asia_range_high && atr(14) > atr_percentile(50)"
+    },
+    "short": {
+      "condition": "low < asia_range_low && atr(14) > atr_percentile(50)"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "hours": 2
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk": 0.02
+    }
+  }
+}

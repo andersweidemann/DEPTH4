@@ -1,0 +1,241 @@
+```python
+from __future__ import annotations
+
+import json
+import os
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+def _asia_high(data_df: pd.DataFrame) -> np.ndarray:
+    idx = pd.DatetimeIndex(data_df.index)
+    high = np.asarray(data_df["High"].values, dtype=float)
+    low = np.asarray(data_df["Low"].values, dtype=float)
+    hours = idx.hour
+    minutes = idx.minute
+    in_asia = (hours >= 0) & (hours < 6)
+    dates = idx.normalize()
+    out_hi = np.full(len(idx), np.nan)
+    out_lo = np.full(len(idx), np.nan)
+    cur_date = None
+    cur_hi = -np.inf
+    cur_lo = np.inf
+    frozen_hi = np.nan
+    frozen_lo = np.nan
+    last_date = None
+    for i in range(len(idx)):
+        d = dates[i]
+        if last_date is None or d != last_date:
+            cur_hi = -np.inf
+            cur_lo = np.inf
+            frozen_hi = np.nan
+            frozen_lo = np.nan
+            last_date = d
+        if in_asia[i]:
+            if high[i] > cur_hi:
+                cur_hi = high[i]
+            if low[i] < cur_lo:
+                cur_lo = low[i]
+            frozen_hi = cur_hi if cur_hi != -np.inf else np.nan
+            frozen_lo = cur_lo if cur_lo != np.inf else np.nan
+        out_hi[i] = frozen_hi
+        out_lo[i] = frozen_lo
+    return out_hi, out_lo
+
+
+def _asia_high_arr(data) -> np.ndarray:
+    df = data.df if hasattr(data, "df") else data
+    hi, lo = _asia_high(df)
+    return hi
+
+
+def _asia_low_arr(data) -> np.ndarray:
+    df = data.df if hasattr(data, "df") else data
+    hi, lo = _asia_high(df)
+    return lo
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        spec_file = os.path.join(os.path.dirname(__file__), self.spec_path)
+        if os.path.exists(spec_file):
+            try:
+                with open(spec_file, "r") as f:
+                    self._spec = json.load(f)
+            except Exception:
+                pass
+        super().init()
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._atr_pct_series = self.I(regime.atr_percentile, self.data, 14, 500)
+
+        self._asia_high = self.I(_asia_high_arr, self.data)
+        self._asia_low = self.I(_asia_low_arr, self.data)
+
+        self._last_trade_date = None
+        self._trade_window_open_bar: Dict[str, int] = {}
+
+    def _in_trade_window(self, ts: pd.Timestamp) -> bool:
+        h = ts.hour
+        return 7 <= h < 11
+
+    def _bars_since_window_open(self, ts: pd.Timestamp) -> int:
+        date_key = ts.strftime("%Y-%m-%d")
+        bar_i = len(self.data) - 1
+        if date_key not in self._trade_window_open_bar:
+            if self._in_trade_window(ts):
+                self._trade_window_open_bar[date_key] = bar_i
+            else:
+                return -1
+        return bar_i - self._trade_window_open_bar[date_key]
+
+    def _regime_ok(self) -> bool:
+        pct = float(self._atr_pct_series[-1])
+        if np.isnan(pct):
+            return False
+        return pct > 0.20
+
+    def _filters_ok(self) -> bool:
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not risk.daily_kill_ok(
+            self._kill_state,
+            now_date,
+            self.equity,
+            self.spec.get("risk", {}).get(
+                "daily_dd_kill_pct",
+                config.load()["risk"]["daily_dd_kill_pct"],
+            ),
+        ):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        ts = pd.Timestamp(self.data.index[-1])
+        if not self._in_trade_window(ts):
+            return
+
+        bars_since = self._bars_since_window_open(ts)
+        if bars_since < 0 or bars_since > 24:
+            return
+
+        date_key = ts.strftime("%Y-%m-%d")
+        if self._last_trade_date == date_key:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        asia_hi = float(self._asia_high[-1])
+        asia_lo = float(self._asia_low[-1])
+        if np.isnan(asia_hi) or np.isnan(asia_lo):
+            return
+
+        asia_range = asia_hi - asia_lo
+        if asia_range <= 0:
+            return
+        ratio = asia_range / atr_now
+        if not (0.5 <= ratio <= 2.0):
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        body = abs(close - open_)
+        if body < 1.0 * atr_now:
+            return
+
+        long_break = close > asia_hi + 0.3 * atr_now
+        short_break = close < asia_lo - 0.3 * atr_now
+
+        if not long_break and not short_break:
+            return
+
+        risk_pct = self.spec.get("sizing", {}).get("risk_per_trade_pct", 0.5)
+        sl_dist = 0.9 * atr_now
+
+        if long_break and close > open_:
+            sl = close - sl_dist
+            tp = close + 2.0 * sl_dist
+            size = risk.lots_by_risk_pct(self.equity, risk_pct, sl_dist, close)
+            if size and size > 0:
+                self.sl_price = sl
+                self.tp_price = tp
+                try:
+                    self.buy(size=size, sl=sl, tp=tp)
+                    self._last_trade_date = date_key
+                except Exception:
+                    pass
+        elif short_break and close < open_:
+            sl = close + sl_dist
+            tp = close - 2.0 * sl_dist
+            size = risk.lots_by_risk_pct(self.equity, risk_pct, sl_dist, close)
+            if size and size > 0:
+                self.sl_price = sl
+                self.tp_price = tp
+                try:
+                    self.sell(size=size, sl=sl, tp=tp)
+                    self._last_trade_date = date_key
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+
+        ts = pd.Timestamp(self.data.index[-1])
+        if ts.hour >= 16:
+            self.position.close()
+            return
+
+        if self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= 48:
+                self.position.close()
+                return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now):
+            return
+        price = float(self.data.Close[-1])
+        for trade in self.trades:
+            entry = trade.entry_price
+            if trade.is_long:
+                init_risk = entry - (trade.sl if trade.sl is not None else entry - atr_now)
+                if init_risk <= 0:
+                    continue
+                r_mult = (price - entry) / init_risk
+                if r_mult >= 1.0:
+                    new_sl = price - 1.5 * atr_now
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                init_risk = (trade.sl if trade.sl is not None else entry + atr_now) - entry
+                if init_risk <= 0:
+                    continue
+                r_mult = (entry - price) / init_risk
+                if r_mult >= 1.0:
+                    new_sl = price + 1.5 * atr_now
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

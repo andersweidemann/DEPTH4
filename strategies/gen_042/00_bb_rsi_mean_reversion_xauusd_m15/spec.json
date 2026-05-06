@@ -1,0 +1,90 @@
+{
+  "name": "bb_rsi_mean_reversion_xauusd_m15",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "On XAUUSD M15, when price closes outside a Bollinger Band with an extreme RSI(7) reading AND BB-width is in the upper regime (live volatility, not dead chop), price reverts to the middle band within a bounded horizon. Edge comes from combining volatility expansion with momentum exhaustion; gold's frequent M15 overshoots during NY/London overlap provide repeatable reversion setups.",
+  "signals": {
+    "primary": {
+      "type": "bollinger",
+      "period": 20,
+      "stddev": 2.0,
+      "source": "close"
+    },
+    "confirm": {
+      "type": "rsi",
+      "period": 7,
+      "long_threshold": 12,
+      "short_threshold": 88
+    },
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi7 < 12 AND bb_width_percentile(100) > 40",
+      "short": "close > upper_bb AND rsi7 > 88 AND bb_width_percentile(100) > 40",
+      "cooldown_bars": 4
+    }
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "operator": "<",
+        "value": 28,
+        "reason": "avoid strong trends that run through mean-reversion levels"
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "operator": ">",
+        "value": 35,
+        "reason": "require live volatility"
+      },
+      {
+        "indicator": "session_mask",
+        "sessions": [
+          "London",
+          "NY_overlap"
+        ],
+        "reason": "active liquidity windows only"
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "multiplier": 1.8
+    },
+    "take_profit": {
+      "type": "band_target",
+      "target": "middle_bb",
+      "fallback_rr": 1.5
+    },
+    "time_stop": {
+      "type": "bars",
+      "value": 24
+    },
+    "breakeven": {
+      "after_rr": 0.8,
+      "lock_pips": 0
+    }
+  },
+  "sizing": {
+    "mode": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1,
+    "max_daily_trades": 6
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  },
+  "inspiration": [
+    "mean-reversion-scalper-v3.md",
+    "bb-gold-scalper-m15.md"
+  ]
+}

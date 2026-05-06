@@ -1,0 +1,30 @@
+{
+  "name": "Volatility Squeeze Breakout",
+  "hypothesis": "Breakout after volatility squeeze",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": "bb_width(20, 2.0) < 20th percentile",
+  "entry_rules": [
+    {
+      "type": "long",
+      "condition": "close > upper_bollinger_band(20, 2.0) and bb_width(20, 2.0) < 20th percentile"
+    },
+    {
+      "type": "short",
+      "condition": "close < lower_bollinger_band(20, 2.0) and bb_width(20, 2.0) < 20th percentile"
+    }
+  ],
+  "exit_rules": {
+    "stop_loss": "1.8 * atr(14)",
+    "take_profit": "3 * atr(14)",
+    "time_stop": "40 minutes"
+  },
+  "sizing": {
+    "type": "fixed",
+    "value": 0.3
+  }
+}

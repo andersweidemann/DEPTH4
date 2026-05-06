@@ -1,0 +1,186 @@
+[
+  {
+    "id": "bb_rsi_meanrev_xau_m15",
+    "family": "mean_reversion",
+    "hypothesis": "On XAUUSD M15, price closing outside Bollinger Bands with extreme RSI reverts to the mean within 30 bars, provided BB-width is above its 30th percentile (avoiding dead ranges) and ADX is low (non-trending regime).",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "session": {
+      "enabled": true,
+      "start_utc": "07:00",
+      "end_utc": "20:00",
+      "days": ["Mon","Tue","Wed","Thu","Fri"]
+    },
+    "signals": [
+      {"type": "bollinger", "period": 20, "dev": 1.75, "source": "close"},
+      {"type": "rsi", "period": 7},
+      {"type": "bb_width", "period": 20, "dev": 1.75, "percentile_lookback": 500},
+      {"type": "atr", "period": 14}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"primitive": "adx", "period": 14, "op": "<", "value": 22},
+        {"primitive": "bb_width_percentile", "op": ">", "value": 30}
+      ],
+      "combine": "AND"
+    },
+    "entry": {
+      "long": "close < lower_bb AND rsi(7) < 12",
+      "short": "close > upper_bb AND rsi(7) > 88",
+      "cooldown_bars": 3
+    },
+    "exit": {
+      "tp": "opposite_bb_touch",
+      "sl": {"type": "atr_mult", "period": 14, "mult": 1.5},
+      "time_stop_bars": 30,
+      "breakeven_at_r": 1.0
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "acceptance_notes": "Targets PF>=2, Sharpe>=1.5 on XAUUSD M15 2020-2024. Mean-reversion family; low-correlation with breakout siblings.",
+    "diversity_tag": "mean_rev_bb_rsi"
+  },
+  {
+    "id": "bb_rsi_meanrev_us500_m15",
+    "family": "mean_reversion",
+    "hypothesis": "On US500 M15, RTH overbought/oversold BB+RSI extremes revert to the midband; index mean reversion is strongest when ATR percentile is moderate (not panic) and ADX indicates range.",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "session": {
+      "enabled": true,
+      "start_utc": "13:30",
+      "end_utc": "20:00",
+      "days": ["Mon","Tue","Wed","Thu","Fri"]
+    },
+    "signals": [
+      {"type": "bollinger", "period": 20, "dev": 2.0, "source": "close"},
+      {"type": "rsi", "period": 2},
+      {"type": "atr", "period": 14},
+      {"type": "atr_percentile", "period": 14, "lookback": 500}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"primitive": "adx", "period": 14, "op": "<", "value": 25},
+        {"primitive": "atr_percentile", "op": "between", "value": [20, 85]}
+      ],
+      "combine": "AND"
+    },
+    "entry": {
+      "long": "close < lower_bb AND rsi(2) < 5",
+      "short": "close > upper_bb AND rsi(2) > 95",
+      "cooldown_bars": 4
+    },
+    "exit": {
+      "tp": "middle_bb",
+      "sl": {"type": "atr_mult", "period": 14, "mult": 2.0},
+      "time_stop_bars": 24,
+      "breakeven_at_r": 0.8
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "acceptance_notes": "RTH-only US500 mean reversion. Distinct symbol from XAU sibling, same family but different RSI horizon.",
+    "diversity_tag": "mean_rev_bb_rsi2"
+  },
+  {
+    "id": "atr_expansion_breakout_ger40_m15",
+    "family": "volatility_breakout",
+    "hypothesis": "On GER40 M15, Donchian breakouts only work when volatility is expanding: ATR(14) > ATR(50) AND ADX > 20. Pure channel breaks without expansion produce whipsaws.",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "session": {
+      "enabled": true,
+      "start_utc": "07:00",
+      "end_utc": "15:30",
+      "days": ["Mon","Tue","Wed","Thu","Fri"]
+    },
+    "signals": [
+      {"type": "donchian", "period": 20},
+      {"type": "atr", "period": 14},
+      {"type": "atr", "period": 50, "alias": "atr_slow"},
+      {"type": "ema", "period": 50},
+      {"type": "atr_breakout_levels", "period": 20, "atr_period": 14, "mult": 0.25}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"primitive": "adx", "period": 14, "op": ">", "value": 20},
+        {"custom": "atr(14) > atr(50) * 1.1"}
+      ],
+      "combine": "AND"
+    },
+    "entry": {
+      "long": "close > donchian_high_20[1] + 0.25*atr(14) AND close > ema(50)",
+      "short": "close < donchian_low_20[1] - 0.25*atr(14) AND close < ema(50)",
+      "cooldown_bars": 6,
+      "only_first_signal_per_day": true
+    },
+    "exit": {
+      "tp": {"type": "atr_mult", "period": 14, "mult": 3.0},
+      "sl": {"type": "atr_mult", "period": 14, "mult": 1.5},
+      "time_stop_bars": 40,
+      "trailing": {"type": "chandelier", "atr_period": 14, "mult": 2.5, "activate_at_r": 1.0}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_pct_per_trade": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "acceptance_notes": "Addresses prior-gen critic: adds ATR expansion filter (ATR14 > 1.1*ATR50) on top of Donchian. European cash-session only.",
+    "diversity_tag": "vol_breakout_donchian"
+  },
+  {
+    "id": "london_momentum_continuation_xau_m15",
+    "family": "momentum_continuation",
+    "hypothesis": "On XAUUSD M15, the first strong-body candle after London open (08:00-10:00 UTC) in the direction of the EMA(50) vs EMA(200) trend continues for 2-4x ATR, when ADX>22 confirms trend regime. Pivot from prior-gen Asia/London rangebreak failure.",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "session": {
+      "enabled": true,
+      "start_utc": "08:00",
+      "end_utc": "11:00",
+      "days": ["Mon","Tue","Wed","Thu","Fri"]
+    },
+    "signals": [
+      {"type": "ema", "period": 50},
+      {"type": "ema", "period": 200},
+      {"type": "atr", "period": 14},
+      {"type": "rsi", "period": 14}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"primitive": "adx", "period": 14, "op": ">", "value": 22},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "op": ">", "value": 40}
+      ],
+      "combine": "AND"
+    },
+    "entry": {
+      "long": "ema(50) > ema(200) AND close > open AND (close-open) > 1.0*atr(14) AND rsi(14) > 55 AND rsi(14) < 80",
+      "short": "ema(50) < ema(200) AND close < open AND (open-close) > 1.0*atr(14) AND rsi(14) < 45 AND rsi(14) > 20",
+      "cooldown_bars": 8,
+      "only_first_signal_per_day": true
+    },
+    "exit": {
+      "tp": {"type": "atr_mult", "period": 14, "mult": 2.5},
+      "sl": {"type": "atr_mult", "period": 14, "mult": 1.2},
+      "time_stop_bars": 20,
+      "breakeven_at_r": 1.0,
+      "trailing": {"type": "atr", "atr_period": 14, "mult": 2.0, "activate_at_r": 1.5}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "acceptance_notes": "Pivot from dead Asia-London rangebreak branch per prior-gen critic. UTC-native session; no range computation dependency.",
+    "diversity_tag": "momentum_continuation_london"
+  }
+]

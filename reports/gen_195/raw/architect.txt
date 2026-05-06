@@ -1,0 +1,178 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs in XAUUSD on M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory, and volatility is above the 30th percentile.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "sl_rule": {
+      "type": "atr_stop",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75
+      }
+    },
+    "time_stop_rule": {
+      "type": "timeout",
+      "params": {
+        "bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakout of the Asia range occurs in GER40 on M15, followed by a retest or reversal, with a stop loss at 1.5x ATR and take profit at the opposite side of the range.",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "atr_period": 14,
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0
+      }
+    },
+    "sl_rule": {
+      "type": "atr_stop",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp_rule": {
+      "type": "range_opposite_side",
+      "params": {
+        "range_atr": 1.0
+      }
+    },
+    "time_stop_rule": {
+      "type": "timeout",
+      "params": {
+        "bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs in XAUUSD on M5, with a stop loss at 100 pips and take profit at 500 pips, and a trailing stop of 100 pips.",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "period": 20,
+        "threshold": 2.0
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch_bounce",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "sl_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop_rule": {
+      "type": "timeout",
+      "params": {
+        "bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs in US500 on M15 when price reaches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory, and volatility is above the 50th percentile, with a stop loss at 2x ATR and take profit at the middle Bollinger Band.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "sl_rule": {
+      "type": "atr_stop",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 2.0
+      }
+    },
+    "tp_rule": {
+      "type": "middle_bb",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75
+      }
+    },
+    "time_stop_rule": {
+      "type": "timeout",
+      "params": {
+        "bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]
+```

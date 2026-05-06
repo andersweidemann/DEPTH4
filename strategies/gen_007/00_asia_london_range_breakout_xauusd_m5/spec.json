@@ -1,0 +1,80 @@
+{
+  "id": "gen7_asia_london_breakout_xau_m5",
+  "name": "Asia-London Range Breakout XAUUSD M5",
+  "family": "session_breakout",
+  "hypothesis": "After an Asia-session accumulation range of moderate size (0.5-2.0x ATR), XAUUSD exhibits directional expansion during the London open window; breakouts with strong body displacement produce positive expectancy when filtered by ATR regime.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "asia_range": {
+      "primitive": "session_mask",
+      "start_utc": "00:00",
+      "end_utc": "06:00",
+      "record": [
+        "high",
+        "low"
+      ]
+    },
+    "london_window": {
+      "primitive": "session_mask",
+      "start_utc": "07:00",
+      "end_utc": "10:00"
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "breakout_levels": {
+      "primitive": "atr_breakout_levels",
+      "ref": "asia_range",
+      "buffer_atr": 0.5
+    }
+  },
+  "entry_rules": {
+    "long": "london_window AND close > asia_range.high + 0.5*atr AND candle_body >= 1.2*atr AND (asia_range.high - asia_range.low) BETWEEN 0.5*atr AND 2.0*atr",
+    "short": "london_window AND close < asia_range.low - 0.5*atr AND candle_body >= 1.2*atr AND (asia_range.high - asia_range.low) BETWEEN 0.5*atr AND 2.0*atr",
+    "one_per_day": true
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "period": 100,
+    "min_percentile": 30,
+    "max_percentile": 95,
+    "comment": "Avoid dead ranges and blowoff volatility"
+  },
+  "exits": {
+    "sl": {
+      "type": "atr",
+      "mult": 0.75
+    },
+    "tp": {
+      "type": "atr",
+      "mult": 2.25,
+      "rr": 3.0
+    },
+    "time_stop": {
+      "bars": 24,
+      "comment": "~2h on M5; close by NY open if stalled"
+    },
+    "trailing": {
+      "type": "atr",
+      "mult": 1.5,
+      "activate_at_rr": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

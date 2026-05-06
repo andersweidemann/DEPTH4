@@ -1,0 +1,89 @@
+{
+  "name": "XAU_AsiaLondon_RangeBreak_M5",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "On XAUUSD M5, when the Asia session (00:00-06:00 UTC) builds a compressed range of 0.5x-2.0x ATR(14), the first ATR-confirmed break of that range during the London window (07:00-10:00 UTC) extends at least 1R before mean-reverting, producing positive expectancy.",
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile",
+      "session_mask"
+    ],
+    "rules": [
+      {
+        "type": "session_mask",
+        "window_utc": "07:00-10:00"
+      },
+      {
+        "type": "adx",
+        "period": 14,
+        "min": 18
+      },
+      {
+        "type": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "min_pct": 30,
+        "max_pct": 95
+      }
+    ]
+  },
+  "entry": {
+    "signal_primitives": [
+      "atr",
+      "atr_breakout_levels",
+      "session_mask"
+    ],
+    "rules": [
+      "Record asia_high/asia_low between 00:00-06:00 UTC.",
+      "Require (asia_high - asia_low) / ATR14 in [0.5, 2.0].",
+      "During 07:00-10:00 UTC, LONG if close > asia_high + 0.5*ATR14 AND candle_body >= 1.0*ATR14.",
+      "SHORT mirror on asia_low.",
+      "Only first breakout per day; skip if prior bar already triggered."
+    ]
+  },
+  "exit": {
+    "sl": {
+      "type": "atr",
+      "mult": 0.75,
+      "period": 14
+    },
+    "tp": {
+      "type": "atr",
+      "mult": 2.25,
+      "period": 14
+    },
+    "time_stop": {
+      "bars": 36,
+      "action": "close_at_market"
+    },
+    "trailing": {
+      "type": "atr",
+      "mult": 1.5,
+      "activate_at_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "params": {
+    "atr_period": 14,
+    "asia_start_utc": "00:00",
+    "asia_end_utc": "06:00",
+    "london_start_utc": "07:00",
+    "london_end_utc": "10:00",
+    "min_range_atr": 0.5,
+    "max_range_atr": 2.0,
+    "break_buffer_atr": 0.5,
+    "min_body_atr": 1.0
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

@@ -1,0 +1,82 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_period = self.spec["entry_rule"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["entry_rule"]["params"]["bb_deviation"]
+        self._rsi_period = self.spec["entry_rule"]["params"]["rsi_period"]
+        self._rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        self._tp = self.spec["exit_rule"]["params"]["tp"]
+        self._sl = self.spec["exit_rule"]["params"]["sl"]
+        self._time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        self._fraction = self.spec["sizing_rule"]["params"]["fraction"]
+        self._bb_width_percentile = self.spec["regime_filter"]["params"]["percentile"]
+        self._bb_series = self.I(bollinger, self.data.Close, self._bb_period, self._bb_deviation)
+        self._rsi_series = self.I(rsi, self.data.Close, self._rsi_period)
+        self._bb_width_series = self.I(bb_width, self.data.Close, self._bb_period, self._bb_deviation)
+        self._atr_series = self.I(atr, self.data, self._bb_period)
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        bb_width_val = float(self._bb_width_series[-1])
+        bb_width_percentile = np.percentile(self._bb_width_series, self._bb_width_percentile)
+        return bb_width_val < bb_width_percentile
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        bb_lower = self._bb_series['lower'][-1]
+        bb_upper = self._bb_series['upper'][-1]
+        close = self.data.Close[-1]
+        rsi = self._rsi_series[-1]
+        if close < bb_lower and rsi < self._rsi_thresholds[0]:
+            self.position.enter_long(lots_by_risk_pct(self._fraction, self._equity_start, self.data))
+            self.sl_price = close - 1.5 * self._atr_series[-1]
+            self.tp_price = bb_upper
+        elif close > bb_upper and rsi > self._rsi_thresholds[1]:
+            self.position.enter_short(lots_by_risk_pct(self._fraction, self._equity_start, self.data))
+            self.sl_price = close + 1.5 * self._atr_series[-1]
+            self.tp_price = bb_lower
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        if not self.position:
+            return
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= time_stop:
+            self.position.close()
+            return
+        atr_now = float(self._atr_series[-1])
+        price = float(self.data.Close[-1])
+        if trade.is_long and trade.pl_pct > 0:
+            new_sl = price - 1.5 * atr_now
+            if trade.sl is None or new_sl > trade.sl:
+                trade.sl = new_sl
+        elif not trade.is_long and trade.pl_pct > 0:
+            new_sl = price + 1.5 * atr_now
+            if trade.sl is None or new_sl < trade.sl:
+                trade.sl = new_sl

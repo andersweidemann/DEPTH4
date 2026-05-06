@@ -1,0 +1,59 @@
+{
+  "name": "bb_rsi_mean_reversion_us500_m5",
+  "hypothesis": "US500 (equity index) is more mean-reverting intraday than XAU due to liquidity provision behavior and VWAP anchoring; BB(20,1.75) + RSI(7) extremes filtered by BB-width percentile and low-ADX regime produce a positive-expectancy scalp. This replaces the failed XAU M15 mean-reversion (dead branch) with a symbol better suited to the family.",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "family": "mean_reversion",
+  "signals": {
+    "entry_long": "close < bb_lower(20,1.75) AND rsi(7) < 10",
+    "entry_short": "close > bb_upper(20,1.75) AND rsi(7) > 90",
+    "primitives": [
+      "bollinger(20,1.75)",
+      "rsi(7)",
+      "bb_width",
+      "atr(14)",
+      "adx(14)"
+    ]
+  },
+  "regime_filter": {
+    "type": "range_regime",
+    "rules": [
+      "adx(14) < 22 (avoid strong trends)",
+      "bb_width_percentile(100) > 30 (avoid dead ranges)",
+      "session_mask: US cash 13:30-20:00 UTC",
+      "atr_percentile(100) between 25 and 85"
+    ],
+    "skip_when": "adx >= 22 OR bb_width_pct <= 30 OR outside session OR atr extremes"
+  },
+  "exits": {
+    "sl": "1.5 * atr(14) from entry",
+    "tp": "opposite bollinger band (mean reversion target) OR middle BB if adverse rsi cross",
+    "time_stop": "30 bars (~2.5h)",
+    "trailing": "none (mean-reversion closes at target)"
+  },
+  "sizing": {
+    "model": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "cooldown_bars": 3
+  },
+  "params": {
+    "bb_len": 20,
+    "bb_dev": 1.75,
+    "rsi_len": 7,
+    "rsi_long_max": 10,
+    "rsi_short_min": 90,
+    "atr_len": 14,
+    "atr_sl_mult": 1.5,
+    "adx_len": 14,
+    "adx_max": 22,
+    "bb_width_pct_min": 30,
+    "time_stop_bars": 30
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

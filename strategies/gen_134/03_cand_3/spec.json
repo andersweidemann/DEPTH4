@@ -1,0 +1,40 @@
+{
+  "hypothesis": "Mean reversion with ATR-based stop loss is profitable on US500 M15.",
+  "regime_filter": {
+    "type": "adx",
+    "params": {
+      "threshold": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb && rsi(14) < 30"
+    },
+    "short": {
+      "condition": "close > upper_bb && rsi(14) > 70"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "multiplier": 1.2
+      }
+    },
+    "take_profit": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 1
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 1.5
+    }
+  }
+}

@@ -1,0 +1,263 @@
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    ema_fast = 20
+    ema_mid = 50
+    ema_slow = 200
+    atr_period = 14
+    rsi_period = 7
+    rsi_long_threshold = 40
+    rsi_short_threshold = 60
+    adx_period = 14
+    adx_min = 20
+    slope_lookback = 10
+    cooldown_bars = 6
+    max_signals_per_day = 3
+    sl_atr_mult = 1.5
+    tp_atr_mult = 3.0
+    time_stop_bars = 24
+    risk_per_trade_pct = 0.75
+
+    def init(self):
+        super().init()
+
+        self._ema_fast = self.I(signals.ema, self.data.Close, self.ema_fast)
+        self._ema_mid = self.I(signals.ema, self.data.Close, self.ema_mid)
+        self._ema_slow = self.I(signals.ema, self.data.Close, self.ema_slow)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._rsi_series = self.I(signals.rsi, self.data.Close, self.rsi_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+
+        # Session mask: US cash 13:30-20:00 UTC
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(
+            signals.session_mask(full_idx, [{"start": "13:30", "end": "20:00", "tz": "UTC"}]),
+            dtype=bool,
+        )
+
+        self._last_entry_bar = -10_000
+        self._day_count_date = None
+        self._day_signal_count = 0
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 1:
+            return False
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val):
+            return False
+        return adx_val >= self.adx_min
+
+    def _filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        dd_kill_pct = self.spec.get("risk", {}).get(
+            "daily_dd_kill_pct",
+            config.load()["risk"]["daily_dd_kill_pct"],
+        )
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, dd_kill_pct):
+            return False
+        return True
+
+    def _signal_long(self) -> bool:
+        if len(self.data.Close) < max(self.ema_slow, self.slope_lookback + 2):
+            return False
+        ema_fast = self._ema_fast
+        ema_mid = self._ema_mid
+        ema_slow = self._ema_slow
+        rsi = self._rsi_series
+        close = self.data.Close
+
+        if np.isnan(ema_mid[-1]) or np.isnan(ema_slow[-1]) or np.isnan(ema_fast[-1]):
+            return False
+        if not (ema_mid[-1] > ema_slow[-1]):
+            return False
+        if len(ema_mid) <= self.slope_lookback:
+            return False
+        slope = ema_mid[-1] - ema_mid[-1 - self.slope_lookback]
+        if slope <= 0:
+            return False
+
+        low_prev = float(self.data.Low[-2])
+        close_prev = float(self.data.Close[-2])
+        low_now = float(self.data.Low[-1])
+        close_now = float(close[-1])
+        pulled_back = (low_prev <= ema_fast[-2]) or (low_now <= ema_fast[-1]) or (close_prev < ema_fast[-2])
+        closed_above = close_now > ema_fast[-1]
+        if not (pulled_back and closed_above):
+            return False
+
+        if np.isnan(rsi[-1]) or np.isnan(rsi[-2]):
+            return False
+        rsi_cross_up = rsi[-2] < self.rsi_long_threshold and rsi[-1] >= self.rsi_long_threshold
+        if not rsi_cross_up:
+            return False
+        return True
+
+    def _signal_short(self) -> bool:
+        if len(self.data.Close) < max(self.ema_slow, self.slope_lookback + 2):
+            return False
+        ema_fast = self._ema_fast
+        ema_mid = self._ema_mid
+        ema_slow = self._ema_slow
+        rsi = self._rsi_series
+        close = self.data.Close
+
+        if np.isnan(ema_mid[-1]) or np.isnan(ema_slow[-1]) or np.isnan(ema_fast[-1]):
+            return False
+        if not (ema_mid[-1] < ema_slow[-1]):
+            return False
+        if len(ema_mid) <= self.slope_lookback:
+            return False
+        slope = ema_mid[-1] - ema_mid[-1 - self.slope_lookback]
+        if slope >= 0:
+            return False
+
+        high_prev = float(self.data.High[-2])
+        close_prev = float(self.data.Close[-2])
+        high_now = float(self.data.High[-1])
+        close_now = float(close[-1])
+        pulled_back = (high_prev >= ema_fast[-2]) or (high_now >= ema_fast[-1]) or (close_prev > ema_fast[-2])
+        closed_below = close_now < ema_fast[-1]
+        if not (pulled_back and closed_below):
+            return False
+
+        if np.isnan(rsi[-1]) or np.isnan(rsi[-2]):
+            return False
+        rsi_cross_down = rsi[-2] > self.rsi_short_threshold and rsi[-1] <= self.rsi_short_threshold
+        if not rsi_cross_down:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < self.cooldown_bars:
+            return
+
+        cur_date = pd.Timestamp(self.data.index[-1]).date()
+        if self._day_count_date != cur_date:
+            self._day_count_date = cur_date
+            self._day_signal_count = 0
+        if self._day_signal_count >= self.max_signals_per_day:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+        price = float(self.data.Close[-1])
+
+        long_sig = self._signal_long()
+        short_sig = self._signal_short() if not long_sig else False
+
+        if not long_sig and not short_sig:
+            return
+
+        if long_sig:
+            sl = price - self.sl_atr_mult * atr_now
+            tp = price + self.tp_atr_mult * atr_now
+            stop_dist = price - sl
+        else:
+            sl = price + self.sl_atr_mult * atr_now
+            tp = price - self.tp_atr_mult * atr_now
+            stop_dist = sl - price
+
+        if stop_dist <= 0:
+            return
+
+        try:
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_per_trade_pct,
+                stop_distance=stop_dist,
+                price=price,
+                symbol=self._symbol,
+            )
+        except TypeError:
+            size = risk.lots_by_risk_pct(self.equity, self.risk_per_trade_pct, stop_dist)
+
+        if size is None or size <= 0:
+            return
+
+        if isinstance(size, float) and size < 1:
+            size = max(min(size, 0.999), 1e-4)
+        else:
+            size = max(int(size), 1)
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        if long_sig:
+            self.buy(size=size, sl=sl, tp=tp)
+        else:
+            self.sell(size=size, sl=sl, tp=tp)
+
+        self._last_entry_bar = bar_i
+        self._day_signal_count += 1
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        time_stop = self.time_stop_bars
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+
+        atr_now = float(self._atr_series[-1]) if len(self._atr_series) else np.nan
+        price = float(self.data.Close[-1])
+        ema_fast_now = float(self._ema_fast[-1])
+
+        for trade in self.trades:
+            entry = trade.entry_price
+            if np.isnan(atr_now) or atr_now <= 0:
+                continue
+            r = self.sl_atr_mult * atr_now
+            if trade.is_long:
+                profit = price - entry
+                if profit >= 1.5 * r:
+                    new_sl = max(ema_fast_now, entry)
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+                elif profit >= 1.0 * r:
+                    if trade.sl is None or entry > trade.sl:
+                        trade.sl = entry
+            else:
+                profit = entry - price
+                if profit >= 1.5 * r:
+                    new_sl = min(ema_fast_now, entry)
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+                elif profit >= 1.0 * r:
+                    if trade.sl is None or entry < trade.sl:
+                        trade.sl = entry
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

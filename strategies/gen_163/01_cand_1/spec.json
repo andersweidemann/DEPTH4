@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Breakout of the Asia range on GER40 M15 leads to a continuation in the London session",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "breakout > 0 && close > high_asia_range"
+    },
+    "short": {
+      "condition": "breakout < 0 && close < low_asia_range"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "fixed",
+      "params": {
+        "distance": 100
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "distance": 500
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

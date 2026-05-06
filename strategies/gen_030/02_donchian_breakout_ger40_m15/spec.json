@@ -1,0 +1,55 @@
+{
+  "id": "gen30_03_donchian_breakout_ger40_m15",
+  "name": "Donchian Breakout GER40 M15",
+  "family": "trend_breakout",
+  "hypothesis": "On GER40 M15, a close beyond the 20-bar Donchian channel during a trending ADX regime continues in the breakout direction long enough to yield 1.5R on average.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14,
+      "min_value": 18
+    }
+  },
+  "entry_rules": {
+    "long": "close > donchian_upper[1] AND close > ema50",
+    "short": "close < donchian_lower[1] AND close < ema50",
+    "notes": "Breakout of previous bar's channel; EMA50 trend alignment; single regime gate (ADX)."
+  },
+  "exit_rules": {
+    "take_profit": "3.0 * ATR(14)",
+    "stop_loss": "2.0 * ATR(14)",
+    "time_stop_bars": 48,
+    "trailing": "after +1.5R move stop to breakeven; then trail at 2*ATR"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent": 1,
+    "cooldown_bars": 2
+  },
+  "diagnostics": {
+    "expect_signal_count_per_year_min": 60
+  }
+}

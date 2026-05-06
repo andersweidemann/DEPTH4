@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Range expansion occurs on XAUUSD M5 when price breaks out of Asia session range with increasing volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 100
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_breakout",
+    "params": {
+      "asia_range_period": 10,
+      "london_breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_range",
+    "params": {}
+  },
+  "sl_rule": {
+    "type": "atr",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 2
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_ratio",
+    "params": {
+      "ratio": 3
+    }
+  },
+  "time_stop": 30,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.015
+    }
+  }
+}

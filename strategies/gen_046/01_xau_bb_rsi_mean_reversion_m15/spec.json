@@ -1,0 +1,126 @@
+{
+  "name": "xau_bb_rsi_mean_reversion_m15",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, when price closes outside the 20/2.0 Bollinger Band with an extreme RSI(7) reading during active London/NY sessions and sufficient BB-width volatility, price reverts to the middle band within 30 bars more often than it continues, yielding PF>=2.0.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "adx_max": 28,
+      "bb_width_percentile_min": 0.3,
+      "bb_width_lookback": 300,
+      "regime": "range_or_low_trend"
+    }
+  },
+  "entry": {
+    "long": {
+      "type": "signal_confluence",
+      "rules": [
+        {
+          "primitive": "bollinger",
+          "params": {
+            "period": 20,
+            "dev": 2.0
+          },
+          "condition": "close < lower_band"
+        },
+        {
+          "primitive": "rsi",
+          "params": {
+            "period": 7
+          },
+          "condition": "rsi < 12"
+        },
+        {
+          "primitive": "bb_width",
+          "params": {
+            "period": 20,
+            "dev": 2.0,
+            "lookback": 300
+          },
+          "condition": "percentile > 0.30"
+        },
+        {
+          "primitive": "session_mask",
+          "params": {
+            "sessions": [
+              "london",
+              "ny"
+            ],
+            "tz": "UTC"
+          },
+          "condition": "in_session"
+        }
+      ]
+    },
+    "short": {
+      "type": "signal_confluence",
+      "rules": [
+        {
+          "primitive": "bollinger",
+          "params": {
+            "period": 20,
+            "dev": 2.0
+          },
+          "condition": "close > upper_band"
+        },
+        {
+          "primitive": "rsi",
+          "params": {
+            "period": 7
+          },
+          "condition": "rsi > 88"
+        },
+        {
+          "primitive": "bb_width",
+          "params": {
+            "period": 20,
+            "dev": 2.0,
+            "lookback": 300
+          },
+          "condition": "percentile > 0.30"
+        },
+        {
+          "primitive": "session_mask",
+          "params": {
+            "sessions": [
+              "london",
+              "ny"
+            ],
+            "tz": "UTC"
+          },
+          "condition": "in_session"
+        }
+      ]
+    }
+  },
+  "exit": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "bb_middle",
+      "params": {
+        "period": 20,
+        "dev": 2.0
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "value": 30
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "cooldown_bars": 3,
+    "max_positions": 1
+  },
+  "notes": "Inspired by mean-reversion-scalper-v3 (MIT-port-allowed card). Adapted from EURUSD M5 to XAUUSD M15 with wider time stop. BB-width percentile gate is critical to avoid dead-range chop."
+}

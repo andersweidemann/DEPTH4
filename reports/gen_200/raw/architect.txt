@@ -1,0 +1,143 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "params": {
+        "tp_type": "opposite_bb",
+        "sl_type": "atr",
+        "sl_params": {
+          "atr_period": 14,
+          "sl_multiplier": 1.5
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    },
+    "time_stop": 30
+  },
+  {
+    "hypothesis": "Breakouts occur on GER40 M15 after Asia-London range expansion",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session_start": "07:00",
+        "session_end": "10:00"
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "atr_period": 14,
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "params": {
+        "tp_type": "fixed_pips",
+        "tp_pips": 500,
+        "sl_type": "fixed_pips",
+        "sl_pips": 100
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    },
+    "time_stop": 60
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversals occur on XAUUSD M15",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "min_width": 10
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [25, 75]
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "params": {
+        "tp_type": "opposite_bb",
+        "sl_type": "atr",
+        "sl_params": {
+          "atr_period": 14,
+          "sl_multiplier": 1.5
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    },
+    "time_stop": 30
+  },
+  {
+    "hypothesis": "Mean reversion occurs on US500 M5 when price closes outside Bollinger Bands with extreme RSI readings and high ATR",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 70
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "params": {
+        "tp_type": "opposite_bb",
+        "sl_type": "atr",
+        "sl_params": {
+          "atr_period": 14,
+          "sl_multiplier": 1.5
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    },
+    "time_stop": 30
+  }
+]

@@ -1,0 +1,80 @@
+{
+  "name": "xauusd_m5_asia_london_breakout",
+  "hypothesis": "XAUUSD Asia-session ranges (00:00-06:00 UTC) that fall within 0.5-2.0x ATR produce tradable London-session breakouts (07:00-10:00 UTC); a body-confirmed close beyond the range yields positive expectancy due to liquidity-driven volatility expansion.",
+  "family": "session_breakout",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "asia_range": {
+      "primitive": "donchian",
+      "lookback_session": "00:00-06:00 UTC"
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "trade_window": "07:00-10:00 UTC"
+    },
+    "breakout_levels": {
+      "primitive": "atr_breakout_levels",
+      "atr_mult": 0.5
+    }
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min_pct": 30,
+        "max_pct": 95
+      },
+      {
+        "asia_range_atr_ratio": {
+          "min": 0.5,
+          "max": 2.0
+        }
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "During 07:00-10:00 UTC, first bar that closes >= asia_high + 0.5*ATR with body >= 1.2*ATR(prev)",
+    "short": "Mirror below asia_low",
+    "one_shot_per_day": true
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "mult": 0.75,
+      "anchor": "entry"
+    },
+    "take_profit": {
+      "type": "atr",
+      "mult": 2.25,
+      "anchor": "entry"
+    },
+    "time_stop_bars": 36,
+    "trailing": {
+      "type": "chandelier",
+      "atr_mult": 2.0,
+      "activate_at_R": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 1.5,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

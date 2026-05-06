@@ -1,0 +1,35 @@
+{
+  "hypothesis": "Price reverts to the mean after extreme displacements from the Donchian channel",
+  "regime_filter": {
+    "type": "donchian_channel_width",
+    "params": {
+      "period": 20,
+      "width_threshold": 1.5
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_channel_rsi",
+    "params": {
+      "donchian_period": 20,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "mean_reversion",
+      "sl": "2_atr",
+      "time_stop": 40
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.015
+    }
+  }
+}

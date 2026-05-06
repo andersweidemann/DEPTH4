@@ -1,0 +1,33 @@
+{
+  "hypothesis": "Breakouts occur during London session with sufficient volatility",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "volatility_filter": "atr_percentile",
+      "atr_period": 14,
+      "percentile": 50
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_stop_loss",
+    "params": {
+      "take_profit": "fixed_pips",
+      "take_profit_pips": 500,
+      "stop_loss": "fixed_pips",
+      "stop_loss_pips": 100,
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Breakout occurs when price closes outside the Donchian channel with high momentum",
+  "regime_filter": {
+    "type": "donchian_channel",
+    "params": {
+      "lookback": 20
+    }
+  },
+  "symbol": "BTCUSD",
+  "timeframe": "M15",
+  "entry_rules": {
+    "long": {
+      "condition": "close > donchian_high && momentum > 50"
+    },
+    "short": {
+      "condition": "close < donchian_low && momentum < -50"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "hours": 4
+      }
+    }
+  },
+  "sizing": {
+    "type": "proportional",
+    "params": {
+      "risk": 0.01
+    }
+  }
+}

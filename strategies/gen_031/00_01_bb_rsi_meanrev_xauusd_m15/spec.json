@@ -1,0 +1,72 @@
+{
+  "name": "01_bb_rsi_meanrev_xauusd_m15",
+  "hypothesis": "On XAUUSD M15, when price closes outside a Bollinger Band with an extreme RSI(7) reading during active London/NY sessions AND BB-width is above its 30th percentile, price reverts to the mean within 30 bars more often than not, yielding PF>=2.0.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "family": "mean_reversion",
+  "signals": [
+    {
+      "type": "bollinger",
+      "period": 20,
+      "dev": 2.0,
+      "source": "close"
+    },
+    {
+      "type": "rsi",
+      "period": 7
+    },
+    {
+      "type": "bb_width",
+      "period": 20,
+      "dev": 2.0,
+      "lookback": 500,
+      "percentile_floor": 30
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "sessions": [
+        "london",
+        "ny"
+      ],
+      "tz": "UTC"
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "require": {
+      "bb_width_percentile_gt": 30,
+      "atr_percentile_between": [
+        20,
+        90
+      ]
+    },
+    "reject_when_all_on": true
+  },
+  "entry_rules": {
+    "long": "close[1] < lower_bb[1] AND close > lower_bb AND rsi(7) < 15 AND session_active AND bb_width_pct > 30",
+    "short": "close[1] > upper_bb[1] AND close < upper_bb AND rsi(7) > 85 AND session_active AND bb_width_pct > 30",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "take_profit": "opposite_bollinger_band",
+    "stop_loss": "1.8 * ATR(14) from entry",
+    "time_stop_bars": 30,
+    "breakeven_at_r": 1.0
+  },
+  "sizing": {
+    "method": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1,
+    "max_spread_points": 40
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

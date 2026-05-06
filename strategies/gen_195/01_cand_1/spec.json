@@ -1,0 +1,43 @@
+{
+  "hypothesis": "Breakout of the Asia range occurs in GER40 on M15, followed by a retest or reversal, with a stop loss at 1.5x ATR and take profit at the opposite side of the range.",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_breakout",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "sl_rule": {
+    "type": "atr_stop",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.5
+    }
+  },
+  "tp_rule": {
+    "type": "range_opposite_side",
+    "params": {
+      "range_atr": 1.0
+    }
+  },
+  "time_stop_rule": {
+    "type": "timeout",
+    "params": {
+      "bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "id": "gen49_cand03_us500_bb_bounce_m15",
+  "name": "US500 BB Rejection Bounce M15",
+  "hypothesis": "On US500 M15 during US cash session, a 3-bar Bollinger Band rejection pattern (prior inside, poke outside, close back inside) with BB width >50th percentile and ADX<25 produces mean-reversion entries with >=2:1 payoff.",
+  "family": "mean_reversion",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "adx_ranging",
+        "primitive": "adx",
+        "period": 14,
+        "max": 25
+      },
+      {
+        "name": "vol_active",
+        "primitive": "bb_width",
+        "period": 20,
+        "dev": 2.0,
+        "lookback": 400,
+        "min_percentile": 50
+      },
+      {
+        "name": "us_session",
+        "primitive": "session_mask",
+        "tz": "UTC",
+        "start": "13:30",
+        "end": "20:00"
+      }
+    ],
+    "combine": "all"
+  },
+  "entries": {
+    "long": {
+      "description": "3-bar lower-BB rejection: bar[-2] close>lowerBB, bar[-1] low<=lowerBB, bar[0] close>lowerBB",
+      "primitives": [
+        {
+          "type": "bollinger",
+          "period": 20,
+          "dev": 2.0
+        },
+        {
+          "type": "rsi",
+          "period": 14
+        }
+      ],
+      "conditions": [
+        "close[2] > bb_lower[2]",
+        "low[1] <= bb_lower[1]",
+        "close > bb_lower",
+        "close > close[1]",
+        "rsi14 < 45",
+        "bars_since_last_entry >= 8"
+      ]
+    },
+    "short": {
+      "description": "Mirror upper BB rejection",
+      "primitives": [
+        {
+          "type": "bollinger",
+          "period": 20,
+          "dev": 2.0
+        },
+        {
+          "type": "rsi",
+          "period": 14
+        }
+      ],
+      "conditions": [
+        "close[2] < bb_upper[2]",
+        "high[1] >= bb_upper[1]",
+        "close < bb_upper",
+        "close < close[1]",
+        "rsi14 > 55",
+        "bars_since_last_entry >= 8"
+      ]
+    }
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 1.5,
+      "anchor": "entry"
+    },
+    "take_profit": {
+      "type": "bb_middle",
+      "period": 20,
+      "min_rr": 2.0,
+      "fallback": {
+        "type": "atr",
+        "period": 14,
+        "mult": 3.0
+      }
+    },
+    "time_stop": {
+      "bars": 20,
+      "action": "market_close"
+    },
+    "trailing": null
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "max_daily_trades": 3
+  },
+  "notes": "Inspired by BB Gold Scalper scout card (3-bar BB rejection) ported to US500 M15. Adds ADX<25 ranging filter, BB-width percentile gate, and session mask to avoid dead overnight hours. Second mean-reversion entry in batch but on different symbol/TF for diversification."
+}

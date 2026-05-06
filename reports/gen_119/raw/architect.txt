@@ -1,0 +1,170 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during the London session after an Asia range expansion",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > 0 && asia_range < 2 * atr(14)"
+      },
+      "short": {
+        "condition": "breakout < 0 && asia_range < 2 * atr(14)"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversals occur during active sessions",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "active"
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > lower_bb && rsi(7) < 30"
+      },
+      "short": {
+        "condition": "close < upper_bb && rsi(7) > 70"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 2
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 40
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR-based volatility filters can identify profitable mean reversion trades",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "percentile": 50,
+        "lookback": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && atr(14) > 20"
+      },
+      "short": {
+        "condition": "close > upper_bb && atr(14) > 20"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 150
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 300
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.05
+      }
+    }
+  }
+]

@@ -1,0 +1,73 @@
+{
+  "name": "xauusd_bb_rsi_mean_reversion_m15",
+  "hypothesis": "On XAUUSD M15, simultaneous BB(20,2.0) band excursion and RSI(7) extreme reading mark short-term liquidity flushes that mean-revert to the middle band, especially when BB width is elevated but not in a trend regime.",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "pctile_period": 200
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "trade_start": "07:00",
+        "trade_end": "20:00",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "adx_max": 22,
+      "bb_width_pctile_min": 0.3,
+      "bb_width_pctile_max": 0.9
+    }
+  },
+  "entry_rules": {
+    "long": "Prior bar close < lower BB AND RSI(7) < 10; current bar closes back above lower BB; regime_filter passes; session active.",
+    "short": "Prior bar close > upper BB AND RSI(7) > 90; current bar closes back below upper BB."
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "take_profit": "middle BB (SMA20) primary; scale 50% at midline, remainder targets opposite band",
+    "trailing": "none before midline; after midline tag, trail by 1.0*ATR(14)",
+    "time_stop": "close after 30 M15 bars (~7.5h)"
+  },
+  "sizing": {
+    "model": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "pyramiding": 0,
+    "cooldown_bars": 3
+  },
+  "falsifiable_conditions": "Reject if any of (PF<2.0, Sharpe<1.5, MaxDD>15%, trades<200), or if performance in high-ADX regime exceeds low-ADX regime (thesis would be inverted).",
+  "notes": "Ported idea from MIT-licensed mean-reversion-mql5; adapted to XAUUSD M15 with regime gate."
+}

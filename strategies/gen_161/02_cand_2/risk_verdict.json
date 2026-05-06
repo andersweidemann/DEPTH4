@@ -1,0 +1,8 @@
+{
+  "pass": false,
+  "failures": [
+    "no_sl_price_set",
+    "no_lots_by_risk_pct"
+  ],
+  "warnings": []
+}

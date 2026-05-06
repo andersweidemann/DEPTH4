@@ -1,0 +1,82 @@
+{
+  "name": "ger40_m15_donchian_trend_breakout",
+  "hypothesis": "GER40 M15 exhibits persistent intraday trend continuation after 20-bar Donchian breaks during European cash session, when ADX>22 confirms directional regime; ATR-normalized stops and trailing exits capture the expansion.",
+  "family": "trend_breakout",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "donchian": {
+      "primitive": "donchian",
+      "period": 20
+    },
+    "ema_fast": {
+      "primitive": "ema",
+      "period": 20
+    },
+    "ema_slow": {
+      "primitive": "ema",
+      "period": 50
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "trade_window": "08:00-16:30 UTC"
+    }
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 22
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min_pct": 35
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "Close > donchian_high(20) AND ema20 > ema50",
+    "short": "Close < donchian_low(20) AND ema20 < ema50",
+    "one_entry_per_signal": true
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "mult": 1.5,
+      "anchor": "entry"
+    },
+    "take_profit": {
+      "type": "atr",
+      "mult": 3.0,
+      "anchor": "entry"
+    },
+    "time_stop_bars": 40,
+    "trailing": {
+      "type": "atr_chandelier",
+      "atr_mult": 2.5,
+      "activate_at_R": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 1.5,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

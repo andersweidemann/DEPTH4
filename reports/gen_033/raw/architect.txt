@@ -1,0 +1,178 @@
+[
+  {
+    "spec_id": "33_01_bb_rsi_mean_reversion_xauusd_m15",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "hypothesis": "On XAUUSD M15, when price closes outside a Bollinger Band with an extreme short-period RSI reading during active London/NY sessions and sufficient BB-width, price reverts toward the middle band within 30 bars, yielding PF>=2.0 and Sharpe>=1.5 over 200+ trades.",
+    "regime_filter": {
+      "type": "volatility_and_session",
+      "rules": [
+        {"primitive": "bb_width", "params": {"period": 20, "stddev": 1.75}, "condition": "percentile_rank_over_500 > 30"},
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 500}, "condition": "between(20, 95)"},
+        {"primitive": "session_mask", "params": {"sessions": ["london", "ny"], "hours_utc": [7, 20]}, "condition": "true"}
+      ]
+    },
+    "entry_rules": {
+      "long": "close < lower_bb(20,1.75) AND rsi(7) < 10 AND bb_width_pctile > 30 AND session_active",
+      "short": "close > upper_bb(20,1.75) AND rsi(7) > 90 AND bb_width_pctile > 30 AND session_active",
+      "cooldown_bars": 3,
+      "max_spread_points": 40
+    },
+    "exit_rules": {
+      "take_profit": "opposite_bollinger_band(20,1.75)",
+      "stop_loss": "1.5 * atr(14) from entry",
+      "time_stop_bars": 30,
+      "breakeven_trigger": "1.0 * atr(14) in favor -> move SL to entry"
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1,
+      "max_daily_loss_pct": 3.0
+    },
+    "params_to_optimize": {
+      "bb_period": [18, 20, 24],
+      "bb_stddev": [1.5, 1.75, 2.0],
+      "rsi_period": [5, 7, 9],
+      "rsi_long_threshold": [5, 10, 15],
+      "rsi_short_threshold": [85, 90, 95],
+      "atr_sl_mult": [1.25, 1.5, 2.0],
+      "time_stop_bars": [20, 30, 40],
+      "bb_width_pctile_min": [20, 30, 40]
+    },
+    "notes": "Inspired by BB+RSI mean-reversion cards; ported to XAUUSD M15. Session mask avoids thin Asia hours. Time stop is critical to prevent stuck trades in drift regimes."
+  },
+  {
+    "spec_id": "33_02_bb_bounce_3bar_xauusd_m15",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "hypothesis": "On XAUUSD M15, a 3-bar Bollinger Band rejection pattern (prior bar inside, middle bar pierces band, current bar closes back inside) signals exhaustion and reverts with a favorable asymmetric R:R of ~2.5:1, producing PF>=2.0 over 200+ trades when ADX is low.",
+    "regime_filter": {
+      "type": "low_trend_regime",
+      "rules": [
+        {"primitive": "adx", "params": {"period": 14}, "condition": "< 25"},
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 500}, "condition": "> 15"},
+        {"primitive": "session_mask", "params": {"hours_utc": [6, 21]}, "condition": "true"}
+      ]
+    },
+    "entry_rules": {
+      "long": "close[2] > lower_bb[2] AND low[1] <= lower_bb[1] AND close[0] > lower_bb[0] AND adx(14) < 25",
+      "short": "close[2] < upper_bb[2] AND high[1] >= upper_bb[1] AND close[0] < upper_bb[0] AND adx(14) < 25",
+      "cooldown_bars": 4,
+      "max_spread_points": 40
+    },
+    "exit_rules": {
+      "take_profit": "2.5 * atr(14) (approx middle-to-opposite-band)",
+      "stop_loss": "1.0 * atr(14) below pattern low (long) / above pattern high (short)",
+      "time_stop_bars": 24,
+      "early_exit": "close on touch of opposite BB"
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1,
+      "max_daily_loss_pct": 3.0
+    },
+    "params_to_optimize": {
+      "bb_period": [18, 20, 24],
+      "bb_stddev": [2.0, 2.25, 2.5],
+      "atr_tp_mult": [2.0, 2.5, 3.0],
+      "atr_sl_mult": [0.8, 1.0, 1.25],
+      "adx_max": [20, 25, 30],
+      "time_stop_bars": [16, 24, 32]
+    },
+    "notes": "Inspired by BB Gold Scalper. Uses ATR-scaled SL/TP instead of fixed pips to avoid the point-size mismatch failure seen in gen 32."
+  },
+  {
+    "spec_id": "33_03_donchian_atr_breakout_ger40_m15",
+    "family": "trend_breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "hypothesis": "On GER40 M15 during European cash session, a close beyond the 20-bar Donchian channel by >=0.5*ATR with ADX rising above 20 captures directional momentum, delivering PF>=2.0 with trailing ATR stop over 200+ trades.",
+    "regime_filter": {
+      "type": "trend_regime",
+      "rules": [
+        {"primitive": "adx", "params": {"period": 14}, "condition": "> 20 AND rising_over(3)"},
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 500}, "condition": "between(30, 98)"},
+        {"primitive": "session_mask", "params": {"hours_utc": [7, 16]}, "condition": "true"}
+      ]
+    },
+    "entry_rules": {
+      "long": "close > donchian_high(20)[1] AND (close - donchian_high(20)[1]) >= 0.5 * atr(14) AND adx(14) > 20",
+      "short": "close < donchian_low(20)[1] AND (donchian_low(20)[1] - close) >= 0.5 * atr(14) AND adx(14) > 20",
+      "cooldown_bars": 6,
+      "max_spread_points": 30,
+      "one_entry_per_bar": true
+    },
+    "exit_rules": {
+      "take_profit": "3.0 * atr(14) from entry",
+      "stop_loss": "1.5 * atr(14) from entry",
+      "trailing_stop": "chandelier: highest_high(10) - 2.5*atr(14) (long) / mirror short, activated after +1*ATR",
+      "time_stop_bars": 48
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1,
+      "max_daily_loss_pct": 3.0
+    },
+    "params_to_optimize": {
+      "donchian_period": [15, 20, 30],
+      "breakout_atr_buffer": [0.3, 0.5, 0.75],
+      "atr_sl_mult": [1.25, 1.5, 2.0],
+      "atr_tp_mult": [2.5, 3.0, 4.0],
+      "adx_min": [18, 20, 25],
+      "trail_atr_mult": [2.0, 2.5, 3.0],
+      "time_stop_bars": [32, 48, 64]
+    },
+    "notes": "Replaces the failed Asia-London XAUUSD session-breakout concept with a simpler, symbol-agnostic Donchian+ATR framework on GER40 European hours. No brittle tz-dependent session range computation."
+  },
+  {
+    "spec_id": "33_04_ema_pullback_trend_us500_m5",
+    "family": "trend_pullback",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "hypothesis": "On US500 M5, during NY cash session with EMA(50) slope positive and ADX>18, pullbacks to EMA(20) that hold above EMA(50) and close bullish provide high-probability continuation entries with PF>=2.0 and Sharpe>=1.5 over 200+ trades.",
+    "regime_filter": {
+      "type": "trend_regime",
+      "rules": [
+        {"primitive": "adx", "params": {"period": 14}, "condition": "> 18"},
+        {"primitive": "ema", "params": {"period": 50}, "condition": "slope_over(10) has_consistent_sign"},
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 500}, "condition": "between(25, 95)"},
+        {"primitive": "session_mask", "params": {"hours_utc": [13, 20]}, "condition": "true"}
+      ]
+    },
+    "entry_rules": {
+      "long": "ema(20) > ema(50) AND ema(50) rising AND low <= ema(20) AND close > ema(20) AND close > open AND adx(14) > 18",
+      "short": "ema(20) < ema(50) AND ema(50) falling AND high >= ema(20) AND close < ema(20) AND close < open AND adx(14) > 18",
+      "cooldown_bars": 5,
+      "max_spread_points": 15,
+      "one_entry_per_bar": true
+    },
+    "exit_rules": {
+      "take_profit": "2.0 * atr(14) from entry",
+      "stop_loss": "1.2 * atr(14) below signal-bar low (long) / above high (short)",
+      "breakeven_trigger": "+1.0 * atr(14) -> move SL to entry",
+      "trailing_stop": "after BE, trail at 1.5*atr(14)",
+      "time_stop_bars": 36
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "max_daily_loss_pct": 2.5
+    },
+    "params_to_optimize": {
+      "ema_fast": [13, 20, 21],
+      "ema_slow": [40, 50, 62],
+      "adx_min": [15, 18, 22],
+      "atr_sl_mult": [1.0, 1.2, 1.5],
+      "atr_tp_mult": [1.75, 2.0, 2.5],
+      "trail_atr_mult": [1.25, 1.5, 2.0],
+      "time_stop_bars": [24, 36, 48]
+    },
+    "notes": "Diversifies family vs the two mean-reversion specs. US500 NY session only to ensure liquidity. Tight spread cap; lower risk per trade given M5 frequency."
+  }
+]

@@ -1,0 +1,67 @@
+{
+  "name": "xauusd_m5_bb_rsi_meanrev_session",
+  "hypothesis": "On XAUUSD M5 during active London+NY sessions, price closes outside BB(20,2.0) with RSI(7) extreme revert to the mean within 30 bars, producing positive expectancy when BB width is above its 40th percentile (avoids dead chop) and ATR regime is moderate (not crisis).",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "family": "mean_reversion",
+  "signals": {
+    "bollinger": {
+      "period": 20,
+      "dev": 2.0,
+      "source": "close"
+    },
+    "rsi": {
+      "period": 7,
+      "long_threshold": 10,
+      "short_threshold": 90
+    },
+    "bb_width": {
+      "lookback": 500,
+      "min_percentile": 40
+    },
+    "atr": {
+      "period": 14
+    },
+    "session_mask": {
+      "sessions": [
+        "london",
+        "newyork"
+      ],
+      "utc_hours": [
+        7,
+        20
+      ]
+    }
+  },
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi(7) < 10 AND bb_width_pct > 40 AND session_active AND atr_pct_rank < 90",
+    "short": "close > upper_bb AND rsi(7) > 90 AND bb_width_pct > 40 AND session_active AND atr_pct_rank < 90",
+    "cooldown_bars": 3
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "rule": "atr_percentile_rank(14, 500) between 20 and 90",
+    "classify": "exclude_dead_range_and_crisis"
+  },
+  "exit_rules": {
+    "sl": "1.5 * ATR(14) from entry",
+    "tp": "opposite Bollinger Band (middle BB as partial at 1R optional)",
+    "time_stop_bars": 30,
+    "trailing": "none"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  }
+}

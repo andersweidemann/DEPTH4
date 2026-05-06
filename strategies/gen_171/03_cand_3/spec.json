@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Bollinger Band touch on US500 M15 can be traded with a momentum-based approach",
+  "regime_filter": {
+    "type": "bb_touch",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb && momentum(7) > 0"
+    },
+    "short": {
+      "condition": "close < upper_bb && momentum(7) < 0"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "fixed",
+      "params": {
+        "pips": 20
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

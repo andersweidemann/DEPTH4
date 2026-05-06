@@ -1,0 +1,44 @@
+{
+  "hypothesis": "The ATR indicator can be used to set dynamic stop losses",
+  "regime_filter": {
+    "type": "atr",
+    "params": {
+      "period": 14,
+      "threshold": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > sma(20)"
+    },
+    "short": {
+      "condition": "close < sma(20)"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 40
+      }
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 2
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 4
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 1.5
+    }
+  }
+}

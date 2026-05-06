@@ -1,0 +1,221 @@
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._ema50 = self.I(signals.ema, self.data.Close, 50)
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        idx = pd.DatetimeIndex(idx)
+
+        asia_mask = np.asarray(
+            signals.session_mask(idx, [{"start": "00:00", "end": "06:00"}]),
+            dtype=bool,
+        )
+        london_mask = np.asarray(
+            signals.session_mask(idx, [{"start": "07:00", "end": "11:00"}]),
+            dtype=bool,
+        )
+        self._asia_mask = asia_mask
+        self._london_mask = london_mask
+
+        high = np.asarray(self.data.High)
+        low = np.asarray(self.data.Low)
+
+        n = len(idx)
+        asia_high = np.full(n, np.nan)
+        asia_low = np.full(n, np.nan)
+
+        dates = idx.normalize()
+        unique_dates = pd.unique(dates)
+        for d in unique_dates:
+            day_sel = (dates == d)
+            asia_sel = day_sel & asia_mask
+            if not asia_sel.any():
+                continue
+            ah = np.nanmax(high[asia_sel])
+            al = np.nanmin(low[asia_sel])
+            asia_high[day_sel] = ah
+            asia_low[day_sel] = al
+
+        self._asia_high_full = asia_high
+        self._asia_low_full = asia_low
+        self._dates_full = dates
+
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atr_pct_series = self.I(regime.atr_percentile, self.data, 14, 200)
+
+        self._last_entry_date = None
+        self._london_open_bar = {}
+
+    def _regime_ok(self) -> bool:
+        if len(self._atr_pct_series) == 0:
+            return False
+        ap = float(self._atr_pct_series[-1])
+        ad = float(self._adx_series[-1])
+        if np.isnan(ap) or np.isnan(ad):
+            return False
+        return ap >= 30.0 and ad >= 15.0
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+
+        i = len(self.data) - 1
+        if i < 2:
+            return
+
+        if not self._london_mask[i]:
+            return
+
+        cur_date = self._dates_full[i]
+
+        if self._last_entry_date is not None and cur_date == self._last_entry_date:
+            return
+
+        if cur_date not in self._london_open_bar:
+            prev_london = self._london_mask[i - 1] if i > 0 else False
+            if not prev_london:
+                self._london_open_bar[cur_date] = i
+        london_open_i = self._london_open_bar.get(cur_date)
+        if london_open_i is None:
+            return
+        if i - london_open_i > 12:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        ah = self._asia_high_full[i]
+        al = self._asia_low_full[i]
+        if np.isnan(ah) or np.isnan(al):
+            return
+
+        asia_range = ah - al
+        ratio = asia_range / atr_now
+        if ratio < 0.4 or ratio > 1.6:
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        ema = float(self._ema50[-1])
+        if np.isnan(ema):
+            return
+
+        body = close - open_
+
+        long_cond = (
+            close > ah + 0.4 * atr_now
+            and body >= 1.1 * atr_now
+            and close > ema
+        )
+        short_cond = (
+            close < al - 0.4 * atr_now
+            and -body >= 1.1 * atr_now
+            and close < ema
+        )
+
+        if not (long_cond or short_cond):
+            return
+
+        sl_dist = 1.1 * atr_now
+        tp_dist = 2.2 * atr_now
+
+        if long_cond:
+            sl = close - sl_dist
+            tp = close + tp_dist
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=0.5,
+                sl_distance=sl_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+                self._last_entry_date = cur_date
+            except Exception:
+                pass
+        else:
+            sl = close + sl_dist
+            tp = close - tp_dist
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=0.5,
+                sl_distance=sl_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+                self._last_entry_date = cur_date
+            except Exception:
+                pass
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        price = float(self.data.Close[-1])
+
+        for trade in self.trades:
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= 18:
+                trade.close()
+                continue
+
+            if np.isnan(atr_now) or atr_now <= 0:
+                continue
+
+            entry = trade.entry_price
+            if trade.is_long:
+                r = (price - entry) / (1.1 * atr_now) if atr_now > 0 else 0
+                if r >= 1.0:
+                    be = entry
+                    if trade.sl is None or trade.sl < be:
+                        trade.sl = be
+                    chand = price - 2.5 * atr_now
+                    if trade.sl is None or chand > trade.sl:
+                        trade.sl = chand
+            else:
+                r = (entry - price) / (1.1 * atr_now) if atr_now > 0 else 0
+                if r >= 1.0:
+                    be = entry
+                    if trade.sl is None or trade.sl > be:
+                        trade.sl = be
+                    chand = price + 2.5 * atr_now
+                    if trade.sl is None or chand < trade.sl:
+                        trade.sl = chand
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

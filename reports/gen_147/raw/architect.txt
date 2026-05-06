@@ -1,0 +1,194 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 30
+      }
+    },
+    "sizing": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts from the Asia range during the London session can be profitable",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_start": 0,
+        "asia_range_end": 6,
+        "breakout_threshold": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "stop_loss": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 60
+      }
+    },
+    "sizing": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside the Bollinger Bands with extreme RSI readings during the NY session",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 14,
+        "end_hour": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "middle_bb",
+      "params": {}
+    },
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 30
+      }
+    },
+    "sizing": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "The 3-bar Bollinger Band rejection pattern can be used to identify mean reversion opportunities",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 50,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rejection",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "stop_loss": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 60
+      }
+    },
+    "sizing": {
+      "type": "fixed",
+      "params": {
+        "lots": 0.1
+      }
+    }
+  }
+]
+```

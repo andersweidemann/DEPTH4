@@ -1,0 +1,31 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_donchian_breakout_trend_xau_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "02_bb_squeeze_expansion_ger40_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nAll candidates across all symbol/timeframe combos produced **zero trades** during the IS window (2020-01-01 to 2024-06-30). This is not a performance issue \u2014 it is a signal generation / execution pipeline failure.\n\n### Likely root causes (investigate before any parameter tuning)\n1. **Data feed not loaded**: backtester may not be receiving bars for XAUUSD/GER40 at M5/M15 (symbol naming mismatch: `XAUUSD` vs `XAU/USD`, `GER40` vs `DE40`/`GER40.cash`).\n2. **Indicator warm-up never satisfied**: Donchian length or BB lookback may exceed available history per session, so `ready` flag never flips true.\n3. **Entry gating too strict**: compound filters (e.g., ATR regime + session window + ADX threshold) AND'd together to an empty set.\n4. **Order sizing / margin check failing silently**: lots computed as 0 due to risk% on zero equity or missing contract spec.\n5. **Signal comparison bug**: e.g., using `>=` on floats with identical values, or comparing current bar to itself.\n\n### Recommendation\n**Do NOT iterate on parameters.** Pivot to pipeline debugging first. Add instrumentation: bar count received, indicator-ready bar, signal-true count, order-attempt count, order-reject reason. Only after a candidate produces >0 trades should fitness ranking resume.\n\nIf pipeline is confirmed healthy and these strategies still produce nothing, both families (Donchian breakout, BB squeeze expansion) should be deprioritized on M5/M15 for XAUUSD/GER40 \u2014 but that conclusion is premature given zero-trade output.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not mark any strategy family dead yet \u2014 zero-trade output indicates infrastructure failure, not strategy failure. Re-run after fixing data/signal pipeline before drawing family-level conclusions."
+  ]
+}

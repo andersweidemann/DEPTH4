@@ -1,0 +1,60 @@
+{
+  "name": "bb_rsi_mean_revert_us500_m15",
+  "family": "mean_reversion",
+  "hypothesis": "US500 M15 during cash session exhibits strong mean reversion when price closes outside BB(20,2.0) with RSI(7) extreme AND BB width is above its 30th percentile (avoids dead chop). Reversion to middle band completes within ~20 bars.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "primitives": [
+      "bb_width",
+      "adx",
+      "session_mask"
+    ],
+    "rules": [
+      {
+        "bb_width_percentile_200": {
+          "min": 0.3,
+          "max": 0.95
+        }
+      },
+      {
+        "adx_14": {
+          "max": 25
+        }
+      },
+      {
+        "session_utc": {
+          "entry_window": "13:30-20:00"
+        }
+      }
+    ]
+  },
+  "entry": {
+    "primitives": [
+      "bollinger",
+      "rsi",
+      "atr"
+    ],
+    "rules": [
+      "BB(20, 2.0) on close; RSI(7)",
+      "LONG: close < lower_bb AND RSI(7) < 12 AND prior bar also below lower_bb",
+      "SHORT: close > upper_bb AND RSI(7) > 88 AND prior bar also above upper_bb",
+      "3-bar cooldown between entries"
+    ]
+  },
+  "exit": {
+    "sl": "1.75 * ATR14 from entry",
+    "tp": "middle BB (SMA20) OR opposite band, whichever is reached first; minimum 1.0R",
+    "time_stop": "close after 24 M15 bars (~6h)",
+    "early_exit": "close if RSI crosses 50 against position after 4 bars"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  }
+}

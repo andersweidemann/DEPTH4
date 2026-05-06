@@ -1,0 +1,67 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import donchian
+from agents.risk import lots_by_risk_pct, DailyKillState, daily_kill_ok, spread_ok
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "BTCUSD"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.donchian_high = self.I(donchian, self.data, self.spec["regime_filter"]["params"]["period"])
+        self.donchian_low = self.I(donchian, self.data, self.spec["regime_filter"]["params"]["period"], low=True)
+
+    def _regime_ok(self) -> bool:
+        return True
+
+    def _filters_ok(self) -> bool:
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0)):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        entry_rules = self.spec["entry_rules"]
+        if self.data.Close[-1] > self.donchian_high[-1] and entry_rules["long"]["condition"] == "close > donchian_high":
+            self.position.open_long()
+            self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["sl"]["params"]["distance"]
+            self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["tp"]["params"]["distance"]
+            lots = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["risk_percent"], self.equity, self.data.Close[-1], self.sl_price)
+            self.position.size = lots
+        elif self.data.Close[-1] < self.donchian_low[-1] and entry_rules["short"]["condition"] == "close < donchian_low":
+            self.position.open_short()
+            self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["sl"]["params"]["distance"]
+            self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["tp"]["params"]["distance"]
+            lots = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["risk_percent"], self.equity, self.data.Close[-1], self.sl_price)
+            self.position.size = lots
+
+    def _manage_open(self) -> None:
+        exit_cfg = self.spec.get("exit_rules", {})
+        time_stop = exit_cfg.get("time_stop", {}).get("count")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop * 60:  # convert hours to minutes
+                self.position.close()
+                return
+        if self.position.is_long and self.data.Close[-1] >= self.tp_price:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] <= self.tp_price:
+            self.position.close()

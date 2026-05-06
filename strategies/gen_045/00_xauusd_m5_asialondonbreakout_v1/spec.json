@@ -1,0 +1,65 @@
+{
+  "name": "XAUUSD_M5_AsiaLondonBreakout_v1",
+  "family": "breakout",
+  "hypothesis": "On XAUUSD M5, the Asia-session range (00:00-06:00 UTC) acts as accumulation; a London-session break (07:00-10:00 UTC) of that range with ATR-normalized displacement continues directionally for at least 1.5R before mean-reverting.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 72,
+        "source": "asia_session"
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_mult": 0.5
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "accumulation": "00:00-06:00",
+        "trade_window": "07:00-10:00",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": {
+      "adx_min": 18,
+      "atr_percentile_min": 30,
+      "atr_percentile_max": 95,
+      "range_atr_min": 0.5,
+      "range_atr_max": 2.0
+    }
+  },
+  "entry_rules": {
+    "long": "Price closes >= AsiaHigh + 0.5*ATR(14) within first 9 bars of London window AND breakout candle body >= 1.2*ATR(14)",
+    "short": "Price closes <= AsiaLow - 0.5*ATR(14) within first 9 bars of London window AND breakout candle body >= 1.2*ATR(14)",
+    "only_first_breakout_per_day": true,
+    "cooldown_bars": 6
+  },
+  "exit_rules": {
+    "sl": "1.2 * ATR(14) from entry",
+    "tp": "2.4 * ATR(14) from entry (1:2 R)",
+    "time_stop_bars": 36,
+    "breakeven_trigger_R": 1.0,
+    "trailing": "ATR(14) * 1.5 chandelier after BE"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "notes": "Inspired by LVC EA scout card (inspiration only)."
+}

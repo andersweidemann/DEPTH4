@@ -1,0 +1,72 @@
+{
+  "name": "03_cand_1_asia_london_breakout_gold",
+  "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) produces directional range expansion when the Asia session (00:00-06:00 UTC) builds a moderate ATR-normalized range; trading the first close beyond that range captures the expansion move with positive expectancy.",
+  "family": "session_breakout",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "asia_session": {
+      "primitive": "session_mask",
+      "start_utc": "00:00",
+      "end_utc": "06:00",
+      "role": "range_build"
+    },
+    "london_session": {
+      "primitive": "session_mask",
+      "start_utc": "07:00",
+      "end_utc": "10:00",
+      "role": "trade_window"
+    },
+    "asia_range": {
+      "primitive": "donchian",
+      "period_mode": "session",
+      "session": "asia_session"
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "breakout_levels": {
+      "primitive": "atr_breakout_levels",
+      "base": "asia_range",
+      "buffer_atr_mult": 0.25
+    }
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "require": [
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min": 30,
+        "max": 95
+      },
+      {
+        "asia_range_atr_min": 0.5,
+        "asia_range_atr_max": 2.0
+      }
+    ],
+    "session": "london_session"
+  },
+  "entry_rules": {
+    "long": "During london_session, first bar whose close > asia_range_high + 0.25*ATR AND candle body >= 1.0*ATR.",
+    "short": "During london_session, first bar whose close < asia_range_low - 0.25*ATR AND candle body >= 1.0*ATR.",
+    "max_signals_per_day": 1
+  },
+  "exit_rules": {
+    "stop_loss": "0.75 * ATR(14) from entry, placed on opposite side of broken level",
+    "take_profit": "2.25 * ATR(14) from entry (3R)",
+    "time_stop": "Close any open trade at 12:00 UTC same day",
+    "breakeven": "Move SL to entry after +1.0 ATR in favor"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_positions": 1
+  },
+  "diversity_tag": "session_breakout_trend"
+}

@@ -1,0 +1,63 @@
+{
+  "name": "us500_ema_pullback_trend_m15",
+  "hypothesis": "On US500 M15 during the US cash session, pullbacks to EMA20 within an established EMA20>EMA50>EMA200 uptrend (and mirror downtrend) with RSI re-cross offer high-expectancy trend-continuation entries.",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "signals": {
+    "ema_fast": {
+      "primitive": "ema",
+      "period": 20
+    },
+    "ema_mid": {
+      "primitive": "ema",
+      "period": 50
+    },
+    "ema_slow": {
+      "primitive": "ema",
+      "period": 200
+    },
+    "rsi": {
+      "primitive": "rsi",
+      "period": 14
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "window_utc": "13:30-20:00"
+    }
+  },
+  "entry_rules": {
+    "long": "EMA20>EMA50>EMA200 AND low[1] <= EMA20 AND close > EMA20 AND RSI(14) crosses up through 50 AND close > high[1]",
+    "short": "EMA20<EMA50<EMA200 AND high[1] >= EMA20 AND close < EMA20 AND RSI(14) crosses down through 50 AND close < low[1]"
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "require": {
+      "adx_min": 18,
+      "adx_period": 14,
+      "atr_percentile_min": 30,
+      "atr_percentile_max": 90,
+      "atr_percentile_lookback": 250
+    },
+    "rationale": "Need persistent directional regime with live volatility; exclude both dead tape and blow-off volatility."
+  },
+  "exits": {
+    "stop_loss": "1.2*ATR(14) below swing low (long) / above swing high (short)",
+    "take_profit": "2.5*ATR(14); scale 50% at 1.5R, trail remainder at 1.5*ATR",
+    "time_stop_bars": 28,
+    "breakeven_trigger": "1.0R in favor"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.4,
+    "max_concurrent_positions": 1
+  },
+  "daily_limits": {
+    "max_trades_per_day": 3,
+    "max_daily_loss_pct": 2.0
+  }
+}

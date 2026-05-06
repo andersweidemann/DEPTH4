@@ -1,0 +1,82 @@
+{
+  "name": "03_ger40_m15_donchian_trend_v1",
+  "hypothesis": "On GER40 M15, a 20-bar Donchian breakout filtered by ADX>=22 and EMA50>EMA200 trend alignment captures sustained intraday-to-multiday trends, producing PF>=2.0 with acceptable drawdown.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "family": "trend_breakout",
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "classify"
+    ],
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "op": ">=",
+        "value": 22
+      },
+      {
+        "indicator": "ema_trend",
+        "fast": 50,
+        "slow": 200,
+        "op": "aligned_with_signal"
+      }
+    ],
+    "description": "Only take breakouts in the direction of the higher-period EMA alignment and only when ADX confirms trend strength."
+  },
+  "signals": {
+    "primitives": [
+      "donchian",
+      "ema",
+      "atr",
+      "session_mask"
+    ],
+    "entry_long": "Close > Donchian_Upper(20)[1] AND EMA(50) > EMA(200) AND ADX(14) >= 22",
+    "entry_short": "Close < Donchian_Lower(20)[1] AND EMA(50) < EMA(200) AND ADX(14) >= 22",
+    "session_window_entry": "07:00-20:00 UTC",
+    "cooldown_bars": 8
+  },
+  "exits": {
+    "stop_loss": "2.0 * ATR(14) from entry",
+    "take_profit": "4.0 * ATR(14) (RR 2.0)",
+    "time_stop_bars": 96,
+    "breakeven_trigger": "Move SL to entry after +1.5*ATR favorable",
+    "trailing": "Chandelier 3.0*ATR once +2.0*ATR in profit"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "min_stop_points": 40
+  },
+  "parameter_grid": {
+    "donchian_period": [
+      15,
+      20,
+      30
+    ],
+    "adx_min": [
+      20,
+      22,
+      25
+    ],
+    "sl_atr_mult": [
+      1.5,
+      2.0,
+      2.5
+    ],
+    "tp_atr_mult": [
+      3.0,
+      4.0,
+      5.0
+    ]
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  },
+  "diversity_tag": "trend_breakout_index"
+}

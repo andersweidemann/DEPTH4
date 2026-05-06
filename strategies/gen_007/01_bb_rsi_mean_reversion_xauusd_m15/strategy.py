@@ -1,0 +1,195 @@
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    _spec: Dict[str, Any] = {
+        "id": "gen7_bb_rsi_meanrev_xau_m15",
+        "symbol": "XAUUSD",
+        "timeframe": "M15",
+        "risk": {"risk_per_trade_pct": 0.5, "daily_dd_kill_pct": 3.0},
+        "exit": {"time_stop_bars": 24},
+        "filters": {"session_utc": [("07:00", "20:00")]},
+    }
+
+    bb_period = 20
+    bb_std = 2.0
+    rsi_period = 7
+    atr_period = 14
+    adx_period = 14
+    bbw_lookback = 200
+    bbw_min_pct = 30.0
+    adx_max = 28.0
+    rsi_long_thr = 12.0
+    rsi_short_thr = 88.0
+    cooldown_bars = 4
+    atr_sl_mult = 1.5
+    fallback_rr = 1.5
+    time_stop_bars = 24
+    risk_pct = 0.5
+
+    def init(self):
+        super().init()
+
+        def _bb_mid(data, n, k):
+            u, m, l = signals.bollinger(data, n, k)
+            return m
+
+        def _bb_up(data, n, k):
+            u, m, l = signals.bollinger(data, n, k)
+            return u
+
+        def _bb_lo(data, n, k):
+            u, m, l = signals.bollinger(data, n, k)
+            return l
+
+        self._bb_mid = self.I(_bb_mid, self.data, self.bb_period, self.bb_std)
+        self._bb_up = self.I(_bb_up, self.data, self.bb_period, self.bb_std)
+        self._bb_lo = self.I(_bb_lo, self.data, self.bb_period, self.bb_std)
+        self._bbw = self.I(signals.bb_width, self.data, self.bb_period, self.bb_std)
+        self._rsi = self.I(signals.rsi, self.data, self.rsi_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+
+        self._last_exit_bar = -10_000
+
+    def _regime_ok(self) -> bool:
+        i = len(self.data) - 1
+        if i < max(self.bbw_lookback, self.bb_period, self.adx_period) + 2:
+            return False
+
+        bbw_now = float(self._bbw[-1])
+        if np.isnan(bbw_now):
+            return False
+        start = max(0, i - self.bbw_lookback + 1)
+        window = np.asarray(self._bbw)[start:i + 1]
+        window = window[~np.isnan(window)]
+        if len(window) < 20:
+            return False
+        pct = (window < bbw_now).sum() / len(window) * 100.0
+        if pct < self.bbw_min_pct:
+            return False
+
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val > self.adx_max:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        i = len(self.data) - 1
+        if i < 2:
+            return
+        if (i - self._last_exit_bar) < self.cooldown_bars:
+            return
+
+        close = float(self.data.Close[-1])
+        prev_close = float(self.data.Close[-2])
+        bb_up = float(self._bb_up[-1])
+        bb_lo = float(self._bb_lo[-1])
+        bb_mid = float(self._bb_mid[-1])
+        prev_bb_up = float(self._bb_up[-2])
+        prev_bb_lo = float(self._bb_lo[-2])
+        rsi_val = float(self._rsi[-1])
+        atr_val = float(self._atr_series[-1])
+
+        for v in (close, prev_close, bb_up, bb_lo, bb_mid,
+                  prev_bb_up, prev_bb_lo, rsi_val, atr_val):
+            if np.isnan(v):
+                return
+        if atr_val <= 0:
+            return
+
+        equity = float(self.equity)
+        risk_pct = float(self.spec.get("risk", {}).get("risk_per_trade_pct", self.risk_pct))
+
+        long_sig = (close < bb_lo and rsi_val < self.rsi_long_thr
+                    and prev_close >= prev_bb_lo)
+        short_sig = (close > bb_up and rsi_val > self.rsi_short_thr
+                     and prev_close <= prev_bb_up)
+
+        if long_sig:
+            sl = close - self.atr_sl_mult * atr_val
+            if sl >= close:
+                return
+            tp = bb_mid
+            if tp <= close:
+                tp = close + self.fallback_rr * (close - sl)
+            stop_dist = close - sl
+            size = risk.lots_by_risk_pct(equity, risk_pct, stop_dist, price=close)
+            if size is None or size <= 0:
+                return
+            try:
+                size_arg = int(size) if size >= 1 else float(size)
+            except Exception:
+                size_arg = size
+            self.sl_price = sl
+            self.tp_price = tp
+            self.buy(sl=sl, tp=tp, size=size_arg)
+            return
+
+        if short_sig:
+            sl = close + self.atr_sl_mult * atr_val
+            if sl <= close:
+                return
+            tp = bb_mid
+            if tp >= close:
+                tp = close - self.fallback_rr * (sl - close)
+            stop_dist = sl - close
+            size = risk.lots_by_risk_pct(equity, risk_pct, stop_dist, price=close)
+            if size is None or size <= 0:
+                return
+            try:
+                size_arg = int(size) if size >= 1 else float(size)
+            except Exception:
+                size_arg = size
+            self.sl_price = sl
+            self.tp_price = tp
+            self.sell(sl=sl, tp=tp, size=size_arg)
+            return
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        i = len(self.data) - 1
+        close = float(self.data.Close[-1])
+        bb_up = float(self._bb_up[-1])
+        bb_lo = float(self._bb_lo[-1])
+
+        if self.trades:
+            trade = self.trades[-1]
+            bars_open = i - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                self.position.close()
+                self._last_exit_bar = i
+                return
+
+        if self.position.is_long and not np.isnan(bb_up) and close >= bb_up:
+            self.position.close()
+            self._last_exit_bar = i
+            return
+        if self.position.is_short and not np.isnan(bb_lo) and close <= bb_lo:
+            self.position.close()
+            self._last_exit_bar = i
+            return
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

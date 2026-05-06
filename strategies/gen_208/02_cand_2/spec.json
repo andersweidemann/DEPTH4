@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Asia-London range expansion occurs on XAUUSD M5 with high volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > upper_bb && atr(14) > 10"
+    },
+    "short": {
+      "condition": "close < lower_bb && atr(14) > 10"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 2
+      }
+    },
+    "take_profit": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

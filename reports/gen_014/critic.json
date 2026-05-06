@@ -1,0 +1,32 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_ger40_donchian_breakout_m5_v1",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "03_xau_atr_breakout_momentum_m5_v1",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FULL REJECT\n\nBoth candidates produced **0 trades** over the full IS window (2020-01-01 to 2024-06-30) on M5. This is not a performance failure, it is an **execution failure**: either entry gates never trigger, session filters eliminate all bars, or symbol/spread constraints block every signal. No fitness can be computed (PF/Sharpe NaN).\n\n### Likely root causes\n1. **Overly strict entry confluence** \u2014 breakout + momentum + session + volatility filters likely AND-chained; probability of simultaneous satisfaction on M5 is near zero.\n2. **Symbol/point-size mismatch** \u2014 GER40 and XAUUSD have very different tick sizes; ATR thresholds likely expressed in pips/points that do not match broker digits.\n3. **Session filter misconfigured** \u2014 M5 GER40 with Frankfurt-only or XAU with COMEX-only window, combined with a date-range mask, may mask the whole series.\n4. **Donchian/ATR lookback vs. warmup** \u2014 if warmup bars exceed the requested range or indicator returns NaN, signal generator silently yields nothing.\n\n### Recommendation\nDo **not** tweak parameters. Pivot to a diagnostic pass: instrument the signal pipeline to log (a) bars seen, (b) bars passing each filter, (c) raw breakout events, (d) events surviving confluence. Until trade count > 0 across at least one combo, ranking is meaningless.\n",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not respawn new variants of 02_ger40_donchian_breakout_m5 or 03_xau_atr_breakout_momentum_m5 until the zero-trade bug is diagnosed; re-running with different periods/ATR mults will waste compute.",
+    "Avoid multi-filter AND-chained M5 breakout templates (Donchian + ATR floor + momentum + session) until a single-filter baseline is proven to trade on these symbols."
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "name": "us500_m15_rsi_pullback_v1",
+  "hypothesis": "On US500 M15, shallow RSI(14) pullbacks against a dominant trend (price above EMA200 and EMA50>EMA200) during US cash hours revert to the short-term mean, producing PF>=2.0 when the pullback depth is bounded by 0.5-1.5 ATR.",
+  "family": "trend_pullback",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 200
+          },
+          "condition": "close > ema200"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 50
+          },
+          "condition": "ema50 > ema200"
+        },
+        {
+          "primitive": "rsi",
+          "params": {
+            "period": 14
+          },
+          "condition": "rsi crossed_above 35 from below"
+        },
+        {
+          "primitive": "atr",
+          "params": {
+            "period": 14
+          },
+          "condition": "abs(close - ema50) between 0.3*atr and 1.5*atr"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 200
+          },
+          "condition": "close < ema200"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 50
+          },
+          "condition": "ema50 < ema200"
+        },
+        {
+          "primitive": "rsi",
+          "params": {
+            "period": 14
+          },
+          "condition": "rsi crossed_below 65 from above"
+        },
+        {
+          "primitive": "atr",
+          "params": {
+            "period": 14
+          },
+          "condition": "abs(close - ema50) between 0.3*atr and 1.5*atr"
+        }
+      ]
+    },
+    "cooldown_bars": 4
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "inputs": [
+        "adx_14",
+        "atr_percentile_500"
+      ]
+    },
+    "condition": "adx_14 > 15 AND atr_percentile_500 between 0.2 and 0.9",
+    "rationale": "Requires mild-to-strong trend and non-extreme volatility; excludes both dead chop and crisis spikes."
+  },
+  "session_mask": {
+    "primitive": "session_mask",
+    "params": {
+      "hours": "13:30-20:00",
+      "timezone": "UTC"
+    }
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 1.2
+    },
+    "take_profit": {
+      "type": "r_multiple",
+      "r": 1.8
+    },
+    "time_stop": {
+      "bars": 24,
+      "close_at_session_end_utc": "20:30"
+    },
+    "breakeven": {
+      "enable": true,
+      "trigger_r": 0.8
+    }
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "notes": "Fourth distinct family (trend-pullback). Targets US500 cash session to sidestep low-liquidity overnight gaps that may have contributed to zero-trade or divergent behavior. RSI cross gate is event-based (not permanent AND) so it produces discrete triggers, avoiding prior gen's dead-AND-stack failure."
+}

@@ -1,0 +1,96 @@
+{
+  "id": "gen7_ny_open_momentum_us500_m5",
+  "name": "NY Open Momentum Breakout US500 M5",
+  "family": "session_breakout",
+  "hypothesis": "US500 M5 sees a directional impulse in the first 90 minutes after the NY cash open; breakouts of the opening 15-minute range in the direction of the prior-day close vs open bias, filtered by ATR regime, yield positive expectancy with time-boxed exits.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "opening_range": {
+      "primitive": "session_mask",
+      "start_utc": "14:30",
+      "end_utc": "14:45",
+      "record": [
+        "high",
+        "low"
+      ]
+    },
+    "trade_window": {
+      "primitive": "session_mask",
+      "start_utc": "14:45",
+      "end_utc": "16:00"
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "ema_trend": {
+      "primitive": "ema",
+      "period": 50,
+      "timeframe": "M15"
+    },
+    "adx": {
+      "primitive": "adx",
+      "period": 14
+    }
+  },
+  "entry_rules": {
+    "long": "trade_window AND close > opening_range.high AND close > ema_trend",
+    "short": "trade_window AND close < opening_range.low AND close < ema_trend",
+    "max_entries_per_day": 1
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min_percentile": 30
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 15
+      }
+    ]
+  },
+  "exits": {
+    "sl": {
+      "type": "structure",
+      "ref": "opposite_opening_range_edge",
+      "buffer_atr": 0.2
+    },
+    "tp": {
+      "type": "atr",
+      "mult": 3.0,
+      "rr_min": 2.0
+    },
+    "time_stop": {
+      "bars": 18,
+      "comment": "~90min; force-close at 16:00 UTC"
+    },
+    "trailing": {
+      "type": "atr",
+      "mult": 1.5,
+      "activate_at_rr": 1.0
+    },
+    "breakeven": {
+      "at_rr": 0.8
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

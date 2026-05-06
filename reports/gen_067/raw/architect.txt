@@ -1,0 +1,134 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "opposite_bollinger_band",
+        "stop_loss": "1.5 * atr(14)",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion leads to breakout opportunities",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "session_start": "07:00",
+        "session_end": "10:00"
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_min": 0.5,
+        "range_atr_max": 2.0,
+        "breakout_atr_threshold": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "fixed_pips",
+        "take_profit_pips": 100,
+        "stop_loss": "fixed_pips",
+        "stop_loss_pips": 50,
+        "time_stop": 20
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M15",
+    "regime_filter": {
+      "type": "bb_width_filter",
+      "params": {
+        "min_width": 0.01,
+        "max_width": 0.05
+      }
+    },
+    "entry_rule": {
+      "type": "bollinger_band_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "touch_threshold": 0.2
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "fixed_pips",
+        "take_profit_pips": 500,
+        "stop_loss": "fixed_pips",
+        "stop_loss_pips": 100,
+        "time_stop": 15
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs when RSI reaches extreme levels on GER40 M5",
+    "regime_filter": {
+      "type": "adx_filter",
+      "params": {
+        "min_adx": 20,
+        "max_adx": 50
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_extremes",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit_and_stop_loss",
+      "params": {
+        "take_profit": "opposite_rsi_level",
+        "stop_loss": "1.5 * atr(14)",
+        "time_stop": 25
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  }
+]

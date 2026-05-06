@@ -1,0 +1,35 @@
+{
+  "hypothesis": "Mean reversion occurs on US500 M5 when price closes outside the Bollinger Bands with extreme RSI readings.",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "percentile": 30
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rsi",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

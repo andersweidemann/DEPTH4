@@ -1,0 +1,83 @@
+{
+  "name": "xau_bb_rsi_mean_reversion_m15",
+  "hypothesis": "On XAUUSD M15, when price closes outside a Bollinger Band with RSI at an extreme and BB width is not in the bottom 30th percentile (i.e., not dead range), price reverts toward the middle band within 30 bars, yielding positive expectancy.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "family": "mean_reversion",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "dev": 1.75,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "dev": 1.75
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "20:00"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "require_bb_width_percentile_above": 30,
+      "bb_width_lookback_bars": 500,
+      "require_session_mask": true
+    }
+  },
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi(7) < 10 AND bb_width_pct > 30 AND session_active",
+    "short": "close > upper_bb AND rsi(7) > 90 AND bb_width_pct > 30 AND session_active",
+    "cooldown_bars": 3,
+    "max_concurrent": 1
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "mult": 1.5
+    },
+    "take_profit": {
+      "type": "opposite_bollinger",
+      "period": 20,
+      "dev": 1.75
+    },
+    "time_stop_bars": 30,
+    "breakeven_after_r": 1.0
+  },
+  "sizing": {
+    "type": "risk_pct_equity",
+    "risk_pct": 0.5,
+    "max_lot": 2.0,
+    "min_lot": 0.01
+  },
+  "diagnostics": {
+    "bar_counter": true,
+    "signal_counter": true,
+    "rejection_reason_counter": true,
+    "symbol_resolution_log": true
+  }
+}

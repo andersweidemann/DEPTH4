@@ -1,0 +1,46 @@
+{
+  "id": "04_xau_bb_squeeze_expansion_m5",
+  "hypothesis": "On XAUUSD M5, a Bollinger squeeze (bb_width at <20th percentile) followed by a bar closing outside the bands signals a volatility expansion that runs >=1.5R within 30 bars, filtered by ATR percentile rising (not dead market).",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "volatility_expansion",
+  "signal": {
+    "primitives": [
+      "bollinger",
+      "bb_width",
+      "atr"
+    ],
+    "entry_long": "bb_width(20,2.0) 5-bars-ago was < 20th_percentile(200) AND close > upper_bb(20,2.0) AND close > close[5]",
+    "entry_short": "bb_width(20,2.0) 5-bars-ago was < 20th_percentile(200) AND close < lower_bb(20,2.0) AND close < close[5]",
+    "cooldown_bars": 8
+  },
+  "regime_filter": {
+    "primitives": [
+      "atr_percentile",
+      "adx"
+    ],
+    "rule": "atr_percentile(14, lookback=300) > 0.30 AND adx(14) > 15"
+  },
+  "exits": {
+    "sl": "1.2 * ATR(14)",
+    "tp": "2.0 * ATR(14)",
+    "time_stop_bars": 30,
+    "trailing": "ATR(14)*1.8 after +1R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.4,
+    "max_concurrent_positions": 1
+  },
+  "session": {
+    "mask_utc": "07:00-21:00",
+    "avoid_news_buffer_min": 10
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  },
+  "notes": "Squeeze-to-expansion breakout distinct from Donchian N-bar breakout; entry requires compression precondition."
+}

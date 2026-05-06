@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M5",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "min_width": 0.5,
+      "max_width": 2.0
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb && rsi < 30"
+    },
+    "short": {
+      "condition": "close < upper_bb && rsi > 70"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "take_profit": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "id": "gen40_02_ger40_m5_asia_range_breakout",
+  "hypothesis": "On GER40 M5, a clean breakout of the Asia-session range (00:00-06:00 UTC) during the London window (07:00-10:00 UTC), with breakout distance >= 0.5 ATR, continues for at least 1.5R before failing, when the Asia range is between 0.5 and 2.0 ATR.",
+  "family": "session_breakout",
+  "symbol": "GER40",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 72,
+        "session": "asia_00_06_utc"
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_period": 14,
+        "mult_entry": 0.5
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "window_utc": "07:00-10:00"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "during 07:00-10:00 UTC AND close > asia_high + 0.5*ATR14 AND candle_body >= 1.0*ATR14",
+    "short": "during 07:00-10:00 UTC AND close < asia_low  - 0.5*ATR14 AND candle_body >= 1.0*ATR14",
+    "one_shot": "Only first qualifying breakout per day; cooldown = rest of session after entry."
+  },
+  "regime_filter": {
+    "primitive": "range_size",
+    "condition": "0.5 <= (asia_high - asia_low)/ATR14 <= 2.0",
+    "comment": "Skip days with pre-expanded or dead Asia ranges."
+  },
+  "exit_rules": {
+    "tp": "2.0 * ATR14 from entry (scale-free R target ~2R)",
+    "sl": "opposite side of Asia range (i.e. for long: asia_low - 0.1*ATR)",
+    "time_stop": "close at 15:00 UTC regardless",
+    "trailing": "after +1R, trail by 1.5*ATR14"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": {
+    "enabled": true,
+    "window_utc": "07:00-10:00",
+    "timezone_sanity_check": true
+  },
+  "diagnostics": {
+    "dry_run_required": true,
+    "log_raw_signals": true,
+    "min_expected_signals_per_year": 120
+  },
+  "diversity_tag": "session_breakout_asia_london"
+}

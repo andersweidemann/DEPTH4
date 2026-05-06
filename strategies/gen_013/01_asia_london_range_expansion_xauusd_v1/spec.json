@@ -1,0 +1,66 @@
+{
+  "name": "asia_london_range_expansion_xauusd_v1",
+  "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) breaks the Asia range (00:00-06:00 UTC) with follow-through when the Asia range is between 0.5x and 2.0x ATR(14). A true-breakout entry (close beyond range by >=0.5 ATR) will produce >=200 trades over 4.5y and positive expectancy.",
+  "family": "session_breakout",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "asia_start": "00:00",
+        "asia_end": "06:00",
+        "london_start": "07:00",
+        "london_end": "10:00",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "During london window, close > asia_range_high + 0.5*ATR AND candle_body >= 1.0*ATR AND only first breakout of day",
+    "short": "During london window, close < asia_range_low - 0.5*ATR AND candle_body >= 1.0*ATR AND only first breakout of day",
+    "preconditions": "0.5*ATR <= (asia_range_high - asia_range_low) <= 2.0*ATR"
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "lookback": 200,
+      "min_percentile": 25,
+      "max_percentile": 90
+    },
+    "description": "Avoid dead and blow-off volatility days only."
+  },
+  "exit_rules": {
+    "stop_loss": "0.75 * ATR(14) from entry (below range for long, above for short)",
+    "take_profit": "2.25 * ATR(14) from entry (3R)",
+    "time_stop": "close at 15:00 UTC (end of London/NY overlap) if neither hit",
+    "trailing": "move to breakeven after +1.0 ATR in favor"
+  },
+  "sizing": {
+    "method": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": "london_only_07_10_UTC",
+  "max_spread_points": {
+    "XAUUSD": 60
+  },
+  "instrumentation_required": [
+    "bars_loaded",
+    "signals_generated",
+    "signals_filtered",
+    "orders_attempted",
+    "orders_rejected_reason"
+  ],
+  "diversity_tag": "session_breakout"
+}

@@ -1,0 +1,178 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought or oversold territory",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts on GER40 M15 during the London session can be profitable with a trailing stop loss",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > upper_bb"
+      },
+      "short": {
+        "condition": "close < lower_bb"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "trailing",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.0
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion on XAUUSD M5 can be traded with a mean reversion approach",
+    "regime_filter": {
+      "type": "asia_london_range",
+      "params": {
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch on US500 M15 can be traded with a momentum-based approach",
+    "regime_filter": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > lower_bb && momentum(7) > 0"
+      },
+      "short": {
+        "condition": "close < upper_bb && momentum(7) < 0"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 20
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  }
+]
+```

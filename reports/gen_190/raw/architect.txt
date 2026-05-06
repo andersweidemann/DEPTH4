@@ -1,0 +1,179 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs in XAUUSD on M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory, and volatility is above the 30th percentile.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb",
+        "params": {}
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion strategy is profitable on GER40 M15 when the Asia range is within 0.5-2.0 ATRs and the breakout occurs early in the London session.",
+    "regime_filter": {
+      "type": "time",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > 0 && asia_range_atr < 2.0 && asia_range_atr > 0.5"
+      },
+      "short": {
+        "condition": "breakout < 0 && asia_range_atr < 2.0 && asia_range_atr > 0.5"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal strategy is profitable on XAUUSD M5 when price touches the upper or lower Bollinger Band and then closes back inside the band.",
+    "regime_filter": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > lower_bb && close[-1] < lower_bb"
+      },
+      "short": {
+        "condition": "close < upper_bb && close[-1] > upper_bb"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb",
+        "params": {}
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs in US500 on M15 when price reaches extreme deviations from its mean with extreme RSI readings, and volatility is above the 50th percentile.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 50
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb",
+        "params": {}
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  }
+]
+```

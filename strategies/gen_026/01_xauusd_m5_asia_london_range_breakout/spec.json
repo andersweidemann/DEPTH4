@@ -1,0 +1,82 @@
+{
+  "id": "g26_xauusd_m5_asia_london_breakout",
+  "name": "XAUUSD M5 Asia-London Range Breakout",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "The Asia session (00:00-06:00 UTC) high/low forms an accumulation range. A true breakout during London (07:00-10:00 UTC) with breakout distance >= 0.5 ATR and body >= 1.0 ATR, when range size is 0.5-2.0 ATR, captures directional expansion with PF >= 2.0.",
+  "signals": [
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "donchian",
+      "params": {
+        "period_bars": 72,
+        "label": "asia_range_00_06_utc"
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_period": 14,
+        "distance_atr_mult": 0.5
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "current_utc_hour in [7,8,9,10] AND close > asia_high + 0.5*atr14 AND (close-open) >= 1.0*atr14 AND (asia_high-asia_low)/atr14 between 0.5 and 2.0 AND bars_since_london_open <= 9",
+    "short": "current_utc_hour in [7,8,9,10] AND close < asia_low - 0.5*atr14 AND (open-close) >= 1.0*atr14 AND (asia_high-asia_low)/atr14 between 0.5 and 2.0 AND bars_since_london_open <= 9",
+    "only_first_breakout_per_day": true,
+    "cooldown_bars": 12
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14
+    },
+    "allow_when": "adx >= 15",
+    "rationale": "Require minimum trendiness to avoid fakeouts in total chop."
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "structural",
+      "level": "opposite_side_of_asia_range",
+      "max_atr_mult": 2.5
+    },
+    "take_profit": {
+      "type": "atr_rr",
+      "rr": 2.0
+    },
+    "time_stop": {
+      "bars": 48,
+      "close_at_utc": "16:00"
+    },
+    "trailing": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 2.0,
+      "activate_at_rr": 1.0
+    }
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.75,
+    "max_daily_loss_pct": 3.0,
+    "max_positions": 1
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "windows_utc": [
+      [
+        "07:00",
+        "10:00"
+      ]
+    ]
+  },
+  "min_trades_expected": 220,
+  "notes": "Inspired by asia-london-range-expansion LVC EA (inspiration only). Ensure server TZ mapped to UTC; log signal counts pre-filter."
+}

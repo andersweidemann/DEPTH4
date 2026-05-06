@@ -1,0 +1,39 @@
+{
+  "name": "us500_donchian_trend_m15",
+  "family": "trend_breakout",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "hypothesis": "US500 M15 Donchian(55) breakouts filtered by ADX>22 and EMA(50)>EMA(200) regime capture index trend-days. Expect PF>=1.6 with trade count >= 250. Falsified if ADX filter fails to improve PF vs unfiltered baseline.",
+  "regime_filter": {
+    "primitive": "adx",
+    "rule": "ADX(14) > 22 AND sign(EMA(50)-EMA(200)) == trade_direction",
+    "description": "Require trending regime AND trade only in direction of higher-TF EMA slope. Excludes ranging bars (~50%)."
+  },
+  "signals": {
+    "entry_long": "close > highest(high, 55) of previous bar",
+    "entry_short": "close < lowest(low, 55) of previous bar",
+    "session_mask": "13:30-20:00 UTC (US cash session)"
+  },
+  "exits": {
+    "tp": "none (let trail run)",
+    "sl": "2.5 * ATR(14) from entry",
+    "time_stop": "48 bars (12h)",
+    "trailing": "chandelier exit: highest(high,22) - 3*ATR(14) for longs; mirror for shorts"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "diagnostics": {
+    "log_rejections": true,
+    "counters": [
+      "bars_in_session",
+      "donchian_breaks_raw",
+      "passed_adx",
+      "passed_ema_regime",
+      "orders_filled"
+    ]
+  },
+  "notes": "Sanity check: if donchian_breaks_raw > 0 but passed_adx == 0 across full IS, ADX threshold is miscomputed."
+}

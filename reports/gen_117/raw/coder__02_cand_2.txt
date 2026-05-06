@@ -1,0 +1,54 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.ma = self.I(sma, self.data.Close, self.spec["entry_rule"]["params"]["ma_period"])
+        self.atr = self.I(atr, self.data, self.spec["sl_rule"]["params"]["atr_period"])
+        self.atr_percentile = self.I(atr_percentile, self.data, self.spec["regime_filter"]["params"]["threshold"])
+        self.sizing_rule = self.spec["sizing_rule"]["params"]["fraction"]
+        self.time_stop = self.spec["time_stop"]
+        self.sl_rule = self.spec["sl_rule"]["params"]
+        self.tp_rule = self.spec["tp_rule"]["params"]
+        self.entry_rule = self.spec["entry_rule"]["params"]
+        self.exit_rule = self.spec["exit_rule"]["params"]
+
+    def _regime_ok(self):
+        if self.atr_percentile[-1] > self.spec["regime_filter"]["params"]["threshold"]:
+            return True
+        return False
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        if self._regime_ok() and self._filters_ok():
+            if self.data.Close[-1] > self.ma[-1] + self.entry_rule["std_dev"] * self.atr[-1]:
+                self.position.enter_long()
+                self.sl_price = self.data.Close[-1] - self.sl_rule["atr_multiplier"] * self.atr[-1]
+                self.tp_price = self.data.Close[-1] + self.tp_rule["ratio"] * (self.data.Close[-1] - self.sl_price)
+            elif self.data.Close[-1] < self.ma[-1] - self.entry_rule["std_dev"] * self.atr[-1]:
+                self.position.enter_short()
+                self.sl_price = self.data.Close[-1] + self.sl_rule["atr_multiplier"] * self.atr[-1]
+                self.tp_price = self.data.Close[-1] - self.tp_rule["ratio"] * (self.sl_price - self.data.Close[-1])
+
+    def _manage_open(self):
+        if self.position:
+            if self.time_stop is not None:
+                if len(self.data) - self.position.entry_bar >= self.time_stop:
+                    self.position.close()
+            if self.exit_rule["type"] == "ma_crossover":
+                if self.position.is_long and self.data.Close[-1] < self.ma[-1]:
+                    self.position.close()
+                elif not self.position.is_long and self.data.Close[-1] > self.ma[-1]:
+                    self.position.close()
+```

@@ -1,0 +1,91 @@
+{
+  "id": "atr_expansion_breakout_ger40_m15",
+  "family": "volatility_breakout",
+  "hypothesis": "On GER40 M15, Donchian breakouts only work when volatility is expanding: ATR(14) > ATR(50) AND ADX > 20. Pure channel breaks without expansion produce whipsaws.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "session": {
+    "enabled": true,
+    "start_utc": "07:00",
+    "end_utc": "15:30",
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ]
+  },
+  "signals": [
+    {
+      "type": "donchian",
+      "period": 20
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "atr",
+      "period": 50,
+      "alias": "atr_slow"
+    },
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "atr_breakout_levels",
+      "period": 20,
+      "atr_period": 14,
+      "mult": 0.25
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "op": ">",
+        "value": 20
+      },
+      {
+        "custom": "atr(14) > atr(50) * 1.1"
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry": {
+    "long": "close > donchian_high_20[1] + 0.25*atr(14) AND close > ema(50)",
+    "short": "close < donchian_low_20[1] - 0.25*atr(14) AND close < ema(50)",
+    "cooldown_bars": 6,
+    "only_first_signal_per_day": true
+  },
+  "exit": {
+    "tp": {
+      "type": "atr_mult",
+      "period": 14,
+      "mult": 3.0
+    },
+    "sl": {
+      "type": "atr_mult",
+      "period": 14,
+      "mult": 1.5
+    },
+    "time_stop_bars": 40,
+    "trailing": {
+      "type": "chandelier",
+      "atr_period": 14,
+      "mult": 2.5,
+      "activate_at_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "acceptance_notes": "Addresses prior-gen critic: adds ATR expansion filter (ATR14 > 1.1*ATR50) on top of Donchian. European cash-session only.",
+  "diversity_tag": "vol_breakout_donchian"
+}

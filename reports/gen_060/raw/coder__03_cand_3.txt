@@ -1,0 +1,43 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.rsi_series = self.I(rsi, self.data.Close, self.spec["regime_filter"]["params"]["rsi_period"])
+        self.bb_series = self.I(bollinger, self.data.Close, self.spec["entry_rule"]["params"]["bb_period"], self.spec["entry_rule"]["params"]["bb_deviation"])
+        self.atr_series = self.I(atr, self.data.High, self.data.Low, self.data.Close, 14)
+        self._session_mask_full = None
+
+    def _regime_ok(self):
+        rsi_val = float(self.rsi_series[-1])
+        if rsi_val < self.spec["regime_filter"]["params"]["rsi_threshold"]:
+            return True
+        return False
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            bb_val = float(self.bb_series[-1])
+            if bb_val < self.spec["entry_rule"]["params"]["bb_deviation"]:
+                self.position.enter()
+                self.sl_price = self.data.Close[-1] - 1.5 * float(self.atr_series[-1])
+                self.tp_price = self.data.Close[-1] + 1.5 * float(self.atr_series[-1])
+
+    def _manage_open(self):
+        time_stop = self.spec["time_stop"]["params"]["bars"]
+        if self.position and len(self.data) - self.position.entry_bar >= time_stop:
+            self.position.close()
+        if self.position and self.data.Close[-1] >= self.tp_price:
+            self.position.close()
+        if self.position and self.data.Close[-1] <= self.sl_price:
+            self.position.close()
+```

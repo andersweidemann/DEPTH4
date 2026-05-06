@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Trend continuation occurs after breakout",
+  "regime_filter": {
+    "type": "adx",
+    "params": {
+      "threshold": 25
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "volatility_filter": "atr",
+      "atr_period": 14
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_stop_loss",
+    "params": {
+      "take_profit": "fixed_pips",
+      "take_profit_pips": 200,
+      "stop_loss": "fixed_pips",
+      "stop_loss_pips": 50,
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.015
+    }
+  }
+}

@@ -1,0 +1,79 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, sma
+from agents.regime import adx, atr_percentile, classify
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.bollinger_band = self.I(bollinger, self.data, self.spec["entry_rule"]["params"]["bb_period"], self.spec["entry_rule"]["params"]["bb_deviation"])
+        self.bb_width = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["lookback"])
+        self.sma = self.I(sma, self.data, self.spec["regime_filter"]["params"]["lookback"])
+        self.adx = self.I(adx, self.data, self.spec["regime_filter"]["params"]["lookback"])
+        self.atr = self.I(sma, self.I(signals.atr, self.data, self.spec["regime_filter"]["params"]["lookback"]), self.spec["regime_filter"]["params"]["lookback"])
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        bb_width_val = float(self.bb_width[-1])
+        percentile = rf.get("params", {}).get("percentile", 50)
+        if bb_width_val < np.percentile(self.bb_width, percentile):
+            return True
+        return False
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        entry_rule = self.spec.get("entry_rule")
+        if entry_rule and entry_rule["type"] == "bb_touch_3bar":
+            bb_period = entry_rule["params"]["bb_period"]
+            bb_deviation = entry_rule["params"]["bb_deviation"]
+            close = self.data.Close
+            lower_band = self.bollinger_band[0]
+            upper_band = self.bollinger_band[1]
+            if close[-1] <= lower_band[-1] and close[-2] <= lower_band[-2] and close[-3] <= lower_band[-3]:
+                self.sl_price = lower_band[-1] - (upper_band[-1] - lower_band[-1]) * self.spec["exit_rule"]["params"]["sl_multiplier"]
+                self.tp_price = upper_band[-1]
+                self.position.enter_long(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data))
+            elif close[-1] >= upper_band[-1] and close[-2] >= upper_band[-2] and close[-3] >= upper_band[-3]:
+                self.sl_price = upper_band[-1] + (upper_band[-1] - lower_band[-1]) * self.spec["exit_rule"]["params"]["sl_multiplier"]
+                self.tp_price = lower_band[-1]
+                self.position.enter_short(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data))
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rule")
+        time_stop = exit_cfg.get("params", {}).get("time_stop_bars")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        if self.position.is_long and self.data.Close[-1] >= self.tp_price:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] <= self.tp_price:
+            self.position.close()
+```

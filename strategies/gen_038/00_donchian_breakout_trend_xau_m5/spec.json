@@ -1,0 +1,51 @@
+{
+  "name": "donchian_breakout_trend_xau_m5",
+  "hypothesis": "XAUUSD M5 exhibits strong impulsive continuation after breaking recent N-bar extremes during high-ADX regimes; trading Donchian breakouts filtered by trend strength and session liquidity captures momentum without mean-reversion bleed.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "breakout_trend",
+  "signals": {
+    "entry_long": "close > donchian_upper(20) previous bar AND close > ema(50)",
+    "entry_short": "close < donchian_lower(20) previous bar AND close < ema(50)",
+    "primitives": [
+      "donchian(20)",
+      "ema(50)",
+      "atr(14)"
+    ]
+  },
+  "regime_filter": {
+    "type": "adx_and_session",
+    "rules": [
+      "adx(14) >= 22",
+      "atr_percentile(100) >= 40",
+      "session_mask: London 07:00-11:00 UTC OR NY 13:00-17:00 UTC"
+    ],
+    "skip_when": "adx < 22 OR atr_percentile < 40 OR outside sessions"
+  },
+  "exits": {
+    "sl": "2.0 * atr(14) from entry",
+    "tp": "3.5 * atr(14) from entry (R:R ~1.75)",
+    "time_stop": "48 bars (~4h)",
+    "trailing": "chandelier: 3*atr(14) from highest high since entry, activates after +1.5 atr profit"
+  },
+  "sizing": {
+    "model": "risk_pct_per_trade",
+    "risk_pct": 0.75,
+    "max_concurrent": 1,
+    "cooldown_bars": 6
+  },
+  "params": {
+    "donchian_len": 20,
+    "ema_trend_len": 50,
+    "adx_len": 14,
+    "adx_min": 22,
+    "atr_len": 14,
+    "atr_pct_min": 40
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

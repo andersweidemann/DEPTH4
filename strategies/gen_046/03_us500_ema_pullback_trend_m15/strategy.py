@@ -1,0 +1,167 @@
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        spec_file = Path(__file__).parent / self.spec_path
+        if spec_file.exists():
+            try:
+                loaded = json.loads(spec_file.read_text())
+                if isinstance(loaded, dict):
+                    merged = dict(loaded)
+                    if isinstance(self._spec, dict):
+                        merged.update({k: v for k, v in self._spec.items() if v is not None})
+                    type(self)._spec = merged
+            except Exception:
+                pass
+
+        spec = dict(self._spec) if isinstance(self._spec, dict) else {}
+        rf = spec.get("regime_filter") or {}
+        if rf.get("primitive") == "adx" and "indicator" not in rf:
+            p = rf.get("params", {}) or {}
+            spec["regime_filter"] = {
+                "indicator": "adx",
+                "period": p.get("period", 14),
+                "min": p.get("min_value"),
+            }
+
+        filters = dict(spec.get("filters", {}) or {})
+        if "session_utc" not in filters:
+            filters["session_utc"] = [{"start": "13:30", "end": "20:00"}]
+        spec["filters"] = filters
+
+        exit_cfg = dict(spec.get("exit", {}) or {})
+        ex_src = self._spec.get("exit", {}) if isinstance(self._spec, dict) else {}
+        if isinstance(ex_src, dict):
+            ts = ex_src.get("time_stop")
+            if isinstance(ts, dict) and ts.get("type") == "bars":
+                exit_cfg["time_stop_bars"] = ts.get("value")
+        spec["exit"] = exit_cfg
+
+        type(self)._spec = spec
+
+        super().init()
+
+        self._ema20 = self.I(signals.ema, self.data.Close, 20)
+        self._ema50 = self.I(signals.ema, self.data.Close, 50)
+        self._ema200 = self.I(signals.ema, self.data.Close, 200)
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+
+        sizing = self._spec.get("sizing", {}) or {}
+        self._risk_pct = float(sizing.get("risk_per_trade_pct", 0.75))
+        self._cooldown = int(sizing.get("cooldown_bars", 0) or 0)
+        self._max_positions = int(sizing.get("max_positions", 1) or 1)
+        self._last_exit_bar = -10_000
+
+        exit_spec = self._spec.get("exit", {}) or {}
+        raw = (self.__class__._spec.get("exit", {}) or {}) if isinstance(self.__class__._spec, dict) else {}
+        sl_cfg = raw.get("sl", {}) if isinstance(raw, dict) else {}
+        tp_cfg = raw.get("tp", {}) if isinstance(raw, dict) else {}
+        self._sl_atr_mult = float((sl_cfg.get("params", {}) or {}).get("multiplier", 2.0))
+        self._tp_r = float((tp_cfg.get("params", {}) or {}).get("r", 2.5))
+
+    def next(self):
+        if len(self.data) < 210:
+            return
+
+        if self.position:
+            self._manage_open()
+            return
+
+        if not self.trades:
+            if (len(self.data) - 1) - self._last_exit_bar < self._cooldown:
+                return
+
+        if not self._regime_ok():
+            return
+        if not self._filters_ok():
+            return
+
+        self._enter_if_signal()
+
+    def _enter_if_signal(self):
+        close = float(self.data.Close[-1])
+        close_prev = float(self.data.Close[-2])
+        low_prev = float(self.data.Low[-2])
+        high_prev = float(self.data.High[-2])
+        ema20 = float(self._ema20[-1])
+        ema50 = float(self._ema50[-1])
+        ema200 = float(self._ema200[-1])
+        atr_val = float(self._atr_series[-1])
+
+        if np.isnan(ema200) or np.isnan(ema50) or np.isnan(ema20) or np.isnan(atr_val):
+            return
+        if atr_val <= 0:
+            return
+
+        long_ok = (
+            close > ema200
+            and low_prev <= ema50
+            and close > ema50
+            and close > ema20
+            and close_prev <= float(self._ema20[-2])
+        )
+        short_ok = (
+            close < ema200
+            and high_prev >= ema50
+            and close < ema50
+            and close < ema20
+            and close_prev >= float(self._ema20[-2])
+        )
+
+        if not (long_ok or short_ok):
+            return
+
+        if long_ok:
+            sl = close - self._sl_atr_mult * atr_val
+            tp = close + self._sl_atr_mult * atr_val * self._tp_r
+            if sl >= close:
+                return
+            risk_points = close - sl
+        else:
+            sl = close + self._sl_atr_mult * atr_val
+            tp = close - self._sl_atr_mult * atr_val * self._tp_r
+            if sl <= close:
+                return
+            risk_points = sl - close
+
+        size = risk.lots_by_risk_pct(
+            equity=self.equity,
+            risk_pct=self._risk_pct,
+            stop_distance=risk_points,
+            price=close,
+        )
+        if size is None or size <= 0:
+            return
+        if isinstance(size, float) and size < 1:
+            size = max(min(size, 0.999), 1e-4)
+        else:
+            size = int(max(1, size))
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        try:
+            if long_ok:
+                self.buy(size=size, sl=sl, tp=tp)
+            else:
+                self.sell(size=size, sl=sl, tp=tp)
+        except Exception:
+            return
+
+    def _manage_open(self):
+        had_pos = bool(self.position)
+        super()._manage_open()
+        if had_pos and not self.position:
+            self._last_exit_bar = len(self.data) - 1

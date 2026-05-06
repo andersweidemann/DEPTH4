@@ -1,0 +1,66 @@
+{
+  "id": "gen51_cand_1",
+  "name": "XAU_BB_RSI_MeanRev_M5",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M5, when price closes outside Bollinger(20, 2.0) with RSI(7) extreme, price reverts toward the middle band within 30 bars, provided BB width is above its 30th percentile (avoid dead ranges).",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "type": "bollinger",
+      "period": 20,
+      "stddev": 2.0,
+      "source": "close"
+    },
+    {
+      "type": "bb_width",
+      "period": 20,
+      "stddev": 2.0,
+      "percentile_lookback": 500
+    },
+    {
+      "type": "rsi",
+      "period": 7
+    },
+    {
+      "type": "atr",
+      "period": 14
+    }
+  ],
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi7 < 15 AND bb_width_pct > 30",
+    "short": "close > upper_bb AND rsi7 > 85 AND bb_width_pct > 30",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "tp": "middle_bb (SMA20) touch",
+    "sl": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 30
+  },
+  "regime_filter": {
+    "type": "atr_percentile",
+    "period": 14,
+    "min_percentile": 30,
+    "max_percentile": 95,
+    "rationale": "trade only in non-dead, non-crash volatility"
+  },
+  "sizing": {
+    "mode": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "enabled": true,
+    "windows_utc": [
+      [
+        "07:00",
+        "20:00"
+      ]
+    ]
+  },
+  "diversification_notes": "Mean-reversion family, XAU specific."
+}

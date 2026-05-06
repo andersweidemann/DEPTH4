@@ -1,0 +1,42 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.asia_range_high = self.I(donchian, self.data, 24, session='asia')['high']
+        self.asia_range_low = self.I(donchian, self.data, 24, session='asia')['low']
+        self.momentum = self.I(ema, self.data.Close, 50) - self.I(ema, self.data.Close, 200)
+        self._session_mask_full = np.asarray(session_mask(self.data.index, self.spec.get("regime_filter", {}).get("params", {})), dtype=bool)
+
+    def _regime_ok(self):
+        return self._session_mask_full[-1]
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        if self.momentum[-1] > 50 and self.data.High[-1] > self.asia_range_high[-1]:
+            self.position.enter_long(lots_by_risk_pct(self.spec.get("sizing_rules", {}).get("params", {}), self.equity, self.data.Close[-1]))
+            self.sl_price = self.data.Close[-1] - self.spec.get("exit_rules", {}).get("sl", {}).get("params", {}).get("distance", 100)
+            self.tp_price = self.data.Close[-1] + self.spec.get("exit_rules", {}).get("tp", {}).get("params", {}).get("distance", 200)
+        elif self.momentum[-1] < -50 and self.data.Low[-1] < self.asia_range_low[-1]:
+            self.position.enter_short(lots_by_risk_pct(self.spec.get("sizing_rules", {}).get("params", {}), self.equity, self.data.Close[-1]))
+            self.sl_price = self.data.Close[-1] + self.spec.get("exit_rules", {}).get("sl", {}).get("params", {}).get("distance", 100)
+            self.tp_price = self.data.Close[-1] - self.spec.get("exit_rules", {}).get("tp", {}).get("params", {}).get("distance", 200)
+
+    def _manage_open(self):
+        if self.position:
+            if self.data.Close[-1] < self.sl_price:
+                self.position.close()
+            elif self.data.Close[-1] > self.tp_price:
+                self.position.close()
+            elif len(self.data) - self.position.entry_bar >= self.spec.get("exit_rules", {}).get("time_stop", {}).get("params", {}).get("bars", 30):
+                self.position.close()

@@ -1,0 +1,127 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts from the Asia range during the London session are profitable",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_start": 0,
+        "asia_range_end": 6,
+        "breakout_threshold": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "fixed_pips",
+        "sl": "fixed_pips",
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Price will reverse after touching the upper or lower Donchian channel",
+    "regime_filter": {
+      "type": "donchian_channel_width",
+      "params": {
+        "width_threshold": 20
+      }
+    },
+    "entry_rule": {
+      "type": "donchian_channel_reversal",
+      "params": {
+        "channel_period": 20
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "fixed_pips",
+        "sl": "fixed_pips",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR-based volatility expansion during the US session is a good trading opportunity",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "percentile": 70,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "atr_breakout",
+      "params": {
+        "atr_period": 14,
+        "breakout_threshold": 1.5
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_atr_level",
+        "sl": "1.5_atr",
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]

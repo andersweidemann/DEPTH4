@@ -1,0 +1,42 @@
+{
+  "name": "us500_m15_trend_pullback_ema",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "family": "trend_pullback",
+  "hypothesis": "US500 M15 exhibits persistent intraday trend; pullbacks to EMA(20) within an uptrend (EMA20 > EMA50, ADX > 20) during RTH offer asymmetric long continuation; symmetric for shorts.",
+  "entry_rules": {
+    "long": "ema(20) > ema(50) AND adx(14) > 20 AND low <= ema(20) AND close > ema(20) AND rsi(14) between 40 and 65 AND session == us_rth",
+    "short": "ema(20) < ema(50) AND adx(14) > 20 AND high >= ema(20) AND close < ema(20) AND rsi(14) between 35 and 60 AND session == us_rth"
+  },
+  "exit_rules": {
+    "tp": "2.5 * ATR(14) from entry",
+    "sl": "1.5 * ATR(14) from entry (below swing low / above swing high)",
+    "time_stop": "close after 20 bars (~5h) or at RTH close"
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "rule": "adx(14) > 20 AND atr_percentile(14,500) >= 30; only trade when trend regime confirmed"
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "sl_basis": "atr",
+    "max_concurrent_positions": 1
+  },
+  "indicators": [
+    "ema(20)",
+    "ema(50)",
+    "adx(14)",
+    "rsi(14)",
+    "atr(14)",
+    "session_mask"
+  ],
+  "instrumentation_required": [
+    "bars_received",
+    "indicator_ready_bar",
+    "signal_true_count",
+    "order_attempt_count",
+    "order_reject_reason"
+  ],
+  "diversity_tag": "trend_pullback_ema"
+}

@@ -1,0 +1,44 @@
+{
+  "hypothesis": "London volatility capture leads to profitable trades on GER40 M5",
+  "regime_filter": {
+    "type": "volatility",
+    "params": {
+      "volatility_period": 14,
+      "volatility_threshold": 1.5
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > sma(50) && rsi(14) < 30"
+    },
+    "short": {
+      "condition": "close < sma(50) && rsi(14) > 70"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "distance": 200
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "distance": 50
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 10
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

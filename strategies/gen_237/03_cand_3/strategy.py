@@ -1,0 +1,47 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, session_mask
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("start_hour", 7), self.spec.get("regime_filter", {}).get("params", {}).get("end_hour", 20)
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(session_mask(full_idx, [(sessions[0], sessions[1])]), dtype=bool)
+        self._bb_period = self.spec.get("entry_rule", {}).get("params", {}).get("bb_period", 20)
+        self._bb_deviation = self.spec.get("entry_rule", {}).get("params", {}).get("bb_deviation", 2)
+        self._sl_multiplier = self.spec.get("exit_rule", {}).get("params", {}).get("sl_multiplier", 1.5)
+        self._time_stop_bars = self.spec.get("exit_rule", {}).get("params", {}).get("time_stop_bars", 30)
+        self._size = self.spec.get("sizing_rule", {}).get("params", {}).get("size", 0.05)
+        self._bb_series = self.I(bollinger, self.data, self._bb_period, self._bb_deviation)
+
+    def _regime_ok(self):
+        return self._session_mask_full[-1] if self._session_mask_full is not None else True
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        if self._bb_series[-1] == self._bb_series[-2]:
+            return
+        bb_touch = self.data.Close[-1] <= self._bb_series[-1][0] or self.data.Close[-1] >= self._bb_series[-1][1]
+        if bb_touch:
+            self.sl_price = self.data.Close[-1] * (1 - self._sl_multiplier * 0.01) if self.data.Close[-1] > self._bb_series[-1][1] else self.data.Close[-1] * (1 + self._sl_multiplier * 0.01)
+            self.position.enter(self._size)
+
+    def _manage_open(self):
+        if not self.position:
+            return
+        time_stop = self._time_stop_bars
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= time_stop:
+            self.position.close()
+        opposite_bb = self.data.Close[-1] <= self._bb_series[-1][0] if self.position.is_long else self.data.Close[-1] >= self._bb_series[-1][1]
+        if opposite_bb:
+            self.position.close()

@@ -1,0 +1,86 @@
+{
+  "id": "03_us500_pullback_to_ema_trend_m15",
+  "hypothesis": "On US500 M15, when higher-timeframe trend is up (H1 EMA50 > EMA200 and price > EMA200) a shallow pullback to the M15 EMA20 with RSI(14) dipping to 40-50 and recovering offers asymmetric continuation. Symmetric short logic in H1 downtrends. This exploits the post-2020 US500 buy-the-dip regime during US cash session.",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "family": "trend_pullback",
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50,
+        "tf": "H1"
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200,
+        "tf": "H1"
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "sessions": [
+          "ny"
+        ],
+        "start_utc": "13:30",
+        "end_utc": "20:00"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "H1_ema50 > H1_ema200 AND H1_close > H1_ema200 AND low <= ema20 AND close > ema20 AND rsi14 between 40 and 58 AND rsi14 > rsi14[1] AND session_mask==1",
+    "short": "H1_ema50 < H1_ema200 AND H1_close < H1_ema200 AND high >= ema20 AND close < ema20 AND rsi14 between 42 and 60 AND rsi14 < rsi14[1] AND session_mask==1",
+    "cooldown_bars": 8,
+    "max_entries_per_day": 2
+  },
+  "exit_rules": {
+    "take_profit": "2.0 * ATR(14)",
+    "stop_loss": "1.3 * ATR(14) below swing_low (long) / above swing_high (short)",
+    "time_stop_bars": 24,
+    "breakeven_after_R": 1.0,
+    "trailing_stop": "ATR*2.0 chandelier after 1.2R"
+  },
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile",
+      "classify"
+    ],
+    "rule": "adx(14, H1) >= 18 AND atr_percentile(14, 200) between 20 and 90 AND classify in ['trend', 'weak_trend']",
+    "rationale": "Need directional regime for pullback continuation; exclude chop and vol-crisis tape."
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "sl_basis": "atr_swing",
+    "max_concurrent_positions": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 250,
+    "max_dd_pct": 15.0
+  },
+  "notes": "Diversifier: trend-following family on US500 to balance the two mean-reversion specs and one breakout spec. Avoids prior dead branches (not Donchian, not pure breakout on index)."
+}

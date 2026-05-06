@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Volatility normalization using ATR occurs on US500 M5",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > sma(20) && rsi(7) < 30"
+    },
+    "short": {
+      "condition": "close < sma(20) && rsi(7) > 70"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "hypothesis": "Mean reversion occurs on US500 M15 when price closes outside Bollinger Bands with low RSI readings",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 20,
+      "lookback": 100
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rsi",
+    "params": {
+      "bb_period": 20,
+      "bb_dev": 1.5,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "middle_bb",
+    "params": {}
+  },
+  "sl_rule": {
+    "type": "atr",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.2
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_ratio",
+    "params": {
+      "ratio": 2.5
+    }
+  },
+  "time_stop": 45,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "candidate": "p1_32_break_even_enabled-False_min_pullback_atr_mult-0.25_sl_buffer_points-1.0_tp_r_mult-1.5_trend_source-h1",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "trades": 262,
+      "metrics": {
+        "return_pct": -3.129232273529435,
+        "pf": 0.9846634279536937,
+        "sharpe": -0.18461750619627157,
+        "sortino": -0.2762243314475293,
+        "max_dd_pct": 9.093547184970163,
+        "trades": 262.0,
+        "win_rate": 36.25954198473282,
+        "expectancy": -0.004037287569158512,
+        "avg_trade": -0.006912042224704873,
+        "exposure_pct": 9.275970215304099
+      }
+    }
+  ]
+}

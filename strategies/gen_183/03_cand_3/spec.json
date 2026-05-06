@@ -1,0 +1,43 @@
+{
+  "hypothesis": "Breakouts occur on BTCUSD M5 after a period of consolidation, as measured by Donchian channels.",
+  "regime_filter": {
+    "type": "donchian_channel",
+    "params": {
+      "period": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > donchian_channel(20)[1] and close > close[1]"
+    },
+    "short": {
+      "condition": "close < donchian_channel(20)[1] and close < close[1]"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 2
+      }
+    }
+  },
+  "sizing": {
+    "type": "proportional",
+    "params": {
+      "proportion": 0.02
+    }
+  }
+}

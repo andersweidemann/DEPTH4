@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Volatility contraction occurs on BTCUSD M15 when Bollinger Bands are narrowing.",
+  "regime_filter": {
+    "type": "bb_width_decrease",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "decrease_threshold": 0.5
+    }
+  },
+  "entry_rule": {
+    "type": "volatility_contraction",
+    "params": {
+      "atr_period": 14
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_stop_loss",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "2_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "hypothesis": "Mean reversion with ATR-based stop loss is profitable on US500 M5.",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 40
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        15,
+        85
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_sl",
+    "params": {
+      "tp_pips": 300,
+      "sl_atr_multiplier": 1.5
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

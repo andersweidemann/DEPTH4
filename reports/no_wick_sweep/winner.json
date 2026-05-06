@@ -1,0 +1,39 @@
+{
+  "run_id": "p2_9_from_p1_44_break_even_enabled-True_min_pullba_v_1",
+  "metrics": {
+    "run_id": "p2_9_from_p1_44_break_even_enabled-True_min_pullba_v_1",
+    "trades": 222,
+    "return_pct": 1.2111484358374145,
+    "pf": 1.126038252951362,
+    "sharpe": 0.08781408886786146,
+    "max_dd_pct": 5.2832690918097835,
+    "win_rate": 28.37837837837838,
+    "expectancy": 0.023126542719840628,
+    "rank_score": 9.15336111509291
+  },
+  "signal": {
+    "max_wait_bars": 48,
+    "wick_strict_zero": true,
+    "wick_epsilon_mult": 0.55,
+    "wick_zero_atol_mult": 1e-09,
+    "trend_ema_fast": 50,
+    "trend_ema_slow": 200,
+    "trend_source": "h1",
+    "tp_r_mult": 1.5,
+    "sl_buffer_points": 1.0,
+    "sl_buffer_atr_mult": 0.0,
+    "break_even_enabled": true,
+    "break_even_trigger_r": 0.5,
+    "min_body_frac_of_range": 0.0,
+    "close_near_extreme_frac": 0.0,
+    "min_pullback_atr_mult": 0.25,
+    "atr_period": 14,
+    "confirm_close_beyond_level": false,
+    "vol_filter_enabled": true,
+    "atr_percentile_min": 10.0,
+    "atr_percentile_max": 95.0,
+    "atr_percentile_lookback": 500,
+    "max_trades_per_day": 0,
+    "cooldown_bars_after_loss": 0
+  }
+}

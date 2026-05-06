@@ -1,0 +1,176 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur when price closes outside the Asia range with high momentum",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > asia_range_high && momentum(14) > 50"
+      },
+      "short": {
+        "condition": "close < asia_range_low && momentum(14) < -50"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 2
+      }
+    }
+  },
+  {
+    "hypothesis": "Trend following works when price closes above/below the Donchian channel",
+    "regime_filter": {
+      "type": "adx",
+      "params": {
+        "period": 14,
+        "threshold": 25
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > donchian_channel_high"
+      },
+      "short": {
+        "condition": "close < donchian_channel_low"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 2
+        }
+      },
+      "tp": {
+        "type": "trailing",
+        "params": {
+          "atr_period": 14,
+          "multiplier": 1
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Range expansion occurs when price closes outside the Bollinger Bands with increasing volatility",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "period": 20,
+        "deviation": 1.75
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > upper_bb && bb_width(20) > bb_width(10)"
+      },
+      "short": {
+        "condition": "close < lower_bb && bb_width(20) > bb_width(10)"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 1
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 1
+      }
+    }
+  }
+]

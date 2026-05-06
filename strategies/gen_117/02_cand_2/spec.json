@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Price reverts to the mean after extreme movements",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "threshold": 70
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "ma_period": 20,
+      "std_dev": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "ma_crossover",
+    "params": {
+      "ma_period": 20
+    }
+  },
+  "sl_rule": {
+    "type": "atr",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 2.0
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_ratio",
+    "params": {
+      "ratio": 1.5
+    }
+  },
+  "time_stop": 45,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

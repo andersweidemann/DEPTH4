@@ -1,0 +1,79 @@
+{
+  "name": "bb_bounce_3bar_us500_m15",
+  "hypothesis": "On US500 M15, a 3-bar Bollinger rejection pattern (poke through band, close back inside) signals short-term mean reversion with favorable R:R when volatility is moderate.",
+  "family": "mean_reversion",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "dev": 2.0,
+          "condition": "three_bar_bounce_lower"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "dev": 2.0,
+          "condition": "three_bar_bounce_upper"
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "max": 30
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min": 20,
+        "max": 90
+      },
+      {
+        "primitive": "session_mask",
+        "sessions": [
+          "london",
+          "ny"
+        ]
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 2.0
+    },
+    "take_profit": {
+      "type": "atr",
+      "period": 14,
+      "mult": 3.0
+    },
+    "time_stop": {
+      "bars": 24
+    },
+    "early_exit": {
+      "type": "opposite_bb_touch",
+      "period": 20,
+      "dev": 2.0
+    },
+    "cooldown_bars": 4
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "notes": "Inspired by BB-Gold-Scalper 3-bar pattern, ported to US500 where ADX<30 filter keeps us in range-bound regimes. Simple pattern ensures trade frequency exceeds 200."
+}

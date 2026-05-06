@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Breakout of Asia session range leads to London session expansion",
+  "regime_filter": {
+    "type": "session",
+    "start_hour": 7,
+    "end_hour": 10
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "range_period": "asia_session",
+    "displacement_threshold": 1.2
+  },
+  "exit_rule": {
+    "type": "take_profit",
+    "target": "fixed_pips",
+    "pips": 50
+  },
+  "stop_loss": {
+    "type": "fixed",
+    "distance": "1.0 * atr(14)"
+  },
+  "time_stop": {
+    "type": "fixed",
+    "bars": 20
+  },
+  "sizing": {
+    "type": "fixed",
+    "size": 0.01
+  }
+}

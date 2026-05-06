@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Price touching the Bollinger Band with high RSI readings results in a reversal",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "percentile": 70
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rsi_reversal",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb_tp",
+    "params": {
+      "sl_multiplier": 1.5,
+      "time_stop_bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

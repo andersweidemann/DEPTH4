@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Asia-London range expansion on XAUUSD M5 can be traded with a mean reversion approach",
+  "regime_filter": {
+    "type": "asia_london_range",
+    "params": {
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb && rsi(7) < 10"
+    },
+    "short": {
+      "condition": "close > upper_bb && rsi(7) > 90"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "take_profit": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

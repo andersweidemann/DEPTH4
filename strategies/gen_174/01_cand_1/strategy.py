@@ -1,0 +1,44 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import atr, session_mask
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "GER40"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("start_hour", 7), self.spec.get("regime_filter", {}).get("params", {}).get("end_hour", 10)
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(session_mask(full_idx, [(sessions[0], sessions[1])]), dtype=bool)
+        self._broker_spread_points = 0
+        self._atr_series = self.I(atr, self.data, self.spec.get("entry_rule", {}).get("params", {}).get("atr_period", 14))
+
+    def _regime_ok(self):
+        return self._session_mask_full[-1] if self._session_mask_full is not None else True
+
+    def _filters_ok(self):
+        return self._regime_ok() and super()._filters_ok()
+
+    def _enter_if_signal(self):
+        min_range_atr = self.spec.get("entry_rule", {}).get("params", {}).get("min_range_atr", 0.5)
+        max_range_atr = self.spec.get("entry_rule", {}).get("params", {}).get("max_range_atr", 2.0)
+        atr_now = float(self._atr_series[-1])
+        high_low_range = self.data.High[-1] - self.data.Low[-1]
+        range_atr = high_low_range / atr_now if not np.isnan(atr_now) else np.nan
+        if not np.isnan(range_atr) and min_range_atr <= range_atr <= max_range_atr:
+            lots = lots_by_risk_pct(self.spec.get("sizing_rule", {}).get("params", {}).get("risk_fraction", 0.02), self._equity_start, self.data)
+            if self.position.size == 0:
+                self.position.enter(long=True, lots=lots)
+                self.sl_price = self.data.Close[-1] - self.spec.get("exit_rule", {}).get("params", {}).get("sl_pips", 100) * self.data.Pip
+                self.tp_price = self.data.Close[-1] + self.spec.get("exit_rule", {}).get("params", {}).get("tp_pips", 500) * self.data.Pip
+
+    def _manage_open(self):
+        super()._manage_open()

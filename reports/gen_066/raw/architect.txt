@@ -1,0 +1,93 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "threshold": 30
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [10, 90]
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "sl_multiplier": 1.5,
+      "time_stop": 30
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "fraction": 0.01
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion leads to breakout opportunities",
+    "regime_filter": {
+      "type": "session",
+      "start_hour": 7,
+      "end_hour": 10
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "range_period": 6,
+      "breakout_threshold": 0.5
+    },
+    "exit_rule": {
+      "type": "tp_sl",
+      "tp": 100,
+      "sl": 50
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "size": 0.1
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M15",
+    "regime_filter": {
+      "type": "max_spread",
+      "threshold": 30
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "sl_multiplier": 1.0,
+      "time_stop": 20
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "fraction": 0.02
+    }
+  },
+  {
+    "hypothesis": "ATR-based volatility filtering improves mean reversion performance",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "threshold": 50
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [10, 90]
+    },
+    "exit_rule": {
+      "type": "tp_sl",
+      "tp": 50,
+      "sl": 25
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "size": 0.05
+    }
+  }
+]
+```

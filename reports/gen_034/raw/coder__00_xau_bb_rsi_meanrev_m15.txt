@@ -1,0 +1,198 @@
+```python
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+def _lower_bb(data, n, k):
+    mid, upper, lower = signals.bollinger(data, n, k)
+    return lower
+
+
+def _upper_bb(data, n, k):
+    mid, upper, lower = signals.bollinger(data, n, k)
+    return upper
+
+
+def _mid_bb(data, n, k):
+    mid, upper, lower = signals.bollinger(data, n, k)
+    return mid
+
+
+def _bb_width_pct(data, n, k, lookback):
+    mid, upper, lower = signals.bollinger(data, n, k)
+    width = (upper - lower) / mid
+    w = pd.Series(width)
+    pct = w.rolling(lookback, min_periods=1).rank(pct=True) * 100.0
+    return pct.to_numpy()
+
+
+def _in_session(ts, start_h, end_h):
+    h = ts.hour
+    return start_h <= h < end_h
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    bb_period = 20
+    bb_k = 1.75
+    rsi_period = 7
+    atr_period = 14
+    atr_sl_mult = 1.8
+    rsi_low = 15
+    rsi_high = 85
+    bbw_pct_thresh = 30
+    bbw_lookback = 100
+    time_stop_bars = 30
+    risk_pct = 0.5
+    session_start = 7
+    session_end = 20
+
+    def init(self):
+        try:
+            super().init()
+        except Exception:
+            self.spec = dict(getattr(self, "_spec", {}) or {})
+            self._kill_state = risk.DailyKillState(start_of_day_equity=self._equity_start)
+            self._session_mask_full = None
+            self._broker_spread_points = 0
+
+        self._lower = self.I(_lower_bb, self.data, self.bb_period, self.bb_k)
+        self._upper = self.I(_upper_bb, self.data, self.bb_period, self.bb_k)
+        self._mid = self.I(_mid_bb, self.data, self.bb_period, self.bb_k)
+        self._rsi = self.I(signals.rsi, self.data, self.rsi_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._bbw_pct = self.I(_bb_width_pct, self.data, self.bb_period, self.bb_k, self.bbw_lookback)
+
+        self._counters = {
+            "bars_seen": 0,
+            "signal_raw": 0,
+            "signal_after_regime": 0,
+            "signal_after_session": 0,
+            "orders_attempted": 0,
+            "orders_filled": 0,
+            "orders_rejected": 0,
+        }
+
+    def _regime_ok(self) -> bool:
+        v = float(self._bbw_pct[-1]) if len(self._bbw_pct) else np.nan
+        if np.isnan(v):
+            return False
+        return v > self.bbw_pct_thresh
+
+    def _session_ok(self) -> bool:
+        ts = pd.Timestamp(self.data.index[-1])
+        return _in_session(ts, self.session_start, self.session_end)
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+
+        close = float(self.data.Close[-1])
+        lower = float(self._lower[-1])
+        upper = float(self._upper[-1])
+        rsi_v = float(self._rsi[-1])
+        atr_v = float(self._atr_series[-1])
+        mid = float(self._mid[-1])
+
+        if np.isnan(lower) or np.isnan(upper) or np.isnan(rsi_v) or np.isnan(atr_v) or np.isnan(mid):
+            return
+
+        long_sig = close < lower and rsi_v < self.rsi_low
+        short_sig = close > upper and rsi_v > self.rsi_high
+
+        if not (long_sig or short_sig):
+            return
+
+        self._counters["signal_raw"] += 1
+
+        if not self._regime_ok():
+            return
+        self._counters["signal_after_regime"] += 1
+
+        if not self._session_ok():
+            return
+        self._counters["signal_after_session"] += 1
+
+        if long_sig:
+            sl = close - self.atr_sl_mult * atr_v
+            tp = mid
+            if sl >= close or tp <= close:
+                return
+            stop_dist = close - sl
+            units = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                stop_distance=stop_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+            if units is None or units <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            self._counters["orders_attempted"] += 1
+            try:
+                size = units if isinstance(units, int) else max(1, int(round(units)))
+                self.buy(size=size, sl=sl, tp=tp)
+                self._counters["orders_filled"] += 1
+            except Exception:
+                self._counters["orders_rejected"] += 1
+
+        elif short_sig:
+            sl = close + self.atr_sl_mult * atr_v
+            tp = mid
+            if sl <= close or tp >= close:
+                return
+            stop_dist = sl - close
+            units = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                stop_distance=stop_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+            if units is None or units <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            self._counters["orders_attempted"] += 1
+            try:
+                size = units if isinstance(units, int) else max(1, int(round(units)))
+                self.sell(size=size, sl=sl, tp=tp)
+                self._counters["orders_filled"] += 1
+            except Exception:
+                self._counters["orders_rejected"] += 1
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        if self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                self.position.close()
+                return
+            mid = float(self._mid[-1])
+            if not np.isnan(mid):
+                price = float(self.data.Close[-1])
+                if trade.is_long and price >= mid:
+                    self.position.close()
+                    return
+                if (not trade.is_long) and price <= mid:
+                    self.position.close()
+                    return
+
+    def next(self):
+        self._counters["bars_seen"] += 1
+        self._manage_open()
+        self._enter_if_signal()
+```

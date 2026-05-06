@@ -1,0 +1,92 @@
+{
+  "name": "bb_rsi_mean_reversion_xauusd_m15",
+  "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands with an extreme RSI(7) reading during active sessions and sufficient volatility, price reverts to the middle band within 30 bars.",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "dev": 1.75,
+          "condition": "close_below_lower"
+        },
+        {
+          "primitive": "rsi",
+          "period": 7,
+          "condition": "lt",
+          "value": 12
+        },
+        {
+          "primitive": "bb_width",
+          "period": 20,
+          "percentile_min": 30,
+          "lookback": 500
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "dev": 1.75,
+          "condition": "close_above_upper"
+        },
+        {
+          "primitive": "rsi",
+          "period": 7,
+          "condition": "gt",
+          "value": 88
+        },
+        {
+          "primitive": "bb_width",
+          "period": 20,
+          "percentile_min": 30,
+          "lookback": 500
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min": 25,
+        "max": 95
+      },
+      {
+        "primitive": "session_mask",
+        "sessions": [
+          "london",
+          "ny"
+        ]
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 1.5
+    },
+    "take_profit": {
+      "type": "bollinger_middle",
+      "period": 20
+    },
+    "time_stop": {
+      "bars": 30
+    },
+    "cooldown_bars": 3
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "notes": "Direct adaptation of MIT-licensed mean-reversion-scalper-mql5 tuned for XAUUSD M15. Previous gen had zero-trade failure; this uses well-known BB+RSI primitives that fire multiple times per week on gold."
+}

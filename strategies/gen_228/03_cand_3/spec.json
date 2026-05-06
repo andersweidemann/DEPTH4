@@ -1,0 +1,47 @@
+{
+  "hypothesis": "Mean reversion occurs in BTCUSD during low-volatility regimes on the M15 timeframe",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "percentile": 70
+    }
+  },
+  "entry_rules": {
+    "type": "mean_reversion",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 1000
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 60
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

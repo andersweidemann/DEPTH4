@@ -1,0 +1,50 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_period = self.spec["regime_filter"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["regime_filter"]["params"]["bb_deviation"]
+        self._rsi_period = 7
+        self._lower_bb, self._middle_bb, self._upper_bb = self.I(bollinger, self.data, self._bb_period, self._bb_deviation)
+        self._rsi = self.I(rsi, self.data, self._rsi_period)
+        self._bb_width = self.I(bb_width, self.data, self._bb_period, self._bb_deviation)
+        self._broker_spread_points = 0
+        self._session_mask_full = None
+
+    def _regime_ok(self):
+        bb_width_percentile = self.spec["regime_filter"]["params"]["percentile"]
+        bb_width_now = float(self._bb_width[-1])
+        bb_width_history = self._bb_width[:-1]
+        percentile = np.percentile(bb_width_history, bb_width_percentile)
+        return bb_width_now < percentile
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        long_condition = self.data.Close[-1] < self._lower_bb[-1] and self._rsi[-1] < 10
+        short_condition = self.data.Close[-1] > self._upper_bb[-1] and self._rsi[-1] > 90
+        if long_condition and not self.position.is_long:
+            self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["sl"]["params"]["distance"]
+            self.tp_price = self._upper_bb[-1]
+            self.position.enter_long(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start))
+        elif short_condition and not self.position.is_short:
+            self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["sl"]["params"]["distance"]
+            self.tp_price = self._lower_bb[-1]
+            self.position.enter_short(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start))
+
+    def _manage_open(self):
+        time_stop_bars = self.spec["exit_rules"]["time_stop"]["params"]["bars"]
+        if self.position:
+            bars_open = len(self.data) - self.position.entry_bar
+            if bars_open >= time_stop_bars:
+                self.position.close()
+```

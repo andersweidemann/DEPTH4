@@ -1,0 +1,92 @@
+{
+  "id": "g26_ger40_m15_donchian_trend_breakout",
+  "name": "GER40 M15 Donchian Trend Breakout",
+  "family": "breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "GER40 M15 trends intraday during European cash session. A 20-bar Donchian breakout filtered by EMA50>EMA200 trend alignment and ADX>=20 regime captures directional continuation with edge above costs. Falsified if PF<1.7 or trade count<200 over 2 years.",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close > donchian_high_20_prev AND ema50 > ema200 AND adx14 >= 20",
+    "short": "close < donchian_low_20_prev AND ema50 < ema200 AND adx14 >= 20",
+    "cooldown_bars": 6,
+    "max_concurrent": 1
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "atr_period": 14,
+      "atr_lookback": 200
+    },
+    "allow_when": "regime == 'trend' AND atr_pct >= 25 AND atr_pct <= 95",
+    "rationale": "Donchian breakouts require trending regime; filter both dead and parabolic vol."
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 2.0
+    },
+    "take_profit": {
+      "type": "atr_rr",
+      "rr": 2.5
+    },
+    "time_stop": {
+      "bars": 40
+    },
+    "trailing": {
+      "type": "donchian",
+      "period": 10,
+      "activate_at_rr": 1.0
+    }
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.75,
+    "max_daily_loss_pct": 3.0,
+    "max_positions": 1
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "windows_utc": [
+      [
+        "07:00",
+        "19:00"
+      ]
+    ]
+  },
+  "min_trades_expected": 230,
+  "notes": "Inspired by DAX10 Market Mafia pine (inspiration only). Uses trend+vol regime gate; no pyramiding in v1."
+}

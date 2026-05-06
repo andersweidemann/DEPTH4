@@ -1,0 +1,68 @@
+{
+  "id": "gen40_01_xau_m15_bb_meanrev_simple",
+  "hypothesis": "On XAUUSD M15, a single-bar close outside Bollinger Bands (20, 2.0) with RSI(7) extreme reverts to the middle band within 30 bars, producing positive expectancy when BB width is above its 30th percentile.",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "percentile_lookback": 500
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi_7 < 15",
+    "short": "close > upper_bb AND rsi_7 > 85",
+    "note": "Single-bar trigger only. No multi-bar confirmation. Act on bar close, enter next bar open."
+  },
+  "regime_filter": {
+    "primitive": "bb_width_percentile",
+    "condition": "bb_width_pct >= 30",
+    "comment": "Avoid dead-range chop; do NOT gate on ADX as well (too conjunctive)."
+  },
+  "exit_rules": {
+    "tp": "opposite Bollinger Band OR middle BB touch (whichever first)",
+    "sl": "1.8 * ATR(14) from entry",
+    "time_stop": "30 bars (~7.5h on M15)",
+    "trailing": "none"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": {
+    "enabled": false,
+    "comment": "Gold trades 23h; keep session filter OFF initially to guarantee signal flow. Add later if noise too high."
+  },
+  "diagnostics": {
+    "dry_run_required": true,
+    "log_raw_signals": true,
+    "min_expected_signals_per_year": 80
+  },
+  "diversity_tag": "mean_reversion_bb_rsi"
+}

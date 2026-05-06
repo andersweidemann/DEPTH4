@@ -1,0 +1,35 @@
+{
+  "hypothesis": "ATR-based breakout during low volatility leads to mean reversion",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 30,
+      "lookback": 20
+    }
+  },
+  "symbol": "US500",
+  "timeframe": "M15",
+  "entry_rule": {
+    "type": "atr_breakout",
+    "params": {
+      "atr_period": 14,
+      "atr_multiple": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "tp_pips": 200,
+      "sl": "fixed_pips",
+      "sl_pips": 50,
+      "time_stop": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

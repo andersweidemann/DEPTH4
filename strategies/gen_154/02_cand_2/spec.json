@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Price touching the Bollinger Band with a high RSI reading can indicate a reversal",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "min_width": 0.01
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rsi_reversal",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        70,
+        30
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "trailing_stop_pips": 20,
+      "trailing_step_pips": 10
+    }
+  },
+  "sizing_rule": {
+    "type": "proportional",
+    "params": {
+      "proportion": 0.02
+    }
+  }
+}

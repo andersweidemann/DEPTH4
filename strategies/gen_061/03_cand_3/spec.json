@@ -1,0 +1,24 @@
+{
+  "hypothesis": "Donchian channel breakout results in a trend following opportunity.",
+  "regime_filter": {
+    "type": "adx",
+    "threshold": 20
+  },
+  "entry_rule": {
+    "type": "donchian_breakout",
+    "params": {
+      "donchian_period": 20,
+      "breakout_threshold": 0.5
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "sl": "2 * atr(14)",
+    "tp": "1000 pips",
+    "time_stop": 30
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "size": 0.2
+  }
+}

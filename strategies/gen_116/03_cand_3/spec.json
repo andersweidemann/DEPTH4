@@ -1,0 +1,44 @@
+{
+  "hypothesis": "ATR breakouts occur during high-volatility regimes",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 70,
+      "lookback": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > upper_atr_breakout(14) and rsi(7) > 50"
+    },
+    "short": {
+      "condition": "close < lower_atr_breakout(14) and rsi(7) < 50"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 150
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 300
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 3
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 3
+    }
+  }
+}

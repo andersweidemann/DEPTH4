@@ -1,0 +1,112 @@
+{
+  "id": "gen2_us500_donchian_trend_m15",
+  "family": "trend_breakout",
+  "hypothesis": "On US500 M15 during regular US cash hours, Donchian(20) channel breakouts confirmed by EMA(50) slope and ADX>20 capture trending impulses with asymmetric R:R >= 2, producing PF>=1.5.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "name": "dc20",
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "name": "ema50",
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "name": "ema200",
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "name": "atr14",
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "adx14",
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "us_sess",
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "13:30",
+        "end_utc": "20:00"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "us_sess==1 AND close > dc20.upper[1] AND ema50 > ema50[5] AND close > ema200 AND adx14 > 20",
+    "short": "us_sess==1 AND close < dc20.lower[1] AND ema50 < ema50[5] AND close < ema200 AND adx14 > 20",
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * atr14 from entry",
+    "take_profit": "3.0 * atr14 from entry",
+    "time_stop_bars": 48,
+    "trailing": "move to breakeven at +1R, then trail by 2*atr14"
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14
+    },
+    "rule": "adx14 > 20 AND atr_percentile(100) between 0.25 and 0.90"
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_spread_points": 25
+  },
+  "parameters_to_optimize": {
+    "donchian_period": [
+      15,
+      20,
+      30,
+      55
+    ],
+    "ema_fast": [
+      34,
+      50,
+      89
+    ],
+    "adx_min": [
+      18,
+      20,
+      25
+    ],
+    "sl_atr_mult": [
+      1.2,
+      1.5,
+      2.0
+    ],
+    "tp_atr_mult": [
+      2.5,
+      3.0,
+      4.0
+    ]
+  },
+  "inspiration_refs": [
+    "dax10_strategy_fixed_BEST"
+  ],
+  "diversity_tag": "trend_donchian"
+}

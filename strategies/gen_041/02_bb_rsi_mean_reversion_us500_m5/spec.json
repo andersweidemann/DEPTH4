@@ -1,0 +1,80 @@
+{
+  "spec_id": "gen41_cand_2",
+  "name": "BB+RSI Mean Reversion US500 M5",
+  "family": "mean_reversion",
+  "hypothesis": "US500 M5 reverts to the BB mid when price closes beyond BB(20, 2.0) with RSI(2) at extremes, but only when volatility is active (BB-width above 30th percentile) and during US cash session (13:30-20:00 UTC). Outside these conditions the edge is dominated by trend drift.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "type": "bollinger",
+      "period": 20,
+      "stddev": 2.0,
+      "id": "bb20"
+    },
+    {
+      "type": "bb_width",
+      "period": 20,
+      "stddev": 2.0,
+      "lookback": 500,
+      "id": "bbw"
+    },
+    {
+      "type": "rsi",
+      "period": 2,
+      "id": "rsi2"
+    },
+    {
+      "type": "atr",
+      "period": 14,
+      "id": "atr14"
+    },
+    {
+      "type": "session_mask",
+      "window_utc": "13:30-20:00",
+      "id": "us_sess"
+    }
+  ],
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "session_mask",
+        "window_utc": "13:30-20:00"
+      },
+      {
+        "rule": "bb_width_percentile_min",
+        "value": 30,
+        "ref": "bbw"
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "max": 25,
+        "note": "reject strong trend"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close < bb20.lower AND rsi2 < 5 AND prev_close < bb20.lower",
+    "short": "close > bb20.upper AND rsi2 > 95 AND prev_close > bb20.upper"
+  },
+  "exit_rules": {
+    "sl": "1.5 * atr14 from entry",
+    "tp": "bb20.middle (dynamic)",
+    "time_stop": "30 M5 bars (~2.5h)",
+    "trailing": "none"
+  },
+  "sizing": {
+    "mode": "risk_pct_per_trade",
+    "risk_pct": 0.4,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 6
+  },
+  "diversification_tag": "mean_reversion",
+  "notes": "Different family from candidates 0/1. BB-width percentile and ADX ceiling are the key regime gates; plain BB+RSI without them historically produces zero-edge churn like gen40."
+}

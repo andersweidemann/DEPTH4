@@ -1,0 +1,33 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_ger40_m15_donchiantrendbreakout",
+      "fitness": 0.18,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.946,
+        "sharpe_avg": -0.407,
+        "max_dd_pct": 0.607,
+        "trades_total": 7684
+      }
+    },
+    {
+      "candidate": "00_xauusd_m5_asialondonrangebreakout",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FAIL\n\nBoth candidates fail acceptance thresholds. Recommend a strategy-family pivot rather than parameter tweaks.\n\n### 00_xauusd_m5_asialondonrangebreakout\n- **Zero trades across all 4 symbol/TF combos.** This indicates a broken signal pipeline: session time filters, range-definition thresholds, or breakout trigger never fire. Before pivoting, verify (a) session times match broker server time (likely off by DST/server offset), (b) range width filter isn't excluding all days, (c) breakout buffer (ATR mult) isn't unreachable intraday.\n- If after fixes it still doesn't trigger ~1 trade/day, the family is dead for this data.\n\n### 02_ger40_m15_donchiantrendbreakout\n- PF average 0.95 (all combos <1.0 except GER40 M5 at 1.009). Best case is break-even noise.\n- Sharpe negative on 3 of 4 combos. Win rate 40-44% with negative expectancy → loser average > winner average, classic breakout-in-chop failure.\n- Max DD is small only because position sizing is tiny (return_pct ~0). Not a robustness signal.\n- **Donchian trend breakout on M5/M15 in XAUUSD/GER40 is a known whipsaw regime.** The edge doesn't exist at these horizons without a trend/volatility regime filter.\n\n### Acceptance check\n- pf_min 2.0: both fail (NaN / 0.95)\n- sharpe_min 1.5: both fail\n- trades_min 200: cand 00 fails; cand 02 passes\n- require_all_combos_positive: both fail\n\n### Recommendation\nPivot strategy family. Breakout at M5/M15 without regime gating is saturated. Next generation should explore: (1) mean-reversion on XAUUSD M5 with volatility bands + session filter, (2) trend-continuation pullback (not breakout) on GER40 H1 with ADX>25 gate, (3) opening-range breakout only during high-ATR days (top quartile).",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Vanilla Donchian channel breakout on M5/M15 for XAUUSD and GER40 without regime/volatility gating",
+    "Asia-London range breakout as currently specified (produces zero trades — configuration or session logic is broken; do not retry same spec without instrumentation)",
+    "Pure breakout systems on sub-H1 timeframes without an ADX or realized-vol regime filter"
+  ]
+}

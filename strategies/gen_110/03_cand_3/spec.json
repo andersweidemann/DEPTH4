@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Trend following is profitable when ADX is above a certain threshold",
+  "regime_filter": {
+    "type": "adx",
+    "params": {
+      "adx_period": 14,
+      "adx_threshold": 25
+    }
+  },
+  "entry_rule": {
+    "type": "trend_following",
+    "params": {
+      "ma_period": 50
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": 200,
+      "sl": 50,
+      "time_stop": 90
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

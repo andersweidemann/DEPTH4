@@ -1,0 +1,89 @@
+{
+  "id": "01_asia_london_range_break_xau_m5_v2",
+  "name": "XAU M5 Asia Range \u2192 London Breakout (Fixed)",
+  "family": "session_breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "The Asia-session range (00:00-06:00 UTC) on XAUUSD acts as a liquidity pool; when London opens (07:00-10:00 UTC), a break of that range by >=0.4 ATR accompanied by a body-to-ATR ratio >=1.0 continues in the breakout direction at least once per active London session with positive expectancy, provided the range itself is between 0.5 and 2.0 ATR(14). Falsifiable: if fewer than 1.5 trades/day or PF<1.4 over the trade window.",
+  "signals": [
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "sessions": [
+        "asia_range_build",
+        "london_trade"
+      ],
+      "asia_start_utc": "00:00",
+      "asia_end_utc": "06:00",
+      "london_start_utc": "07:00",
+      "london_end_utc": "10:00"
+    },
+    {
+      "type": "donchian",
+      "period": 72,
+      "scope": "asia_session_only",
+      "outputs": [
+        "asia_high",
+        "asia_low"
+      ]
+    },
+    {
+      "type": "atr_breakout_levels",
+      "atr_mult": 0.4
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "custom_range_atr_ratio",
+        "min": 0.5,
+        "max": 2.0
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 100,
+        "operator": ">",
+        "threshold": 30
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry_rules": {
+    "long": "time_in_london_window AND close > asia_high + 0.4*atr(14) AND (close-open) >= 1.0*atr(14) AND bars_since_london_open <= 9 AND no_prior_trade_today",
+    "short": "time_in_london_window AND close < asia_low - 0.4*atr(14) AND (open-close) >= 1.0*atr(14) AND bars_since_london_open <= 9 AND no_prior_trade_today",
+    "notes": "Prior spec produced zero trades \u2014 thresholds relaxed (0.5->0.4 ATR breakout, 1.2->1.0 body), and single-trade-per-day gating is implemented via explicit flag not nested conditions."
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "structure",
+      "level": "opposite_side_of_asia_range",
+      "fallback_atr_mult": 1.2
+    },
+    "take_profit": {
+      "type": "atr",
+      "multiplier": 2.5,
+      "period": 14
+    },
+    "trailing_stop": {
+      "type": "atr",
+      "multiplier": 2.0,
+      "period": 14,
+      "activate_at_r": 1.0
+    },
+    "time_stop": {
+      "bars": 36,
+      "note": "close at or before 14:00 UTC regardless"
+    }
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_trades_per_day": 1
+  },
+  "notes": "Re-spec of previous zero-trade candidate. Relaxed breakout distance, clarified session/range computation, explicit max-trades-per-day flag."
+}

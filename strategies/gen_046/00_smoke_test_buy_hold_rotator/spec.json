@@ -1,0 +1,69 @@
+{
+  "name": "smoke_test_buy_hold_rotator",
+  "family": "diagnostic",
+  "hypothesis": "Pipeline smoke test: a symbol/timeframe-agnostic periodic long entry will produce >=200 trades over the IS window if the backtest harness, symbol resolution, and order execution path are wired correctly. If this candidate also produces zero trades, the failure is infrastructure, not strategy.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "lookback": 500,
+      "min_percentile": 0.05,
+      "max_percentile": 1.0
+    }
+  },
+  "entry": {
+    "long": {
+      "type": "periodic_timer",
+      "rules": [
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 20
+          },
+          "condition": "close > ema20"
+        },
+        {
+          "primitive": "session_mask",
+          "params": {
+            "sessions": [
+              "london",
+              "ny"
+            ],
+            "tz": "UTC"
+          },
+          "condition": "in_session"
+        }
+      ],
+      "trigger_every_n_bars": 48
+    },
+    "short": null
+  },
+  "exit": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 2.0
+      }
+    },
+    "tp": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 3.0
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "value": 96
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_positions": 1
+  },
+  "notes": "Diagnostic candidate. Low-frequency long-only timer entry with minimal filters (EMA trend + broad session). Primary purpose is to verify harness fires trades. Log per-bar counters for: session_open, ema_ok, timer_fired, order_accepted."
+}

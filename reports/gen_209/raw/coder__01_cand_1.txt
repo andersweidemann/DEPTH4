@@ -1,0 +1,69 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "GER40"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("start_hour", 7), self.spec.get("regime_filter", {}).get("params", {}).get("end_hour", 10)
+        full_idx = self.data.df.index
+        self._session_mask_full = np.asarray(session_mask(full_idx, [(sessions[0], sessions[1])]), dtype=bool)
+        self._broker_spread_points = 0
+        self.upper_bb = self.I(bollinger, self.data, n=20, std_dev=2).upper
+        self.lower_bb = self.I(bollinger, self.data, n=20, std_dev=2).lower
+        self.atr = self.I(atr, self.data, n=20)
+
+    def _regime_ok(self):
+        return True
+
+    def _filters_ok(self):
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = self._session_mask_full
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        return True
+
+    def _enter_if_signal(self):
+        if self._filters_ok():
+            close = self.data.Close[-1]
+            if close > self.upper_bb[-1] and self.atr[-1] > 10:
+                self.sl_price = close - 100 * self.data.pip
+                self.tp_price = close + 500 * self.data.pip
+                lots = lots_by_risk_pct(self._spec, self._equity_start, 2, self.data)
+                self.position.open_long(lots)
+            elif close < self.lower_bb[-1] and self.atr[-1] > 10:
+                self.sl_price = close + 100 * self.data.pip
+                self.tp_price = close - 500 * self.data.pip
+                lots = lots_by_risk_pct(self._spec, self._equity_start, 2, self.data)
+                self.position.open_short(lots)
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rules", {})
+        time_stop = exit_cfg.get("time_stop", {}).get("num_hours", 2) * 60
+        if not self.position:
+            return
+        trade = self.trades[-1]
+        if trade is not None:
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        if self.position.is_long and self.data.Close[-1] < self.sl_price:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] > self.sl_price:
+            self.position.close()
+```

@@ -1,0 +1,190 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "opposite_bb",
+          "params": {}
+        },
+        "stop_loss": {
+          "type": "atr",
+          "params": {
+            "period": 14,
+            "multiplier": 1.5
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "num_bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur on GER40 M15 during London session with high ATR",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "period": 14,
+        "percentile": 70
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 2,
+        "session": "london"
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "fixed_pips",
+          "params": {
+            "pips": 100
+          }
+        },
+        "stop_loss": {
+          "type": "fixed_pips",
+          "params": {
+            "pips": 50
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "num_bars": 20
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "RSI divergence occurs on US500 M5 with high BB width",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 80
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_divergence",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [30, 70]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "opposite_bb",
+          "params": {}
+        },
+        "stop_loss": {
+          "type": "atr",
+          "params": {
+            "period": 14,
+            "multiplier": 1.2
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "num_bars": 25
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  },
+  {
+    "hypothesis": "Donchian channel breakouts occur on BTCUSD M15 with low ADX",
+    "regime_filter": {
+      "type": "adx_threshold",
+      "params": {
+        "period": 14,
+        "threshold": 20
+      }
+    },
+    "entry_rule": {
+      "type": "donchian_breakout",
+      "params": {
+        "period": 20
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "fixed_pips",
+          "params": {
+            "pips": 200
+          }
+        },
+        "stop_loss": {
+          "type": "fixed_pips",
+          "params": {
+            "pips": 100
+          }
+        },
+        "time_stop": {
+          "type": "bars",
+          "params": {
+            "num_bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]
+```

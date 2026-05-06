@@ -1,0 +1,83 @@
+{
+  "name": "01_ger40_london_open_range_breakout_m15",
+  "hypothesis": "On GER40 M15, the first 60 minutes after the Frankfurt/London open (07:00-08:00 UTC) forms an opening range whose directional breakout during 08:00-11:00 UTC captures the institutional order flow imbalance, producing a positive-expectancy trend-day filter that Donchian-on-all-hours fails to isolate.",
+  "family": "session_breakout",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "type": "composite",
+    "rules": [
+      {
+        "primitive": "session_mask",
+        "window_utc": "08:00-11:00",
+        "active": true
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 20
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "min_pct": 35,
+        "max_pct": 95
+      }
+    ]
+  },
+  "entry_rules": {
+    "opening_range_window_utc": "07:00-08:00",
+    "trade_window_utc": "08:00-11:00",
+    "long": "close > OR_high AND close - OR_high >= 0.25 * ATR(14) AND body >= 0.6 * ATR(14)",
+    "short": "close < OR_low AND OR_low - close >= 0.25 * ATR(14) AND body >= 0.6 * ATR(14)",
+    "first_signal_only_per_day": true,
+    "OR_range_constraint": "0.4*ATR(14) <= (OR_high - OR_low) <= 2.0*ATR(14)"
+  },
+  "exit_rules": {
+    "stop_loss": "opposite side of opening range OR 1.0 * ATR(14), whichever is tighter",
+    "take_profit": "2.2 * initial_risk (R-multiple)",
+    "breakeven_trigger": "1.0 R",
+    "trailing": "chandelier 2.5 * ATR(14) after 1.5 R",
+    "time_stop_bars": 24,
+    "force_flat_utc": "16:00"
+  },
+  "sizing": {
+    "mode": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "pyramiding": 0
+  },
+  "params_to_search": {
+    "or_atr_min": [
+      0.3,
+      0.4,
+      0.5
+    ],
+    "or_atr_max": [
+      1.8,
+      2.0,
+      2.5
+    ],
+    "breakout_atr_buffer": [
+      0.15,
+      0.25,
+      0.4
+    ],
+    "tp_R": [
+      1.8,
+      2.2,
+      2.8
+    ],
+    "adx_min": [
+      18,
+      20,
+      25
+    ]
+  },
+  "acceptance_notes": "Expect ~1-2 trades per day per symbol across ~3 years => >500 trades on M15. Avoids the all-hours chop that killed the prior Donchian variant."
+}

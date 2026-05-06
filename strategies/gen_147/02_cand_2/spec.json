@@ -1,0 +1,51 @@
+{
+  "hypothesis": "Mean reversion occurs when price closes outside the Bollinger Bands with extreme RSI readings during the NY session",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 14,
+      "end_hour": 20
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rsi",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "middle_bb",
+    "params": {}
+  },
+  "stop_loss": {
+    "type": "atr",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.5
+    }
+  },
+  "take_profit": {
+    "type": "fixed",
+    "params": {
+      "pips": 50
+    }
+  },
+  "time_stop": {
+    "type": "fixed",
+    "params": {
+      "bars": 30
+    }
+  },
+  "sizing": {
+    "type": "fixed",
+    "params": {
+      "lots": 0.1
+    }
+  }
+}

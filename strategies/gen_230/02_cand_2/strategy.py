@@ -1,0 +1,48 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.lower_bb = self.I(bollinger, self.data, self.spec["regime_filter"]["params"]["period"], self.spec["regime_filter"]["params"]["deviation"], 'lower')
+        self.upper_bb = self.I(bollinger, self.data, self.spec["regime_filter"]["params"]["period"], self.spec["regime_filter"]["params"]["deviation"], 'upper')
+        self.bb_width = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["period"], self.spec["regime_filter"]["params"]["deviation"])
+
+    def _regime_ok(self):
+        return self.bb_width[-1] > 0
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.spec["entry_rules"]["long"]["condition"]:
+            if self.data.Close[-2] > self.lower_bb[-2] and self.data.Close[-1] <= self.lower_bb[-1] and self.data.Close[-1] > self.data.Close[-2] and self.data.Close[0] > self.lower_bb[0]:
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["sl"]["params"]["pips"] * self.data._pip
+                self.tp_price = self.upper_bb[0]
+                self.position.enter_long(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start, self.data))
+        elif self.spec["entry_rules"]["short"]["condition"]:
+            if self.data.Close[-2] < self.upper_bb[-2] and self.data.Close[-1] >= self.upper_bb[-1] and self.data.Close[-1] < self.data.Close[-2] and self.data.Close[0] < self.upper_bb[0]:
+                self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["sl"]["params"]["pips"] * self.data._pip
+                self.tp_price = self.lower_bb[0]
+                self.position.enter_short(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start, self.data))
+
+    def _manage_open(self):
+        if self.position:
+            if self.spec["exit_rules"]["time_stop"]["params"]["num_bars"] is not None:
+                if len(self.data) - self.position.entry_bar >= self.spec["exit_rules"]["time_stop"]["params"]["num_bars"]:
+                    self.position.close()
+            elif self.spec["exit_rules"]["tp"]["type"] == "opposite_bb":
+                if self.position.is_long and self.data.Close[-1] >= self.upper_bb[-1]:
+                    self.position.close()
+                elif not self.position.is_long and self.data.Close[-1] <= self.lower_bb[-1]:
+                    self.position.close()
+            elif self.spec["exit_rules"]["sl"]["type"] == "fixed":
+                if self.position.is_long and self.data.Close[-1] <= self.sl_price:
+                    self.position.close()
+                elif not self.position.is_long and self.data.Close[-1] >= self.sl_price:
+                    self.position.close()

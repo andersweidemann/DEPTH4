@@ -1,0 +1,93 @@
+{
+  "name": "xau_bb_rsi_meanrev_m15",
+  "hypothesis": "On XAUUSD M15, when price closes outside a 1.75-sigma Bollinger Band with RSI(7) at an extreme, price mean-reverts to the middle band within 30 bars, provided BB width is above its 30th percentile (avoiding dead ranges).",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "family": "mean_reversion",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "stddev": 1.75,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "stddev": 1.75,
+        "lookback": 500,
+        "min_percentile": 30
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7,
+        "long_below": 10,
+        "short_above": 90
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi7 < 10 AND bb_width_pctile >= 30",
+    "short": "close > upper_bb AND rsi7 > 90 AND bb_width_pctile >= 30",
+    "cooldown_bars": 3
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "period": 14,
+      "lookback": 500,
+      "min_percentile": 25,
+      "max_percentile": 90
+    },
+    "rationale": "Avoid both dead markets and extreme volatility spikes where mean reversion fails."
+  },
+  "exit_rules": {
+    "tp": "middle_bb (SMA20) touch",
+    "sl": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 30,
+    "breakeven_after": "1.0 * ATR(14) favorable move"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "params": {
+      "include_hours_utc": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "broker_tz_aware": true
+    }
+  },
+  "falsification_criteria": "PF < 1.3 or trades < 200 on IS; or BB-width filter removes >80% of signals (evidence filter is miscalibrated)."
+}

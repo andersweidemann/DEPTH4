@@ -1,0 +1,159 @@
+[
+  {
+    "name": "xau_bb_rsi_meanrev_m15",
+    "hypothesis": "On XAUUSD M15, when price closes outside a 1.75-sigma Bollinger Band with RSI(7) at an extreme, price mean-reverts to the middle band within 30 bars, provided BB width is above its 30th percentile (avoiding dead ranges).",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "family": "mean_reversion",
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "stddev": 1.75, "source": "close"}},
+      {"primitive": "bb_width", "params": {"period": 20, "stddev": 1.75, "lookback": 500, "min_percentile": 30}},
+      {"primitive": "rsi", "params": {"period": 7, "long_below": 10, "short_above": 90}},
+      {"primitive": "atr", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi7 < 10 AND bb_width_pctile >= 30",
+      "short": "close > upper_bb AND rsi7 > 90 AND bb_width_pctile >= 30",
+      "cooldown_bars": 3
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"period": 14, "lookback": 500, "min_percentile": 25, "max_percentile": 90},
+      "rationale": "Avoid both dead markets and extreme volatility spikes where mean reversion fails."
+    },
+    "exit_rules": {
+      "tp": "middle_bb (SMA20) touch",
+      "sl": "1.5 * ATR(14) from entry",
+      "time_stop_bars": 30,
+      "breakeven_after": "1.0 * ATR(14) favorable move"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "params": {"include_hours_utc": [7,8,9,10,11,12,13,14,15,16,17,18,19,20], "broker_tz_aware": true}
+    },
+    "falsification_criteria": "PF < 1.3 or trades < 200 on IS; or BB-width filter removes >80% of signals (evidence filter is miscalibrated)."
+  },
+  {
+    "name": "ger40_donchian_breakout_m15",
+    "hypothesis": "On GER40 M15 during European cash session (07:00-15:30 UTC), a close beyond the 20-bar Donchian high/low combined with ADX>20 captures intraday trend continuation; ATR-normalized stops handle index point-scale.",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "family": "breakout_trend",
+    "signals": [
+      {"primitive": "donchian", "params": {"period": 20}},
+      {"primitive": "atr_breakout_levels", "params": {"atr_period": 14, "buffer_atr": 0.1}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "ema", "params": {"period": 50}}
+    ],
+    "entry_rules": {
+      "long": "close > donchian_high(20) + 0.1*ATR14 AND close > ema50",
+      "short": "close < donchian_low(20) - 0.1*ATR14 AND close < ema50",
+      "one_entry_per_direction_per_session": true
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "params": {"period": 14, "min": 20},
+      "rationale": "Breakouts only pay in trending regimes; ADX<20 produces whipsaws on DAX."
+    },
+    "exit_rules": {
+      "tp": "2.5 * ATR(14)",
+      "sl": "1.2 * ATR(14)",
+      "time_stop_bars": 24,
+      "trailing": "chandelier: high - 2.5*ATR14 after +1R"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "params": {"include_hours_utc": [7,8,9,10,11,12,13,14,15], "broker_tz_aware": true}
+    },
+    "falsification_criteria": "Trades < 200 IS, or PF<1.3, or >60% of breakouts fail within 4 bars (indicates no trend edge)."
+  },
+  {
+    "name": "xau_london_range_expansion_m5",
+    "hypothesis": "On XAUUSD M5, after an Asia-session (00:00-06:00 UTC) accumulation range sized 0.5-2.0x ATR, a London-session (07:00-11:00 UTC) close beyond the range by >=0.5 ATR with body >=1.0 ATR yields positive expectancy via continuation.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "family": "session_range_breakout",
+    "signals": [
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"range_window_utc": [0,6], "trade_window_utc": [7,11], "broker_tz_aware": true}},
+      {"primitive": "atr_breakout_levels", "params": {"source": "session_range", "buffer_atr": 0.5}}
+    ],
+    "entry_rules": {
+      "asia_range": "high/low of bars 00:00-06:00 UTC",
+      "range_filter": "0.5*ATR14 <= (range_high - range_low) <= 2.0*ATR14",
+      "long": "close > range_high + 0.5*ATR14 AND body >= 1.0*ATR14 during trade window",
+      "short": "close < range_low - 0.5*ATR14 AND body >= 1.0*ATR14 during trade window",
+      "first_breakout_per_day_only": true
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"period": 14, "lookback": 500, "min_percentile": 30},
+      "rationale": "Expansion plays require baseline volatility; dead days produce fakeouts."
+    },
+    "exit_rules": {
+      "tp": "2.0 * ATR(14) or opposite range extreme + 1x ATR, whichever closer",
+      "sl": "0.75 * ATR(14)",
+      "time_stop_bars": 36,
+      "breakeven_after": "+1R"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "params": {"include_hours_utc": [7,8,9,10,11], "broker_tz_aware": true}
+    },
+    "falsification_criteria": "Zero trades on first IS bar (indicates session/TZ bug) OR PF<1.3 OR range-filter rejects >90% of days.",
+    "instrumentation_required": ["bars_seen_in_range_window", "ranges_formed", "range_size_atr_distribution", "breakout_triggers_evaluated", "orders_submitted"]
+  },
+  {
+    "name": "us500_ema_pullback_m15",
+    "hypothesis": "On US500 M15, in an ADX-confirmed uptrend (EMA50>EMA200, ADX>18), a pullback to EMA20 with RSI(14) dipping to 40-50 then turning up offers asymmetric continuation trades during US cash hours.",
+    "symbols": ["US500"],
+    "timeframes": ["M15"],
+    "family": "trend_pullback",
+    "signals": [
+      {"primitive": "ema", "params": {"periods": [20, 50, 200]}},
+      {"primitive": "rsi", "params": {"period": 14}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "adx", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "ema50 > ema200 AND low <= ema20 AND rsi14 crosses up through 50 AND close > ema20",
+      "short": "ema50 < ema200 AND high >= ema20 AND rsi14 crosses down through 50 AND close < ema20"
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "params": {"period": 14, "min": 18},
+      "rationale": "Pullback entries only work in directional regimes; ADX<18 means chop where EMA20 touches are noise."
+    },
+    "exit_rules": {
+      "tp": "2.0 * ATR(14)",
+      "sl": "1.3 * ATR(14) below swing low / above swing high",
+      "time_stop_bars": 20,
+      "trailing": "EMA20 cross against position after +1R"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "params": {"include_hours_utc": [13,14,15,16,17,18,19,20], "broker_tz_aware": true}
+    },
+    "falsification_criteria": "PF<1.3 IS, or trades<200, or win rate on pullback entries indistinguishable from random EMA20 touches (A/B vs non-ADX-filtered baseline)."
+  }
+]

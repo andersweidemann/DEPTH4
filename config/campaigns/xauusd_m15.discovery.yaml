@@ -1,0 +1,42 @@
+# Discovery phase: XAUUSD on M15 only. Merged over repo config.yaml.
+
+timeframes: [M15]
+
+factory_backtest_symbols: [XAUUSD]
+
+acceptance:
+  pf_min: 1.12
+  return_cagr_pct_min: 0.2
+  max_dd_pct: 32.0
+  sharpe_min: 0.05
+  trades_min: 72
+  require_all_combos_positive: true
+  max_local_vs_mt5_divergence_pct: 20.0
+
+loop:
+  candidates_per_gen: 4
+  survivors: 2
+  scout_every_n_gens: 3
+
+llm:
+  temperature: 0.38
+
+scout:
+  max_results_per_query: 36
+  default_queries:
+    - "XAUUSD M15 gold breakout MQL5 Expert Advisor"
+    - "MT5 gold London session range breakout 15 minute"
+    - "XAU mean reversion RSI Bollinger M15 MQL5"
+    - "gold CFD Asian range London expansion strategy"
+    - "MQL5 ATR trailing stop gold trend following"
+    - "fractal swing gold intraday M15"
+
+campaign:
+  name: xauusd_m15_discovery
+  architect_brief: |
+    CAMPAIGN (discovery): XAUUSD on M15 ONLY.
+    Every spec MUST set "symbols": ["XAUUSD"] and "timeframes": ["M15"].
+    Use realistic gold spread stress (see config symbols.xauusd). Hypotheses:
+    session ranges, trend pullbacks, volatility filters, mean reversion with hard stops.
+    regime_filter must be a JSON object, never a string; never all-on. Explicit SL, TP, time_stop, sizing.
+    At least two distinct strategy families per batch. Do not include GER40, US500, or BTC.

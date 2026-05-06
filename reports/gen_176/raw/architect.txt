@@ -1,0 +1,183 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs in XAUUSD on M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory, and volatility is above the 30th percentile.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb",
+        "params": {}
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "count": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakout of the Asia range in GER40 on M15 leads to a mean reversion opportunity when price retests the broken range within 5 bars.",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start": "07:00",
+        "end": "10:00"
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > high_asia_range && close[-1] < high_asia_range"
+      },
+      "short": {
+        "condition": "close < low_asia_range && close[-1] > low_asia_range"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "retest",
+        "params": {
+          "tolerance": 0.2
+        }
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "count": 10
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "The RSI(7) and Bollinger Bands can be used to identify mean reversion opportunities in US500 on M5 when the price is in overbought/oversold territory and volatility is above the 50th percentile.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 50
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "rsi(7) < 10 && close < lower_bb"
+      },
+      "short": {
+        "condition": "rsi(7) > 90 && close > upper_bb"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb",
+        "params": {}
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "count": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "The ATR breakout strategy can be applied to BTCUSD on M15 by entering long when the price breaks out above the upper ATR-based level and short when it breaks out below the lower level.",
+    "regime_filter": {
+      "type": "atr_breakout",
+      "params": {
+        "period": 14,
+        "multiplier": 2
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > upper_atr_level"
+      },
+      "short": {
+        "condition": "close < lower_atr_level"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 2
+        }
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "count": 15
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  }
+]
+```

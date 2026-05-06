@@ -1,0 +1,61 @@
+{
+  "name": "asia_london_range_break_xau",
+  "family": "breakout",
+  "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) expands out of the Asian accumulation range (00:00-06:00 UTC) when the range is ATR-normal (0.5-2.0x ATR). A body-confirmed close beyond the range produces asymmetric continuation for 1-3 hours.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "regime_filter": {
+    "primitives": [
+      "atr_percentile",
+      "adx",
+      "session_mask"
+    ],
+    "rules": [
+      {
+        "atr_percentile_14_200": {
+          "min": 0.3,
+          "max": 0.9
+        }
+      },
+      {
+        "adx_14": {
+          "min": 15
+        }
+      },
+      {
+        "session_utc": {
+          "entry_window": "07:00-10:00"
+        }
+      }
+    ]
+  },
+  "entry": {
+    "primitives": [
+      "atr",
+      "donchian",
+      "atr_breakout_levels"
+    ],
+    "rules": [
+      "compute asia_high/asia_low over 00:00-06:00 UTC",
+      "range = asia_high - asia_low; require 0.5*ATR14 <= range <= 2.0*ATR14",
+      "LONG: close > asia_high + 0.5*ATR14 AND candle_body >= 1.0*ATR14 within first 24 bars of London window",
+      "SHORT: mirror on asia_low",
+      "only first breakout per day"
+    ]
+  },
+  "exit": {
+    "sl": "entry -/+ 0.75 * ATR14",
+    "tp": "entry +/- 2.25 * ATR14 (3R)",
+    "time_stop": "close after 36 M5 bars (~3h) or at 15:00 UTC, whichever first",
+    "breakeven": "move SL to entry after +1.0*ATR14 favorable"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent": 1
+  }
+}

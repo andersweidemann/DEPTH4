@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Mean reversion occurs on BTCUSD M5 when price closes outside Bollinger Bands with extreme RSI readings and high ATR",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "2_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_risk",
+    "params": {
+      "risk": 5
+    }
+  }
+}

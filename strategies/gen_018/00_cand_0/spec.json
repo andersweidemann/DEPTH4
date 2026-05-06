@@ -1,0 +1,80 @@
+{
+  "id": "bb_rsi_meanrev_xau_m15",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, price closing outside Bollinger Bands with extreme RSI reverts to the mean within 30 bars, provided BB-width is above its 30th percentile (avoiding dead ranges) and ADX is low (non-trending regime).",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "session": {
+    "enabled": true,
+    "start_utc": "07:00",
+    "end_utc": "20:00",
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ]
+  },
+  "signals": [
+    {
+      "type": "bollinger",
+      "period": 20,
+      "dev": 1.75,
+      "source": "close"
+    },
+    {
+      "type": "rsi",
+      "period": 7
+    },
+    {
+      "type": "bb_width",
+      "period": 20,
+      "dev": 1.75,
+      "percentile_lookback": 500
+    },
+    {
+      "type": "atr",
+      "period": 14
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "op": "<",
+        "value": 22
+      },
+      {
+        "primitive": "bb_width_percentile",
+        "op": ">",
+        "value": 30
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry": {
+    "long": "close < lower_bb AND rsi(7) < 12",
+    "short": "close > upper_bb AND rsi(7) > 88",
+    "cooldown_bars": 3
+  },
+  "exit": {
+    "tp": "opposite_bb_touch",
+    "sl": {
+      "type": "atr_mult",
+      "period": 14,
+      "mult": 1.5
+    },
+    "time_stop_bars": 30,
+    "breakeven_at_r": 1.0
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "acceptance_notes": "Targets PF>=2, Sharpe>=1.5 on XAUUSD M15 2020-2024. Mean-reversion family; low-correlation with breakout siblings.",
+  "diversity_tag": "mean_rev_bb_rsi"
+}

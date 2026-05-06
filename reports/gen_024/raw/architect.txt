@@ -1,0 +1,145 @@
+[
+  {
+    "name": "asia_london_range_break_xau",
+    "family": "breakout",
+    "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) expands out of the Asian accumulation range (00:00-06:00 UTC) when the range is ATR-normal (0.5-2.0x ATR). A body-confirmed close beyond the range produces asymmetric continuation for 1-3 hours.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "regime_filter": {
+      "primitives": ["atr_percentile", "adx", "session_mask"],
+      "rules": [
+        {"atr_percentile_14_200": {"min": 0.30, "max": 0.90}},
+        {"adx_14": {"min": 15}},
+        {"session_utc": {"entry_window": "07:00-10:00"}}
+      ]
+    },
+    "entry": {
+      "primitives": ["atr", "donchian", "atr_breakout_levels"],
+      "rules": [
+        "compute asia_high/asia_low over 00:00-06:00 UTC",
+        "range = asia_high - asia_low; require 0.5*ATR14 <= range <= 2.0*ATR14",
+        "LONG: close > asia_high + 0.5*ATR14 AND candle_body >= 1.0*ATR14 within first 24 bars of London window",
+        "SHORT: mirror on asia_low",
+        "only first breakout per day"
+      ]
+    },
+    "exit": {
+      "sl": "entry -/+ 0.75 * ATR14",
+      "tp": "entry +/- 2.25 * ATR14 (3R)",
+      "time_stop": "close after 36 M5 bars (~3h) or at 15:00 UTC, whichever first",
+      "breakeven": "move SL to entry after +1.0*ATR14 favorable"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent": 1
+    }
+  },
+  {
+    "name": "bb_rsi_mean_revert_us500_m15",
+    "family": "mean_reversion",
+    "hypothesis": "US500 M15 during cash session exhibits strong mean reversion when price closes outside BB(20,2.0) with RSI(7) extreme AND BB width is above its 30th percentile (avoids dead chop). Reversion to middle band completes within ~20 bars.",
+    "symbols": ["US500"],
+    "timeframes": ["M15"],
+    "regime_filter": {
+      "primitives": ["bb_width", "adx", "session_mask"],
+      "rules": [
+        {"bb_width_percentile_200": {"min": 0.30, "max": 0.95}},
+        {"adx_14": {"max": 25}},
+        {"session_utc": {"entry_window": "13:30-20:00"}}
+      ]
+    },
+    "entry": {
+      "primitives": ["bollinger", "rsi", "atr"],
+      "rules": [
+        "BB(20, 2.0) on close; RSI(7)",
+        "LONG: close < lower_bb AND RSI(7) < 12 AND prior bar also below lower_bb",
+        "SHORT: close > upper_bb AND RSI(7) > 88 AND prior bar also above upper_bb",
+        "3-bar cooldown between entries"
+      ]
+    },
+    "exit": {
+      "sl": "1.75 * ATR14 from entry",
+      "tp": "middle BB (SMA20) OR opposite band, whichever is reached first; minimum 1.0R",
+      "time_stop": "close after 24 M15 bars (~6h)",
+      "early_exit": "close if RSI crosses 50 against position after 4 bars"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    }
+  },
+  {
+    "name": "bb_bounce_gold_m15",
+    "family": "mean_reversion",
+    "hypothesis": "XAUUSD M15 three-bar Bollinger bounce (pierce-and-reclaim) is a high-R reversion pattern when volatility is elevated but not extreme. The reclaim bar confirms absorption of the sweep.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "regime_filter": {
+      "primitives": ["atr_percentile", "adx", "bb_width"],
+      "rules": [
+        {"atr_percentile_14_200": {"min": 0.25, "max": 0.85}},
+        {"adx_14": {"max": 28}},
+        {"bb_width_percentile_200": {"min": 0.25}}
+      ]
+    },
+    "entry": {
+      "primitives": ["bollinger", "rsi", "atr"],
+      "rules": [
+        "BB(20, 2.0) on close",
+        "LONG: bar[-2].close > lower_bb; bar[-1].low < lower_bb (pierce); bar[0].close > lower_bb (reclaim); RSI(14) < 40",
+        "SHORT: mirror on upper band; RSI(14) > 60",
+        "require bar[0] body >= 0.5 * ATR14"
+      ]
+    },
+    "exit": {
+      "sl": "bar[-1] extreme -/+ 0.2 * ATR14 (swept wick)",
+      "tp": "middle BB at 0.5R min, opposite BB at full target; partial 50% at middle",
+      "time_stop": "close after 32 M15 bars (~8h)",
+      "breakeven": "after +1R move stop to entry"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    }
+  },
+  {
+    "name": "donchian_trend_pullback_ger40_m15",
+    "family": "trend_pullback",
+    "hypothesis": "GER40 M15 during EU cash session trends persistently when ADX>22. Entering on a shallow EMA20 pullback inside an established Donchian(40) breakout direction captures the continuation leg with better R than chasing breakouts.",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile", "session_mask", "classify"],
+      "rules": [
+        {"adx_14": {"min": 22}},
+        {"atr_percentile_14_200": {"min": 0.35, "max": 0.95}},
+        {"session_utc": {"entry_window": "07:00-15:30"}},
+        {"regime_class": "trend"}
+      ]
+    },
+    "entry": {
+      "primitives": ["donchian", "ema", "atr", "rsi"],
+      "rules": [
+        "trend_up = close made new Donchian(40) high within last 20 bars AND ema20 > ema50",
+        "trend_dn = mirror",
+        "LONG: trend_up AND price pulls back to within 0.3*ATR14 of ema20 AND RSI(14) between 40 and 60 AND bullish close (close > open, close > prior high)",
+        "SHORT: mirror (RSI 40-60, bearish close)",
+        "no entry within 2 bars of Donchian breakout bar (avoid chase)"
+      ]
+    },
+    "exit": {
+      "sl": "swing low/high of last 5 bars, minimum 1.0*ATR14 from entry",
+      "tp": "2.5R fixed; trail at 2*ATR14 after +1.5R",
+      "time_stop": "close after 30 M15 bars or at 20:00 UTC",
+      "breakeven": "at +1R"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.6,
+      "max_concurrent": 1
+    }
+  }
+]

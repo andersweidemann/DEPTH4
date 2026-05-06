@@ -1,0 +1,45 @@
+{
+  "hypothesis": "ATR breakout strategy is profitable on BTCUSD M5",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > atr_breakout_level"
+    },
+    "short": {
+      "condition": "close < atr_breakout_level"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

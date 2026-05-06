@@ -1,0 +1,43 @@
+{
+  "name": "GER40_M15_DonchianTrendPullback_v1",
+  "family": "trend_following",
+  "hypothesis": "On GER40 M15, trading EMA-aligned pullbacks to the 20-EMA after a fresh 40-bar Donchian breakout yields positive expectancy during European cash hours because DAX exhibits persistent intraday momentum when ADX is elevated.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "donchian_high(40) broken within last 10 bars AND ema(20) > ema(50) AND price pulls back to within 0.3*ATR of ema(20) AND close > ema(20)",
+    "entry_short": "donchian_low(40) broken within last 10 bars AND ema(20) < ema(50) AND price pulls back to within 0.3*ATR of ema(20) AND close < ema(20)",
+    "primitives_used": [
+      "ema",
+      "donchian",
+      "atr",
+      "session_mask"
+    ]
+  },
+  "regime_filter": {
+    "type": "trend",
+    "rules": [
+      "adx(14) >= 22",
+      "atr_percentile(200) >= 35",
+      "session_mask: 07:00-16:00 UTC (European cash)",
+      "classify: trend regime only"
+    ]
+  },
+  "exits": {
+    "stop_loss": "2.0*ATR(14) below/above ema(20) at entry",
+    "take_profit": "3.5*ATR(14) (R:R ~1.75)",
+    "time_stop": "close after 32 M15 bars (~8h)",
+    "trailing": "chandelier exit 3.0*ATR from highest close since entry, activated at +1.5*ATR"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "cooldown_bars": 6
+  },
+  "diversity_tag": "trend_pullback"
+}

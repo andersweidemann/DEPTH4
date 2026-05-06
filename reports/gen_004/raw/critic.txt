@@ -1,0 +1,19 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_01_ger40_london_open_range_breakout_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    },
+    {
+      "candidate": "02_03_us500_pullback_ema_trend_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Status: Total failure — zero trades across both candidates.**\n\nBoth candidates executed 0 trades over a 4.5-year IS window (2020-01-01 to 2024-06-30). This is not a signal-quality issue; it is an entry-logic or data-plumbing failure. No metrics are computable (PF, Sharpe, expectancy all NaN).\n\n### Likely root causes\n1. **Session/time filter misalignment** — London open logic may be using server time vs. broker time vs. UTC mismatch, so the breakout window never opens.\n2. **Symbol naming / data feed** — GER40 and US500 may resolve to a symbol with no bars loaded (e.g., `GER40.cash` vs. `GER40`), causing the strategy to skip every bar.\n3. **Entry condition too strict** — e.g., requiring range breakout AND a trend filter AND a volatility filter simultaneously, with no fallback.\n4. **Lot sizing / margin guard** rejecting every order silently before execution.\n\n### Recommendation\nDo **not** iterate on parameters. Add diagnostic instrumentation (bar counter, signal counter, rejection reason counter) and re-run a smoke test before generating any new candidates. Neither strategy family should be abandoned yet — we have no evidence either way.",
+  "per_survivor_notes": {},
+  "dead_branches": []
+}

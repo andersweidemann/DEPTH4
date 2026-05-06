@@ -1,0 +1,88 @@
+{
+  "name": "xauusd_trend_pullback_bb_m15",
+  "hypothesis": "Prior generation showed XAUUSD M15 is trend-persistent during LDN/NY overlap, defeating pure mean-reversion. Instead, use Bollinger Band middle-line pullbacks in a confirmed trend (EMA stack + ADX) to harvest trend continuation while entering at favorable pullback prices.",
+  "family": "trend_pullback",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "ema",
+      "period": 200
+    },
+    {
+      "type": "bollinger",
+      "period": 20,
+      "stddev": 2.0
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "rsi",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "windows": [
+        {
+          "start": "12:00",
+          "end": "20:00",
+          "tz": "UTC"
+        }
+      ]
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "when": "adx_14 >= 22 AND atr_percentile_200 >= 40",
+        "regime": "trend_active"
+      },
+      {
+        "default": "skip"
+      }
+    ],
+    "trade_when": [
+      "trend_active"
+    ],
+    "description": "Only engage when ADX confirms trend and ATR shows participative volatility."
+  },
+  "entry_rules": {
+    "long": "EMA50 > EMA200; price pulls back to touch BB middle (SMA20) or lower half but does NOT close below lower BB; next bar closes above BB middle; RSI(14) between 40 and 65 (not overbought).",
+    "short": "Mirror: EMA50 < EMA200; pullback to BB middle from below without closing above upper BB; next bar closes below BB middle; RSI(14) between 35 and 60.",
+    "max_signals_per_day": 2,
+    "cooldown_bars": 8
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "take_profit": "3.0 * ATR(14) (2R)",
+    "time_stop": "Close after 20 bars (5 hours) if neither hit",
+    "trailing": "After +1R favorable, move SL to breakeven + 0.1*ATR; after +1.5R, trail 1.2*ATR behind close"
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "parameters": {
+    "ema_fast": 50,
+    "ema_slow": 200,
+    "bb_period": 20,
+    "bb_stddev": 2.0,
+    "atr_period": 14,
+    "rsi_period": 14,
+    "rsi_long_min": 40,
+    "rsi_long_max": 65,
+    "rsi_short_min": 35,
+    "rsi_short_max": 60,
+    "adx_period": 14,
+    "adx_min": 22,
+    "atr_percentile_min": 40
+  }
+}

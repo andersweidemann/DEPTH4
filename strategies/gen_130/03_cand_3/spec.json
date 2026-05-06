@@ -1,0 +1,31 @@
+{
+  "hypothesis": "ATR-based volatility filters can improve trading performance",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "atr_breakout",
+    "params": {
+      "atr_period": 14,
+      "breakout_multiplier": 2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time_stop",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

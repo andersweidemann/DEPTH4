@@ -1,0 +1,88 @@
+{
+  "id": "gen7_bb_rsi_meanrev_xau_m15",
+  "name": "BB+RSI Mean Reversion XAUUSD M15",
+  "family": "mean_reversion",
+  "hypothesis": "XAUUSD M15 closes outside Bollinger(20, 2.0) bands with RSI(7) at extreme readings mean-revert toward the middle band when BB width is above the 30th percentile and outside high-impact news windows.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "bb": {
+      "primitive": "bollinger",
+      "period": 20,
+      "stddev": 2.0,
+      "source": "close"
+    },
+    "bb_width": {
+      "primitive": "bb_width",
+      "period": 20,
+      "stddev": 2.0
+    },
+    "rsi": {
+      "primitive": "rsi",
+      "period": 7
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "start_utc": "07:00",
+      "end_utc": "20:00"
+    }
+  },
+  "entry_rules": {
+    "long": "session AND close < bb.lower AND rsi < 12 AND prior_bar.close >= prior_bar.bb.lower",
+    "short": "session AND close > bb.upper AND rsi > 88 AND prior_bar.close <= prior_bar.bb.upper",
+    "cooldown_bars": 4
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "primitive": "bb_width",
+        "min_percentile": 30,
+        "lookback": 200
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "max": 28,
+        "comment": "reject strong trends"
+      }
+    ]
+  },
+  "exits": {
+    "sl": {
+      "type": "atr",
+      "mult": 1.5
+    },
+    "tp": {
+      "type": "band_target",
+      "target": "bb.middle",
+      "fallback_rr": 1.5
+    },
+    "time_stop": {
+      "bars": 24,
+      "comment": "~6h M15"
+    },
+    "early_exit": {
+      "on": "opposite_band_touch"
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

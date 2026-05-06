@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Range expansion occurs when price breaks out of the Asia range with increasing volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 20
+    }
+  },
+  "entry_rule": {
+    "type": "range_expansion",
+    "params": {
+      "asia_range_atr": 1.0,
+      "breakout_atr": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_range",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

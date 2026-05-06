@@ -1,0 +1,95 @@
+{
+  "name": "atr_breakout_volatility_expansion_us500_m5",
+  "hypothesis": "On US500 M5, when price breaks a 1.5*ATR(14) band around the prior 20-bar EMA during the NY cash session opening hours AND ATR percentile > 60 (volatility expansion), short-term continuation produces positive expectancy.",
+  "family": "breakout_trend",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": "close > ema(20) + 1.5*atr(14) AND atr_percentile(100) > 60 AND session_mask(13:30-20:00 UTC)",
+    "entry_short": "close < ema(20) - 1.5*atr(14) AND atr_percentile(100) > 60 AND session_mask(13:30-20:00 UTC)",
+    "indicators": [
+      "atr_breakout_levels(ema=20, atr=14, mult=1.5)",
+      "atr_percentile(100)",
+      "ema(20)"
+    ]
+  },
+  "regime_filter": {
+    "type": "atr_percentile",
+    "lookback_bars": 500,
+    "min_percentile": 60,
+    "max_percentile": 98,
+    "rationale": "Only trade when current ATR is in the upper volatility regime."
+  },
+  "entry_rules": {
+    "session_utc": "13:30-20:00",
+    "cooldown_bars": 6,
+    "max_concurrent_positions": 1,
+    "confirmation": "Bar close beyond band; enter next bar open."
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "mult": 1.5
+    },
+    "take_profit": {
+      "type": "r_multiple",
+      "r": 2.0
+    },
+    "time_stop": {
+      "type": "bars",
+      "n": 24
+    },
+    "trailing": {
+      "type": "atr_chandelier",
+      "atr_period": 14,
+      "mult": 2.5,
+      "activate_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "min_lot": 0.1
+  },
+  "params_to_optimize": {
+    "breakout_mult": [
+      1.0,
+      1.5,
+      2.0
+    ],
+    "ema_period": [
+      15,
+      20,
+      30
+    ],
+    "atr_percentile_min": [
+      50,
+      60,
+      70
+    ],
+    "atr_sl_mult": [
+      1.2,
+      1.5,
+      2.0
+    ],
+    "r_target": [
+      1.5,
+      2.0,
+      2.5
+    ]
+  },
+  "diagnostics_required": [
+    "bar_count_loaded",
+    "session_mask_sample_timestamps_utc",
+    "atr_percentile_distribution_summary",
+    "raw_breakout_count",
+    "breakouts_after_regime_and_session_filter",
+    "orders_submitted_vs_filled"
+  ],
+  "falsification_criteria": "PF < 1.4 OR trades < 200 OR sharpe < 1.2."
+}

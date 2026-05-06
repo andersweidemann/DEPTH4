@@ -1,0 +1,24 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_asia_london_range_breakout_xauusd_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FAILED\n\nAll candidates produced **zero trades** across all four symbol/timeframe combos (XAUUSD M5/M15, GER40 M5/M15) over the full IS window 2020-01-01 to 2024-06-30. This is not a tuning problem — it is a signal-generation failure. The strategy logic is either (a) never triggering entry conditions, (b) misaligned with the data feed's session timestamps, or (c) using thresholds that are structurally unreachable.\n\n### Likely root causes for 02_asia_london_range_breakout_xauusd_m5\n- **Session window misalignment**: Asia range likely defined in server-local time vs. data UTC. XAUUSD Asia session on most MT5 broker feeds is approx 00:00–07:00 server time (GMT+2/+3). If hardcoded UTC 23:00–06:00 is used against broker-time bars, the range captures the wrong window or is empty.\n- **Breakout filter too strict**: A min range size (e.g., `range > X*ATR`) or buffer (e.g., `breakout = high + 0.5*ATR`) that is never cleared on M5 bars.\n- **One-shot daily logic bug**: If the EA only allows one breakout per day and a `tradedToday` flag is never reset, it would still produce 1+ trades/year — zero trades over 4.5 years indicates the signal block is never entered at all.\n- **Symbol name mismatch**: GER40 may be `DE40`, `GER40.cash`, `DAX40` on the test feed; XAUUSD may be `XAUUSD.` or `GOLD`. If the EA's `_Symbol` guard or hardcoded symbol check fails silently, no trades fire.\n\n### Recommendation\nDo **not** iterate parameters on this candidate. Fix plumbing first, then re-run IS. If plumbing is confirmed correct and trade count remains < 50/year, pivot the strategy family.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not spawn further Asia/London range-breakout variants until a minimum viable signal (>= 100 trades/year on XAUUSD M5 IS) is demonstrated by a plumbing-fixed version of 02. Session-based breakout on XAUUSD M5 is not dead as a family, but this implementation is non-functional."
+  ],
+  "refinement_notes_for_author": {
+    "02_asia_london_range_breakout_xauusd_m5": [
+      "Add a debug counter: log every bar where (a) session detected, (b) range computed, (c) breakout level crossed, (d) order attempted but rejected. Zero trades means one of these is always false.",
+      "Replace hardcoded UTC session hours with broker-time detection via `TimeCurrent()` and compute the Asia window as [00:00, 07:00] broker-time, not UTC. Verify with a one-bar print of `TimeToString(iTime(_Symbol,PERIOD_M5,0))` on first run.",
+      "Remove any minimum range filter (e.g., `range >= 1.0*ATR`) for the first diagnostic run — confirm trades fire, then reintroduce filter calibrated to p50 of observed Asia range.",
+      "Normalize symbol handling: accept `XAUUSD`, `GOLD`, `XAUUSD.s`, `DE40`, `GER40`, `GER40.cash` via a symbol-family map instead of string equality.",
+      "Confirm `OrderSend` returns and log `GetLastError()` on failure — silent rejection by broker (min stop level, invalid volume) is indistinguishable from 'no signal' in current output."
+    ]
+  }
+}

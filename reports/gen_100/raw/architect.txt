@@ -1,0 +1,48 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with an RSI(7) extreme reading",
+    "regime_filter": "bb_width > 30th percentile",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "entry_rule": "Close < Lower BB(20, 1.75) AND RSI(7) < 10 OR Close > Upper BB(20, 1.75) AND RSI(7) > 90",
+    "sl": "1.5 * ATR(14)",
+    "tp": "Opposite Bollinger Band",
+    "time_stop": "30 bars",
+    "sizing": "Fixed fraction of equity"
+  },
+  {
+    "hypothesis": "Breakout of the Asia range during the London session results in a profitable trade",
+    "regime_filter": "Time of day between 07:00 and 10:00 UTC",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "entry_rule": "Breakout of the Asia range with a displacement candle >= 1.2x ATR",
+    "sl": "100 pips",
+    "tp": "500 pips",
+    "time_stop": "60 bars",
+    "sizing": "Fixed lot size"
+  },
+  {
+    "hypothesis": "Price will revert to the mean after a strong trend identified by the RSI(7) and Donchian channels",
+    "regime_filter": "RSI(7) > 70 AND Donchian channel breakout",
+    "symbol": "BTCUSD",
+    "timeframe": "M5",
+    "entry_rule": "Close > Upper Donchian channel AND RSI(7) > 70 OR Close < Lower Donchian channel AND RSI(7) < 30",
+    "sl": "2 * ATR(14)",
+    "tp": "Middle Donchian channel",
+    "time_stop": "20 bars",
+    "sizing": "Proportional to the ATR(14)"
+  },
+  {
+    "hypothesis": "Volatility contraction followed by an expansion results in a tradable move",
+    "regime_filter": "ATR(14) < 20th percentile",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "entry_rule": "ATR(14) expansion after a contraction with a minimum of 3 bars",
+    "sl": "1.2 * ATR(14)",
+    "tp": "2 * ATR(14)",
+    "time_stop": "40 bars",
+    "sizing": "Fixed fraction of equity with a maximum risk per trade"
+  }
+]
+```

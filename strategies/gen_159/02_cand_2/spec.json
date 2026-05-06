@@ -1,0 +1,29 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal strategy is profitable on XAUUSD M15 when price closes outside the bands and then reverses back inside.",
+  "regime_filter": {
+    "type": "bb_touch",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    }
+  },
+  "entry_rule": {
+    "type": "bb_bounce",
+    "params": {
+      "bounce_threshold": 0.2
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb_tp",
+    "params": {
+      "sl_multiplier": 1.5,
+      "time_stop_bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

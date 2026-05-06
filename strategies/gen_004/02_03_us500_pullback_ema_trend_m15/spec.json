@@ -1,0 +1,112 @@
+{
+  "name": "03_us500_pullback_ema_trend_m15",
+  "hypothesis": "US500 M15 during US cash session (13:30-20:00 UTC) exhibits persistent intraday trend continuation; buying shallow pullbacks to EMA20 within an EMA50>EMA200 uptrend (and mirror for downtrend) produces positive expectancy with ADX>20 regime filter. Avoids counter-trend and Asia chop that hurt Donchian.",
+  "family": "pullback_trend_follow",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "type": "composite",
+    "rules": [
+      {
+        "primitive": "ema",
+        "period": 50,
+        "compare": ">",
+        "vs": {
+          "primitive": "ema",
+          "period": 200
+        },
+        "for_longs": true
+      },
+      {
+        "primitive": "ema",
+        "period": 50,
+        "compare": "<",
+        "vs": {
+          "primitive": "ema",
+          "period": 200
+        },
+        "for_shorts": true
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 18
+      },
+      {
+        "primitive": "session_mask",
+        "window_utc": "13:30-20:00",
+        "active": true
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "min_pct": 25
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "trend_up AND low <= EMA(20) AND close > EMA(20) AND RSI(14) between 40 and 65",
+    "short": "trend_down AND high >= EMA(20) AND close < EMA(20) AND RSI(14) between 35 and 60",
+    "confirmation": "bullish/bearish engulfing or close in upper/lower 40% of bar range",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "stop_loss": "swing_low(5) - 0.2*ATR(14) for longs; mirror for shorts; cap at 1.5*ATR",
+    "take_profit": "2.0 * initial_risk",
+    "breakeven_trigger": "1.0 R",
+    "trailing": "EMA(20) cross or 2.0*ATR chandelier after 1.2 R",
+    "time_stop_bars": 20,
+    "force_flat_utc": "20:30"
+  },
+  "sizing": {
+    "mode": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "pyramiding": 0
+  },
+  "params_to_search": {
+    "ema_fast": [
+      10,
+      20,
+      34
+    ],
+    "ema_slow": [
+      50,
+      100
+    ],
+    "ema_trend": [
+      150,
+      200
+    ],
+    "adx_min": [
+      15,
+      18,
+      22
+    ],
+    "tp_R": [
+      1.5,
+      2.0,
+      2.5
+    ],
+    "rsi_long_band": [
+      [
+        35,
+        60
+      ],
+      [
+        40,
+        65
+      ],
+      [
+        45,
+        70
+      ]
+    ]
+  },
+  "acceptance_notes": "US cash-session-only reduces noise trades. Expected >250 trades/3yr on M15. Family diverges from BB mean-reversion and from session breakout."
+}

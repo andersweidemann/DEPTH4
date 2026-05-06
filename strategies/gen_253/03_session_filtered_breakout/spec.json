@@ -1,0 +1,30 @@
+{
+  "name": "Session Filtered Breakout",
+  "hypothesis": "Breakout during active trading sessions",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": "session_mask('london') or session_mask('new_york')",
+  "entry_rules": [
+    {
+      "type": "long",
+      "condition": "close > upper_bollinger_band(20, 2.0) and (session_mask('london') or session_mask('new_york'))"
+    },
+    {
+      "type": "short",
+      "condition": "close < lower_bollinger_band(20, 2.0) and (session_mask('london') or session_mask('new_york'))"
+    }
+  ],
+  "exit_rules": {
+    "stop_loss": "2 * atr(14)",
+    "take_profit": "4 * atr(14)",
+    "time_stop": "60 minutes"
+  },
+  "sizing": {
+    "type": "fixed",
+    "value": 0.4
+  }
+}

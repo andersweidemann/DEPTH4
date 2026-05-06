@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs when price pokes through a BB and closes back inside",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 100
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb && close[-1] < lower_bb"
+    },
+    "short": {
+      "condition": "close < upper_bb && close[-1] > upper_bb"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "distance": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "distance": 500
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

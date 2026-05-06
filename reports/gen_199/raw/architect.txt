@@ -1,0 +1,175 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb(20, 1.75) and rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb(20, 1.75) and rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts from the Asia range occur during the London session",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "high > asia_range_high and close > upper_bb(20, 1.75)"
+      },
+      "short": {
+        "condition": "low < asia_range_low and close < lower_bb(20, 1.75)"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to the mean after a strong trend",
+    "regime_filter": {
+      "type": "adx",
+      "params": {
+        "period": 14,
+        "threshold": 25
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb(20, 1.75) and adx(14) > 25"
+      },
+      "short": {
+        "condition": "close > upper_bb(20, 1.75) and adx(14) > 25"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Donchian channels can be used to identify breakouts",
+    "regime_filter": {
+      "type": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "high > donchian_high(20) and close > upper_bb(20, 1.75)"
+      },
+      "short": {
+        "condition": "low < donchian_low(20) and close < lower_bb(20, 1.75)"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  }
+]
+```

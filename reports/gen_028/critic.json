@@ -1,0 +1,6 @@
+{
+  "ranking": [],
+  "summary_markdown": "## Critic Report \u2014 Empty Generation\n\n**No candidate metrics were provided.** The input candidate list is empty, so no ranking, fitness scoring, or survivor selection can be performed.\n\n### Observations\n- 0 candidates evaluated\n- 0 survivors, 0 rejects\n- Acceptance thresholds (PF\u22652.0, DD\u226415%, Sharpe\u22651.5, trades\u2265200) could not be applied\n\n### Recommendation\nThe upstream pipeline (Generator \u2192 Backtester \u2192 Metrics) must produce at least one evaluated candidate before the Critic can rank. Verify:\n1. Generator emitted candidate EAs for the target symbol/TF set.\n2. Backtester completed runs and wrote metrics JSON (pf, sharpe, max_dd, trades, IS/OOS splits).\n3. Metrics aggregator forwarded results into the Critic input array.\n\nUntil a non-empty candidate set is supplied, treat this generation as a **pipeline failure**, not a strategy failure. Do not pivot strategy families based on this empty run.",
+  "per_survivor_notes": {},
+  "dead_branches": []
+}

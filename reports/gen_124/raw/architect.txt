@@ -1,0 +1,186 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "opposite_bb",
+          "params": {}
+        },
+        "stop_loss": {
+          "type": "atr_based",
+          "params": {
+            "atr_period": 14,
+            "atr_multiplier": 1.5
+          }
+        },
+        "time_stop": {
+          "type": "fixed_bars",
+          "params": {
+            "bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion strategy is effective on GER40 M15",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_min": 0.5,
+        "range_atr_max": 2.0,
+        "breakout_displacement": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "fixed_pips",
+          "params": {
+            "pips": 500
+          }
+        },
+        "stop_loss": {
+          "type": "fixed_pips",
+          "params": {
+            "pips": 100
+          }
+        },
+        "time_stop": {
+          "type": "fixed_bars",
+          "params": {
+            "bars": 20
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal strategy is effective on XAUUSD M5",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 50,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "opposite_bb",
+          "params": {}
+        },
+        "stop_loss": {
+          "type": "atr_based",
+          "params": {
+            "atr_period": 14,
+            "atr_multiplier": 1.5
+          }
+        },
+        "time_stop": {
+          "type": "fixed_bars",
+          "params": {
+            "bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion strategy with ATR-based stop loss is effective on US500 M15",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "session": "us"
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_exit",
+      "params": {
+        "take_profit": {
+          "type": "opposite_bb",
+          "params": {}
+        },
+        "stop_loss": {
+          "type": "atr_based",
+          "params": {
+            "atr_period": 14,
+            "atr_multiplier": 1.5
+          }
+        },
+        "time_stop": {
+          "type": "fixed_bars",
+          "params": {
+            "bars": 30
+          }
+        }
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  }
+]

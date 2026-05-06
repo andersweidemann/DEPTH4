@@ -1,0 +1,70 @@
+{
+  "name": "xauusd_asia_london_breakout_m5",
+  "hypothesis": "After a contained Asia-session range on XAUUSD, the London session produces a volatility expansion; trading the first ATR-confirmed breakout of the Asia range during 07:00-10:00 UTC yields positive expectancy because liquidity rotation creates directional follow-through.",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 72,
+        "source": "asia_session"
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_period": 14,
+        "mult_entry": 0.5,
+        "mult_body": 1.2
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "asia_start": "00:00",
+        "asia_end": "06:00",
+        "trade_start": "07:00",
+        "trade_end": "10:00",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "adx_min": 18,
+      "atr_pctile_period": 100,
+      "atr_pctile_min": 0.3,
+      "atr_pctile_max": 0.95,
+      "asia_range_atr_min": 0.5,
+      "asia_range_atr_max": 2.0
+    }
+  },
+  "entry_rules": {
+    "long": "During 07:00-10:00 UTC, candle closes above Asia-range high by >= 0.5*ATR(14) with body >= 1.2*ATR(14); only first breakout of the day; regime_filter must pass.",
+    "short": "Mirror: close below Asia-range low by >= 0.5*ATR(14) with body >= 1.2*ATR(14); only first breakout of the day."
+  },
+  "exit_rules": {
+    "stop_loss": "0.75 * ATR(14) from entry, capped to opposite side of Asia range",
+    "take_profit": "2.5 * ATR(14) from entry (R:R ~3.3)",
+    "trailing": "activate chandelier trail at 1.5R using 2.0*ATR(14)",
+    "time_stop": "close if not hit SL/TP within 36 M5 bars (3h) or at 12:00 UTC, whichever first"
+  },
+  "sizing": {
+    "model": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "pyramiding": 0
+  },
+  "falsifiable_conditions": "Reject if PF < 2.0, Sharpe < 1.5, trades < 200 over 3y, or if win rate on first-breakout subset is statistically indistinguishable from a random same-session entry.",
+  "notes": "Inspired by LVC scout card; distinct from Pine priors (which target indices)."
+}

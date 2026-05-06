@@ -1,0 +1,20 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_03_donchian_trend_breakout_ger40_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FAILED\n\nThe sole candidate `02_03_donchian_trend_breakout_ger40_m15` produced **zero trades across all four symbol/timeframe combos** (XAUUSD M5/M15, GER40 M5/M15) over the IS window 2020-01-01 to 2024-06-30. This is not a parameter-tuning problem \u2014 it is a signal-generation failure. Every metric is NaN or zero, so fitness collapses to 0.0 and acceptance thresholds (trades_min=200, pf_min=2.0, sharpe_min=1.5) cannot be evaluated.\n\n### Root-cause hypotheses\n1. **Donchian channel length too long for M15** (e.g., 55\u2013100 bars on an intraday TF rarely breaks cleanly once session filters, spreads, and ATR gates are layered on).\n2. **Breakout confirmation filter too strict** \u2014 trend filter (e.g., HTF EMA alignment or ADX>25) combined with close-beyond-channel likely eliminates every bar.\n3. **Session/time filter** may be excluding all valid hours, or symbol aliasing (GER40 vs DE40/DAX) is silently returning empty data.\n4. **Stop/entry distance gate** (min ATR or spread multiple) rejecting all setups.\n\n### Recommendation\nBefore pivoting the family, run a **diagnostic pass** with ALL filters disabled (pure Donchian breakout, length=20, no trend/session/ATR gate) to confirm data is flowing and signals exist. If that still yields 0 trades \u2192 data/symbol wiring bug. If it yields trades \u2192 re-enable filters one at a time to find the killer.\n\nIf diagnostic still produces zero trades on both instruments, treat Donchian trend-breakout on M5/M15 indices+gold as a **dead branch** for this factory config and pivot to a mean-reversion or session-open range family.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Donchian trend-breakout on M5/M15 for XAUUSD and GER40 with stacked trend+session+ATR filters \u2014 pending diagnostic, currently producing zero signals. Do not resubmit parameter variants until a bare-bones breakout baseline is shown to generate >=200 trades per combo."
+  ]
+}

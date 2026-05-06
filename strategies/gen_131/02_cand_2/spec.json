@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Price touching the Bollinger Band with a 3-bar confirmation pattern can be a profitable mean reversion trade",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 20
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch_3bar",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb_tp",
+    "params": {
+      "sl_multiplier": 1.2,
+      "time_stop_bars": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

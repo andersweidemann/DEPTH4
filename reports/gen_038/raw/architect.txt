@@ -1,0 +1,204 @@
+[
+  {
+    "name": "donchian_breakout_trend_xau_m5",
+    "hypothesis": "XAUUSD M5 exhibits strong impulsive continuation after breaking recent N-bar extremes during high-ADX regimes; trading Donchian breakouts filtered by trend strength and session liquidity captures momentum without mean-reversion bleed.",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "breakout_trend",
+    "signals": {
+      "entry_long": "close > donchian_upper(20) previous bar AND close > ema(50)",
+      "entry_short": "close < donchian_lower(20) previous bar AND close < ema(50)",
+      "primitives": ["donchian(20)", "ema(50)", "atr(14)"]
+    },
+    "regime_filter": {
+      "type": "adx_and_session",
+      "rules": [
+        "adx(14) >= 22",
+        "atr_percentile(100) >= 40",
+        "session_mask: London 07:00-11:00 UTC OR NY 13:00-17:00 UTC"
+      ],
+      "skip_when": "adx < 22 OR atr_percentile < 40 OR outside sessions"
+    },
+    "exits": {
+      "sl": "2.0 * atr(14) from entry",
+      "tp": "3.5 * atr(14) from entry (R:R ~1.75)",
+      "time_stop": "48 bars (~4h)",
+      "trailing": "chandelier: 3*atr(14) from highest high since entry, activates after +1.5 atr profit"
+    },
+    "sizing": {
+      "model": "risk_pct_per_trade",
+      "risk_pct": 0.75,
+      "max_concurrent": 1,
+      "cooldown_bars": 6
+    },
+    "params": {
+      "donchian_len": 20,
+      "ema_trend_len": 50,
+      "adx_len": 14,
+      "adx_min": 22,
+      "atr_len": 14,
+      "atr_pct_min": 40
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    }
+  },
+  {
+    "name": "asia_london_range_break_xau_m5_v2",
+    "hypothesis": "After a compressed Asia range (measured 00:00-06:00 UTC), XAUUSD expands directionally in the London session; a breakout beyond the Asia extreme with ATR-normalized body confirmation yields a tradable edge. Previous-gen zero-trade defect is addressed by loosening range ATR bounds, widening London window, and removing first-breakout-only lock.",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "session_breakout",
+    "signals": {
+      "entry_long": "bar_time in 07:00-12:00 UTC AND close > asia_high AND (close-asia_high) >= 0.3*atr(14) AND bar_body >= 0.8*atr(14)",
+      "entry_short": "bar_time in 07:00-12:00 UTC AND close < asia_low AND (asia_low-close) >= 0.3*atr(14) AND bar_body >= 0.8*atr(14)",
+      "primitives": ["session_mask", "atr(14)", "atr_breakout_levels"]
+    },
+    "regime_filter": {
+      "type": "range_quality_and_session",
+      "rules": [
+        "asia_range_atr_ratio between 0.4 and 2.5 (was 0.5-2.0)",
+        "session_mask: entry only 07:00-12:00 UTC",
+        "breakout must occur within first 18 M5 bars of London window (was 9)",
+        "max 2 trades per day per direction"
+      ],
+      "skip_when": "range outside bounds OR outside London window OR daily trade cap hit"
+    },
+    "exits": {
+      "sl": "opposite side of asia range OR 1.2*atr(14), whichever is tighter",
+      "tp": "2.0 * asia_range_size (target symmetric expansion)",
+      "time_stop": "close at 16:00 UTC if still open",
+      "trailing": "move SL to breakeven after +1.0*atr profit; then trail at 2*atr"
+    },
+    "sizing": {
+      "model": "risk_pct_per_trade",
+      "risk_pct": 0.75,
+      "max_concurrent": 1,
+      "cooldown_bars": 12
+    },
+    "params": {
+      "asia_start_utc": "00:00",
+      "asia_end_utc": "06:00",
+      "london_window_start": "07:00",
+      "london_window_end": "12:00",
+      "min_range_atr": 0.4,
+      "max_range_atr": 2.5,
+      "breakout_body_atr": 0.8,
+      "breakout_distance_atr": 0.3,
+      "max_breakout_bars": 18
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    }
+  },
+  {
+    "name": "bb_squeeze_expansion_ger40_m15",
+    "hypothesis": "GER40 M15 frequently exhibits volatility compression followed by directional expansion; entering on the first close outside a Bollinger band after a BB-width percentile squeeze captures the expansion move, with ADX rising as confirmation.",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "family": "volatility_expansion_breakout",
+    "signals": {
+      "entry_long": "bb_width(20,2.0) percentile(100) was < 20 within last 8 bars AND close > bb_upper(20,2.0) AND close > ema(50)",
+      "entry_short": "bb_width(20,2.0) percentile(100) was < 20 within last 8 bars AND close < bb_lower(20,2.0) AND close < ema(50)",
+      "primitives": ["bollinger(20,2.0)", "bb_width", "ema(50)", "adx(14)"]
+    },
+    "regime_filter": {
+      "type": "squeeze_then_expansion",
+      "rules": [
+        "bb_width_percentile < 20 in lookback 8 bars (squeeze precondition)",
+        "adx(14) rising and >= 18 at entry",
+        "session_mask: Frankfurt/London 07:00-16:00 UTC",
+        "atr_percentile(100) >= 30"
+      ],
+      "skip_when": "no recent squeeze OR adx < 18 OR outside session"
+    },
+    "exits": {
+      "sl": "1.5 * atr(14) from entry",
+      "tp": "3.0 * atr(14) from entry (R:R 2.0)",
+      "time_stop": "24 bars (~6h)",
+      "trailing": "move to breakeven after +1.5*atr; trail at 2*atr thereafter"
+    },
+    "sizing": {
+      "model": "risk_pct_per_trade",
+      "risk_pct": 0.75,
+      "max_concurrent": 1,
+      "cooldown_bars": 4
+    },
+    "params": {
+      "bb_len": 20,
+      "bb_dev": 2.0,
+      "bb_width_pct_max": 20,
+      "squeeze_lookback": 8,
+      "ema_trend_len": 50,
+      "adx_len": 14,
+      "adx_min": 18,
+      "atr_len": 14,
+      "atr_pct_min": 30
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    }
+  },
+  {
+    "name": "bb_rsi_mean_reversion_us500_m5",
+    "hypothesis": "US500 (equity index) is more mean-reverting intraday than XAU due to liquidity provision behavior and VWAP anchoring; BB(20,1.75) + RSI(7) extremes filtered by BB-width percentile and low-ADX regime produce a positive-expectancy scalp. This replaces the failed XAU M15 mean-reversion (dead branch) with a symbol better suited to the family.",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "family": "mean_reversion",
+    "signals": {
+      "entry_long": "close < bb_lower(20,1.75) AND rsi(7) < 10",
+      "entry_short": "close > bb_upper(20,1.75) AND rsi(7) > 90",
+      "primitives": ["bollinger(20,1.75)", "rsi(7)", "bb_width", "atr(14)", "adx(14)"]
+    },
+    "regime_filter": {
+      "type": "range_regime",
+      "rules": [
+        "adx(14) < 22 (avoid strong trends)",
+        "bb_width_percentile(100) > 30 (avoid dead ranges)",
+        "session_mask: US cash 13:30-20:00 UTC",
+        "atr_percentile(100) between 25 and 85"
+      ],
+      "skip_when": "adx >= 22 OR bb_width_pct <= 30 OR outside session OR atr extremes"
+    },
+    "exits": {
+      "sl": "1.5 * atr(14) from entry",
+      "tp": "opposite bollinger band (mean reversion target) OR middle BB if adverse rsi cross",
+      "time_stop": "30 bars (~2.5h)",
+      "trailing": "none (mean-reversion closes at target)"
+    },
+    "sizing": {
+      "model": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "cooldown_bars": 3
+    },
+    "params": {
+      "bb_len": 20,
+      "bb_dev": 1.75,
+      "rsi_len": 7,
+      "rsi_long_max": 10,
+      "rsi_short_min": 90,
+      "atr_len": 14,
+      "atr_sl_mult": 1.5,
+      "adx_len": 14,
+      "adx_max": 22,
+      "bb_width_pct_min": 30,
+      "time_stop_bars": 30
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    }
+  }
+]

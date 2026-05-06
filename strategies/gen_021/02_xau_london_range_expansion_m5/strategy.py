@@ -1,0 +1,213 @@
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    atr_period = 14
+    range_start_hour = 0
+    range_end_hour = 6
+    trade_start_hour = 7
+    trade_end_hour = 11
+    buffer_atr = 0.5
+    body_atr = 1.0
+    range_min_atr = 0.5
+    range_max_atr = 2.0
+    tp_atr = 2.0
+    sl_atr = 0.75
+    time_stop_bars = 36
+    atr_pct_lookback = 500
+    atr_pct_min = 30.0
+    risk_pct = 0.5
+
+    def init(self):
+        super().init()
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._atr_pct_series = self.I(
+            regime.atr_percentile, self.data, self.atr_period, self.atr_pct_lookback
+        )
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        idx_utc = pd.DatetimeIndex(idx)
+        if idx_utc.tz is None:
+            idx_utc = idx_utc.tz_localize("UTC")
+        else:
+            idx_utc = idx_utc.tz_convert("UTC")
+
+        hours = idx_utc.hour.values
+        dates = idx_utc.strftime("%Y-%m-%d").values
+
+        self._hours = hours
+        self._dates = dates
+        self._in_range_window = (hours >= self.range_start_hour) & (hours < self.range_end_hour)
+        self._in_trade_window = (hours >= self.trade_start_hour) & (hours <= self.trade_end_hour)
+
+        highs = np.asarray(self.data.High)
+        lows = np.asarray(self.data.Low)
+        n = len(highs)
+
+        self._day_range_high = np.full(n, np.nan)
+        self._day_range_low = np.full(n, np.nan)
+
+        cur_date = None
+        rh = -np.inf
+        rl = np.inf
+        for i in range(n):
+            d = dates[i]
+            if d != cur_date:
+                cur_date = d
+                rh = -np.inf
+                rl = np.inf
+            if self._in_range_window[i]:
+                if highs[i] > rh:
+                    rh = highs[i]
+                if lows[i] < rl:
+                    rl = lows[i]
+            if np.isfinite(rh) and np.isfinite(rl):
+                self._day_range_high[i] = rh
+                self._day_range_low[i] = rl
+
+        self._breakout_done_date: Optional[str] = None
+        self._last_breakout_date: Optional[str] = None
+
+    def _regime_ok(self) -> bool:
+        if len(self._atr_pct_series) == 0:
+            return False
+        val = float(self._atr_pct_series[-1])
+        if np.isnan(val):
+            return False
+        return val >= self.atr_pct_min
+
+    def _filters_ok(self) -> bool:
+        i = len(self.data) - 1
+        if i < 0 or i >= len(self._in_trade_window):
+            return False
+        if not self._in_trade_window[i]:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        i = len(self.data) - 1
+        if i < 0:
+            return
+
+        atr_val = float(self._atr_series[-1])
+        if np.isnan(atr_val) or atr_val <= 0:
+            return
+
+        rh = self._day_range_high[i]
+        rl = self._day_range_low[i]
+        if not (np.isfinite(rh) and np.isfinite(rl)):
+            return
+
+        range_size = rh - rl
+        if range_size < self.range_min_atr * atr_val:
+            return
+        if range_size > self.range_max_atr * atr_val:
+            return
+
+        today = self._dates[i]
+        if self._last_breakout_date == today:
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        body = abs(close - open_)
+
+        long_trigger = close > rh + self.buffer_atr * atr_val
+        short_trigger = close < rl - self.buffer_atr * atr_val
+
+        if not (long_trigger or short_trigger):
+            return
+        if body < self.body_atr * atr_val:
+            return
+
+        equity = float(self.equity)
+        price = close
+
+        if long_trigger:
+            sl = price - self.sl_atr * atr_val
+            tp_atr_target = price + self.tp_atr * atr_val
+            opp_target = rl + atr_val * 1.0 + (rh - rl)
+            tp_opp = rh + (rh - rl) + atr_val
+            tp = min(tp_atr_target, max(price + 0.1 * atr_val, rh + atr_val))
+            tp = min(tp_atr_target, rh + atr_val if rh + atr_val > price else tp_atr_target)
+            risk_dist = price - sl
+            if risk_dist <= 0:
+                return
+            size = risk.lots_by_risk_pct(equity, self.risk_pct, risk_dist, price)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            self._last_breakout_date = today
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+            except Exception:
+                return
+        elif short_trigger:
+            sl = price + self.sl_atr * atr_val
+            tp_atr_target = price - self.tp_atr * atr_val
+            tp_opp = rl - atr_val
+            tp = max(tp_atr_target, tp_opp if tp_opp < price else tp_atr_target)
+            risk_dist = sl - price
+            if risk_dist <= 0:
+                return
+            size = risk.lots_by_risk_pct(equity, self.risk_pct, risk_dist, price)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            self._last_breakout_date = today
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+            except Exception:
+                return
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        atr_val = float(self._atr_series[-1]) if len(self._atr_series) else np.nan
+
+        if self.time_stop_bars is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                self.position.close()
+                return
+
+        if not np.isnan(atr_val):
+            price = float(self.data.Close[-1])
+            for trade in self.trades:
+                entry = trade.entry_price
+                if trade.is_long:
+                    r = self.sl_atr * atr_val
+                    if price - entry >= r:
+                        if trade.sl is None or trade.sl < entry:
+                            trade.sl = entry
+                else:
+                    r = self.sl_atr * atr_val
+                    if entry - price >= r:
+                        if trade.sl is None or trade.sl > entry:
+                            trade.sl = entry
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

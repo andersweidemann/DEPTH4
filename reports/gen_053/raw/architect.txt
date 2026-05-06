@@ -1,0 +1,120 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "threshold": 30
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [10, 90]
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "target": "opposite_bb"
+    },
+    "stop_loss": {
+      "type": "fixed",
+      "distance": "1.5 * atr(14)"
+    },
+    "time_stop": {
+      "type": "fixed",
+      "bars": 30
+    },
+    "sizing": {
+      "type": "fixed",
+      "size": 0.01
+    }
+  },
+  {
+    "hypothesis": "Breakout of Asia session range leads to London session expansion",
+    "regime_filter": {
+      "type": "session",
+      "start_hour": 7,
+      "end_hour": 10
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "range_period": "asia_session",
+      "displacement_threshold": 1.2
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "target": "fixed_pips",
+      "pips": 50
+    },
+    "stop_loss": {
+      "type": "fixed",
+      "distance": "1.0 * atr(14)"
+    },
+    "time_stop": {
+      "type": "fixed",
+      "bars": 20
+    },
+    "sizing": {
+      "type": "fixed",
+      "size": 0.01
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band rejection leads to mean reversion",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "threshold": 50
+    },
+    "entry_rule": {
+      "type": "bb_rejection",
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "target": "middle_bb"
+    },
+    "stop_loss": {
+      "type": "fixed",
+      "distance": "1.2 * atr(14)"
+    },
+    "time_stop": {
+      "type": "fixed",
+      "bars": 25
+    },
+    "sizing": {
+      "type": "fixed",
+      "size": 0.01
+    }
+  },
+  {
+    "hypothesis": "RSI extremes lead to mean reversion",
+    "regime_filter": {
+      "type": "session",
+      "start_hour": 9,
+      "end_hour": 16
+    },
+    "entry_rule": {
+      "type": "rsi_extremes",
+      "rsi_period": 14,
+      "rsi_thresholds": [30, 70]
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "target": "fixed_pips",
+      "pips": 75
+    },
+    "stop_loss": {
+      "type": "fixed",
+      "distance": "1.5 * atr(14)"
+    },
+    "time_stop": {
+      "type": "fixed",
+      "bars": 30
+    },
+    "sizing": {
+      "type": "fixed",
+      "size": 0.01
+    }
+  }
+]

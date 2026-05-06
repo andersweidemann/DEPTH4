@@ -1,0 +1,106 @@
+{
+  "name": "asia_london_range_break_xau_m5_v1",
+  "hypothesis": "On XAUUSD M5, the Asia-session range (00:00-06:00 UTC) followed by a London-session breakout with a strong candle body captures directional expansion, provided the Asia range is within 0.5-2.0 ATR(14 D1-proxy via M5*48).",
+  "family": "breakout",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "source": "asia_session",
+          "session_start_utc": "00:00",
+          "session_end_utc": "06:00",
+          "condition": "close_breaks_high"
+        },
+        {
+          "primitive": "atr_breakout_levels",
+          "atr_period": 14,
+          "body_atr_min": 1.0,
+          "distance_atr_min": 0.4
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "source": "asia_session",
+          "session_start_utc": "00:00",
+          "session_end_utc": "06:00",
+          "condition": "close_breaks_low"
+        },
+        {
+          "primitive": "atr_breakout_levels",
+          "atr_period": 14,
+          "body_atr_min": 1.0,
+          "distance_atr_min": 0.4
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "atr_percentile",
+        "atr_period": 14,
+        "lookback": 500,
+        "condition": "between",
+        "low_percentile": 20,
+        "high_percentile": 90
+      },
+      {
+        "primitive": "session_mask",
+        "range_atr_min": 0.5,
+        "range_atr_max": 2.0,
+        "atr_period": 14
+      }
+    ]
+  },
+  "session_filter": {
+    "type": "session_mask",
+    "sessions_utc": [
+      {
+        "start": "07:00",
+        "end": "10:00"
+      }
+    ],
+    "max_breakout_bars_from_window_start": 12,
+    "only_first_breakout_per_day": true
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "range_opposite_plus_atr",
+      "atr_period": 14,
+      "buffer_atr": 0.3
+    },
+    "take_profit": {
+      "type": "rr_multiple",
+      "rr": 2.0
+    },
+    "time_stop": {
+      "bars": 24,
+      "at_end_of_session_utc": "16:00"
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "min_stop_points_buffer": 2.0
+  },
+  "diagnostics": {
+    "log_gate_rejections": true,
+    "symbol_alias_probe": [
+      "XAUUSD",
+      "XAUUSD.pro",
+      "XAUUSD.m",
+      "GOLD"
+    ],
+    "require_min_trades_per_year": 60
+  }
+}

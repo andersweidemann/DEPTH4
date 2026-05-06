@@ -1,0 +1,128 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_dev": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts from the Asia range during the London session are profitable",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_start": 0,
+        "asia_range_end": 6,
+        "breakout_threshold": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": 500,
+        "sl": 100,
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Reversals occur when price closes outside the Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_dev": 1.75,
+        "percentile": 70
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_reversal",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "middle_bb",
+        "sl": "2_atr",
+        "time_stop": 45
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Trend following is profitable when ADX is above a certain threshold",
+    "regime_filter": {
+      "type": "adx",
+      "params": {
+        "adx_period": 14,
+        "adx_threshold": 25
+      }
+    },
+    "entry_rule": {
+      "type": "trend_following",
+      "params": {
+        "ma_period": 50
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": 200,
+        "sl": 50,
+        "time_stop": 90
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.05
+      }
+    }
+  }
+]

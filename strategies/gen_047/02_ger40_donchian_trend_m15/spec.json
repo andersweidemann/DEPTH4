@@ -1,0 +1,58 @@
+{
+  "name": "ger40_donchian_trend_m15",
+  "family": "trend_following",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "On GER40 M15, Donchian(20) breakouts filtered by ADX(14)>22 and EMA(50)>EMA(200) (long) or <(short) during the 08:00-16:30 UTC European session produce trending continuation with PF>=2.0 and Sharpe>=1.5 over 200+ trades.",
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "ema",
+      "session_mask",
+      "atr_percentile"
+    ],
+    "rules": {
+      "adx_min": 22,
+      "adx_period": 14,
+      "ema_fast": 50,
+      "ema_slow": 200,
+      "trend_alignment_required": true,
+      "sessions_utc": [
+        [
+          "08:00",
+          "16:30"
+        ]
+      ],
+      "atr_percentile_min": 30,
+      "block_if_all_on": true
+    }
+  },
+  "entry": {
+    "long": "close > donchian_high(20) of prior bar AND ema(50) > ema(200) AND adx(14) > 22",
+    "short": "close < donchian_low(20) of prior bar AND ema(50) < ema(200) AND adx(14) > 22"
+  },
+  "exit": {
+    "tp": "3.0 * ATR(14) from entry",
+    "sl": "1.8 * ATR(14) from entry",
+    "time_stop_bars": 48,
+    "breakeven_after_R": 1.0,
+    "trailing": "chandelier 3.0*ATR(14) activated after 1.5R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.6,
+    "max_concurrent_positions": 1,
+    "max_daily_loss_pct": 3.0
+  },
+  "params": {
+    "donchian_period": 20,
+    "adx_period": 14,
+    "adx_min": 22,
+    "ema_fast": 50,
+    "ema_slow": 200,
+    "atr_period": 14,
+    "sl_atr_mult": 1.8,
+    "tp_atr_mult": 3.0
+  },
+  "diversification_tag": "donchian_trend"
+}

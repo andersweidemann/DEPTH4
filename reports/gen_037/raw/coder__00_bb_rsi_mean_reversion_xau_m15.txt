@@ -1,0 +1,195 @@
+```python
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, risk
+from agents.backtester import RegimeStrategy
+
+
+def _bb_upper(close, n, k):
+    mid, upper, lower = signals.bollinger(close, n, k)
+    return upper
+
+
+def _bb_lower(close, n, k):
+    mid, upper, lower = signals.bollinger(close, n, k)
+    return lower
+
+
+def _bb_middle(close, n, k):
+    mid, upper, lower = signals.bollinger(close, n, k)
+    return mid
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        super().init()
+
+        sp = self.spec
+        sig_cfg = sp.get("signals", {})
+        exit_cfg = sp.get("exit_rules", {}) or sp.get("exit", {})
+        entry_cfg = sp.get("entry_rules", {})
+        regime_cfg = sp.get("regime_filter", {})
+
+        self._bb_period = int(sp.get("bb_period", 20))
+        self._bb_dev = float(sp.get("bb_dev", 2.0))
+        self._rsi_period = int(sp.get("rsi_period", 7))
+        self._rsi_long_th = float(sp.get("rsi_long_th", 15))
+        self._rsi_short_th = float(sp.get("rsi_short_th", 85))
+        self._atr_period = int(sp.get("atr_period", 14))
+        self._atr_sl_mult = float(sp.get("atr_sl_mult", 1.8))
+        self._time_stop = int(exit_cfg.get("time_stop", {}).get("n", 30)) if isinstance(exit_cfg.get("time_stop"), dict) else int(exit_cfg.get("time_stop_bars", 30))
+        self._cooldown_bars = int(entry_cfg.get("cooldown_bars", 3))
+        self._be_trigger_r = float(exit_cfg.get("breakeven", {}).get("trigger_r", 1.0)) if isinstance(exit_cfg.get("breakeven"), dict) else 1.0
+        self._be_offset_r = float(exit_cfg.get("breakeven", {}).get("offset_r", 0.1)) if isinstance(exit_cfg.get("breakeven"), dict) else 0.1
+
+        self._regime_lookback = int(regime_cfg.get("lookback_bars", 500))
+        self._regime_min_pct = float(regime_cfg.get("min_percentile", 30))
+        self._regime_max_pct = float(regime_cfg.get("max_percentile", 95))
+
+        self._risk_pct = float(sp.get("sizing", {}).get("risk_pct", 0.5))
+        self._min_lot = float(sp.get("sizing", {}).get("min_lot", 0.01))
+
+        close = self.data.Close
+
+        self._bb_upper = self.I(_bb_upper, close, self._bb_period, self._bb_dev)
+        self._bb_lower = self.I(_bb_lower, close, self._bb_period, self._bb_dev)
+        self._bb_middle = self.I(_bb_middle, close, self._bb_period, self._bb_dev)
+        self._bb_width = self.I(signals.bb_width, close, self._bb_period, self._bb_dev)
+        self._rsi_series = self.I(signals.rsi, close, self._rsi_period)
+        self._atr_series = self.I(signals.atr, self.data, self._atr_period)
+
+        self._last_entry_bar = -10_000
+        self._entry_r_distance = {}
+
+    def _regime_ok(self) -> bool:
+        i = len(self.data) - 1
+        if i < self._bb_period + 5:
+            return False
+        width_now = float(self._bb_width[-1])
+        if np.isnan(width_now):
+            return False
+        lb = min(self._regime_lookback, i + 1)
+        window = np.asarray(self._bb_width)[i - lb + 1: i + 1]
+        window = window[~np.isnan(window)]
+        if len(window) < 30:
+            return False
+        pct = (window < width_now).sum() / len(window) * 100.0
+        return self._regime_min_pct <= pct <= self._regime_max_pct
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < self._cooldown_bars:
+            return
+
+        close = float(self.data.Close[-1])
+        upper = float(self._bb_upper[-1])
+        lower = float(self._bb_lower[-1])
+        middle = float(self._bb_middle[-1])
+        rsi_v = float(self._rsi_series[-1])
+        atr_v = float(self._atr_series[-1])
+
+        if any(np.isnan(x) for x in (upper, lower, middle, rsi_v, atr_v)):
+            return
+        if atr_v <= 0:
+            return
+
+        long_sig = close < lower and rsi_v < self._rsi_long_th
+        short_sig = close > upper and rsi_v > self._rsi_short_th
+
+        if not (long_sig or short_sig):
+            return
+
+        equity = float(self.equity)
+
+        if long_sig:
+            sl = close - self._atr_sl_mult * atr_v
+            tp = upper
+            if sl >= close or tp <= close:
+                return
+            stop_dist = close - sl
+            lots = risk.lots_by_risk_pct(equity, self._risk_pct, stop_dist, self._symbol)
+            if lots is None or lots < self._min_lot:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=lots, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    return
+            self._last_entry_bar = bar_i
+        elif short_sig:
+            sl = close + self._atr_sl_mult * atr_v
+            tp = lower
+            if sl <= close or tp >= close:
+                return
+            stop_dist = sl - close
+            lots = risk.lots_by_risk_pct(equity, self._risk_pct, stop_dist, self._symbol)
+            if lots is None or lots < self._min_lot:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=lots, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    return
+            self._last_entry_bar = bar_i
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        price = float(self.data.Close[-1])
+        bar_i = len(self.data) - 1
+
+        for trade in self.trades:
+            bars_open = bar_i - trade.entry_bar
+            if self._time_stop and bars_open >= self._time_stop:
+                trade.close()
+                continue
+
+            entry = float(trade.entry_price)
+            if trade.sl is None:
+                continue
+            r_dist = abs(entry - float(trade.sl))
+            if r_dist <= 0:
+                continue
+
+            if trade.is_long:
+                profit_r = (price - entry) / r_dist
+                if profit_r >= self._be_trigger_r:
+                    new_sl = entry + self._be_offset_r * r_dist
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                profit_r = (entry - price) / r_dist
+                if profit_r >= self._be_trigger_r:
+                    new_sl = entry - self._be_offset_r * r_dist
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

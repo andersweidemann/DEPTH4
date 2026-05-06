@@ -1,0 +1,70 @@
+{
+  "name": "ger40_donchian_trend_breakout_m15",
+  "hypothesis": "GER40 M15 exhibits persistent intraday trend continuation during European cash session (07:00-15:30 UTC); 20-bar Donchian breakouts filtered by ADX>22 and rising ATR percentile capture trend legs with positive expectancy.",
+  "family": "trend_breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "trade_start": "07:00",
+        "trade_end": "15:30",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "adx_min": 22,
+      "atr_pctile_period": 150,
+      "atr_pctile_min": 0.4,
+      "ema_alignment_required": true
+    }
+  },
+  "entry_rules": {
+    "long": "Close > Donchian-20 high of prior bar AND EMA50 > EMA200 AND ADX(14) > 22 AND session active; one entry per breakout level.",
+    "short": "Close < Donchian-20 low of prior bar AND EMA50 < EMA200 AND ADX(14) > 22 AND session active."
+  },
+  "exit_rules": {
+    "stop_loss": "2.0 * ATR(14) from entry or opposite Donchian band, whichever closer",
+    "take_profit": "scale 50% at 2R, runner to 5R",
+    "trailing": "chandelier 3.0*ATR(14) activated after 1.5R",
+    "time_stop": "close at 16:00 UTC if unfilled TP; force-close any open trade at 20:00 UTC"
+  },
+  "sizing": {
+    "model": "risk_pct_of_equity",
+    "risk_pct": 0.6,
+    "max_concurrent": 1,
+    "pyramiding": 1,
+    "pyramid_trigger": "+1.0R, same-direction new Donchian break"
+  },
+  "falsifiable_conditions": "Reject if PF<2.0, Sharpe<1.5, or if low-ADX subset outperforms high-ADX subset (thesis inversion), or trades<200.",
+  "notes": "Distinct from Pine DAX10 prior (that was MACD/RSI momentum with PineConnector plumbing); this is pure Donchian-trend."
+}

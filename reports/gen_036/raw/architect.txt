@@ -1,0 +1,177 @@
+[
+  {
+    "name": "bb_rsi_mean_reversion_xauusd_m15",
+    "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands with extreme RSI(7) during active sessions and sufficient BB-width, price reverts to the middle band within 30 bars often enough to yield PF>=2.0.",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "signals": {
+      "entry_long": "close < lower_bb(20, 1.8) AND rsi(7) < 12 AND bb_width > bb_width_percentile(200, 30)",
+      "entry_short": "close > upper_bb(20, 1.8) AND rsi(7) > 88 AND bb_width > bb_width_percentile(200, 30)",
+      "primitives_used": ["bollinger", "rsi", "bb_width", "session_mask"]
+    },
+    "regime_filter": {
+      "type": "volatility_gate",
+      "rules": [
+        "atr_percentile(14, 200) between 25 and 90",
+        "adx(14) < 28 (non-trending regime preferred)",
+        "session_mask: 07:00-20:00 broker time"
+      ]
+    },
+    "exits": {
+      "take_profit": "opposite bollinger band (mean reversion) OR middle band fallback",
+      "stop_loss": "1.8 * ATR(14) from entry",
+      "time_stop": "close after 30 M15 bars (~7.5h)",
+      "breakeven": "move SL to entry after +1.0*ATR favorable move"
+    },
+    "sizing": {
+      "type": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 4
+    },
+    "params_to_optimize": {
+      "bb_period": [18, 20, 24],
+      "bb_dev": [1.6, 1.8, 2.0],
+      "rsi_len": [5, 7, 9],
+      "rsi_long_thresh": [8, 12, 15],
+      "rsi_short_thresh": [85, 88, 92],
+      "atr_sl_mult": [1.3, 1.5, 1.8],
+      "time_stop_bars": [20, 30, 40]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "bb_rsi_mean_reversion_us500_m15",
+    "hypothesis": "On US500 M15, mean-reversion of BB extremes with RSI confirmation produces positive expectancy outside high-ADX trending regimes, generalizing the BB+RSI family to equity index behavior.",
+    "family": "mean_reversion",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "signals": {
+      "entry_long": "close < lower_bb(20, 2.0) AND rsi(7) < 15 AND bb_width > bb_width_percentile(200, 25)",
+      "entry_short": "close > upper_bb(20, 2.0) AND rsi(7) > 85 AND bb_width > bb_width_percentile(200, 25)",
+      "primitives_used": ["bollinger", "rsi", "bb_width", "session_mask", "adx"]
+    },
+    "regime_filter": {
+      "type": "non_trend_gate",
+      "rules": [
+        "adx(14) < 25",
+        "atr_percentile(14, 200) >= 20",
+        "session_mask: 13:30-21:00 UTC (US cash + overlap)"
+      ]
+    },
+    "exits": {
+      "take_profit": "middle bollinger band (SMA20) as primary, opposite band as runner",
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "time_stop": "close after 24 M15 bars (~6h)",
+      "breakeven": "move SL to entry after price tags middle band"
+    },
+    "sizing": {
+      "type": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 3
+    },
+    "params_to_optimize": {
+      "bb_period": [18, 20, 24],
+      "bb_dev": [1.8, 2.0, 2.2],
+      "rsi_len": [5, 7, 9],
+      "rsi_long_thresh": [10, 15, 20],
+      "rsi_short_thresh": [80, 85, 90],
+      "atr_sl_mult": [1.2, 1.5, 1.8],
+      "time_stop_bars": [18, 24, 32]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "donchian_atr_breakout_ger40_m15",
+    "hypothesis": "On GER40 M15, a 20-bar Donchian breakout confirmed by a wide-range candle during the London/Frankfurt session, filtered by rising ADX and ATR percentile, captures persistent European equity trend thrusts.",
+    "family": "breakout_trend",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "signals": {
+      "entry_long": "close > donchian_high(20)[1] AND candle_body > 0.8*ATR(14) AND ema(20) > ema(50)",
+      "entry_short": "close < donchian_low(20)[1] AND candle_body > 0.8*ATR(14) AND ema(20) < ema(50)",
+      "primitives_used": ["donchian", "atr", "ema", "session_mask", "adx"]
+    },
+    "regime_filter": {
+      "type": "trend_gate",
+      "rules": [
+        "adx(14) >= 20",
+        "atr_percentile(14, 200) between 30 and 95",
+        "session_mask: 07:00-16:00 broker time (Frankfurt/London cash hours)",
+        "classify: trending"
+      ]
+    },
+    "exits": {
+      "take_profit": "2.5 * ATR(14) fixed, plus trail at 2.0*ATR after +1.5*ATR",
+      "stop_loss": "1.8 * ATR(14) below/above entry candle",
+      "time_stop": "close after 20 M15 bars if neither SL/TP hit",
+      "breakeven": "move SL to entry after +1.0*ATR"
+    },
+    "sizing": {
+      "type": "risk_pct_per_trade",
+      "risk_pct": 0.6,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 6
+    },
+    "params_to_optimize": {
+      "donchian_len": [15, 20, 30],
+      "body_atr_mult": [0.6, 0.8, 1.0],
+      "ema_fast": [10, 20],
+      "ema_slow": [50, 100],
+      "atr_sl_mult": [1.5, 1.8, 2.2],
+      "tp_atr_mult": [2.0, 2.5, 3.0],
+      "time_stop_bars": [16, 20, 30]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "asia_range_london_breakout_xauusd_m5",
+    "hypothesis": "On XAUUSD M5, the Asia session (server-time 00:00-06:00) high/low acts as liquidity; a breakout during London open (07:00-11:00 server time) with ATR-normalized range filters and a breakout-body confirmation produces asymmetric follow-through.",
+    "family": "session_breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "signals": {
+      "entry_long": "bar_in_session(London, 07:00-11:00) AND close > asia_range_high AND (close - asia_range_high) >= 0.4*ATR(14) AND candle_body >= 1.0*ATR(14) AND first_breakout_of_day",
+      "entry_short": "bar_in_session(London, 07:00-11:00) AND close < asia_range_low AND (asia_range_low - close) >= 0.4*ATR(14) AND candle_body >= 1.0*ATR(14) AND first_breakout_of_day",
+      "range_build": "asia_range_high = max(high) / asia_range_low = min(low) over session_mask(00:00-06:00 server time)",
+      "primitives_used": ["session_mask", "atr", "atr_breakout_levels"]
+    },
+    "regime_filter": {
+      "type": "range_quality_gate",
+      "rules": [
+        "asia_range_size between 0.5*ATR(14) and 2.5*ATR(14)",
+        "atr_percentile(14, 200) >= 20",
+        "skip Mondays first hour and FOMC high-impact days (if calendar available, else always-on)",
+        "session_mask enforces both range-build and trade windows use BROKER/server time (not hardcoded UTC)"
+      ]
+    },
+    "exits": {
+      "take_profit": "2.0 * asia_range_size OR 2.5*ATR(14), whichever smaller",
+      "stop_loss": "opposite side of asia range + 0.2*ATR buffer (for long: asia_range_low - 0.2*ATR)",
+      "time_stop": "close at London session end (11:00 server time) if neither SL/TP hit",
+      "breakeven": "move SL to entry after +1.0*ATR favorable"
+    },
+    "sizing": {
+      "type": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "max_trades_per_day": 1,
+      "cooldown_bars": 0
+    },
+    "params_to_optimize": {
+      "asia_start_hour": [0, 1],
+      "asia_end_hour": [6, 7],
+      "london_start_hour": [7, 8],
+      "london_end_hour": [10, 11, 12],
+      "breakout_dist_atr": [0.3, 0.4, 0.6],
+      "body_atr_mult": [0.8, 1.0, 1.2],
+      "min_range_atr": [0.4, 0.5, 0.7],
+      "max_range_atr": [2.0, 2.5, 3.0],
+      "tp_range_mult": [1.5, 2.0, 2.5]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200},
+    "implementation_notes": "CRITICAL: use broker/server time for session masks and parameterize start/end hours; verify non-empty asia_range on first IS bars; log bars-in-range and breakout-count diagnostics to catch the zero-trades plumbing failure from gen 35."
+  }
+]

@@ -1,0 +1,59 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.close = self.data.Close
+        self.upper_bb, self.lower_bb = self.I(bollinger, self.data, self.spec["regime_filter"]["params"]["period"], self.spec["regime_filter"]["params"]["deviation"])
+        self.rsi = self.I(rsi, self.data, 7)
+        self.atr = self.I(atr, self.data, self.spec["exit_rules"]["sl"]["params"]["period"])
+        self.bb_width = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["period"], self.spec["regime_filter"]["params"]["deviation"])
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        bb_width_percentile = np.percentile(self.bb_width, self.spec["regime_filter"]["params"]["percentile"])
+        return self.bb_width[-1] > bb_width_percentile
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.spec["entry_rules"]["long"]["condition"]:
+            if self.close[-1] < self.lower_bb[-1] and self.rsi[-1] < 10:
+                self.position.open_long(self.close[-1], lots_by_risk_pct(self.spec["sizing"]["params"]["size"], self._equity_start, self.spec["risk"]["daily_dd_kill_pct"]))
+                self.sl_price = self.close[-1] - self.spec["exit_rules"]["sl"]["params"]["multiplier"] * self.atr[-1]
+                self.tp_price = self.upper_bb[-1]
+        elif self.spec["entry_rules"]["short"]["condition"]:
+            if self.close[-1] > self.upper_bb[-1] and self.rsi[-1] > 90:
+                self.position.open_short(self.close[-1], lots_by_risk_pct(self.spec["sizing"]["params"]["size"], self._equity_start, self.spec["risk"]["daily_dd_kill_pct"]))
+                self.sl_price = self.close[-1] + self.spec["exit_rules"]["sl"]["params"]["multiplier"] * self.atr[-1]
+                self.tp_price = self.lower_bb[-1]
+
+    def _manage_open(self):
+        if self.position:
+            if self.spec["exit_rules"]["tp"]["type"] == "opposite_bb":
+                if self.position.is_long and self.close[-1] >= self.tp_price:
+                    self.position.close()
+                elif not self.position.is_long and self.close[-1] <= self.tp_price:
+                    self.position.close()
+            if self.spec["exit_rules"]["sl"]["type"] == "atr":
+                if self.position.is_long and self.close[-1] <= self.sl_price:
+                    self.position.close()
+                elif not self.position.is_long and self.close[-1] >= self.sl_price:
+                    self.position.close()
+            if self.spec["exit_rules"]["time_stop"]["type"] == "bars":
+                if len(self.data) - self.position.entry_bar >= self.spec["exit_rules"]["time_stop"]["params"]["count"]:
+                    self.position.close()

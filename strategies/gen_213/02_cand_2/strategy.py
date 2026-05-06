@@ -1,0 +1,77 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import rsi, atr
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.rsi_series = self.I(rsi, self.data, 14)
+        self.atr_series = self.I(atr, self.data, 14)
+        self._broker_spread_points = 0
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        if rf["type"] == "rsi_extremes":
+            oversold = rf["params"]["oversold"]
+            overbought = rf["params"]["overbought"]
+            rsi_val = float(self.rsi_series[-1])
+            return rsi_val < oversold or rsi_val > overbought
+        return True
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        entry_rules = self.spec.get("entry_rules")
+        if entry_rules:
+            long_condition = entry_rules["long"]["condition"]
+            short_condition = entry_rules["short"]["condition"]
+            rsi_val = float(self.rsi_series[-1])
+            if long_condition == "rsi(14) < 30" and rsi_val < 30:
+                self.position.enter_long(lots_by_risk_pct(self.spec, self.data, self.equity))
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["sl"]["params"]["distance"]
+                self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["tp"]["params"]["distance"]
+            elif short_condition == "rsi(14) > 70" and rsi_val > 70:
+                self.position.enter_short(lots_by_risk_pct(self.spec, self.data, self.equity))
+                self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["sl"]["params"]["distance"]
+                self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["tp"]["params"]["distance"]
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rules")
+        time_stop = exit_cfg.get("time_stop", {}).get("bars")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        sl_distance = exit_cfg["sl"]["params"]["distance"]
+        tp_distance = exit_cfg["tp"]["params"]["distance"]
+        if self.position.is_long:
+            if self.data.Close[-1] >= self.tp_price:
+                self.position.close()
+            elif self.data.Close[-1] <= self.sl_price:
+                self.position.close()
+        elif not self.position.is_long:
+            if self.data.Close[-1] <= self.tp_price:
+                self.position.close()
+            elif self.data.Close[-1] >= self.sl_price:
+                self.position.close()

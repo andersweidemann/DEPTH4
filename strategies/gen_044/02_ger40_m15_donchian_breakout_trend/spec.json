@@ -1,0 +1,83 @@
+{
+  "id": "02_donchian_breakout_ger40_m15_v1",
+  "name": "GER40 M15 Donchian Breakout Trend",
+  "family": "volatility_breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "GER40 exhibits persistent intraday momentum during European cash hours. A break of the prior 30-bar Donchian channel during 08:00-16:00 UTC, filtered by ADX(14)>22 and EMA(50)>EMA(200) for longs (inverse for shorts), yields positive expectancy with R:R 2:1. Falsifiable: rejected if Sharpe<1.0 or trend-alignment trades underperform counter-trend trades.",
+  "signals": [
+    {
+      "type": "donchian",
+      "period": 30
+    },
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "ema",
+      "period": 200
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "sessions": [
+        "frankfurt",
+        "london"
+      ]
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "operator": ">",
+        "threshold": 22
+      },
+      {
+        "indicator": "ema_alignment",
+        "fast": 50,
+        "slow": 200,
+        "required": "match_trade_direction"
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry_rules": {
+    "long": "close > donchian_upper[1] AND ema50 > ema200 AND adx>22 AND session_active",
+    "short": "close < donchian_lower[1] AND ema50 < ema200 AND adx>22 AND session_active"
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "multiplier": 2.0,
+      "period": 14
+    },
+    "take_profit": {
+      "type": "atr",
+      "multiplier": 4.0,
+      "period": 14
+    },
+    "trailing_stop": {
+      "type": "atr_chandelier",
+      "multiplier": 3.0,
+      "period": 14,
+      "activate_at_r": 1.5
+    },
+    "time_stop": {
+      "bars": 64
+    }
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 6
+  },
+  "notes": "Classic trend-following on an index known for intraday momentum. Regime filter combines ADX (strength) and EMA alignment (direction)."
+}

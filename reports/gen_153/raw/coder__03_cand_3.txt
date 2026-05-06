@@ -1,0 +1,57 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import donchian, adx
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "BTCUSD"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._adx_series = self.I(adx, self.data, self.spec["regime_filter"]["params"]["period"])
+        self._donchian_series = self.I(donchian, self.data, self.spec["entry_rule"]["params"]["period"])
+        self._broker_spread_points = 0
+
+    def _regime_ok(self) -> bool:
+        adx_val = float(self._adx_series[-1])
+        return adx_val < self.spec["regime_filter"]["params"]["threshold"]
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if self._regime_ok() and self._filters_ok():
+            high = self.data.High[-1]
+            low = self.data.Low[-1]
+            donchian_high = self._donchian_series[-1][0]
+            donchian_low = self._donchian_series[-1][1]
+            if high > donchian_high:
+                self.position.enter_long(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self._equity_start))
+                self.sl_price = low - self.spec["exit_rule"]["params"]["stop_loss"]["params"]["pips"] * self.data.Close[-1] / 10000
+                self.tp_price = high + self.spec["exit_rule"]["params"]["take_profit"]["params"]["pips"] * self.data.Close[-1] / 10000
+            elif low < donchian_low:
+                self.position.enter_short(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self._equity_start))
+                self.sl_price = high + self.spec["exit_rule"]["params"]["stop_loss"]["params"]["pips"] * self.data.Close[-1] / 10000
+                self.tp_price = low - self.spec["exit_rule"]["params"]["take_profit"]["params"]["pips"] * self.data.Close[-1] / 10000
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        time_stop = self.spec["exit_rule"]["params"]["time_stop"]["params"]["num_bars"]
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+```

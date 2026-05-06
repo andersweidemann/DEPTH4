@@ -1,0 +1,122 @@
+{
+  "name": "GER40_Donchian_Breakout_M15",
+  "family": "breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "GER40 exhibits trend-continuation behavior during the European cash session; a 20-bar Donchian breakout in the direction of a higher-timeframe EMA regime (EMA50 slope positive/negative) captures intraday trend legs better than random entries, especially when ATR is in the 40-90 percentile band.",
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "session_mask",
+        "hours_utc": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ]
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 20
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "min_pct": 40,
+        "max_pct": 90
+      },
+      {
+        "primitive": "ema",
+        "period": 50,
+        "condition": "slope_nonzero",
+        "slope_lookback": 10
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": {
+      "conditions": [
+        {
+          "primitive": "donchian",
+          "period": 20,
+          "condition": "close_above_upper"
+        },
+        {
+          "primitive": "ema",
+          "period": 50,
+          "condition": "price_above"
+        }
+      ]
+    },
+    "short": {
+      "conditions": [
+        {
+          "primitive": "donchian",
+          "period": 20,
+          "condition": "close_below_lower"
+        },
+        {
+          "primitive": "ema",
+          "period": 50,
+          "condition": "price_below"
+        }
+      ]
+    },
+    "one_entry_per_signal": true,
+    "max_trades_per_day": 3
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 1.5
+    },
+    "take_profit": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 3.0
+    },
+    "time_stop_bars": 48,
+    "trailing": {
+      "type": "donchian_opposite",
+      "period": 10,
+      "activate_after_r": 1.0
+    },
+    "breakeven_after_r": 1.0
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "params_to_optimize": {
+    "donchian_period": [
+      15,
+      20,
+      30
+    ],
+    "ema_period": [
+      30,
+      50,
+      80
+    ],
+    "sl_atr_mult": [
+      1.25,
+      1.5,
+      2.0
+    ],
+    "tp_atr_mult": [
+      2.5,
+      3.0,
+      4.0
+    ]
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Range expansion occurs on US500 M15 after a period of low volatility.",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "period": 20,
+      "deviation": 1.75,
+      "percentile": 20
+    }
+  },
+  "entry_rule": {
+    "type": "range_expansion",
+    "params": {
+      "volatility_period": 10,
+      "expansion_threshold": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "1.5_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.2
+    }
+  }
+}

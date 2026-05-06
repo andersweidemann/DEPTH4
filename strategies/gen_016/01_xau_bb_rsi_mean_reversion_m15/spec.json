@@ -1,0 +1,65 @@
+{
+  "name": "xau_bb_rsi_mean_reversion_m15",
+  "hypothesis": "On XAUUSD M15, simultaneous BB(20,2.0) breaches with RSI(2) extremes revert to the mean within hours when BB width is above its 30th percentile and regime is range-like (low ADX).",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": {
+    "bb": {
+      "primitive": "bollinger",
+      "period": 20,
+      "stddev": 2.0,
+      "source": "close"
+    },
+    "bb_width": {
+      "primitive": "bb_width",
+      "period": 20,
+      "stddev": 2.0,
+      "percentile_lookback": 500,
+      "min_percentile": 30
+    },
+    "rsi": {
+      "primitive": "rsi",
+      "period": 2
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "window_utc": "07:00-20:00"
+    }
+  },
+  "entry_rules": {
+    "long": "Close < LowerBB AND RSI(2) < 5 AND bb_width_pct > 30 AND previous bar also below LowerBB or RSI<10 (confirmation)",
+    "short": "Close > UpperBB AND RSI(2) > 95 AND bb_width_pct > 30"
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "require": {
+      "adx_max": 22,
+      "adx_period": 14,
+      "atr_percentile_min": 25,
+      "atr_percentile_max": 85,
+      "atr_percentile_lookback": 300
+    },
+    "rationale": "Mean reversion needs range regime (low ADX) but not dead volatility; exclude trending bursts where bands keep expanding."
+  },
+  "exits": {
+    "stop_loss": "1.5*ATR(14) from entry",
+    "take_profit": "Middle BB (SMA20) touch",
+    "secondary_tp": "Opposite BB touch (scale 50%/50%)",
+    "time_stop_bars": 24,
+    "cooldown_bars": 3
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "daily_limits": {
+    "max_trades_per_day": 4,
+    "max_daily_loss_pct": 2.0
+  }
+}

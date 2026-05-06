@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs in XAUUSD on M5, with a stop loss at 100 pips and take profit at 500 pips, and a trailing stop of 100 pips.",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "period": 20,
+      "threshold": 2.0
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch_bounce",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    }
+  },
+  "sl_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 100
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 500
+    }
+  },
+  "time_stop_rule": {
+    "type": "timeout",
+    "params": {
+      "bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "id": "48_ger40_donchian_breakout_m15",
+  "hypothesis": "On GER40 M15 during the London/Frankfurt cash session (07:00-15:00 UTC), a close beyond the prior 20-bar Donchian channel in a high-ADX regime produces sustained momentum continuation profitable at 2R, because index opens concentrate directional order flow.",
+  "family": "breakout_trend",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signal": {
+    "type": "donchian_breakout",
+    "primitives": [
+      "donchian",
+      "atr",
+      "session_mask"
+    ],
+    "params": {
+      "donchian_period": 20,
+      "breakout_confirm": "close_beyond",
+      "min_body_atr": 0.6,
+      "session_utc_start": "07:00",
+      "session_utc_end": "15:00",
+      "one_entry_per_bar": true
+    }
+  },
+  "regime_filter": {
+    "type": "trend_regime",
+    "primitives": [
+      "adx",
+      "atr_percentile"
+    ],
+    "params": {
+      "adx_period": 14,
+      "adx_min": 22,
+      "atr_percentile_period": 100,
+      "atr_percentile_min": 40
+    },
+    "rationale": "Only trade breakouts when directional strength (ADX>=22) and sufficient volatility (ATR above 40th pct) are present; avoids fakeouts in dead ranges."
+  },
+  "entry": {
+    "long": "close > Donchian_high[1] AND body >= 0.6*ATR14 AND regime_on AND in_session",
+    "short": "close < Donchian_low[1] AND body >= 0.6*ATR14 AND regime_on AND in_session"
+  },
+  "exit": {
+    "sl": "1.5 * ATR14 from entry",
+    "tp": "3.0 * ATR14 from entry (fixed 2R)",
+    "time_stop_bars": 24,
+    "trailing": "chandelier: 2.5 * ATR14 from highest/lowest since entry, activates after +1R"
+  },
+  "sizing": {
+    "type": "risk_pct_of_equity",
+    "risk_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "max_daily_trades": 4
+  },
+  "diversity_tag": "trend_breakout_index"
+}

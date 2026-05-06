@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Breakouts occur during the London session after a period of consolidation in the Asia session",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > upper_bb && asia_range_high < close"
+    },
+    "short": {
+      "condition": "close < lower_bb && asia_range_low > close"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 2
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 2
+    }
+  }
+}

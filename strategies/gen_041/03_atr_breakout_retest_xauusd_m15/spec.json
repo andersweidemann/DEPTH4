@@ -1,0 +1,73 @@
+{
+  "spec_id": "gen41_cand_3",
+  "name": "ATR Breakout Retest XAUUSD M15",
+  "family": "breakout_retest",
+  "hypothesis": "On XAUUSD M15, an ATR-measured displacement beyond prior structure (atr_breakout_level) followed by a controlled retest within 5 bars offers a higher-quality long/short entry than the naked breakout, because the retest filters fakeouts that plagued simple MA-cross logic.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "type": "atr",
+      "period": 14,
+      "id": "atr14"
+    },
+    {
+      "type": "atr_breakout_levels",
+      "lookback": 30,
+      "atr_mult": 1.0,
+      "id": "brk_lvl"
+    },
+    {
+      "type": "ema",
+      "period": 100,
+      "id": "ema100"
+    },
+    {
+      "type": "session_mask",
+      "window_utc": "06:00-20:00",
+      "id": "active_sess"
+    }
+  ],
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "session_mask",
+        "window_utc": "06:00-20:00"
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min_pct": 35,
+        "max_pct": 95
+      },
+      {
+        "rule": "trend_bias",
+        "expr": "long_only if close>ema100 else short_only"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "prior bar had close > brk_lvl.upper by >=0.5*atr14; current bar retests within 0.2*atr14 of brk_lvl.upper and closes back above it; within 5 bars of breakout",
+    "short": "mirror on brk_lvl.lower"
+  },
+  "exit_rules": {
+    "sl": "1.0 * atr14 beyond retest extreme",
+    "tp": "2.5 * atr14 (\u22482.5R)",
+    "time_stop": "20 M15 bars (~5h)",
+    "trailing": "after +1.5R, trail by 1.2*atr14"
+  },
+  "sizing": {
+    "mode": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 8
+  },
+  "diversification_tag": "breakout_retest",
+  "notes": "Distinct from cand_1 (no retest requirement) and cand_0 (session-range, not ATR-structure). Retest requirement is explicitly designed to avoid the churn/zero-edge seen in gen40."
+}

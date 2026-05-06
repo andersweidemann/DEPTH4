@@ -1,0 +1,173 @@
+[
+  {
+    "name": "smoke_test_buy_hold_rotator",
+    "family": "diagnostic",
+    "hypothesis": "Pipeline smoke test: a symbol/timeframe-agnostic periodic long entry will produce >=200 trades over the IS window if the backtest harness, symbol resolution, and order execution path are wired correctly. If this candidate also produces zero trades, the failure is infrastructure, not strategy.",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"atr_period": 14, "lookback": 500, "min_percentile": 0.05, "max_percentile": 1.0}
+    },
+    "entry": {
+      "long": {
+        "type": "periodic_timer",
+        "rules": [
+          {"primitive": "ema", "params": {"period": 20}, "condition": "close > ema20"},
+          {"primitive": "session_mask", "params": {"sessions": ["london", "ny"], "tz": "UTC"}, "condition": "in_session"}
+        ],
+        "trigger_every_n_bars": 48
+      },
+      "short": null
+    },
+    "exit": {
+      "sl": {"type": "atr", "params": {"atr_period": 14, "multiplier": 2.0}},
+      "tp": {"type": "atr", "params": {"atr_period": 14, "multiplier": 3.0}},
+      "time_stop": {"type": "bars", "value": 96}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_positions": 1
+    },
+    "notes": "Diagnostic candidate. Low-frequency long-only timer entry with minimal filters (EMA trend + broad session). Primary purpose is to verify harness fires trades. Log per-bar counters for: session_open, ema_ok, timer_fired, order_accepted."
+  },
+  {
+    "name": "xau_bb_rsi_mean_reversion_m15",
+    "family": "mean_reversion",
+    "hypothesis": "On XAUUSD M15, when price closes outside the 20/2.0 Bollinger Band with an extreme RSI(7) reading during active London/NY sessions and sufficient BB-width volatility, price reverts to the middle band within 30 bars more often than it continues, yielding PF>=2.0.",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {
+        "adx_period": 14,
+        "adx_max": 28,
+        "bb_width_percentile_min": 0.30,
+        "bb_width_lookback": 300,
+        "regime": "range_or_low_trend"
+      }
+    },
+    "entry": {
+      "long": {
+        "type": "signal_confluence",
+        "rules": [
+          {"primitive": "bollinger", "params": {"period": 20, "dev": 2.0}, "condition": "close < lower_band"},
+          {"primitive": "rsi", "params": {"period": 7}, "condition": "rsi < 12"},
+          {"primitive": "bb_width", "params": {"period": 20, "dev": 2.0, "lookback": 300}, "condition": "percentile > 0.30"},
+          {"primitive": "session_mask", "params": {"sessions": ["london", "ny"], "tz": "UTC"}, "condition": "in_session"}
+        ]
+      },
+      "short": {
+        "type": "signal_confluence",
+        "rules": [
+          {"primitive": "bollinger", "params": {"period": 20, "dev": 2.0}, "condition": "close > upper_band"},
+          {"primitive": "rsi", "params": {"period": 7}, "condition": "rsi > 88"},
+          {"primitive": "bb_width", "params": {"period": 20, "dev": 2.0, "lookback": 300}, "condition": "percentile > 0.30"},
+          {"primitive": "session_mask", "params": {"sessions": ["london", "ny"], "tz": "UTC"}, "condition": "in_session"}
+        ]
+      }
+    },
+    "exit": {
+      "sl": {"type": "atr", "params": {"atr_period": 14, "multiplier": 1.5}},
+      "tp": {"type": "bb_middle", "params": {"period": 20, "dev": 2.0}},
+      "time_stop": {"type": "bars", "value": 30}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "cooldown_bars": 3,
+      "max_positions": 1
+    },
+    "notes": "Inspired by mean-reversion-scalper-v3 (MIT-port-allowed card). Adapted from EURUSD M5 to XAUUSD M15 with wider time stop. BB-width percentile gate is critical to avoid dead-range chop."
+  },
+  {
+    "name": "ger40_asia_london_range_breakout_m5",
+    "family": "breakout",
+    "hypothesis": "On GER40 M5, the Asia session (00:00-06:00 UTC) range compression, when it falls within 0.5-2.0x ATR(14), tends to expand directionally during the London open window (07:00-10:00 UTC). A displacement breakout with body >=1.2x ATR and close >=0.5x ATR beyond the range produces positive expectancy with PF>=2.0.",
+    "symbol": "GER40",
+    "timeframe": "M5",
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"atr_period": 14, "lookback": 500, "min_percentile": 0.25, "max_percentile": 0.95}
+    },
+    "entry": {
+      "long": {
+        "type": "range_breakout",
+        "rules": [
+          {"primitive": "session_mask", "params": {"build_window": {"start": "00:00", "end": "06:00", "tz": "UTC"}, "trade_window": {"start": "07:00", "end": "10:00", "tz": "UTC"}}, "condition": "in_trade_window"},
+          {"primitive": "donchian", "params": {"source": "asia_session_hl"}, "condition": "close > asia_high + 0.5*atr14"},
+          {"primitive": "atr", "params": {"period": 14}, "condition": "candle_body >= 1.2*atr14"},
+          {"primitive": "atr", "params": {"period": 14, "range_ratio_min": 0.5, "range_ratio_max": 2.0}, "condition": "asia_range/atr14 in [0.5,2.0]"}
+        ],
+        "max_bars_from_london_open": 9,
+        "one_trade_per_day": true
+      },
+      "short": {
+        "type": "range_breakout",
+        "rules": [
+          {"primitive": "session_mask", "params": {"build_window": {"start": "00:00", "end": "06:00", "tz": "UTC"}, "trade_window": {"start": "07:00", "end": "10:00", "tz": "UTC"}}, "condition": "in_trade_window"},
+          {"primitive": "donchian", "params": {"source": "asia_session_hl"}, "condition": "close < asia_low - 0.5*atr14"},
+          {"primitive": "atr", "params": {"period": 14}, "condition": "candle_body >= 1.2*atr14"},
+          {"primitive": "atr", "params": {"period": 14, "range_ratio_min": 0.5, "range_ratio_max": 2.0}, "condition": "asia_range/atr14 in [0.5,2.0]"}
+        ],
+        "max_bars_from_london_open": 9,
+        "one_trade_per_day": true
+      }
+    },
+    "exit": {
+      "sl": {"type": "atr", "params": {"atr_period": 14, "multiplier": 1.5}},
+      "tp": {"type": "atr", "params": {"atr_period": 14, "multiplier": 3.0}},
+      "time_stop": {"type": "session_end", "value": "16:00_UTC"}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.75,
+      "max_positions": 1
+    },
+    "notes": "Adapted from asia-london-range-expansion scout card (XAUUSD->GER40). CRITICAL: verify broker server timezone vs UTC; log Asia H/L values per day and 'trade_window_open' counter to diagnose zero-trade failures from prior gen. Also verify GER40 symbol alias (DE40/DAX40)."
+  },
+  {
+    "name": "us500_ema_pullback_trend_m15",
+    "family": "trend_following",
+    "hypothesis": "On US500 M15, during trending regimes (ADX>=22), pullbacks to the EMA(50) within a uptrend (close>EMA200) that hold and resume via a bullish close back above EMA(20) continue in the trend direction often enough to yield PF>=2.0 with a 2.5R target.",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "regime_filter": {
+      "primitive": "adx",
+      "params": {"period": 14, "min_value": 22}
+    },
+    "entry": {
+      "long": {
+        "type": "pullback",
+        "rules": [
+          {"primitive": "ema", "params": {"period": 200}, "condition": "close > ema200"},
+          {"primitive": "ema", "params": {"period": 50}, "condition": "low[1] <= ema50 AND close > ema50"},
+          {"primitive": "ema", "params": {"period": 20}, "condition": "close > ema20 AND close[1] <= ema20"},
+          {"primitive": "session_mask", "params": {"sessions": ["ny"], "tz": "UTC", "window": {"start": "13:30", "end": "20:00"}}, "condition": "in_session"}
+        ]
+      },
+      "short": {
+        "type": "pullback",
+        "rules": [
+          {"primitive": "ema", "params": {"period": 200}, "condition": "close < ema200"},
+          {"primitive": "ema", "params": {"period": 50}, "condition": "high[1] >= ema50 AND close < ema50"},
+          {"primitive": "ema", "params": {"period": 20}, "condition": "close < ema20 AND close[1] >= ema20"},
+          {"primitive": "session_mask", "params": {"sessions": ["ny"], "tz": "UTC", "window": {"start": "13:30", "end": "20:00"}}, "condition": "in_session"}
+        ]
+      }
+    },
+    "exit": {
+      "sl": {"type": "atr", "params": {"atr_period": 14, "multiplier": 2.0}},
+      "tp": {"type": "r_multiple", "params": {"r": 2.5}},
+      "time_stop": {"type": "bars", "value": 40}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.75,
+      "cooldown_bars": 5,
+      "max_positions": 1
+    },
+    "notes": "Classic trend-pullback archetype. US500 NY session focus. ADX regime filter ensures we only trade when a trend is established, avoiding the mean-reversion chop that kills pullback systems. Verify US500 alias (SPX500/US500.cash)."
+  }
+]

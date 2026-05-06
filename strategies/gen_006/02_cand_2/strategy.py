@@ -1,0 +1,223 @@
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+        p = self.spec.get("params", {}) if self.spec else {}
+        self.ema_fast_n = int(p.get("ema_fast", 20))
+        self.ema_slow_n = int(p.get("ema_slow", 50))
+        self.slope_lb = int(p.get("slope_lookback", 5))
+        self.pullback_lb = int(p.get("pullback_lookback", 3))
+        self.rsi_n = int(p.get("rsi_period", 14))
+        self.rsi_mid = float(p.get("rsi_mid", 50))
+        self.adx_min = float(p.get("adx_min", 22))
+        self.atr_n = int(p.get("atr_period", 14))
+        self.sl_mult = float(p.get("sl_atr_mult", 1.2))
+        self.rr = float(p.get("rr_target", 1.5))
+
+        self._ema_fast = self.I(signals.ema, self.data.Close, self.ema_fast_n)
+        self._ema_slow = self.I(signals.ema, self.data.Close, self.ema_slow_n)
+        self._rsi = self.I(signals.rsi, self.data.Close, self.rsi_n)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_n)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atr_pct = self.I(regime.atr_percentile, self.data, self.atr_n, 200)
+
+        # Session mask 13:30-20:00 UTC
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._sess_mask = np.asarray(
+            signals.session_mask(idx, ["13:30-20:00"]), dtype=bool
+        )
+
+        self._cooldown = 0
+        self._last_exit_bar = -10_000
+        self.cooldown_bars = 4
+        self.max_concurrent = 1
+        self.risk_pct = 0.5
+        self.time_stop = 32
+
+    def _regime_ok(self) -> bool:
+        if len(self.data) < max(self.ema_slow_n, 200) + 5:
+            return False
+        adx_v = float(self._adx_series[-1])
+        if np.isnan(adx_v) or adx_v <= self.adx_min:
+            return False
+        ap = float(self._atr_pct[-1])
+        if np.isnan(ap) or ap < 25 or ap > 90:
+            return False
+        bar_i = len(self.data) - 1
+        if 0 <= bar_i < len(self._sess_mask):
+            if not bool(self._sess_mask[bar_i]):
+                return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        now_date = pd.Timestamp(self.data.index[-1]).strftime("%Y-%m-%d")
+        try:
+            dd_kill = self.spec.get("risk", {}).get("daily_dd_kill_pct",
+                        config.load()["risk"]["daily_dd_kill_pct"])
+        except Exception:
+            dd_kill = 0.05
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, dd_kill):
+            return False
+        return True
+
+    def _swing_low(self, lb: int) -> float:
+        lb = min(lb, len(self.data))
+        return float(np.min(np.asarray(self.data.Low)[-lb:]))
+
+    def _swing_high(self, lb: int) -> float:
+        lb = min(lb, len(self.data))
+        return float(np.max(np.asarray(self.data.High)[-lb:]))
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if (len(self.data) - self._last_exit_bar) < self.cooldown_bars:
+            return
+        if len(self.data) < max(self.ema_slow_n + self.slope_lb + 2, 60):
+            return
+
+        ema_f = float(self._ema_fast[-1])
+        ema_s = float(self._ema_slow[-1])
+        ema_s_prev = float(self._ema_slow[-1 - self.slope_lb])
+        slope = ema_s - ema_s_prev
+        rsi_now = float(self._rsi[-1])
+        rsi_prev = float(self._rsi[-2])
+        close = float(self.data.Close[-1])
+        atr_v = float(self._atr_series[-1])
+        if np.isnan(atr_v) or atr_v <= 0:
+            return
+
+        highs = np.asarray(self.data.High)
+        lows = np.asarray(self.data.Low)
+        lb = self.pullback_lb
+        ef_arr = np.asarray(self._ema_fast)
+        recent_lows = lows[-lb:]
+        recent_highs = highs[-lb:]
+        recent_ef = ef_arr[-lb:]
+
+        long_cond = (
+            ema_f > ema_s
+            and slope > 0
+            and np.any(recent_lows <= recent_ef)
+            and close > ema_f
+            and rsi_prev < self.rsi_mid <= rsi_now
+        )
+        short_cond = (
+            ema_f < ema_s
+            and slope < 0
+            and np.any(recent_highs >= recent_ef)
+            and close < ema_f
+            and rsi_prev > self.rsi_mid >= rsi_now
+        )
+
+        if long_cond:
+            swing = self._swing_low(max(lb, 5))
+            sl = min(swing, close) - self.sl_mult * atr_v
+            if sl >= close:
+                return
+            risk_dist = close - sl
+            tp = close + self.rr * risk_dist
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                entry=close,
+                stop=sl,
+                symbol=self._symbol,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    pass
+
+        elif short_cond:
+            swing = self._swing_high(max(lb, 5))
+            sl = max(swing, close) + self.sl_mult * atr_v
+            if sl <= close:
+                return
+            risk_dist = sl - close
+            tp = close - self.rr * risk_dist
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                entry=close,
+                stop=sl,
+                symbol=self._symbol,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        close = float(self.data.Close[-1])
+        ema_s = float(self._ema_slow[-1])
+
+        trade = self.trades[-1] if self.trades else None
+        if trade is not None:
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self.time_stop:
+                self.position.close()
+                self._last_exit_bar = len(self.data)
+                return
+
+        if self.position.is_long and close < ema_s:
+            self.position.close()
+            self._last_exit_bar = len(self.data)
+            return
+        if self.position.is_short and close > ema_s:
+            self.position.close()
+            self._last_exit_bar = len(self.data)
+            return
+
+        if trade is not None and trade.sl is not None:
+            entry = float(trade.entry_price)
+            if trade.is_long:
+                init_risk = entry - trade.sl if trade.sl < entry else 0.0
+                if init_risk > 0 and (close - entry) >= init_risk:
+                    new_sl = ema_s
+                    if new_sl > trade.sl and new_sl < close:
+                        trade.sl = new_sl
+            else:
+                init_risk = trade.sl - entry if trade.sl > entry else 0.0
+                if init_risk > 0 and (entry - close) >= init_risk:
+                    new_sl = ema_s
+                    if new_sl < trade.sl and new_sl > close:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

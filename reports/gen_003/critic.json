@@ -1,0 +1,22 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_ger40_donchian_trend_breakout_m15",
+      "fitness": 0.18,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 1.9957,
+        "sharpe_avg": 0.109,
+        "max_dd_pct": 9.33,
+        "trades_total": 278
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Verdict: REJECT \u2014 entire generation fails on the primary target instrument (GER40).**\n\nThe sole candidate, `02_ger40_donchian_trend_breakout_m15`, is purpose-built for GER40 but is **net negative on GER40 on both M5 (-6.54%, PF 0.90) and M15 (-6.87%, PF 0.93)**. Its only profitable combos are XAUUSD \u2014 and those are suspect:\n- XAUUSD M5: PF 3.77 but only **19 trades** \u2192 classic small-sample red flag (Sortino=Inf indicates zero downside deviation, meaning essentially no losing streak sampled).\n- XAUUSD M15: PF 2.39 on 29 trades \u2014 below the 200 trade floor.\n\nAcceptance checks:\n- `pf_min=2.0`: FAIL on GER40 combos.\n- `sharpe_min=1.5`: FAIL on all combos (best is 0.81).\n- `trades_min=200`: FAIL per-combo (max 148).\n- `require_all_combos_positive`: FAIL (GER40 negative on both TFs).\n- `max_dd_pct=15`: pass, but only because return is negative and exposure low.\n\n**OOS degradation**: No OOS window provided \u2014 IS-only results already fail; running OOS is not justified until the strategy is reworked.\n\n**Root cause hypothesis**: Donchian breakouts on DAX intraday (M5/M15) are fighting mean-reversion during EU session chop. 45.9% win rate with PF ~0.93 and exposure >100% on M15 (1.19) suggests overlapping positions and no regime filter. The strategy accidentally works on gold because gold trends cleanly intraday \u2014 but sample is too small to trust.\n\n**Recommendation**: Do not parameter-tweak this Donchian variant for GER40. Pivot the family.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Pure Donchian channel breakouts on GER40 intraday (M5/M15) without a session or volatility-regime filter \u2014 DAX intraday is too mean-reverting in the 08:00\u201312:00 CET window for naked channel breaks.",
+    "Breakout strategies validated on <50 trades \u2014 stop promoting candidates on XAUUSD small-sample PF spikes; require >=200 trades per combo before any survive verdict.",
+    "Exposure_pct > 1.0 (M15 GER40 = 1.19) indicates concurrent/overlapping trades \u2014 if the EA is not intended to pyramid, this is a logic bug, not a parameter issue."
+  ]
+}

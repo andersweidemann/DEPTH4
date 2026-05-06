@@ -1,0 +1,43 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, sma
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_width_series = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["min_width"])
+        self._bb_series = self.I(bollinger, self.data, self.spec["entry_rule"]["params"]["bb_period"], self.spec["entry_rule"]["params"]["bb_dev"])
+        self._broker_spread_points = 0
+
+    def _regime_ok(self):
+        return self._bb_width_series[-1] > self.spec["regime_filter"]["params"]["min_width"]
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        if self._regime_ok() and self._filters_ok():
+            bb_lower = self._bb_series[-1][0]
+            bb_upper = self._bb_series[-1][1]
+            close = self.data.Close[-1]
+            if close <= bb_lower or close >= bb_upper:
+                lots = lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self._equity_start, self.data)
+                self.position.enter(lots)
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rule"]["params"]["sl"]
+                self.tp_price = self.data.Close[-1] + self.spec["exit_rule"]["params"]["tp"]
+
+    def _manage_open(self):
+        if not self.position:
+            return
+        time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return

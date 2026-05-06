@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Asia-London range expansion strategy is profitable on GER40 M15 when the Asia range is within 0.5-2.0 ATRs and the breakout occurs early in the London session.",
+  "regime_filter": {
+    "type": "time",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "breakout > 0 && asia_range_atr < 2.0 && asia_range_atr > 0.5"
+    },
+    "short": {
+      "condition": "breakout < 0 && asia_range_atr < 2.0 && asia_range_atr > 0.5"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

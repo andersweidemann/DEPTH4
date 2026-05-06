@@ -1,0 +1,34 @@
+{
+  "hypothesis": "London breakout strategy is profitable on GER40 M15 when combined with ATR-based volatility filters",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "london_breakout",
+    "params": {
+      "asia_range_start": "00:00",
+      "asia_range_end": "06:00",
+      "london_window_start": "07:00",
+      "london_window_end": "10:00",
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "1.5_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

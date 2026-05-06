@@ -1,0 +1,132 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur after consolidation ranges in the Asia-London overlap",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_min": 0.5,
+        "range_atr_max": 2.0,
+        "breakout_atr_multiple": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "fixed_pips",
+        "tp_pips": 500,
+        "sl": "fixed_pips",
+        "sl_pips": 100,
+        "time_stop": 20
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversals occur frequently on XAUUSD M15",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "min_width": 0.5
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 15
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR-based volatility filters can improve mean reversion strategy performance",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "percentile": 50,
+        "lookback": 14
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "middle_bb",
+        "sl": "1.5_atr",
+        "time_stop": 25
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.012
+      }
+    }
+  }
+]

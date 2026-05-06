@@ -1,0 +1,6 @@
+{
+  "ranking": [],
+  "summary_markdown": "## Generation Review: Empty Candidate Set\n\n**Status:** No candidates submitted for evaluation.\n\nThe candidate metrics array is empty, meaning no EA variants have been backtested and submitted for ranking this cycle. No fitness scores can be computed, no survivors can be promoted, and no meaningful comparison against acceptance thresholds (PF>=2.0, DD<=15%, Sharpe>=1.5, trades>=200) is possible.\n\n### Recommended Actions\n1. **Verify pipeline integrity:** Check that the Generator produced candidates and the Backtester successfully ran them across the required symbol/TF combos. An empty set usually indicates an upstream failure (compile errors, data feed issues, or runner timeout) rather than a genuine zero-survivor generation.\n2. **Re-run with logging:** Ensure per-candidate metric objects are emitted with fields pf, sharpe, max_dd_pct, trades, and IS/OOS splits so the Critic can compute normalized fitness.\n3. **Seed next generation from archive:** If the Generator truly produced nothing, pull the last known surviving template from the hall-of-fame and mutate, rather than cold-starting.\n\nNo fitness ranking, no survivors, no dead branches can be declared from a null sample.",
+  "per_survivor_notes": {},
+  "dead_branches": []
+}

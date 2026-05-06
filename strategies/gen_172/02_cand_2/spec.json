@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Price reverts to the mean when it reaches extreme deviations from the Bollinger Band with high RSI readings",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 30,
+      "lookback": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb && rsi < 10"
+    },
+    "short": {
+      "condition": "close > upper_bb && rsi > 90"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "middle_bb"
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 1.5
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

@@ -1,0 +1,481 @@
+{
+  "min_pf": 1.5,
+  "min_trades": 40,
+  "n_jobs": 102,
+  "n_ok": 82,
+  "top": [
+    {
+      "tag": "0101_tf_H1",
+      "patch": {
+        "timeframes": [
+          "H1"
+        ]
+      },
+      "symbol": "GER40",
+      "timeframe": "H1",
+      "pf": 2.365193086030094,
+      "return_pct": 16.72371321286424,
+      "trades": 103,
+      "max_dd_pct": 5.472822410097534,
+      "sharpe": 0.7577649949812929,
+      "score": 39.55481086381663
+    },
+    {
+      "tag": "0076_tp3.1_mw56",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.1,
+          "max_wait_bars": 56
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.9672867817798727,
+      "return_pct": 19.70775472395858,
+      "trades": 221,
+      "max_dd_pct": 4.501558614141555,
+      "sharpe": 0.8356607556941931,
+      "score": 38.77080536700356
+    },
+    {
+      "tag": "0071_tp3.06_mw56",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.06,
+          "max_wait_bars": 56
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.947987828340989,
+      "return_pct": 19.287456065236707,
+      "trades": 222,
+      "max_dd_pct": 4.51339103769296,
+      "sharpe": 0.8236953381261201,
+      "score": 37.57172965474269
+    },
+    {
+      "tag": "0066_tp3.02_mw56",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.02,
+          "max_wait_bars": 56
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.9286888749021065,
+      "return_pct": 18.85492368947994,
+      "trades": 222,
+      "max_dd_pct": 4.536343259776576,
+      "sharpe": 0.8124319288234443,
+      "score": 36.36528155702814
+    },
+    {
+      "tag": "0061_tp2.98_mw56",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 2.98,
+          "max_wait_bars": 56
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.9093899214632242,
+      "return_pct": 18.473324388713994,
+      "trades": 222,
+      "max_dd_pct": 4.556834972309131,
+      "sharpe": 0.8008213102181544,
+      "score": 35.27277940373128
+    },
+    {
+      "tag": "0056_tp2.95_mw56",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 2.95,
+          "max_wait_bars": 56
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8949157063840587,
+      "return_pct": 18.17574690086187,
+      "trades": 222,
+      "max_dd_pct": 4.573238329291196,
+      "sharpe": 0.7925781278201475,
+      "score": 34.441508277704536
+    },
+    {
+      "tag": "0020_s09:30-20:00_ts130",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "20:00"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 130
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.839342337346109,
+      "return_pct": 18.654656546496156,
+      "trades": 241,
+      "max_dd_pct": 4.522172326514817,
+      "sharpe": 0.7950841210049107,
+      "score": 34.312299574621136
+    },
+    {
+      "tag": "0051_tp2.92_mw56",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 2.92,
+          "max_wait_bars": 56
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8804414913048986,
+      "return_pct": 17.85909331354613,
+      "trades": 222,
+      "max_dd_pct": 4.58358846783945,
+      "sharpe": 0.7834315867436312,
+      "score": 33.582980063878026
+    },
+    {
+      "tag": "0021_s09:30-20:00_ts150",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "20:00"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 150
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8117494385306445,
+      "return_pct": 17.972045044207878,
+      "trades": 241,
+      "max_dd_pct": 4.522172326514817,
+      "sharpe": 0.7718695143708435,
+      "score": 32.56084251809108
+    },
+    {
+      "tag": "0046_tp2.88_mw56",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 2.88,
+          "max_wait_bars": 56
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8611425378660127,
+      "return_pct": 17.47047482764707,
+      "trades": 222,
+      "max_dd_pct": 4.5959291642622135,
+      "sharpe": 0.7727218324826335,
+      "score": 32.51504385845136
+    },
+    {
+      "tag": "0022_s09:30-20:00_ts170",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "20:00"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 170
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8026487965609927,
+      "return_pct": 17.75214901315493,
+      "trades": 241,
+      "max_dd_pct": 4.522172326514817,
+      "sharpe": 0.7634069644465525,
+      "score": 32.00089005493515
+    },
+    {
+      "tag": "0075_tp3.1_mw52",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.1,
+          "max_wait_bars": 52
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.84874290433585,
+      "return_pct": 17.255800228626164,
+      "trades": 223,
+      "max_dd_pct": 4.501558614141555,
+      "sharpe": 0.7584429727307072,
+      "score": 31.901538231309562
+    },
+    {
+      "tag": "0074_tp3.1_mw48",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.1,
+          "max_wait_bars": 48
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.84874290433585,
+      "return_pct": 17.255800228626164,
+      "trades": 222,
+      "max_dd_pct": 4.501558614141555,
+      "sharpe": 0.7614542852988992,
+      "score": 31.901538231309562
+    },
+    {
+      "tag": "0069_tp3.06_mw48",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.06,
+          "max_wait_bars": 48
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8296706291373324,
+      "return_pct": 16.83971380378625,
+      "trades": 223,
+      "max_dd_pct": 4.51339103769296,
+      "sharpe": 0.7487869963398555,
+      "score": 30.811129749866208
+    },
+    {
+      "tag": "0070_tp3.06_mw52",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.06,
+          "max_wait_bars": 52
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8296706291373324,
+      "return_pct": 16.83971380378625,
+      "trades": 224,
+      "max_dd_pct": 4.51339103769296,
+      "sharpe": 0.7457867438970618,
+      "score": 30.811129749866208
+    },
+    {
+      "tag": "0019_s09:30-20:00_ts110",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "20:00"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 110
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.7774702099137392,
+      "return_pct": 17.113713453004998,
+      "trades": 241,
+      "max_dd_pct": 4.522172326514817,
+      "sharpe": 0.7396257755685027,
+      "score": 30.419115843716376
+    },
+    {
+      "tag": "0023_s09:30-20:00_ts200",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "20:00"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 200
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.7742356017856789,
+      "return_pct": 17.063379244755954,
+      "trades": 241,
+      "max_dd_pct": 4.522172326514817,
+      "sharpe": 0.734406496226387,
+      "score": 30.274454942816842
+    },
+    {
+      "tag": "0032_s09:30-16:30_ts130",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "16:30"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 130
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8339548028318626,
+      "return_pct": 16.39569337018051,
+      "trades": 208,
+      "max_dd_pct": 4.362283777933462,
+      "sharpe": 0.7470511707942945,
+      "score": 30.068960602001074
+    },
+    {
+      "tag": "0086_be0.3_0.25",
+      "patch": {
+        "signal": {
+          "break_even_trigger_r": 0.3,
+          "break_even_mfe_r": 0.25
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8522711570454302,
+      "return_pct": 16.22230948009186,
+      "trades": 223,
+      "max_dd_pct": 4.138932776411208,
+      "sharpe": 0.741373375771959,
+      "score": 30.0481159506388
+    },
+    {
+      "tag": "0064_tp3.02_mw48",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.02,
+          "max_wait_bars": 48
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.810598353938816,
+      "return_pct": 16.442367035865388,
+      "trades": 223,
+      "max_dd_pct": 4.536343259776576,
+      "sharpe": 0.7373961023336527,
+      "score": 29.77052268999572
+    },
+    {
+      "tag": "0065_tp3.02_mw52",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 3.02,
+          "max_wait_bars": 52
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.810598353938816,
+      "return_pct": 16.442367035865388,
+      "trades": 224,
+      "max_dd_pct": 4.536343259776576,
+      "sharpe": 0.7343976695171356,
+      "score": 29.77052268999572
+    },
+    {
+      "tag": "0018_s09:30-20:00_ts96",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "20:00"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 96
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.7607632053703184,
+      "return_pct": 16.72960978984381,
+      "trades": 241,
+      "max_dd_pct": 4.522172326514817,
+      "sharpe": 0.7267231596699254,
+      "score": 29.456881358160047
+    },
+    {
+      "tag": "0059_tp2.98_mw48",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 2.98,
+          "max_wait_bars": 48
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.7915260787402996,
+      "return_pct": 16.060292327929872,
+      "trades": 223,
+      "max_dd_pct": 4.556834972309131,
+      "sharpe": 0.7249573601932631,
+      "score": 28.772432537679123
+    },
+    {
+      "tag": "0060_tp2.98_mw52",
+      "patch": {
+        "signal": {
+          "tp_r_mult": 2.98,
+          "max_wait_bars": 52
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.7915260787402996,
+      "return_pct": 16.060292327929872,
+      "trades": 224,
+      "max_dd_pct": 4.556834972309131,
+      "sharpe": 0.7219763870178852,
+      "score": 28.772432537679123
+    },
+    {
+      "tag": "0033_s09:30-16:30_ts150",
+      "patch": {
+        "filters": {
+          "session_local": {
+            "timezone": "Europe/Berlin",
+            "start": "09:30",
+            "end": "16:30"
+          }
+        },
+        "exit": {
+          "time_stop_bars": 150
+        }
+      },
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "pf": 1.8031729501227194,
+      "return_pct": 15.72344129107243,
+      "trades": 208,
+      "max_dd_pct": 4.362283777933462,
+      "sharpe": 0.7220556412850219,
+      "score": 28.352084018904453
+    }
+  ],
+  "baseline_metrics": null
+}

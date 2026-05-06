@@ -1,0 +1,125 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb_tp",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "London breakout strategy is profitable on GER40 M15 when Asia range is within ATR-based bounds",
+    "regime_filter": {
+      "type": "atr_range_filter",
+      "params": {
+        "atr_period": 14,
+        "min_atr_multiple": 0.5,
+        "max_atr_multiple": 2.0
+      }
+    },
+    "entry_rule": {
+      "type": "london_breakout",
+      "params": {
+        "breakout_threshold": 1.2,
+        "retest_threshold": 0.5
+      }
+    },
+    "exit_rule": {
+      "type": "fixed_tp_sl",
+      "params": {
+        "tp_pips": 100,
+        "sl_pips": 50
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_size",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Donchian channel breakout strategy is profitable on US500 M5 during high-volatility regimes",
+    "regime_filter": {
+      "type": "donchian_channel_breakout",
+      "params": {
+        "donchian_period": 20
+      }
+    },
+    "entry_rule": {
+      "type": "donchian_channel_breakout",
+      "params": {
+        "breakout_threshold": 1.0
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "trail_multiplier": 1.0,
+        "trail_step": 10
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band mean reversion strategy is profitable on BTCUSD M15 during low-volatility regimes",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 70
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb_tp",
+      "params": {
+        "sl_multiplier": 1.2,
+        "time_stop_bars": 20
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_size",
+      "params": {
+        "size": 0.05
+      }
+    }
+  }
+]
+```

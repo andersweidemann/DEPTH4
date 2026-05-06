@@ -1,0 +1,89 @@
+{
+  "name": "bb_rsi_meanrev_xau_m15_v1",
+  "hypothesis": "On XAUUSD M15, price closing outside a 20-period 2.0-sigma Bollinger Band with an extreme RSI(2) reading reverts to the middle band within 20 bars, provided volatility (BB width) is above its 40th percentile and ADX<25 (non-trending).",
+  "family": "mean_reversion",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "stddev": 2.0,
+          "condition": "close_below_lower"
+        },
+        {
+          "primitive": "rsi",
+          "period": 2,
+          "condition": "lt",
+          "threshold": 5
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "stddev": 2.0,
+          "condition": "close_above_upper"
+        },
+        {
+          "primitive": "rsi",
+          "period": 2,
+          "condition": "gt",
+          "threshold": 95
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "condition": "lt",
+        "threshold": 25
+      },
+      {
+        "primitive": "bb_width",
+        "period": 20,
+        "stddev": 2.0,
+        "percentile_lookback": 200,
+        "condition": "gt",
+        "percentile": 40
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "multiplier": 1.8
+    },
+    "take_profit": {
+      "type": "bollinger_middle",
+      "period": 20
+    },
+    "time_stop": {
+      "bars": 20
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "min_stop_points_buffer": 1.5
+  },
+  "session_filter": {
+    "type": "none"
+  },
+  "diagnostics": {
+    "log_gate_rejections": true,
+    "require_min_trades_per_year": 40
+  }
+}

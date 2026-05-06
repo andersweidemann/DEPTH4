@@ -1,0 +1,77 @@
+{
+  "name": "us500_vwap_pullback_trend_m5",
+  "hypothesis": "US500 M5 trends during the US cash session (13:30-20:00 UTC) revert to a rising/falling EMA20 within a broader EMA50>EMA200 alignment; entries on pullbacks to EMA20 with RSI not-yet-exhausted capture continuation legs.",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "trade_start": "13:30",
+        "trade_end": "20:00",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "adx_min": 18,
+      "atr_pctile_period": 150,
+      "atr_pctile_min": 0.25,
+      "atr_pctile_max": 0.95,
+      "ema_alignment_required": true
+    }
+  },
+  "entry_rules": {
+    "long": "EMA50>EMA200 AND ADX>18 AND price pulls back to within 0.25*ATR of EMA20 from above AND RSI(14) between 40 and 65 AND current bar closes bullish; session active.",
+    "short": "EMA50<EMA200 AND ADX>18 AND price pulls back to within 0.25*ATR of EMA20 from below AND RSI(14) between 35 and 60 AND current bar closes bearish."
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry, placed beyond most recent swing",
+    "take_profit": "scale 50% at 1.5R; runner targets 3.5R or prior session extreme",
+    "trailing": "after 1R, trail by EMA20 cross on close",
+    "time_stop": "close after 24 M5 bars (2h) if not at least +0.5R; hard-close at 20:15 UTC"
+  },
+  "sizing": {
+    "model": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "pyramiding": 0,
+    "cooldown_bars": 4
+  },
+  "falsifiable_conditions": "Reject if PF<2.0, Sharpe<1.5, MaxDD>15%, trades<200, or if pullback-entries underperform immediate-breakout entries on same regime (thesis wrong).",
+  "notes": "Fourth family: trend_pullback, distinct from breakout, mean_reversion, and trend_breakout above."
+}

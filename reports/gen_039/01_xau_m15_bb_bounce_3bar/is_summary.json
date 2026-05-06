@@ -1,0 +1,78 @@
+{
+  "candidate": "01_xau_m15_bb_bounce_3bar",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "XAUUSD",
+      "timeframe": "M5",
+      "trades": 0,
+      "metrics": {
+        "return_pct": 0.0,
+        "pf": NaN,
+        "sharpe": NaN,
+        "sortino": NaN,
+        "max_dd_pct": 0.0,
+        "trades": 0.0,
+        "win_rate": NaN,
+        "expectancy": NaN,
+        "avg_trade": NaN,
+        "exposure_pct": 0.0
+      }
+    },
+    {
+      "symbol": "XAUUSD",
+      "timeframe": "M15",
+      "trades": 0,
+      "metrics": {
+        "return_pct": 0.0,
+        "pf": NaN,
+        "sharpe": NaN,
+        "sortino": NaN,
+        "max_dd_pct": 0.0,
+        "trades": 0.0,
+        "win_rate": NaN,
+        "expectancy": NaN,
+        "avg_trade": NaN,
+        "exposure_pct": 0.0
+      }
+    },
+    {
+      "symbol": "GER40",
+      "timeframe": "M5",
+      "trades": 0,
+      "metrics": {
+        "return_pct": 0.0,
+        "pf": NaN,
+        "sharpe": NaN,
+        "sortino": NaN,
+        "max_dd_pct": 0.0,
+        "trades": 0.0,
+        "win_rate": NaN,
+        "expectancy": NaN,
+        "avg_trade": NaN,
+        "exposure_pct": 0.0
+      }
+    },
+    {
+      "symbol": "GER40",
+      "timeframe": "M15",
+      "trades": 0,
+      "metrics": {
+        "return_pct": 0.0,
+        "pf": NaN,
+        "sharpe": NaN,
+        "sortino": NaN,
+        "max_dd_pct": 0.0,
+        "trades": 0.0,
+        "win_rate": NaN,
+        "expectancy": NaN,
+        "avg_trade": NaN,
+        "exposure_pct": 0.0
+      }
+    }
+  ]
+}

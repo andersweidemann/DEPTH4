@@ -1,0 +1,134 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb_tp",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Price breaks out of the Asia range during the London session.",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_hours": [0, 6],
+        "london_breakout_hours": [7, 10],
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "fixed_tp_sl",
+      "params": {
+        "tp_pips": 500,
+        "sl_pips": 100
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_size",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to the mean after a strong trend.",
+    "regime_filter": {
+      "type": "adx",
+      "params": {
+        "threshold": 20
+      }
+    },
+    "symbol": "BTCUSD",
+    "timeframe": "M5",
+    "entry_rule": {
+      "type": "adx_mean_reversion",
+      "params": {
+        "adx_period": 14,
+        "rsi_period": 7,
+        "rsi_thresholds": [30, 70]
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "trailing_stop_pips": 100,
+        "trailing_step_pips": 50
+      }
+    },
+    "sizing_rule": {
+      "type": "proportional",
+      "params": {
+        "proportion": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs.",
+    "regime_filter": {
+      "type": "volatility",
+      "params": {
+        "threshold": 1.5
+      }
+    },
+    "symbol": "US500",
+    "timeframe": "M15",
+    "entry_rule": {
+      "type": "bb_touch_and_bounce",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "bb_touch_tp",
+      "params": {
+        "sl_multiplier": 1.2,
+        "time_stop_bars": 20
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  }
+]
+```

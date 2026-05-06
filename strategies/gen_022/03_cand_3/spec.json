@@ -1,0 +1,106 @@
+{
+  "spec_id": "04_us500_ema_pullback_trend_m15",
+  "hypothesis": "On US500 M15 during RTH, EMA(20)/EMA(50) alignment with ADX>20 defines trend; pullbacks to EMA(20) with RSI(14) reset toward 50 offer asymmetric continuation entries yielding PF>=2.0.",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "family": "trend_pullback",
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile",
+      "session_mask",
+      "classify"
+    ],
+    "rules": [
+      {
+        "name": "trend_up_or_down",
+        "primitive": "classify",
+        "params": {
+          "fast_ema": 20,
+          "slow_ema": 50
+        },
+        "condition": "ema20_above_or_below_ema50_for_10_bars"
+      },
+      {
+        "name": "adx_trend",
+        "primitive": "adx",
+        "params": {
+          "period": 14
+        },
+        "condition": "gt_20"
+      },
+      {
+        "name": "vol_alive",
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 500
+        },
+        "condition": "between_25_and_95"
+      },
+      {
+        "name": "rth_session",
+        "primitive": "session_mask",
+        "params": {
+          "hours_utc": "13:30-20:00"
+        },
+        "condition": "true"
+      }
+    ],
+    "combine": "all"
+  },
+  "entry": {
+    "long": "ema20 > ema50 AND low <= ema20 within last 2 bars AND rsi(14) crossed below 55 then back above 50 AND close > ema20",
+    "short": "mirror (ema20 < ema50, high >= ema20, rsi crossed above 45 then back below 50, close < ema20)",
+    "cooldown_bars": 4,
+    "max_spread_points": 25
+  },
+  "exit": {
+    "tp": "2.0 * ATR(14)",
+    "sl": "1.2 * ATR(14) from entry, anchored below swing low (long) / above swing high (short)",
+    "time_stop_bars": 20,
+    "trail": "breakeven_after_1R, then 2*ATR chandelier"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "params_to_search": {
+    "fast_ema": [
+      13,
+      20,
+      21
+    ],
+    "slow_ema": [
+      50,
+      55,
+      89
+    ],
+    "adx_threshold": [
+      18,
+      20,
+      24
+    ],
+    "rsi_period": [
+      10,
+      14
+    ],
+    "pullback_lookback_bars": [
+      2,
+      3,
+      4
+    ],
+    "atr_tp_mult": [
+      1.5,
+      2.0,
+      2.5
+    ],
+    "atr_sl_mult": [
+      1.0,
+      1.2,
+      1.5
+    ]
+  },
+  "notes": "Distinct family from specs 1-3 (trend continuation, not mean-reversion or breakout). Adds index diversification (US500) absent from gen0 survivors. Dead branch banned: plain donchian/atr breakout on US500 without pullback and ADX filter."
+}

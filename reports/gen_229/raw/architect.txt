@@ -1,0 +1,184 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs in XAUUSD during the London session when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb(20, 1.75) and rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb(20, 1.75) and rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "distance": 100
+        }
+      },
+      "tp": {
+        "type": "opposite_bb",
+        "params": {
+          "bb_period": 20,
+          "bb_deviation": 1.75
+        }
+      },
+      "time_stop": {
+        "type": "fixed",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur in GER40 during the London session when price breaks out of the Asia range with high momentum",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "high > asia_range_high and momentum > 50"
+      },
+      "short": {
+        "condition": "low < asia_range_low and momentum < -50"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "distance": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "distance": 200
+        }
+      },
+      "time_stop": {
+        "type": "fixed",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs in US500 during the US session when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb(20, 1.75) and rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb(20, 1.75) and rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "distance": 100
+        }
+      },
+      "tp": {
+        "type": "opposite_bb",
+        "params": {
+          "bb_period": 20,
+          "bb_deviation": 1.75
+        }
+      },
+      "time_stop": {
+        "type": "fixed",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur in BTCUSD during the US session when price breaks out of the Asia range with high momentum",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 14,
+        "end_hour": 17
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "high > asia_range_high and momentum > 50"
+      },
+      "short": {
+        "condition": "low < asia_range_low and momentum < -50"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "distance": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "distance": 200
+        }
+      },
+      "time_stop": {
+        "type": "fixed",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  }
+]
+```

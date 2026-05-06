@@ -1,0 +1,101 @@
+{
+  "name": "us500_bb_pullback_trend_m15",
+  "hypothesis": "On US500 M15 during US cash-session hours, pullbacks to the middle Bollinger Band in an established uptrend (EMA50 > EMA200, ADX(14) > 18) offer positive-expectancy long entries; symmetric logic for downtrends.",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "family": "trend_pullback",
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "13:30",
+        "end_utc": "20:00"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_min": 18,
+      "require_session_mask": true,
+      "trend_filter": "ema50_vs_ema200"
+    }
+  },
+  "entry_rules": {
+    "long": "ema50 > ema200 AND adx(14) > 18 AND low <= middle_bb AND close > middle_bb AND rsi(14) between 40 and 65 AND session_active",
+    "short": "ema50 < ema200 AND adx(14) > 18 AND high >= middle_bb AND close < middle_bb AND rsi(14) between 35 and 60 AND session_active",
+    "cooldown_bars": 3,
+    "max_concurrent": 1
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "mult": 1.5
+    },
+    "take_profit": {
+      "type": "upper_or_lower_bollinger",
+      "period": 20,
+      "dev": 2.0
+    },
+    "time_stop_bars": 24,
+    "breakeven_after_r": 0.8,
+    "trailing_stop": {
+      "type": "atr_trail",
+      "atr_period": 14,
+      "mult": 1.5,
+      "activate_after_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct_equity",
+    "risk_pct": 0.5,
+    "max_lot": 3.0,
+    "min_lot": 0.1
+  },
+  "diagnostics": {
+    "bar_counter": true,
+    "signal_counter": true,
+    "rejection_reason_counter": true,
+    "symbol_resolution_log": true,
+    "session_boundary_log": true
+  }
+}

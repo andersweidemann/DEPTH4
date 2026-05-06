@@ -1,0 +1,35 @@
+{
+  "gen": 51,
+  "candidates": [
+    {
+      "name": "00_xau_bb_rsi_meanrev_m5",
+      "path": "/Users/User/Library/CloudStorage/OneDrive-Personal/Dokument/TRADING/strategies/gen_051/00_xau_bb_rsi_meanrev_m5",
+      "strict_is_pass": false,
+      "strict_failures": [
+        "XAUUSD_M5",
+        "not_all_combos_positive"
+      ],
+      "hunt_profitable": false,
+      "hunt_reason": "XAUUSD_M5:return<=0",
+      "combos": [
+        {
+          "symbol": "XAUUSD",
+          "timeframe": "M5",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        }
+      ]
+    }
+  ]
+}

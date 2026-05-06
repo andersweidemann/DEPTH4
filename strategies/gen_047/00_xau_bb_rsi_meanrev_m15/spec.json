@@ -1,0 +1,55 @@
+{
+  "name": "xau_bb_rsi_meanrev_m15",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "On XAUUSD M15, when price closes outside Bollinger(20,2.0) with RSI(7) extreme (<10 long / >90 short) during active London/NY sessions and BB width is above its 30th percentile, price mean-reverts toward the middle band within 30 bars more often than not, yielding PF>=2.0.",
+  "regime_filter": {
+    "primitives": [
+      "bb_width",
+      "atr_percentile",
+      "session_mask"
+    ],
+    "rules": {
+      "bb_width_percentile_min": 30,
+      "bb_width_lookback": 200,
+      "atr_percentile_min": 25,
+      "atr_percentile_lookback": 200,
+      "sessions_utc": [
+        [
+          "07:00",
+          "20:00"
+        ]
+      ],
+      "block_if_all_on": true
+    }
+  },
+  "entry": {
+    "long": "close < lower_bb(20,2.0) AND rsi(7) < 10 AND prev_bar_not_entered AND cooldown_bars>=3",
+    "short": "close > upper_bb(20,2.0) AND rsi(7) > 90 AND prev_bar_not_entered AND cooldown_bars>=3"
+  },
+  "exit": {
+    "tp": "opposite bollinger band (middle_bb fallback if price touches mid before 10 bars)",
+    "sl": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 30,
+    "breakeven_after_R": 1.0,
+    "trailing": "none"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "max_daily_loss_pct": 3.0
+  },
+  "params": {
+    "bb_period": 20,
+    "bb_dev": 2.0,
+    "rsi_period": 7,
+    "rsi_long_thr": 10,
+    "rsi_short_thr": 90,
+    "atr_period": 14,
+    "sl_atr_mult": 1.5,
+    "cooldown_bars": 3
+  },
+  "diversification_tag": "mean_reversion_bb_rsi"
+}

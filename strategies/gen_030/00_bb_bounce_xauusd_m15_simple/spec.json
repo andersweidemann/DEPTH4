@@ -1,0 +1,58 @@
+{
+  "id": "gen30_01_bb_bounce_xau_m15",
+  "name": "BB Bounce XAUUSD M15 (Simple)",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, after a wick-through of a Bollinger Band followed by a close back inside, price reverts toward the middle band with positive expectancy, provided volatility is not in the dead zone.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "stddev": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "lookback": 200,
+      "min_percentile": 25,
+      "max_percentile": 95
+    }
+  },
+  "entry_rules": {
+    "long": "low[1] < lower_bb[1] AND close[1] > lower_bb[1] AND close > close[1]",
+    "short": "high[1] > upper_bb[1] AND close[1] < upper_bb[1] AND close < close[1]",
+    "notes": "Single-bar rejection; no session filter; no stacked gates beyond the one regime filter."
+  },
+  "exit_rules": {
+    "take_profit": "middle BB (SMA20) OR opposite band, whichever hit first",
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 24,
+    "trailing": "none"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent": 1
+  },
+  "diagnostics": {
+    "expect_signal_count_per_year_min": 80,
+    "notes": "If fewer than 80 raw signals/year pre-gate on 4.5y sample, harness is broken."
+  }
+}

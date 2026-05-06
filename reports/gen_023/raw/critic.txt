@@ -1,0 +1,23 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_cand_2",
+      "fitness": 0.12,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.924, "sharpe_avg": -0.287, "max_dd_pct": 0.159, "trades_total": 2007}
+    },
+    {
+      "candidate": "00_cand_0",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Verdict: Entire generation rejected.** No candidate approaches acceptance thresholds (pf>=2.0, sharpe>=1.5, dd<=15%, trades>=200 per combo).\n\n### 00_cand_0\n- Zero trades across all three symbols on M15. The entry logic is either non-firing or gated by an impossible filter. This is a **signal generation failure**, not an edge problem.\n\n### 02_cand_2\n- Does produce trades (2007 total), but edge is absent or negative.\n- XAUUSD M5 is the only positive combo (PF 1.06, return +0.11%, Sharpe 0.27) — marginal, likely noise given win_rate 25.8% with PF barely above 1.\n- XAUUSD M15, US500 M5, US500 M15 all negative PF<0.91, Sharpe between -0.28 and -0.63.\n- `require_all_combos_positive` fails hard.\n- Win rates clustered at 22–26% suggest a trend/breakout style with R multiples that aren't compensating — likely TP too close or SL too wide relative to realized MFE/MAE.\n- Exposure ~7% is low; strategy is selective but not selective *correctly*.\n\n### Recommendation\nPivot the strategy family. Two generations of near-zero or negative expectancy indicate the hypothesis (as currently parameterized) lacks edge on these instruments/timeframes. Do not tune parameters on 02_cand_2; reformulate the entry trigger.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "00_cand_0 entry conditions (zero-trade filter stack) — abandon unless a concrete gating bug is identified",
+    "Low win-rate (<26%) breakout/momentum variants on US500 M5/M15 with current R:R — negative expectancy across both TFs suggests the signal is not a genuine trend trigger",
+    "XAUUSD M15 variant of 02_cand_2 — PF 0.84 with Sharpe -0.63 is structurally losing; do not re-run with minor param shifts"
+  ]
+}

@@ -1,0 +1,170 @@
+[
+  {
+    "id": "gen51_cand_1",
+    "name": "XAU_BB_RSI_MeanRev_M5",
+    "family": "mean_reversion",
+    "hypothesis": "On XAUUSD M5, when price closes outside Bollinger(20, 2.0) with RSI(7) extreme, price reverts toward the middle band within 30 bars, provided BB width is above its 30th percentile (avoid dead ranges).",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"type": "bollinger", "period": 20, "stddev": 2.0, "source": "close"},
+      {"type": "bb_width", "period": 20, "stddev": 2.0, "percentile_lookback": 500},
+      {"type": "rsi", "period": 7},
+      {"type": "atr", "period": 14}
+    ],
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi7 < 15 AND bb_width_pct > 30",
+      "short": "close > upper_bb AND rsi7 > 85 AND bb_width_pct > 30",
+      "cooldown_bars": 3
+    },
+    "exit_rules": {
+      "tp": "middle_bb (SMA20) touch",
+      "sl": "1.5 * ATR(14) from entry",
+      "time_stop_bars": 30
+    },
+    "regime_filter": {
+      "type": "atr_percentile",
+      "period": 14,
+      "min_percentile": 30,
+      "max_percentile": 95,
+      "rationale": "trade only in non-dead, non-crash volatility"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "enabled": true,
+      "windows_utc": [["07:00", "20:00"]]
+    },
+    "diversification_notes": "Mean-reversion family, XAU specific."
+  },
+  {
+    "id": "gen51_cand_2",
+    "name": "XAU_AsiaLondon_RangeBreak_M5",
+    "family": "session_breakout",
+    "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) frequently expands the Asia-session (00:00-06:00 UTC) range; a displacement breakout of that range yields a trend day.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"type": "session_mask", "name": "asia", "window_utc": ["00:00", "06:00"]},
+      {"type": "session_mask", "name": "london", "window_utc": ["07:00", "12:00"]},
+      {"type": "atr", "period": 14},
+      {"type": "donchian", "period": 72, "source": "asia_session"}
+    ],
+    "entry_rules": {
+      "long": "during london session AND first breakout of day AND close > asia_high + 0.5*ATR AND candle_body >= 1.2*ATR",
+      "short": "during london session AND first breakout of day AND close < asia_low - 0.5*ATR AND candle_body >= 1.2*ATR",
+      "asia_range_gate": "0.5*ATR <= (asia_high - asia_low) <= 2.0*ATR",
+      "max_breakout_bars_from_london_open": 9,
+      "one_trade_per_day": true
+    },
+    "exit_rules": {
+      "tp": "2.5 * ATR(14) from entry",
+      "sl": "1.2 * ATR(14) from entry (beyond opposite side of asia range)",
+      "time_stop_bars": 48,
+      "trailing": {"type": "atr", "mult": 2.0, "activate_after_R": 1.0}
+    },
+    "regime_filter": {
+      "type": "adx",
+      "period": 14,
+      "min": 15,
+      "rationale": "require at least weak directional tendency"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "enabled": true,
+      "windows_utc": [["07:00", "12:00"]]
+    },
+    "diversification_notes": "Breakout family, inspired by LVC scout card."
+  },
+  {
+    "id": "gen51_cand_3",
+    "name": "GER40_Donchian_ATRBreak_M15",
+    "family": "trend_breakout",
+    "hypothesis": "On GER40 M15 during European cash hours (08:00-16:30 UTC), a 20-bar Donchian breakout confirmed by ATR expansion produces positive expectancy when ADX>20.",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"type": "donchian", "period": 20},
+      {"type": "atr", "period": 14},
+      {"type": "atr_breakout_levels", "period": 14, "mult": 1.0},
+      {"type": "ema", "period": 50},
+      {"type": "adx", "period": 14}
+    ],
+    "entry_rules": {
+      "long": "close > donchian_high_prev AND close > ema50 AND (close - open) > 0.6*ATR AND adx > 20",
+      "short": "close < donchian_low_prev AND close < ema50 AND (open - close) > 0.6*ATR AND adx > 20",
+      "cooldown_bars": 4
+    },
+    "exit_rules": {
+      "tp": "3.0 * ATR(14) from entry",
+      "sl": "1.5 * ATR(14) from entry",
+      "time_stop_bars": 32,
+      "trailing": {"type": "donchian", "period": 10, "activate_after_R": 1.0}
+    },
+    "regime_filter": {
+      "type": "adx",
+      "period": 14,
+      "min": 20,
+      "rationale": "avoid chop; require trending regime"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "enabled": true,
+      "windows_utc": [["08:00", "16:30"]]
+    },
+    "diversification_notes": "Trend/breakout family, index-native (GER40)."
+  },
+  {
+    "id": "gen51_cand_4",
+    "name": "US500_EMA_Pullback_M15",
+    "family": "trend_pullback",
+    "hypothesis": "On US500 M15, pullbacks to EMA(20) within an EMA(20)>EMA(50) uptrend (or mirrored downtrend) during US cash hours produce mean-reverting-to-trend entries with favorable RR when ATR percentile is moderate.",
+    "symbols": ["US500"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"type": "ema", "period": 20},
+      {"type": "ema", "period": 50},
+      {"type": "rsi", "period": 14},
+      {"type": "atr", "period": 14}
+    ],
+    "entry_rules": {
+      "long": "ema20 > ema50 AND low <= ema20 AND close > ema20 AND rsi14 between 40 and 65",
+      "short": "ema20 < ema50 AND high >= ema20 AND close < ema20 AND rsi14 between 35 and 60",
+      "cooldown_bars": 3
+    },
+    "exit_rules": {
+      "tp": "2.0 * ATR(14) from entry",
+      "sl": "1.2 * ATR(14) from entry (below/above pullback swing)",
+      "time_stop_bars": 24,
+      "trailing": {"type": "ema", "period": 20, "activate_after_R": 1.0}
+    },
+    "regime_filter": {
+      "type": "atr_percentile",
+      "period": 14,
+      "min_percentile": 25,
+      "max_percentile": 90,
+      "rationale": "skip ultra-quiet and crisis regimes"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "session_filter": {
+      "enabled": true,
+      "windows_utc": [["13:30", "20:00"]]
+    },
+    "diversification_notes": "Trend-pullback family on US500; distinct from breakout and mean-reversion candidates."
+  }
+]

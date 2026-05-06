@@ -1,0 +1,46 @@
+{
+  "id": "01_xau_bb_rsi_meanrev_m15",
+  "hypothesis": "On XAUUSD M15, price closes outside Bollinger(20, 2.0) combined with RSI(2) extremes revert to the middle band within 20 bars, but only when ADX<22 (range regime) and ATR percentile between 20-80 (avoid dead and panic markets).",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "family": "mean_reversion",
+  "signal": {
+    "primitives": [
+      "bollinger",
+      "rsi",
+      "atr"
+    ],
+    "entry_long": "close < lower_bb(20,2.0) AND rsi(2) < 10",
+    "entry_short": "close > upper_bb(20,2.0) AND rsi(2) > 90",
+    "cooldown_bars": 4
+  },
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile"
+    ],
+    "rule": "adx(14) < 22 AND atr_percentile(14, lookback=200) BETWEEN 0.20 AND 0.80"
+  },
+  "exits": {
+    "sl": "1.5 * ATR(14)",
+    "tp": "middle_bb(20) OR opposite_bb_touch",
+    "time_stop_bars": 20,
+    "breakeven_at_r": 1.0
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session": {
+    "mask_utc": "06:00-20:00",
+    "avoid_news_buffer_min": 15
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  },
+  "notes": "Mean reversion baseline inspired by mean-reversion-scalper-mql5 (MIT). Tuned for XAU M15 volatility."
+}

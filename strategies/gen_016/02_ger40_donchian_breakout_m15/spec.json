@@ -1,0 +1,59 @@
+{
+  "name": "ger40_donchian_breakout_m15",
+  "hypothesis": "On GER40 M15, a 40-bar Donchian breakout during the European cash session, gated by ADX and ATR-expansion, captures intraday trend legs driven by EU index momentum.",
+  "family": "breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signals": {
+    "donchian": {
+      "primitive": "donchian",
+      "period": 40
+    },
+    "ema_fast": {
+      "primitive": "ema",
+      "period": 20
+    },
+    "ema_slow": {
+      "primitive": "ema",
+      "period": 100
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "window_utc": "07:00-15:30"
+    }
+  },
+  "entry_rules": {
+    "long": "Close > Donchian(40).upper[1] AND EMA20 > EMA100 AND ATR(14) > SMA(ATR,50)*1.1",
+    "short": "Close < Donchian(40).lower[1] AND EMA20 < EMA100 AND ATR(14) > SMA(ATR,50)*1.1"
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "require": {
+      "adx_min": 22,
+      "adx_period": 14,
+      "atr_percentile_min": 50,
+      "atr_percentile_lookback": 200
+    },
+    "rationale": "Breakouts only fire under confirmed trending + expanded-volatility regime; reject chop."
+  },
+  "exits": {
+    "stop_loss": "1.5*ATR(14) from entry, below/above Donchian midline",
+    "take_profit": "3.0*ATR(14) primary; trail remainder at 2.0*ATR after 1R",
+    "time_stop_bars": 32,
+    "breakeven_trigger": "1.0*ATR in favor"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "pyramiding": 0
+  },
+  "daily_limits": {
+    "max_trades_per_day": 2,
+    "max_daily_loss_pct": 2.0
+  }
+}

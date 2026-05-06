@@ -1,0 +1,41 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import atr, rsi, session_mask
+from agents.regime import atr_percentile
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "US500"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._atr_series = self.I(atr, self.data, self.spec["regime_filter"]["params"]["atr_period"])
+        self._rsi_series = self.I(rsi, self.data, self.spec["entry_rule"]["params"]["rsi_period"])
+        self._atr_percentile_series = self.I(atr_percentile, self.data, self.spec["regime_filter"]["params"]["atr_period"], self.spec["regime_filter"]["params"]["percentile"])
+
+    def _regime_ok(self):
+        return self._atr_percentile_series[-1] <= self.spec["regime_filter"]["params"]["percentile"]
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            if self._rsi_series[-1] < self.spec["entry_rule"]["params"]["rsi_thresholds"][0]:
+                self.position.enter_long()
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rule"]["params"]["sl_atr_multiplier"] * self._atr_series[-1]
+                self.tp_price = self.data.Close[-1] + self.spec["exit_rule"]["params"]["tp_pips"]
+            elif self._rsi_series[-1] > self.spec["entry_rule"]["params"]["rsi_thresholds"][1]:
+                self.position.enter_short()
+                self.sl_price = self.data.Close[-1] + self.spec["exit_rule"]["params"]["sl_atr_multiplier"] * self._atr_series[-1]
+                self.tp_price = self.data.Close[-1] - self.spec["exit_rule"]["params"]["tp_pips"]
+
+    def _manage_open(self):
+        super()._manage_open()

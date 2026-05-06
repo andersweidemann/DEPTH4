@@ -1,0 +1,44 @@
+{
+  "hypothesis": "BTCUSD M15 breakouts occur after a Bollinger Band squeeze, with a higher probability of success when the breakout is in the direction of the trend",
+  "regime_filter": {
+    "type": "bb_squeeze",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "breakout > upper_bb && trend > 0"
+    },
+    "short": {
+      "condition": "breakout < lower_bb && trend < 0"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "hours": 4
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "proportional",
+    "params": {
+      "proportion": 0.01
+    }
+  }
+}

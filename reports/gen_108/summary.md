@@ -1,0 +1,1 @@
+This generation shows promise with two candidates surpassing the acceptance thresholds. However, Candidate_2's high maximum drawdown percentage is a concern.

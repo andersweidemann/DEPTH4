@@ -1,0 +1,32 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_ger40_donchian_trend_breakout_m15",
+      "fitness": 0.12,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.63,
+        "sharpe_avg": -0.54,
+        "max_dd_pct": 0.19,
+        "trades_total": 2922
+      }
+    },
+    {
+      "candidate": "00_xauusd_asia_range_london_breakout_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Both candidates fail acceptance.** No survivors.\n\n### 00_xauusd_asia_range_london_breakout_m5\n- **Zero trades across all 4 symbol/TF combos.** This indicates a signal-gating bug, wrong session windows (likely UTC vs broker time mismatch), or an impossible entry condition (e.g., breakout threshold measured in points vs price). No metrics to evaluate.\n\n### 02_ger40_donchian_trend_breakout_m15\n- Ran on intended asset (GER40 M15) with only **7 trades** over 4.5 years — catastrophically under-traded, PF=0.0 (zero wins), expectancy -1.53R. Donchian lookback likely far too long or ATR filter too strict.\n- On GER40 M5: 18 trades, PF 0.67, still under threshold.\n- The candidate \"works\" numerically only on XAUUSD where it was not designed to run (1867 and 1030 trades) but is still unprofitable (PF 0.87 and 0.998). This is noise, not signal.\n- Fails all acceptance gates: PF<2, Sharpe<1.5, trades<200 on target combo, and not all combos positive.\n\n### Recommendation\nPivot the generation. The London-breakout idea never fired (infrastructure issue — fix first, do not re-theme). The Donchian-trend-breakout on GER40 M15 is a **dead branch**: index intraday donchian breakouts have been mean-reverting in the 2020-2024 regime. Pivot to **intraday mean-reversion / opening-range fade** on GER40, and for XAUUSD explore **session-volatility expansion with ATR-scaled stops** rather than pure breakout.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Donchian channel trend-breakout on GER40 intraday (M5/M15) — too few signals and negative edge in 2020-2024 regime",
+    "Applying GER40-tuned breakout logic to XAUUSD without re-parameterization — generates trades but no edge"
+  ]
+}

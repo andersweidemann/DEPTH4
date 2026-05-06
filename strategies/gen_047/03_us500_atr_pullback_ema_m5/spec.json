@@ -1,0 +1,62 @@
+{
+  "name": "us500_atr_pullback_ema_m5",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "hypothesis": "On US500 M5 during US cash session (13:30-20:00 UTC), pullbacks to EMA(20) in an uptrend (EMA20>EMA50>EMA200, ADX>20) followed by an RSI(14) cross back above 50 yield a continuation move with PF>=2.0 across 200+ trades; mirror for shorts.",
+  "regime_filter": {
+    "primitives": [
+      "ema",
+      "adx",
+      "session_mask",
+      "atr_percentile"
+    ],
+    "rules": {
+      "ema_stack_required": true,
+      "ema_fast": 20,
+      "ema_mid": 50,
+      "ema_slow": 200,
+      "adx_min": 20,
+      "adx_period": 14,
+      "sessions_utc": [
+        [
+          "13:30",
+          "20:00"
+        ]
+      ],
+      "atr_percentile_min": 25,
+      "block_if_all_on": true
+    }
+  },
+  "entry": {
+    "long": "ema(20)>ema(50)>ema(200) AND adx(14)>20 AND low of prior bar touched ema(20) within 0.25*ATR AND rsi(14) crosses above 50 AND close > ema(20)",
+    "short": "ema(20)<ema(50)<ema(200) AND adx(14)>20 AND high of prior bar touched ema(20) within 0.25*ATR AND rsi(14) crosses below 50 AND close < ema(20)"
+  },
+  "exit": {
+    "tp": "2.0 * ATR(14) from entry",
+    "sl": "1.3 * ATR(14) beyond the pullback swing (min 1.0*ATR)",
+    "time_stop_bars": 24,
+    "breakeven_after_R": 0.8,
+    "trailing": "ema(20) trail after 1.0R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.6,
+    "max_concurrent_positions": 1,
+    "max_daily_loss_pct": 3.0
+  },
+  "params": {
+    "ema_fast": 20,
+    "ema_mid": 50,
+    "ema_slow": 200,
+    "rsi_period": 14,
+    "rsi_mid": 50,
+    "adx_period": 14,
+    "adx_min": 20,
+    "atr_period": 14,
+    "pullback_touch_atr": 0.25,
+    "sl_atr_mult": 1.3,
+    "tp_atr_mult": 2.0
+  },
+  "diversification_tag": "ema_pullback_trend"
+}

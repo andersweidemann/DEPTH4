@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Volatility expansion occurs after Asia range on XAUUSD M5",
+  "regime_filter": {
+    "type": "asia_range",
+    "params": {
+      "start_hour": 0,
+      "end_hour": 6
+    }
+  },
+  "entry_rule": {
+    "type": "range_breakout",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "atr_multiplier": 1,
+      "trailing_step": 10
+    }
+  },
+  "sizing_rule": {
+    "type": "proportional",
+    "params": {
+      "proportion": 0.05
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "candidate": "no_wick_retest_ger40_m30",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "trades": 222,
+      "metrics": {
+        "return_pct": 1.2111484358374145,
+        "pf": 1.126038252951362,
+        "sharpe": 0.08781408886786146,
+        "sortino": 0.1460877896008942,
+        "max_dd_pct": 5.2832690918097835,
+        "trades": 222.0,
+        "win_rate": 28.37837837837838,
+        "expectancy": 0.023126542719840628,
+        "avg_trade": 0.021406400521262192,
+        "exposure_pct": 5.83187424239509
+      }
+    }
+  ]
+}

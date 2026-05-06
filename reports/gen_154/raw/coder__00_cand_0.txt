@@ -1,0 +1,99 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        
+        # Precompute session mask once
+        sessions = self.spec.get("filters", {}).get("session_utc") or []
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, sessions), dtype=bool)
+        else:
+            self._session_mask_full = None
+        
+        # Broker spread in points
+        self._broker_spread_points = 0
+        
+        # Initialize indicators
+        self._bb = self.I(bollinger, self.data, self.spec["regime_filter"]["params"]["period"], self.spec["regime_filter"]["params"]["deviation"])
+        self._rsi = self.I(rsi, self.data, self.spec["entry_rule"]["params"]["rsi_period"])
+        self._bb_width = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["period"], self.spec["regime_filter"]["params"]["deviation"])
+        
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        
+        bb_width_val = float(self._bb_width[-1])
+        bb_width_percentile = np.percentile(self._bb_width, self.spec["regime_filter"]["params"]["percentile"])
+        if bb_width_val < bb_width_percentile:
+            return True
+        return False
+    
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.1)):
+            return False
+        
+        return True
+    
+    def _enter_if_signal(self):
+        bb = self._bb
+        rsi = self._rsi
+        rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        
+        if self.position:
+            return
+        
+        if self._regime_ok() and self._filters_ok():
+            if rsi[-1] < rsi_thresholds[0] and self.data.Close[-1] < bb['lower'][-1]:
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rule"]["params"]["sl_multiplier"] * self.I(atr, self.data, 20)[-1]
+                self.tp_price = None
+                self.position.open(self.data.Close[-1], lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data.Close[-1], self.sl_price))
+            elif rsi[-1] > rsi_thresholds[1] and self.data.Close[-1] > bb['upper'][-1]:
+                self.sl_price = self.data.Close[-1] + self.spec["exit_rule"]["params"]["sl_multiplier"] * self.I(atr, self.data, 20)[-1]
+                self.tp_price = None
+                self.position.open(self.data.Close[-1], -lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data.Close[-1], self.sl_price))
+    
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit", {})
+        time_stop = exit_cfg.get("time_stop_bars")
+        
+        if not self.position:
+            return
+        
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        
+        if self.data.Close[-1] < self.sl_price and self.position.is_long:
+            self.position.close()
+        elif self.data.Close[-1] > self.sl_price and not self.position.is_long:
+            self.position.close()
+```

@@ -1,0 +1,94 @@
+{
+  "name": "ger40_donchian_trend_adx_m15",
+  "hypothesis": "On GER40 M15 during European cash-session hours, a 20-bar Donchian breakout taken only when ADX(14) > 22 and ATR percentile > 40 produces a positive-expectancy trend-following edge with ATR-based risk.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "family": "trend_breakout",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "lookback": 500
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "15:30"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_min": 22,
+      "atr_percentile_min": 40,
+      "require_session_mask": true,
+      "trend_filter": "close_above_ema200_for_long_below_for_short"
+    }
+  },
+  "entry_rules": {
+    "long": "close > donchian_high(20)[1] AND adx(14) > 22 AND atr_pct > 40 AND close > ema200 AND session_active",
+    "short": "close < donchian_low(20)[1] AND adx(14) > 22 AND atr_pct > 40 AND close < ema200 AND session_active",
+    "cooldown_bars": 4,
+    "max_concurrent": 1
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "mult": 2.0
+    },
+    "take_profit": {
+      "type": "rr_multiple",
+      "rr": 2.5
+    },
+    "time_stop_bars": 48,
+    "trailing_stop": {
+      "type": "atr_trail",
+      "atr_period": 14,
+      "mult": 2.0,
+      "activate_after_r": 1.0
+    },
+    "breakeven_after_r": 1.0
+  },
+  "sizing": {
+    "type": "risk_pct_equity",
+    "risk_pct": 0.5,
+    "max_lot": 3.0,
+    "min_lot": 0.1
+  },
+  "diagnostics": {
+    "bar_counter": true,
+    "signal_counter": true,
+    "rejection_reason_counter": true,
+    "symbol_resolution_log": true,
+    "session_boundary_log": true
+  }
+}

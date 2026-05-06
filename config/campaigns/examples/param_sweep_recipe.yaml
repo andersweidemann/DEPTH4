@@ -1,0 +1,17 @@
+# Example recipe for `python -m agents.param_sweep`.
+# Point --dir at a candidate with spec.json; tune paths to match your spec schema.
+
+seed: 42
+trials: 60
+mutations:
+  - path: sizing.risk_pct
+    kind: uniform
+    low: 0.8
+    high: 2.8
+  - path: signal.tp_r_mult
+    kind: choice
+    values: [2.0, 2.25, 2.5, 2.75, 3.0]
+  - path: signal.break_even_trigger_r
+    kind: uniform
+    low: 0.25
+    high: 0.55

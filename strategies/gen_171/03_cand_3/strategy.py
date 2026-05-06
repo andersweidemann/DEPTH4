@@ -1,0 +1,44 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, momentum
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_period = self.spec["regime_filter"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["regime_filter"]["params"]["bb_deviation"]
+        self._momentum_period = 7
+        self._lower_bb, self._upper_bb = self.I(bollinger, self.data, self._bb_period, self._bb_deviation)
+        self._momentum = self.I(momentum, self.data, self._momentum_period)
+        self._broker_spread_points = 0
+
+    def _regime_ok(self):
+        close = self.data.Close[-1]
+        return (close > self._lower_bb[-1] and close < self._upper_bb[-1])
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        long_condition = (self.data.Close[-1] > self._lower_bb[-1]) and (self._momentum[-1] > 0)
+        short_condition = (self.data.Close[-1] < self._upper_bb[-1]) and (self._momentum[-1] < 0)
+        if long_condition and not self.position.is_long:
+            size = lots_by_risk_pct(self._spec, self.data, self.equity)
+            self.position.enter_long(size)
+            self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["stop_loss"]["params"]["pips"]
+            self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["take_profit"]["params"]["pips"]
+        elif short_condition and not self.position.is_short:
+            size = lots_by_risk_pct(self._spec, self.data, self.equity)
+            self.position.enter_short(size)
+            self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["stop_loss"]["params"]["pips"]
+            self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["take_profit"]["params"]["pips"]
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rules"]["time_stop"]["params"]["bars"]
+        if self.position:
+            bars_open = len(self.data) - self.position.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()

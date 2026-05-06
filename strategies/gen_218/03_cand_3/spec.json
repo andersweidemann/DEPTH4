@@ -1,0 +1,29 @@
+{
+  "hypothesis": "Momentum continuation occurs on BTCUSD M15 when price breaks out of the Donchian channel with high momentum",
+  "regime_filter": {
+    "type": "donchian_channel",
+    "params": {
+      "channel_period": 20
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_atr_multiplier": 1.5,
+      "breakout_atr_multiplier": 0.8
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "sl_multiplier": 1.5,
+      "ts_multiplier": 0.8
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

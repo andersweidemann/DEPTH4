@@ -1,0 +1,56 @@
+{
+  "name": "bb_squeeze_expansion_ger40_m15",
+  "hypothesis": "GER40 M15 frequently exhibits volatility compression followed by directional expansion; entering on the first close outside a Bollinger band after a BB-width percentile squeeze captures the expansion move, with ADX rising as confirmation.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "family": "volatility_expansion_breakout",
+  "signals": {
+    "entry_long": "bb_width(20,2.0) percentile(100) was < 20 within last 8 bars AND close > bb_upper(20,2.0) AND close > ema(50)",
+    "entry_short": "bb_width(20,2.0) percentile(100) was < 20 within last 8 bars AND close < bb_lower(20,2.0) AND close < ema(50)",
+    "primitives": [
+      "bollinger(20,2.0)",
+      "bb_width",
+      "ema(50)",
+      "adx(14)"
+    ]
+  },
+  "regime_filter": {
+    "type": "squeeze_then_expansion",
+    "rules": [
+      "bb_width_percentile < 20 in lookback 8 bars (squeeze precondition)",
+      "adx(14) rising and >= 18 at entry",
+      "session_mask: Frankfurt/London 07:00-16:00 UTC",
+      "atr_percentile(100) >= 30"
+    ],
+    "skip_when": "no recent squeeze OR adx < 18 OR outside session"
+  },
+  "exits": {
+    "sl": "1.5 * atr(14) from entry",
+    "tp": "3.0 * atr(14) from entry (R:R 2.0)",
+    "time_stop": "24 bars (~6h)",
+    "trailing": "move to breakeven after +1.5*atr; trail at 2*atr thereafter"
+  },
+  "sizing": {
+    "model": "risk_pct_per_trade",
+    "risk_pct": 0.75,
+    "max_concurrent": 1,
+    "cooldown_bars": 4
+  },
+  "params": {
+    "bb_len": 20,
+    "bb_dev": 2.0,
+    "bb_width_pct_max": 20,
+    "squeeze_lookback": 8,
+    "ema_trend_len": 50,
+    "adx_len": 14,
+    "adx_min": 18,
+    "atr_len": 14,
+    "atr_pct_min": 30
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

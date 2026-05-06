@@ -1,0 +1,41 @@
+{
+  "name": "xau_m15_bb_bounce_3bar",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, a 3-bar Bollinger Band rejection pattern (poke-and-close-back-inside) signals short-term mean reversion with asymmetric R:R when ATR-normalized band width is moderate.",
+  "entry_rules": {
+    "long": "bar[-2].close > lower_bb(20,2.0) AND bar[-1].low <= lower_bb(20,2.0) AND bar[0].close > lower_bb(20,2.0) AND bar[0].close > bar[0].open AND bb_width/atr(14) between 0.8 and 3.0",
+    "short": "bar[-2].close < upper_bb(20,2.0) AND bar[-1].high >= upper_bb(20,2.0) AND bar[0].close < upper_bb(20,2.0) AND bar[0].close < bar[0].open AND bb_width/atr(14) between 0.8 and 3.0"
+  },
+  "exit_rules": {
+    "tp": "2.5 * ATR(14) from entry (targets middle/opposite band zone)",
+    "sl": "1.2 * ATR(14) from entry",
+    "time_stop": "close after 24 bars (~6h)",
+    "optional": "early close on opposite BB touch"
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rule": "adx(14) < 28 (avoid strong trend); atr_percentile(14,500) >= 25 (avoid dead vol)"
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "sl_basis": "atr",
+    "max_concurrent_positions": 1
+  },
+  "indicators": [
+    "bollinger(20,2.0)",
+    "atr(14)",
+    "adx(14)",
+    "atr_percentile"
+  ],
+  "instrumentation_required": [
+    "bars_received",
+    "indicator_ready_bar",
+    "signal_true_count",
+    "order_attempt_count",
+    "order_reject_reason"
+  ],
+  "diversity_tag": "mean_reversion_bb_pattern"
+}

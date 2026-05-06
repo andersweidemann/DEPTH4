@@ -1,0 +1,256 @@
+```python
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    donchian_period = 40
+    ema_fast_period = 50
+    ema_slow_period = 200
+    adx_period = 14
+    atr_period = 14
+    donchian_trail_period = 20
+
+    adx_threshold = 22.0
+    atr_pct_threshold = 30.0
+
+    tp_atr_mult = 3.0
+    sl_atr_mult = 1.8
+    time_stop_bars = 32
+    breakeven_r = 1.0
+    trail_after_r = 1.5
+
+    cooldown_bars = 6
+    risk_per_trade_pct = 0.5
+    max_spread_points = 30
+
+    def init(self):
+        try:
+            spec_file = Path(__file__).parent / self.spec_path
+            if spec_file.exists():
+                self._spec = json.loads(spec_file.read_text())
+        except Exception:
+            pass
+
+        super().init()
+
+        self._donch_upper = self.I(
+            lambda data, n: signals.donchian(data, n)[0],
+            self.data, self.donchian_period
+        )
+        self._donch_lower = self.I(
+            lambda data, n: signals.donchian(data, n)[1],
+            self.data, self.donchian_period
+        )
+        self._trail_upper = self.I(
+            lambda data, n: signals.donchian(data, n)[0],
+            self.data, self.donchian_trail_period
+        )
+        self._trail_lower = self.I(
+            lambda data, n: signals.donchian(data, n)[1],
+            self.data, self.donchian_trail_period
+        )
+
+        self._ema_fast = self.I(signals.ema, self.data.Close, self.ema_fast_period)
+        self._ema_slow = self.I(signals.ema, self.data.Close, self.ema_slow_period)
+
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+        self._atr_pct_series = self.I(regime.atr_percentile, self.data, self.atr_period)
+
+        sessions = ["frankfurt_0700_1530_utc"]
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        try:
+            self._session_mask_full = np.asarray(
+                signals.session_mask(full_idx, sessions), dtype=bool
+            )
+        except Exception:
+            self._session_mask_full = None
+
+        self._last_entry_bar = -10_000
+        self._entry_price = None
+        self._entry_atr = None
+        self._breakeven_done = False
+        self._trailing_active = False
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 2 or len(self._atr_pct_series) < 2:
+            return False
+        adx_val = float(self._adx_series[-1])
+        atr_p = float(self._atr_pct_series[-1])
+        if np.isnan(adx_val) or np.isnan(atr_p):
+            return False
+        if adx_val <= self.adx_threshold:
+            return False
+        if atr_p <= self.atr_pct_threshold:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        if not risk.spread_ok(self._broker_spread_points, self.max_spread_points):
+            return False
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        daily_kill_pct = self.spec.get("risk", {}).get(
+            "daily_dd_kill_pct",
+            config.load()["risk"]["daily_dd_kill_pct"]
+        )
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, daily_kill_pct):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < self.cooldown_bars:
+            return
+
+        if len(self._donch_upper) < 3 or len(self._ema_slow) < 2:
+            return
+
+        close = float(self.data.Close[-1])
+        prev_upper = float(self._donch_upper[-2])
+        prev_lower = float(self._donch_lower[-2])
+        ema_f = float(self._ema_fast[-1])
+        ema_s = float(self._ema_slow[-1])
+        adx_val = float(self._adx_series[-1])
+        atr_val = float(self._atr_series[-1])
+
+        if np.isnan(prev_upper) or np.isnan(prev_lower) or np.isnan(atr_val) or atr_val <= 0:
+            return
+        if np.isnan(ema_f) or np.isnan(ema_s) or np.isnan(adx_val):
+            return
+
+        long_sig = close > prev_upper and ema_f > ema_s and adx_val > self.adx_threshold
+        short_sig = close < prev_lower and ema_f < ema_s and adx_val > self.adx_threshold
+
+        if not (long_sig or short_sig):
+            return
+
+        if long_sig:
+            sl = close - self.sl_atr_mult * atr_val
+            tp = close + self.tp_atr_mult * atr_val
+            risk_per_unit = close - sl
+        else:
+            sl = close + self.sl_atr_mult * atr_val
+            tp = close - self.tp_atr_mult * atr_val
+            risk_per_unit = sl - close
+
+        if risk_per_unit <= 0:
+            return
+
+        size = risk.lots_by_risk_pct(
+            equity=self.equity,
+            risk_pct=self.risk_per_trade_pct,
+            stop_distance=risk_per_unit,
+            price=close,
+            symbol=self._symbol,
+        )
+        try:
+            size = float(size)
+        except Exception:
+            return
+        if size <= 0 or np.isnan(size):
+            return
+
+        if size >= 1:
+            size = int(size)
+        else:
+            if size <= 0 or size >= 1:
+                return
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        if long_sig:
+            self.buy(size=size, sl=sl, tp=tp)
+        else:
+            self.sell(size=size, sl=sl, tp=tp)
+
+        self._last_entry_bar = bar_i
+        self._entry_price = close
+        self._entry_atr = atr_val
+        self._breakeven_done = False
+        self._trailing_active = False
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            self._entry_price = None
+            self._entry_atr = None
+            self._breakeven_done = False
+            self._trailing_active = False
+            return
+
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= self.time_stop_bars:
+            self.position.close()
+            return
+
+        if self._entry_price is None or self._entry_atr is None:
+            self._entry_price = float(trade.entry_price)
+            self._entry_atr = float(self._atr_series[-1]) if not np.isnan(self._atr_series[-1]) else None
+            if self._entry_atr is None or self._entry_atr <= 0:
+                return
+
+        price = float(self.data.Close[-1])
+        r_unit = self.sl_atr_mult * self._entry_atr
+
+        if trade.is_long:
+            r_mult = (price - self._entry_price) / r_unit if r_unit > 0 else 0.0
+        else:
+            r_mult = (self._entry_price - price) / r_unit if r_unit > 0 else 0.0
+
+        if not self._breakeven_done and r_mult >= self.breakeven_r:
+            for t in self.trades:
+                be = self._entry_price
+                if t.is_long:
+                    if t.sl is None or be > t.sl:
+                        t.sl = be
+                else:
+                    if t.sl is None or be < t.sl:
+                        t.sl = be
+            self._breakeven_done = True
+
+        if r_mult >= self.trail_after_r:
+            self._trailing_active = True
+
+        if self._trailing_active and len(self._trail_lower) > 0:
+            if trade.is_long:
+                new_sl = float(self._trail_lower[-1])
+                if not np.isnan(new_sl):
+                    for t in self.trades:
+                        if t.is_long and (t.sl is None or new_sl > t.sl):
+                            t.sl = new_sl
+            else:
+                new_sl = float(self._trail_upper[-1])
+                if not np.isnan(new_sl):
+                    for t in self.trades:
+                        if not t.is_long and (t.sl is None or new_sl < t.sl):
+                            t.sl = new_sl
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

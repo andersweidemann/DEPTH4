@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Reversal occurs when price touches the Bollinger Band with high RSI",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb && rsi(7) < 30"
+    },
+    "short": {
+      "condition": "close < upper_bb && rsi(7) > 70"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "middle_bb"
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 2
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

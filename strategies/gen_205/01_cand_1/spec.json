@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Breakouts occur on GER40 M15 during London session with sufficient volatility",
+  "regime_filter": {
+    "type": "london_session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "1.5_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

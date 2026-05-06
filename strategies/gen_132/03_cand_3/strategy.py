@@ -1,0 +1,39 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, sma
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.bollinger = self.I(bollinger, self.data, self.spec["entry_rule"]["params"]["bb_period"], self.spec["entry_rule"]["params"]["bb_dev"])
+        self.bb_width = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["min_width"], self.spec["regime_filter"]["params"]["max_width"])
+        self._session_mask_full = None
+
+    def _regime_ok(self):
+        min_width = self.spec["regime_filter"]["params"]["min_width"]
+        max_width = self.spec["regime_filter"]["params"]["max_width"]
+        bb_width_val = float(self.bb_width[-1])
+        return min_width <= bb_width_val <= max_width
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            bb_touch = self.spec["entry_rule"]["params"]["bb_dev"]
+            if self.data.Close[-1] <= self.bollinger["lower"][-1] and self.data.Close[-2] > self.bollinger["lower"][-2]:
+                self.position.enter_long(lots_by_risk_pct(self._equity_start, self.spec["sizing_rule"]["params"]["scale"]))
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rule"]["params"]["sl"]
+                self.tp_price = self.data.Close[-1] + self.spec["exit_rule"]["params"]["tp"]
+            elif self.data.Close[-1] >= self.bollinger["upper"][-1] and self.data.Close[-2] < self.bollinger["upper"][-2]:
+                self.position.enter_short(lots_by_risk_pct(self._equity_start, self.spec["sizing_rule"]["params"]["scale"]))
+                self.sl_price = self.data.Close[-1] + self.spec["exit_rule"]["params"]["sl"]
+                self.tp_price = self.data.Close[-1] - self.spec["exit_rule"]["params"]["tp"]
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        if self.position and len(self.data) - self.position.entry_bar >= time_stop:
+            self.position.close()

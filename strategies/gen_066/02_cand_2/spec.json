@@ -1,0 +1,21 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M15",
+  "regime_filter": {
+    "type": "max_spread",
+    "threshold": 30
+  },
+  "entry_rule": {
+    "type": "bb_touch",
+    "bb_period": 20,
+    "bb_deviation": 2.0
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "sl_multiplier": 1.0,
+    "time_stop": 20
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "fraction": 0.02
+  }
+}

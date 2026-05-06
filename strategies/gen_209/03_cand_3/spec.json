@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on US500 M15 with high probability",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "period": 20,
+      "percentile": 40
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb && rsi > 30"
+    },
+    "short": {
+      "condition": "close < upper_bb && rsi < 70"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "fixed",
+      "params": {
+        "pips": 150
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 300
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 1
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk_percent",
+    "params": {
+      "percent": 1.5
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "ranking": [
+    {
+      "candidate": "03_trend_pullback",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "No candidates met the acceptance thresholds. Consider a strategy-family pivot.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Trend pullback strategies with no trades"
+  ]
+}

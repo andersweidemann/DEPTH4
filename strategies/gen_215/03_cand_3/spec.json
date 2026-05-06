@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Bollinger Band touch on US500 M15 leads to profitable scalping opportunities",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2,
+      "percentile": 40
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb"
+    },
+    "short": {
+      "condition": "close < upper_bb"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "distance": 30
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "distance": 60
+      }
+    },
+    "time_stop": {
+      "type": "fixed",
+      "params": {
+        "bars": 10
+      }
+    }
+  },
+  "sizing": {
+    "type": "fixed",
+    "params": {
+      "size": 0.15
+    }
+  }
+}

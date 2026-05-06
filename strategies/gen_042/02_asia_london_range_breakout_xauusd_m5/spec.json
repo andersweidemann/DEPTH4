@@ -1,0 +1,93 @@
+{
+  "name": "asia_london_range_breakout_xauusd_m5",
+  "family": "session_breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "Gold builds a compressed range during the Asian session (00:00-06:00 UTC) and frequently expands directionally during London open (07:00-10:00 UTC). A breakout of the Asia range with ATR-normalized thrust captures the session-open expansion premium. Unlike the failed retest variant, we trade the immediate breakout with a body-filter to avoid false pokes \u2014 this guarantees trade flow.",
+  "signals": {
+    "primary": {
+      "type": "session_mask",
+      "range_session": {
+        "start": "00:00",
+        "end": "06:00",
+        "tz": "UTC"
+      },
+      "trade_session": {
+        "start": "07:00",
+        "end": "10:00",
+        "tz": "UTC"
+      }
+    },
+    "confirm": {
+      "type": "atr_breakout_levels",
+      "atr_period": 14,
+      "min_range_atr": 0.4,
+      "max_range_atr": 2.5,
+      "breakout_distance_atr": 0.25,
+      "breakout_body_atr": 0.8
+    },
+    "entry_rules": {
+      "long": "in_trade_session AND close > asia_high + 0.25*ATR14 AND candle_body >= 0.8*ATR14",
+      "short": "in_trade_session AND close < asia_low  - 0.25*ATR14 AND candle_body >= 0.8*ATR14",
+      "max_breakout_bars_from_window_start": 24,
+      "one_trade_per_day": true
+    }
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "operator": ">",
+        "value": 25,
+        "reason": "need non-dead volatility for expansion"
+      },
+      {
+        "indicator": "adx",
+        "period": 14,
+        "operator": "<",
+        "value": 40,
+        "reason": "avoid already-exhausted trend days"
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "range_opposite",
+      "buffer_atr": 0.3,
+      "cap_atr_mult": 2.5
+    },
+    "take_profit": {
+      "type": "rr",
+      "rr": 2.0
+    },
+    "time_stop": {
+      "type": "bars",
+      "value": 36
+    },
+    "trailing": {
+      "type": "atr",
+      "period": 14,
+      "multiplier": 2.0,
+      "activate_at_rr": 1.0
+    }
+  },
+  "sizing": {
+    "mode": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1,
+    "max_daily_trades": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  },
+  "inspiration": [
+    "asia-london-range-expansion-xauusd.md",
+    "asia-london-range-expansion.md"
+  ]
+}

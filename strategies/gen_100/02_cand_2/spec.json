@@ -1,0 +1,11 @@
+{
+  "hypothesis": "Price will revert to the mean after a strong trend identified by the RSI(7) and Donchian channels",
+  "regime_filter": "RSI(7) > 70 AND Donchian channel breakout",
+  "symbol": "BTCUSD",
+  "timeframe": "M5",
+  "entry_rule": "Close > Upper Donchian channel AND RSI(7) > 70 OR Close < Lower Donchian channel AND RSI(7) < 30",
+  "sl": "2 * ATR(14)",
+  "tp": "Middle Donchian channel",
+  "time_stop": "20 bars",
+  "sizing": "Proportional to the ATR(14)"
+}

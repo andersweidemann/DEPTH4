@@ -1,0 +1,172 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl_rule": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_ratio",
+      "params": {
+        "ratio": 2
+      }
+    },
+    "time_stop": 30,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Price breaks out of the Asia range during the London session",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_period": 6,
+        "london_breakout_period": 2
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1
+      }
+    },
+    "sl_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop": 60,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to the mean after touching the Bollinger Band with high RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 50,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2,
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "middle_bb",
+      "params": {}
+    },
+    "sl_rule": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 2
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_ratio",
+      "params": {
+        "ratio": 1.5
+      }
+    },
+    "time_stop": 45,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  },
+  {
+    "hypothesis": "Price breaks out of the Donchian channel during high volatility",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "percentile": 70,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "donchian_breakout",
+      "params": {
+        "donchian_period": 20
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "sl_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 150
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 300
+      }
+    },
+    "time_stop": 90,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]

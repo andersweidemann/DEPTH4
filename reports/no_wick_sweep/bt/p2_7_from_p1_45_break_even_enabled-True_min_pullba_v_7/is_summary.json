@@ -1,0 +1,27 @@
+{
+  "candidate": "p2_7_from_p1_45_break_even_enabled-True_min_pullba_v_7",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "trades": 264,
+      "metrics": {
+        "return_pct": -2.840661399477755,
+        "pf": 0.9994643869529425,
+        "sharpe": -0.18962671689398974,
+        "sortino": -0.28455767692672473,
+        "max_dd_pct": 7.705473792646645,
+        "trades": 264.0,
+        "win_rate": 28.030303030303028,
+        "expectancy": -0.00011982532286117147,
+        "avg_trade": -0.0028490892042820626,
+        "exposure_pct": 7.807900255902103
+      }
+    }
+  ]
+}

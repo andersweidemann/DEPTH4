@@ -1,0 +1,69 @@
+{
+  "name": "US500_M5_VolatilityBreakout_NYOpen_v1",
+  "family": "breakout",
+  "hypothesis": "On US500 M5, the 30-minute opening range (13:30-14:00 UTC) break during the first hour of US cash open continues with momentum when ATR is elevated.",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 6,
+        "source": "opening_range"
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_mult": 0.25
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "or_window": "13:30-14:00",
+        "trade_window": "14:00-15:30",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": {
+      "adx_min": 15,
+      "atr_percentile_min": 40,
+      "atr_percentile_max": 98
+    }
+  },
+  "entry_rules": {
+    "long": "Close > ORHigh + 0.25*ATR(14) AND Close > EMA50 AND breakout within trade_window",
+    "short": "Close < ORLow - 0.25*ATR(14) AND Close < EMA50 AND breakout within trade_window",
+    "only_first_breakout_per_day": true,
+    "cooldown_bars": 6
+  },
+  "exit_rules": {
+    "sl": "1.0 * ATR(14) or opposite OR edge, whichever closer",
+    "tp": "2.2 * ATR(14) from entry",
+    "time_stop_bars": 24,
+    "breakeven_trigger_R": 1.0,
+    "trailing": "ATR(14) * 1.2 chandelier after BE"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.4,
+    "max_concurrent_positions": 1
+  },
+  "notes": "Opening-range breakout diversifier; distinct from Asia/London session logic."
+}

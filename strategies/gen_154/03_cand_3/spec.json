@@ -1,0 +1,29 @@
+{
+  "hypothesis": "ATR-based volatility can be used to filter trades and adjust position sizing",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_breakout",
+    "params": {
+      "breakout_period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "time_stop",
+    "params": {
+      "time_stop_bars": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "volatility_based",
+    "params": {
+      "atr_period": 14,
+      "size_multiplier": 0.1
+    }
+  }
+}

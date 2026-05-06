@@ -1,0 +1,47 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "GER40"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.asia_range_high = self.I(donchian, self.data, n=48, level='high')
+        self.asia_range_low = self.I(donchian, self.data, n=48, level='low')
+        self.momentum = self.I(ema, self.data.Close, n=20)
+        self._session_mask_full = np.asarray(session_mask(self.data.index, [{"start_hour": 7, "end_hour": 10}]), dtype=bool)
+
+    def _regime_ok(self):
+        return self._session_mask_full[-1]
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        if self.momentum[-1] > 50 and self.data.High[-1] > self.asia_range_high[-1]:
+            self.sl_price = self.data.Low[-1] - 100 * self.data._pip
+            self.tp_price = self.data.High[-1] + 500 * self.data._pip
+            size = lots_by_risk_pct(self._equity_start, 2, 100 * self.data._pip)
+            self.position.enter_long(size)
+        elif self.momentum[-1] < -50 and self.data.Low[-1] < self.asia_range_low[-1]:
+            self.sl_price = self.data.High[-1] + 100 * self.data._pip
+            self.tp_price = self.data.Low[-1] - 500 * self.data._pip
+            size = lots_by_risk_pct(self._equity_start, 2, 100 * self.data._pip)
+            self.position.enter_short(size)
+
+    def _manage_open(self):
+        if self.position:
+            if self.data.index[-1] - self.position.entry_time > pd.Timedelta(hours=2):
+                self.position.close()

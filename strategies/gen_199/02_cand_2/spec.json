@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Price reverts to the mean after a strong trend",
+  "regime_filter": {
+    "type": "adx",
+    "params": {
+      "period": 14,
+      "threshold": 25
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb(20, 1.75) and adx(14) > 25"
+    },
+    "short": {
+      "condition": "close > upper_bb(20, 1.75) and adx(14) > 25"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

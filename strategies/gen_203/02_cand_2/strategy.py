@@ -1,0 +1,58 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("session")
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, [sessions]), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self.asia_high = self.I(donchian, self.data, n=20, direction=1)
+        self.asia_low = self.I(donchian, self.data, n=20, direction=-1)
+        self.atr = self.I(atr, self.data, n=14)
+
+    def _regime_ok(self):
+        return self._session_mask_full[-1] if self._session_mask_full is not None else True
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position.size == 0:
+            if self.data.Close[-1] > self.asia_high[-1]:
+                self.position.enter(long=True, size=lots_by_risk_pct(self.spec, self._equity_start, self.data))
+                self.sl_price = self.data.Close[-1] - self.atr[-1] * 1.5
+                self.tp_price = self.data.Close[-1] + 50 * self.data._pip
+            elif self.data.Close[-1] < self.asia_low[-1]:
+                self.position.enter(long=False, size=lots_by_risk_pct(self.spec, self._equity_start, self.data))
+                self.sl_price = self.data.Close[-1] + self.atr[-1] * 1.5
+                self.tp_price = self.data.Close[-1] - 50 * self.data._pip
+
+    def _manage_open(self):
+        if self.position:
+            if self.position.is_long and self.data.Close[-1] >= self.tp_price:
+                self.position.close()
+            elif not self.position.is_long and self.data.Close[-1] <= self.tp_price:
+                self.position.close()
+            elif self.position.is_long and self.data.Close[-1] <= self.sl_price:
+                self.position.close()
+            elif not self.position.is_long and self.data.Close[-1] >= self.sl_price:
+                self.position.close()
+            if len(self.data) - self.position.entry_bar >= 30:
+                self.position.close()

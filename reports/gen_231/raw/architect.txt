@@ -1,0 +1,173 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 100
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl_rule": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp_rule": {
+      "type": "fixed",
+      "params": {
+        "take_profit": 50
+      }
+    },
+    "time_stop": 30,
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "lot_size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during the London session after a period of consolidation",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "consolidation_period": 10,
+        "breakout_threshold": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "trailing_stop": 50,
+        "trailing_step": 10
+      }
+    },
+    "sl_rule": {
+      "type": "fixed",
+      "params": {
+        "stop_loss": 100
+      }
+    },
+    "tp_rule": {
+      "type": "fixed",
+      "params": {
+        "take_profit": 200
+      }
+    },
+    "time_stop": 60,
+    "sizing_rule": {
+      "type": "proportional",
+      "params": {
+        "risk_percentage": 2
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to the mean after a strong trend",
+    "regime_filter": {
+      "type": "adx",
+      "params": {
+        "adx_period": 14,
+        "adx_threshold": 25
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "ma_period": 20,
+        "std_deviation": 2
+      }
+    },
+    "exit_rule": {
+      "type": "ma_crossover",
+      "params": {
+        "ma_period": 20
+      }
+    },
+    "sl_rule": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 2
+      }
+    },
+    "tp_rule": {
+      "type": "fixed",
+      "params": {
+        "take_profit": 100
+      }
+    },
+    "time_stop": 40,
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "lot_size": 0.2
+      }
+    }
+  },
+  {
+    "hypothesis": "Volatility contraction precedes a breakout",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 20,
+        "lookback": 50
+      }
+    },
+    "entry_rule": {
+      "type": "volatility_breakout",
+      "params": {
+        "volatility_period": 10,
+        "breakout_threshold": 1.5
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl_rule": {
+      "type": "fixed",
+      "params": {
+        "stop_loss": 150
+      }
+    },
+    "tp_rule": {
+      "type": "fixed",
+      "params": {
+        "take_profit": 300
+      }
+    },
+    "time_stop": 80,
+    "sizing_rule": {
+      "type": "proportional",
+      "params": {
+        "risk_percentage": 3
+      }
+    }
+  }
+]
+```

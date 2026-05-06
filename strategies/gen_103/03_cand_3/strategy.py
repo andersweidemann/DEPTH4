@@ -1,0 +1,54 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, atr
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._atr_series = self.I(atr, self.data, 14)
+        self._sma_series = self.I(sma, self.data, 20)
+        self._atr_percentile_series = self.I(signals.atr_percentile, self.data, self.spec["regime_filter"]["params"]["lookback"])
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        atr_percentile = float(self._atr_percentile_series[-1])
+        percentile = rf.get("params").get("percentile")
+        return atr_percentile >= np.percentile(self._atr_percentile_series, percentile)
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        max_spread = filters.get("max_spread_points")
+        broker_spread = self._broker_spread_points
+        if max_spread is not None and not spread_ok(broker_spread, max_spread):
+            return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        long_condition = self.data.Close[-1] > self._sma_series[-1] and self._atr_series[-1] > 10
+        short_condition = self.data.Close[-1] < self._sma_series[-1] and self._atr_series[-1] > 10
+        if long_condition and not self.position:
+            lots = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["risk_percent"], self._atr_series[-1], self.data.Close[-1])
+            self.position.enter(long=True, lots=lots)
+            self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["sl"]["params"]["pips"]
+            self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["tp"]["params"]["pips"]
+        elif short_condition and not self.position:
+            lots = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["risk_percent"], self._atr_series[-1], self.data.Close[-1])
+            self.position.enter(long=False, lots=lots)
+            self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["sl"]["params"]["pips"]
+            self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["tp"]["params"]["pips"]
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rules"]["time_stop"]["params"]["num_hours"]
+        if self.position:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop * 12:  # 12 bars per hour for M5 timeframe
+                self.position.close()

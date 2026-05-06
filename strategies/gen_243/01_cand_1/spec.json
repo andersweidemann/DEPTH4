@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Breakouts occur when price displaces the Asia range with sufficient momentum",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "asia_range_atr": 0.5,
+      "displacement_atr": 1.2,
+      "retest_atr": 0.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

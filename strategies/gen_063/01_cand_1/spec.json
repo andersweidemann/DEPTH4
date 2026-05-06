@@ -1,0 +1,49 @@
+{
+  "hypothesis": "London breakout occurs on GER40 M15 when Asia range is broken with sufficient volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "london_breakout",
+    "params": {
+      "asia_range_period": "06:00-07:00",
+      "london_breakout_period": "07:00-10:00",
+      "volatility_threshold": "1.2 * atr(14)"
+    }
+  },
+  "exit_rule": {
+    "type": "multi_condition",
+    "params": {
+      "conditions": [
+        {
+          "type": "take_profit",
+          "params": {
+            "target": "1.5 * atr(14)"
+          }
+        },
+        {
+          "type": "stop_loss",
+          "params": {
+            "distance": "1.0 * atr(14)"
+          }
+        },
+        {
+          "type": "time_stop",
+          "params": {
+            "bars": 20
+          }
+        }
+      ]
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

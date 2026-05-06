@@ -1,0 +1,7 @@
+{
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    "no_daily_kill_switch_reference"
+  ]
+}

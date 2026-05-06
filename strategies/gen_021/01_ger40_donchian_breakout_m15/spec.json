@@ -1,0 +1,80 @@
+{
+  "name": "ger40_donchian_breakout_m15",
+  "hypothesis": "On GER40 M15 during European cash session (07:00-15:30 UTC), a close beyond the 20-bar Donchian high/low combined with ADX>20 captures intraday trend continuation; ATR-normalized stops handle index point-scale.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "family": "breakout_trend",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_period": 14,
+        "buffer_atr": 0.1
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close > donchian_high(20) + 0.1*ATR14 AND close > ema50",
+    "short": "close < donchian_low(20) - 0.1*ATR14 AND close < ema50",
+    "one_entry_per_direction_per_session": true
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14,
+      "min": 20
+    },
+    "rationale": "Breakouts only pay in trending regimes; ADX<20 produces whipsaws on DAX."
+  },
+  "exit_rules": {
+    "tp": "2.5 * ATR(14)",
+    "sl": "1.2 * ATR(14)",
+    "time_stop_bars": 24,
+    "trailing": "chandelier: high - 2.5*ATR14 after +1R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "params": {
+      "include_hours_utc": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "broker_tz_aware": true
+    }
+  },
+  "falsification_criteria": "Trades < 200 IS, or PF<1.3, or >60% of breakouts fail within 4 bars (indicates no trend edge)."
+}

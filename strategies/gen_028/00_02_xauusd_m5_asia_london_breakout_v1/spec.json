@@ -1,0 +1,87 @@
+{
+  "name": "02_xauusd_m5_asia_london_breakout_v1",
+  "hypothesis": "On XAUUSD M5, the Asia-session (00:00-06:00 UTC) high/low range acts as accumulation; a London-session (07:00-10:00 UTC) ATR-normalized breakout with body confirmation captures directional expansion more often than it fails, yielding PF>=2.0.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "session_breakout",
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile"
+    ],
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "op": ">=",
+        "value": 18
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 100,
+        "op": ">=",
+        "value": 0.3
+      }
+    ],
+    "description": "Only trade when market shows at least mild trendiness and non-dead volatility."
+  },
+  "signals": {
+    "primitives": [
+      "atr",
+      "session_mask",
+      "donchian"
+    ],
+    "entry_long": "Price closes >= AsiaHigh + 0.5*ATR(14) AND candle body >= 1.2*ATR(14) during London window, within first 9 bars of window, and AsiaRange between 0.5*ATR and 2.0*ATR",
+    "entry_short": "Mirror: Price closes <= AsiaLow - 0.5*ATR(14) with body >= 1.2*ATR(14) in London window under same range filter",
+    "session_window_entry": "07:00-10:00 UTC",
+    "range_window": "00:00-06:00 UTC",
+    "one_trade_per_day": true,
+    "cooldown_bars": 12
+  },
+  "exits": {
+    "stop_loss": "1.5 * ATR(14) from entry, or opposite side of Asia range (whichever is tighter but >= broker stops_level)",
+    "take_profit": "3.0 * ATR(14) (RR ~2.0)",
+    "time_stop_bars": 60,
+    "breakeven_trigger": "Move SL to entry after +1.0*ATR favorable",
+    "trailing": "ATR-chandelier: 2.0*ATR from highest high (long) / lowest low (short) once in profit >1.5*ATR"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "min_stop_points": 50
+  },
+  "parameter_grid": {
+    "atr_period": [
+      14,
+      21
+    ],
+    "breakout_atr_mult": [
+      0.4,
+      0.5,
+      0.6
+    ],
+    "body_atr_mult": [
+      1.0,
+      1.2,
+      1.4
+    ],
+    "sl_atr_mult": [
+      1.2,
+      1.5,
+      2.0
+    ],
+    "tp_atr_mult": [
+      2.5,
+      3.0,
+      3.5
+    ]
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  },
+  "diversity_tag": "session_breakout_gold"
+}

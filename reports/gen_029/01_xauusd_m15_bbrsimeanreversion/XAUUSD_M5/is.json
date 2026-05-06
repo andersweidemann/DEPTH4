@@ -1,0 +1,12 @@
+{
+  "return_pct": 0.28523801168133506,
+  "pf": NaN,
+  "sharpe": 0.42415813999986685,
+  "sortino": Infinity,
+  "max_dd_pct": 0.0,
+  "trades": 1.0,
+  "win_rate": 100.0,
+  "expectancy": 0.3629494042546977,
+  "avg_trade": 0.3629494042546977,
+  "exposure_pct": 0.00031369596586987893
+}

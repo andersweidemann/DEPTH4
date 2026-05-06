@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Mean reversion occurs in US500 on M5 when price reaches extreme RSI readings with high ATR.",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 70,
+      "lookback": 100
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_mean_reversion",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

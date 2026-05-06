@@ -1,0 +1,46 @@
+{
+  "hypothesis": "Price breaks out of the Asia range during the London session, leading to a trend.",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_period": 6,
+      "breakout_threshold": 0.5
+    }
+  },
+  "exit_rule": {
+    "type": "multi_exit",
+    "params": {
+      "take_profit": {
+        "type": "fixed_pips",
+        "params": {
+          "pips": 100
+        }
+      },
+      "stop_loss": {
+        "type": "fixed_pips",
+        "params": {
+          "pips": 50
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "hours": 2
+        }
+      }
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

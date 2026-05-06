@@ -1,0 +1,23 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_donchian_atr_breakout_ger40_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    },
+    {
+      "candidate": "03_asia_range_london_breakout_xauusd_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nBoth candidates produced **zero trades across all symbol/timeframe combos** over a 4.5-year IS window (2020-01-01 to 2024-06-30). This is not a parameter issue — it indicates the strategies are not firing at all. Likely causes:\n\n1. **Signal logic bugs**: entry conditions never evaluate true (e.g., comparing wrong bar indices, inverted inequalities, session filters excluding all bars).\n2. **Data/symbol mismatch**: symbol names in the backtest harness (XAUUSD, GER40) may not match what the strategy code expects (e.g., strategy hardcoded to a different instrument, or data feed returning empty).\n3. **Indicator warmup / NaN handling**: Donchian(n)/ATR(n) with insufficient warmup could mask all signals; session windows (Asia/London) may be computed in wrong timezone producing empty ranges.\n4. **Order sizing / margin rejection**: orders submitted but rejected silently by the engine.\n\nFitness cannot be computed (all metrics NaN/0). Both candidates **reject**.\n\n### Recommendation: Do NOT iterate parameters. Fix the execution pipeline first.\n- Add an instrumentation pass: log bar counts, indicator values at N sample bars, and count of raw signals before risk filters.\n- Verify symbol loader returns >0 bars per combo.\n- Unit-test the session-window helper (Asia range 00:00-07:00 server time, London breakout 07:00-10:00) against known timestamps.\n- Unit-test Donchian channel breakout against a synthetic series with a known breakout bar.\n\nOnce a non-zero trade count is confirmed on at least one combo, re-run before tuning SL/TP/filters.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Iterating Donchian period / ATR multipliers before confirming the strategy emits any signals",
+    "Tuning Asia-range session boundaries before verifying timezone handling in the backtest harness",
+    "Adding additional filters (trend, volatility regime) on top of a zero-trade baseline"
+  ]
+}

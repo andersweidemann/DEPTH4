@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Range expansion occurs on BTCUSD M15 when price breaks out of Asia-London range",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "start_hour": 0,
+      "end_hour": 6
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_range",
+    "params": {
+      "range_atr_min": 0.5,
+      "range_atr_max": 2.0,
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

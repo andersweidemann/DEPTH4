@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Asia-London range expansion strategy is profitable on GER40 M15",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "session_start": "07:00",
+      "session_end": "10:00"
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_atr_min": 0.5,
+      "range_atr_max": 2.0,
+      "breakout_displacement": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

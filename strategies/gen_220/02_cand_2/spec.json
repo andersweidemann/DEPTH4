@@ -1,0 +1,46 @@
+{
+  "hypothesis": "Trend following works when price closes above/below the Donchian channel",
+  "regime_filter": {
+    "type": "adx",
+    "params": {
+      "period": 14,
+      "threshold": 25
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > donchian_channel_high"
+    },
+    "short": {
+      "condition": "close < donchian_channel_low"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 2
+      }
+    },
+    "tp": {
+      "type": "trailing",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 1
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

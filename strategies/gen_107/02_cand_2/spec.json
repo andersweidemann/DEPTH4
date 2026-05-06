@@ -1,0 +1,29 @@
+{
+  "hypothesis": "Price will reverse after touching the upper or lower Donchian channel",
+  "regime_filter": {
+    "type": "donchian_channel_width",
+    "params": {
+      "width_threshold": 20
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_channel_reversal",
+    "params": {
+      "channel_period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversals occur frequently",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "threshold": 40
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch_and_bounce",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {}
+  },
+  "sl_rule": {
+    "type": "atr",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.2
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_ratio",
+    "params": {
+      "ratio": 1.2
+    }
+  },
+  "time_stop": 30,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.015
+    }
+  }
+}

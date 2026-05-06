@@ -1,0 +1,197 @@
+import json
+import os
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+        self._atr_series = self.I(signals.atr, self.data, 14)
+
+        df = self.data.df if hasattr(self.data, "df") else self.data
+        idx = df.index
+
+        asia_mask = np.asarray(
+            signals.session_mask(idx, [{"start": "00:00", "end": "06:00"}]),
+            dtype=bool,
+        )
+        london_mask = np.asarray(
+            signals.session_mask(idx, [{"start": "07:00", "end": "10:00"}]),
+            dtype=bool,
+        )
+
+        self._london_mask = london_mask
+
+        highs = np.asarray(df.High if hasattr(df, "High") else df["High"], dtype=float)
+        lows = np.asarray(df.Low if hasattr(df, "Low") else df["Low"], dtype=float)
+        dates = pd.Series(idx).dt.date.values
+
+        asia_high = np.full(len(idx), np.nan)
+        asia_low = np.full(len(idx), np.nan)
+
+        cur_date = None
+        cur_hi = -np.inf
+        cur_lo = np.inf
+        have_any = False
+        day_hi = {}
+        day_lo = {}
+
+        for i in range(len(idx)):
+            d = dates[i]
+            if d != cur_date:
+                if cur_date is not None and have_any:
+                    day_hi[cur_date] = cur_hi
+                    day_lo[cur_date] = cur_lo
+                cur_date = d
+                cur_hi = -np.inf
+                cur_lo = np.inf
+                have_any = False
+            if asia_mask[i]:
+                if highs[i] > cur_hi:
+                    cur_hi = highs[i]
+                if lows[i] < cur_lo:
+                    cur_lo = lows[i]
+                have_any = True
+        if cur_date is not None and have_any:
+            day_hi[cur_date] = cur_hi
+            day_lo[cur_date] = cur_lo
+
+        for i in range(len(idx)):
+            d = dates[i]
+            if asia_mask[i]:
+                continue
+            if d in day_hi:
+                asia_high[i] = day_hi[d]
+                asia_low[i] = day_lo[d]
+
+        self._asia_high = asia_high
+        self._asia_low = asia_low
+        self._dates = dates
+
+        atr_vals = np.asarray(self._atr_series, dtype=float)
+        self._atr_pct = np.asarray(regime.atr_percentile(atr_vals, 100), dtype=float)
+
+        self._last_trade_date = None
+
+    def _regime_ok(self) -> bool:
+        i = len(self.data) - 1
+        if i >= len(self._atr_pct):
+            return False
+        p = self._atr_pct[i]
+        if np.isnan(p):
+            return False
+        return 30.0 <= p <= 95.0
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        i = len(self.data) - 1
+        if i < 0 or i >= len(self._london_mask):
+            return
+        if not self._london_mask[i]:
+            return
+        if self.position:
+            return
+
+        today = self._dates[i]
+        if self._last_trade_date == today:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        ah = self._asia_high[i]
+        al = self._asia_low[i]
+        if np.isnan(ah) or np.isnan(al):
+            return
+
+        rng = ah - al
+        if rng < 0.5 * atr_now or rng > 2.0 * atr_now:
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        body = abs(close - open_)
+        if body < 1.2 * atr_now:
+            return
+
+        long_trigger = ah + 0.5 * atr_now
+        short_trigger = al - 0.5 * atr_now
+
+        equity = float(self.equity)
+        risk_pct = 0.5
+
+        if close > long_trigger and close > open_:
+            sl = close - 0.75 * atr_now
+            tp = close + 2.25 * atr_now
+            size = risk.lots_by_risk_pct(equity, risk_pct, close, sl, self._symbol)
+            if size and size > 0:
+                self.sl_price = sl
+                self.tp_price = tp
+                try:
+                    self.buy(size=size, sl=sl, tp=tp)
+                    self._last_trade_date = today
+                except Exception:
+                    pass
+        elif close < short_trigger and close < open_:
+            sl = close + 0.75 * atr_now
+            tp = close - 2.25 * atr_now
+            size = risk.lots_by_risk_pct(equity, risk_pct, close, sl, self._symbol)
+            if size and size > 0:
+                self.sl_price = sl
+                self.tp_price = tp
+                try:
+                    self.sell(size=size, sl=sl, tp=tp)
+                    self._last_trade_date = today
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+
+        time_stop_bars = 24
+        if self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop_bars:
+                self.position.close()
+                return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now):
+            return
+        price = float(self.data.Close[-1])
+
+        for trade in self.trades:
+            entry = trade.entry_price
+            if trade.is_long:
+                rr = (price - entry) / (0.75 * atr_now) if atr_now > 0 else 0
+                if rr >= 1.0:
+                    new_sl = price - 1.5 * atr_now
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                rr = (entry - price) / (0.75 * atr_now) if atr_now > 0 else 0
+                if rr >= 1.0:
+                    new_sl = price + 1.5 * atr_now
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

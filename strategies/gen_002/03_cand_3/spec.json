@@ -1,0 +1,129 @@
+{
+  "id": "gen2_xau_bb_pullback_trend_m15",
+  "family": "trend_pullback",
+  "hypothesis": "On XAUUSD M15, in a confirmed trend (EMA50 slope aligned, ADX>18), pullbacks that tag the middle Bollinger Band without breaching the opposite band offer high-probability continuation entries with PF>=1.5 and Sharpe>=1.5.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "name": "ema50",
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "name": "ema200",
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "name": "bb",
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "deviation": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "name": "rsi14",
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "atr14",
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "adx14",
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "sess",
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "06:00",
+        "end_utc": "21:00"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "sess==1 AND close > ema200 AND ema50 > ema50[5] AND adx14 > 18 AND low <= bb.middle AND close > bb.middle AND rsi14 between 40 and 60",
+    "short": "sess==1 AND close < ema200 AND ema50 < ema50[5] AND adx14 > 18 AND high >= bb.middle AND close < bb.middle AND rsi14 between 40 and 60",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "stop_loss": "1.2 * atr14 below/above swing (entry - 1.2*atr14 for long)",
+    "take_profit": "bb.upper for long / bb.lower for short (dynamic), capped at 3*atr14",
+    "time_stop_bars": 24,
+    "trailing": "breakeven at +1R"
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "adx_min": 18,
+      "atr_pct_min": 0.3,
+      "atr_pct_max": 0.9
+    },
+    "rule": "only trade when classify() returns 'trending' regime"
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_spread_points": 40
+  },
+  "parameters_to_optimize": {
+    "ema_trend": [
+      100,
+      150,
+      200
+    ],
+    "bb_period": [
+      18,
+      20,
+      24
+    ],
+    "bb_dev": [
+      1.8,
+      2.0,
+      2.2
+    ],
+    "adx_min": [
+      15,
+      18,
+      22
+    ],
+    "sl_atr_mult": [
+      1.0,
+      1.2,
+      1.5
+    ],
+    "tp_atr_cap": [
+      2.5,
+      3.0,
+      3.5
+    ]
+  },
+  "inspiration_refs": [
+    "bb-gold-scalper-m15",
+    "mean-reversion-scalper-mql5"
+  ],
+  "diversity_tag": "trend_pullback_bb"
+}

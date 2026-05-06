@@ -1,0 +1,46 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "BTCUSD"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.high_20 = self.I(signals.donchian, self.data, 20, 'high')
+        self.low_20 = self.I(signals.donchian, self.data, 20, 'low')
+        self.rsi_14 = self.I(rsi, self.data, 14)
+
+    def _regime_ok(self) -> bool:
+        return True
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.rsi_14[-1] < 30 and self.data.Close[-1] > self.low_20[-1]:
+            self.position.enter_long(lots_by_risk_pct(self.spec, self._symbol, self.data, self.equity))
+            self.sl_price = self.data.Close[-1] - 50 * self.data.Pip
+            self.tp_price = self.high_20[-1]
+        elif self.rsi_14[-1] > 70 and self.data.Close[-1] < self.high_20[-1]:
+            self.position.enter_short(lots_by_risk_pct(self.spec, self._symbol, self.data, self.equity))
+            self.sl_price = self.data.Close[-1] + 50 * self.data.Pip
+            self.tp_price = self.low_20[-1]
+
+    def _manage_open(self) -> None:
+        if self.position:
+            if self.data.Close[-1] < self.sl_price:
+                self.position.close()
+            elif self.data.Close[-1] > self.tp_price:
+                self.position.close()
+            elif len(self.data) - self.position.entry_bar >= 60:
+                self.position.close()

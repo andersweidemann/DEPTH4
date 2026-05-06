@@ -1,0 +1,83 @@
+{
+  "id": "01_ger40_donchian_trend_m15",
+  "family": "trend_following_breakout",
+  "hypothesis": "GER40 M15 exhibits sustained directional moves during EU cash session. A 20-bar Donchian breakout filtered by ADX>22 and EMA50>EMA200 (longs only; mirrored for shorts) captures trend continuation with positive expectancy.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "name": "donchian20",
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "name": "ema50",
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "name": "ema200",
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "name": "atr14",
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "eu_session",
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "15:30"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14,
+      "min_value": 22
+    },
+    "description": "Only trade when ADX14 >= 22 AND within EU cash session; skip chop."
+  },
+  "entry_rules": {
+    "long": "close > highest_high(20 prior bars) AND EMA50 > EMA200 AND ADX14 >= 22 AND in EU session",
+    "short": "close < lowest_low(20 prior bars) AND EMA50 < EMA200 AND ADX14 >= 22 AND in EU session",
+    "gates": [
+      "no entry in final 30 min of session",
+      "cooldown 8 bars after exit"
+    ]
+  },
+  "exit_rules": {
+    "stop_loss": "2.0x ATR14 from entry",
+    "take_profit": "3.5x ATR14 (R:R 1.75)",
+    "trailing": "Chandelier-style: max(high_since_entry) - 2.5x ATR14 once trade is +1x ATR in profit",
+    "time_stop": "close after 40 M15 bars (~10h) if neither SL/TP hit"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "falsifiable_kpis": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  },
+  "diversity_tag": "trend_donchian"
+}

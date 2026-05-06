@@ -1,0 +1,26 @@
+{
+  "hypothesis": "ATR-based volatility filtering improves mean reversion performance",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "threshold": 50
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "bb_period": 20,
+    "bb_deviation": 1.75,
+    "rsi_period": 7,
+    "rsi_thresholds": [
+      10,
+      90
+    ]
+  },
+  "exit_rule": {
+    "type": "tp_sl",
+    "tp": 50,
+    "sl": 25
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "size": 0.05
+  }
+}

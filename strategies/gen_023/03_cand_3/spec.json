@@ -1,0 +1,42 @@
+{
+  "strategy_id": "asia_london_range_expansion_v1",
+  "family": "session_breakout",
+  "hypothesis": "On XAUUSD and GER40 M5, the Asia session (00:00-06:00 UTC) forms an accumulation range that is broken during the London window (07:00-10:00 UTC). ATR-normalized range filtering (0.5x-2.0x ATR) plus a body-size confirmation yields high-quality breakout entries. Inspired by LVC scout card.",
+  "symbols": [
+    "XAUUSD",
+    "GER40"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": "within 07:00-10:00 UTC: close > asia_range_high by >= 0.5 * atr(14) AND candle_body >= 1.2 * atr(14) AND 0.5 <= (asia_range / atr(14)) <= 2.0",
+    "entry_short": "mirror on asia_range_low",
+    "primitives": [
+      "session_mask",
+      "atr",
+      "atr_breakout_levels",
+      "donchian"
+    ]
+  },
+  "regime_filter": {
+    "type": "atr_percentile",
+    "rule": "atr(14) percentile over 200 bars between 20 and 90",
+    "purpose": "Avoid dead-Asia days and ultra-news-spike days; require normal-to-elevated volatility."
+  },
+  "exits": {
+    "stop_loss": "0.75 * atr(14) beyond the opposite side of Asia range",
+    "take_profit": "2.0 * atr(14) from entry (about 2.5R)",
+    "time_stop": "close at 12:00 UTC regardless",
+    "trailing": "move to breakeven after +1R"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": "entries only 07:00-10:00 UTC; forced flat by 12:00 UTC",
+  "diagnostic_intent": "Session-based breakout family, distinct from 24h breakout. One-trade-per-day max => ~250 trades/yr/symbol on M5.",
+  "expected_trade_count_per_year": 220,
+  "family_tag": "session_breakout"
+}

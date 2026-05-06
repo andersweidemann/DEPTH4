@@ -1,0 +1,33 @@
+{
+  "hypothesis": "Mean reversion occurs on US500 M5 when price reaches extreme RSI(7) readings with ATR-based stop loss",
+  "regime_filter": {
+    "type": "atr_filter",
+    "params": {
+      "min_atr": 10
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_mean_reversion",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time_stop",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

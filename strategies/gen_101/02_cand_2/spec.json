@@ -1,0 +1,28 @@
+{
+  "hypothesis": "Donchian channel breakout strategy is profitable on US500 M5 during high-volatility regimes",
+  "regime_filter": {
+    "type": "donchian_channel_breakout",
+    "params": {
+      "donchian_period": 20
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_channel_breakout",
+    "params": {
+      "breakout_threshold": 1.0
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "trail_multiplier": 1.0,
+      "trail_step": 10
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

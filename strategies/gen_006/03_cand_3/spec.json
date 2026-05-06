@@ -1,0 +1,46 @@
+{
+  "id": "04_ger40_atr_breakout_momentum_m5",
+  "hypothesis": "On GER40 M5 during the Frankfurt+London cash open (08:00-11:00 CET / 07:00-10:00 UTC), a close beyond the prior 30-bar Donchian high/low by >= 0.3*ATR with expanding ATR (ATR now > 1.1 * ATR 20 bars ago) captures directional momentum with positive expectancy at 2R.",
+  "family": "volatility_breakout",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": "close > donchian_high(30)[1] + 0.3*atr(14) AND atr(14) > 1.1*atr(14)[20]",
+    "entry_short": "close < donchian_low(30)[1] - 0.3*atr(14) AND atr(14) > 1.1*atr(14)[20]",
+    "exit_long": "close < donchian_mid(30) OR session_end",
+    "exit_short": "close > donchian_mid(30) OR session_end"
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      "adx(14) > 18",
+      "atr_percentile(14, 200) >= 40",
+      "session_mask(07:00-10:00 UTC)"
+    ],
+    "action_when_false": "no_new_entries"
+  },
+  "risk": {
+    "sl": "1.0 * atr(14)",
+    "tp": "2.0 * initial_risk",
+    "trailing": "chandelier 2.5*ATR after 1R",
+    "time_stop_bars": 36,
+    "sizing": "risk_per_trade_pct = 0.5, max_concurrent = 1, max_trades_per_day = 2"
+  },
+  "params": {
+    "donchian_period": 30,
+    "breakout_atr_mult": 0.3,
+    "atr_expansion_lookback": 20,
+    "atr_expansion_mult": 1.1,
+    "atr_period": 14,
+    "adx_min": 18,
+    "atrp_min": 40,
+    "sl_atr_mult": 1.0,
+    "rr_target": 2.0
+  },
+  "falsification": "SANITY FIRST: before full backtest, log bars_loaded, session_eligible_bars, donchian_signal_bars, post_filter_bars. If post_filter_bars = 0 over a week sample, fix symbol/session mapping before running. If trades < 200 after sanity pass, reduce donchian_period to 20 and ADX min to 15.",
+  "diversity_tag": "volatility_breakout_donchian"
+}

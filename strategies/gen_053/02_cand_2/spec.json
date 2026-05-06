@@ -1,0 +1,28 @@
+{
+  "hypothesis": "Bollinger Band rejection leads to mean reversion",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "threshold": 50
+  },
+  "entry_rule": {
+    "type": "bb_rejection",
+    "bb_period": 20,
+    "bb_deviation": 2.0
+  },
+  "exit_rule": {
+    "type": "take_profit",
+    "target": "middle_bb"
+  },
+  "stop_loss": {
+    "type": "fixed",
+    "distance": "1.2 * atr(14)"
+  },
+  "time_stop": {
+    "type": "fixed",
+    "bars": 25
+  },
+  "sizing": {
+    "type": "fixed",
+    "size": 0.01
+  }
+}

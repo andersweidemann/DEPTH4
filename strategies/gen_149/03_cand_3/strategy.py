@@ -1,0 +1,40 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        super().init()
+        self._adx_series = self.I(adx, self.data, 14)
+        self._dc_series = self.I(donchian, self.data, 20)
+
+    def _regime_ok(self):
+        adx_val = float(self._adx_series[-1])
+        return adx_val > self.spec["regime_filter"]["params"]["threshold"]
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        adx_val = float(self._adx_series[-1])
+        dc_upper = float(self._dc_series[-1][1])
+        dc_lower = float(self._dc_series[-1][0])
+        close = float(self.data.Close[-1])
+        if close > dc_upper and adx_val > self.spec["regime_filter"]["params"]["threshold"]:
+            size = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self.equity, self.data)
+            self.position.enter(long=True, size=size)
+            self.sl_price = close - self.spec["exit_rules"]["sl"]["params"]["pips"] * self.data.Pip[-1]
+            self.tp_price = close + self.spec["exit_rules"]["tp"]["params"]["pips"] * self.data.Pip[-1]
+        elif close < dc_lower and adx_val > self.spec["regime_filter"]["params"]["threshold"]:
+            size = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self.equity, self.data)
+            self.position.enter(long=False, size=size)
+            self.sl_price = close + self.spec["exit_rules"]["sl"]["params"]["pips"] * self.data.Pip[-1]
+            self.tp_price = close - self.spec["exit_rules"]["tp"]["params"]["pips"] * self.data.Pip[-1]
+
+    def _manage_open(self):
+        super()._manage_open()
+        if self.position:
+            if len(self.data) - self.position.entry_bar >= self.spec["exit_rules"]["time_stop"]["params"]["num_bars"]:
+                self.position.close()

@@ -1,0 +1,81 @@
+{
+  "spec_id": "gen41_cand_1",
+  "name": "Donchian Trend Continuation GER40 M15",
+  "family": "breakout",
+  "hypothesis": "GER40 M15 exhibits momentum continuation when a 20-bar Donchian high is broken during European cash hours (07:00-16:00 UTC) while ADX(14) >= 22 and ATR percentile > 50. Breakouts in chop or outside trend regime fail.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "type": "donchian",
+      "period": 20,
+      "id": "dc20"
+    },
+    {
+      "type": "atr",
+      "period": 14,
+      "id": "atr14"
+    },
+    {
+      "type": "adx",
+      "period": 14,
+      "id": "adx14"
+    },
+    {
+      "type": "ema",
+      "period": 50,
+      "id": "ema50"
+    },
+    {
+      "type": "session_mask",
+      "window_utc": "07:00-16:00",
+      "id": "eu_sess"
+    }
+  ],
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "session_mask",
+        "window_utc": "07:00-16:00"
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 22
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min_pct": 50
+      },
+      {
+        "rule": "trend_alignment",
+        "expr": "long_only if close>ema50 else short_only"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close crosses above dc20.high[1] AND close > ema50 AND adx14 >= 22",
+    "short": "close crosses below dc20.low[1]  AND close < ema50 AND adx14 >= 22"
+  },
+  "exit_rules": {
+    "sl": "1.5 * atr14 (fixed on entry)",
+    "tp": "3.0 * atr14 (2R)",
+    "time_stop": "16 M15 bars (~4h)",
+    "trailing": "Chandelier: highest_high(10) - 2.5*atr14 for longs, mirror for shorts; activates after +1R"
+  },
+  "sizing": {
+    "mode": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 4
+  },
+  "diversification_tag": "trend_breakout",
+  "notes": "Trend-filtered breakout distinct from the XAUUSD session-range idea. Uses ADX to avoid the chop that killed gen40."
+}

@@ -1,0 +1,79 @@
+{
+  "spec_id": "gen41_cand_0",
+  "name": "Asia-London Range Breakout XAUUSD M5",
+  "family": "breakout",
+  "hypothesis": "On XAUUSD M5, price breaking the Asia-session (00:00-06:00 UTC) high/low with a strong body during the London window (07:00-10:00 UTC) continues for at least 1R, provided the Asia range is neither too tight nor too wide (ATR-normalized). Outside this window or with degenerate ranges, the edge vanishes.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "type": "atr",
+      "period": 14,
+      "id": "atr14"
+    },
+    {
+      "type": "session_mask",
+      "window_utc": "00:00-06:00",
+      "id": "asia_sess"
+    },
+    {
+      "type": "session_mask",
+      "window_utc": "07:00-10:00",
+      "id": "london_sess"
+    },
+    {
+      "type": "donchian",
+      "period": 72,
+      "id": "asia_range",
+      "restrict_to": "asia_sess"
+    }
+  ],
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "session_mask",
+        "window_utc": "07:00-10:00"
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min_pct": 25,
+        "max_pct": 95
+      },
+      {
+        "rule": "asia_range_atr_between",
+        "min": 0.5,
+        "max": 2.0,
+        "ref": "atr14"
+      },
+      {
+        "rule": "bars_since_london_open_max",
+        "value": 9
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close > asia_range.high + 0.5*atr14 AND bar_body >= 1.2*atr14 AND only_first_breakout_per_day",
+    "short": "close < asia_range.low  - 0.5*atr14 AND bar_body >= 1.2*atr14 AND only_first_breakout_per_day"
+  },
+  "exit_rules": {
+    "sl": "1.2 * atr14 from entry (opposite side of broken level, whichever is further)",
+    "tp": "2.4 * atr14 (2R)",
+    "time_stop": "close at end of London window (10:00 UTC) or after 24 M5 bars, whichever first",
+    "trailing": "after +1R, trail at 1.0*atr14"
+  },
+  "sizing": {
+    "mode": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 12
+  },
+  "diversification_tag": "session_breakout",
+  "notes": "Pivot away from generic MA/RSI rules that failed in gen40. Signal is time-gated and volatility-normalized; regime filter explicitly rejects all-day trading."
+}

@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Price breaks out of the Asia range during the London session",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_breakout",
+    "params": {
+      "asia_range_period": 6,
+      "london_breakout_period": 2
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1
+    }
+  },
+  "sl_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 100
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 500
+    }
+  },
+  "time_stop": 60,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

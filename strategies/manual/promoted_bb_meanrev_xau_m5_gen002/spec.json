@@ -1,0 +1,119 @@
+{
+  "id": "gen2_xau_bb_rsi_meanrev_m5",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M5, when price closes outside a Bollinger Band with RSI at an extreme and BB width is above the 30th percentile (avoiding dead ranges) during London+NY sessions, price reverts toward the middle band within 30 bars more often than not, yielding PF>=1.5.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "name": "bb_main",
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "source": "close"
+      }
+    },
+    {
+      "name": "rsi_fast",
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "name": "atr14",
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "bbw",
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "deviation": 1.75
+      }
+    },
+    {
+      "name": "sess",
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "20:00"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close < bb_main.lower AND rsi_fast < 10 AND bbw > percentile(bbw, 30, lookback=500) AND sess==1",
+    "short": "close > bb_main.upper AND rsi_fast > 90 AND bbw > percentile(bbw, 30, lookback=500) AND sess==1",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "take_profit": "opposite_bollinger_band",
+    "stop_loss": "1.5 * atr14 from entry",
+    "time_stop_bars": 30,
+    "early_exit": "touch of middle_bb optional (disabled by default)"
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "period": 14,
+      "lookback": 500
+    },
+    "rule": "atr_percentile between 0.30 and 0.90 (avoid dead tape and crisis spikes)"
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_spread_points": 40
+  },
+  "parameters_to_optimize": {
+    "bb_period": [
+      18,
+      20,
+      24
+    ],
+    "bb_dev": [
+      1.5,
+      1.75,
+      2.0
+    ],
+    "rsi_period": [
+      5,
+      7,
+      9
+    ],
+    "rsi_long_thr": [
+      8,
+      10,
+      15
+    ],
+    "rsi_short_thr": [
+      85,
+      90,
+      92
+    ],
+    "atr_sl_mult": [
+      1.2,
+      1.5,
+      1.8
+    ],
+    "time_stop_bars": [
+      20,
+      30,
+      40
+    ]
+  },
+  "inspiration_refs": [
+    "mean-reversion-scalper-bb-rsi",
+    "bb-gold-scalper-m15"
+  ],
+  "diversity_tag": "mean_reversion_bb_rsi"
+}

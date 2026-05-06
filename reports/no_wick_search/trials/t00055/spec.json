@@ -1,0 +1,67 @@
+{
+  "name": "No-wick candle retest \u2014 GER40 M30 (DAX)",
+  "trade_on_close": true,
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M30"
+  ],
+  "sizing": {
+    "risk_pct": 2.2
+  },
+  "risk": {
+    "daily_dd_kill_pct": 5.0
+  },
+  "filters": {
+    "session_local": {
+      "timezone": "Europe/Berlin",
+      "start": "09:30",
+      "end": "18:00"
+    },
+    "max_spread_points": 40
+  },
+  "regime_filter": {
+    "indicator": "adx",
+    "period": 18,
+    "min": 12.0,
+    "max": 50.0
+  },
+  "exit": {
+    "time_stop_bars": 130
+  },
+  "signal": {
+    "max_wait_bars": 48,
+    "wick_strict_zero": true,
+    "wick_epsilon_mult": 0.55,
+    "wick_zero_atol_mult": 1e-09,
+    "trend_ema_fast": 50,
+    "trend_ema_slow": 200,
+    "trend_source": "and",
+    "tp_r_mult": 2.25,
+    "sl_buffer_points": 2.0,
+    "sl_buffer_atr_mult": 0.0,
+    "break_even_enabled": true,
+    "break_even_trigger_r": 0.5,
+    "break_even_mfe_r": 0.28,
+    "mfe_trail_enabled": true,
+    "mfe_trail_activate_r": 0.55,
+    "mfe_trail_giveback_r": 0.72,
+    "min_body_frac_of_range": 0.0,
+    "close_near_extreme_frac": 0.0,
+    "min_pullback_atr_mult": 0.45,
+    "atr_period": 14,
+    "confirm_close_beyond_level": false,
+    "vol_filter_enabled": false,
+    "atr_percentile_min": 0.0,
+    "atr_percentile_max": 100.0,
+    "atr_percentile_lookback": 500,
+    "max_trades_per_day": 8,
+    "cooldown_bars_after_loss": 10,
+    "block_entry_hours_local": [
+      10,
+      11
+    ],
+    "min_bars_before_mfe_management": 3
+  }
+}

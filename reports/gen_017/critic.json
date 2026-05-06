@@ -1,0 +1,33 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_xau_asialondon_rangebreak_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "02_ger40_donchian_breakout_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nBoth candidates produced **zero trades** across all symbol/timeframe combos over the entire IS window (2020-01-01 to 2024-06-30). This is not a performance issue \u2014 it is an execution/signal-generation issue. No metrics (PF, Sharpe, DD) can be computed because no trades fired.\n\n### Likely root causes\n1. **Data feed mismatch**: strategies may be keyed to symbols (`XAUUSD`, `GER40`) that are not being resolved in the backtest harness, or session filters (Asia/London) are computed in the wrong timezone.\n2. **Entry conditions too strict**: Donchian breakout window and range-break thresholds may be gated by ATR/volatility filters that never trigger on the provided data.\n3. **Session window bugs**: Asia/London range computation commonly fails when broker server time \u2260 exchange time; no range \u2192 no breakout \u2192 no trades.\n4. **Order placement rejected**: stop levels inside freeze/stop distance, or lot sizing rounding to 0.\n\n### Recommendation\nDo **not** refine these candidates further until the harness is verified. Run a smoke-test EA that places one market order per day on each symbol/TF to confirm data + execution plumbing. Only after that, re-run these two strategies.\n\nIf the harness is confirmed healthy, **pivot the family**: the Asia/London rangebreak concept on M5 XAU is heavily crowded and sensitive to timezone bugs; replace with a London-open momentum-continuation on M15. The Donchian breakout on GER40 M15 is viable but needs a volatility-expansion filter (e.g., ATR(14) > ATR(50)) rather than a pure channel break.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Zero-trade configurations must be treated as harness/logic failures, not strategy evidence \u2014 do not 'tune' parameters on a silent EA.",
+    "Asia/London session-range breakout on XAUUSD M5 in its naive form (no timezone normalization, no ATR gate) \u2014 abandon until timezone handling is fixed.",
+    "Pure Donchian channel breakouts on GER40 without a volatility-expansion or trend filter \u2014 known to chop; do not revisit without a regime filter."
+  ]
+}

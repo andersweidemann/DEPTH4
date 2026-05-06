@@ -1,0 +1,35 @@
+{
+  "hypothesis": "Momentum continuation occurs on US500 M5 when RSI is oversold or overbought.",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "start_hour": 9,
+      "end_hour": 16
+    }
+  },
+  "entry_rule": {
+    "type": "momentum_continuation",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_stop_loss",
+    "params": {
+      "tp": "fixed_pips",
+      "tp_pips": 50,
+      "sl": "1_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

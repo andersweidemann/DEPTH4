@@ -1,0 +1,60 @@
+{
+  "name": "ger40_asian_range_breakout_m15",
+  "hypothesis": "GER40 frequently consolidates overnight and breaks out during Frankfurt/London cash open (07:00-09:30 UTC); a Donchian breakout of the overnight range on M15 captures opening momentum when volatility regime is expansive.",
+  "family": "session_breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "type": "donchian",
+      "period": 32,
+      "scope": "overnight_22_07_utc"
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "windows": [
+        {
+          "start": "07:00",
+          "end": "11:00",
+          "tz": "UTC"
+        }
+      ]
+    }
+  ],
+  "regime_filter": {
+    "type": "adx",
+    "period": 14,
+    "min_value": 18,
+    "description": "Require directional structure on entry bar to avoid chop-fade breakouts."
+  },
+  "entry_rules": {
+    "long": "First M15 close above overnight Donchian high by >= 0.3*ATR(14) after 07:00 UTC and within 07:00-11:00 window; ADX(14) >= 18.",
+    "short": "Mirror on overnight Donchian low.",
+    "max_signals_per_day": 2,
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "stop_loss": "1.2 * ATR(14) from entry",
+    "take_profit": "2.4 * ATR(14) (2R)",
+    "time_stop": "Close at 15:30 UTC",
+    "trailing": "After +1R, trail at 1.0*ATR behind close"
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "parameters": {
+    "donchian_period": 32,
+    "atr_period": 14,
+    "breakout_atr_buffer": 0.3,
+    "adx_period": 14,
+    "adx_min": 18,
+    "window_start_utc": "07:00",
+    "window_end_utc": "11:00"
+  }
+}

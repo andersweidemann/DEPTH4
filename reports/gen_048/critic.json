@@ -1,0 +1,55 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_cand_2",
+      "fitness": 0.05,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.7,
+        "sharpe_avg": -0.69,
+        "max_dd_pct": 24.54,
+        "trades_total": 608
+      }
+    },
+    {
+      "candidate": "00_cand_0",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "01_cand_1",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "03_cand_3",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FULL FAILURE\n\nAll four candidates fail acceptance. Three (00, 01, 03) produced **zero trades across all four symbol/TF combos** over 4.5 years of IS data \u2014 meaning entry logic is either never triggered, gated by contradictory conditions, or the signal formation is miscoded. Candidate 02 is the only one that trades, but it is a **losing strategy on every combo**: PF 0.55\u20130.83, negative Sharpe (-0.44 to -1.04), max DD up to 24.5% on GER40 M15, and return -2% to -17%. Win rates 41\u201346% combined with PF<1 indicate payoff ratio is broken (avg winners smaller than avg losers).\n\n### Key failures vs thresholds\n- pf_min 2.0: best observed 0.83 (GER40 M15). **Miss by ~60%**.\n- sharpe_min 1.5: all negative. **Miss**.\n- max_dd_pct 15.0: GER40 M15 at 24.5%. **Miss**.\n- trades_min 200: only GER40 M15 (387) clears; XAUUSD M5 has 17 trades (noise).\n- require_all_combos_positive: **violated everywhere**.\n\n### Recommendation\nPivot the strategy family. Three of four seed strategies emit no trades \u2014 the entry template itself is broken or over-constrained. Candidate 02 trades but has negative edge, suggesting the signal is anti-predictive or fees/slippage dominate. Do not tweak parameters on 00/01/03; rebuild. For 02, consider signal inversion test before discarding, but the expectancy is too negative to salvage with parameter tuning alone.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Zero-trade entry templates used in cand_0/1/3 \u2014 likely over-gated multi-condition AND filters; do not reuse this gating pattern without a precondition frequency audit (target: entries fire >= 0.5/day on M15).",
+    "Candidate 02 family: trend/breakout-style with symmetric SL/TP producing sub-1.0 PF and 41\u201346% win rate \u2014 payoff geometry is wrong. Avoid revisiting without asymmetric R:R >= 1.8 and regime filter.",
+    "Applying same parameter set uniformly to XAUUSD and GER40 across M5/M15 \u2014 cross-asset/TF consistency was negative everywhere; require per-symbol ATR normalization before next generation."
+  ]
+}

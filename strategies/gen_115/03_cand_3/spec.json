@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Bollinger Band touch occurs on BTCUSD M5 with high probability of mean reversion",
+  "regime_filter": {
+    "type": "bb_touch",
+    "params": {
+      "period": 20,
+      "deviation": 1.75
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb"
+    },
+    "short": {
+      "condition": "close < upper_bb"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 50
+      }
+    },
+    "take_profit": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 1
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

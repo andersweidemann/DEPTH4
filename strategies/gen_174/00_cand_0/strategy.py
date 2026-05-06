@@ -1,0 +1,76 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        super().init()
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.bollinger_bands = self.I(bollinger, self.data, n=self.spec["entry_rule"]["params"]["bb_period"])
+        self.rsi = self.I(rsi, self.data, n=self.spec["entry_rule"]["params"]["rsi_period"])
+        self.bb_width = self.I(bb_width, self.data, n=self.spec["regime_filter"]["params"]["period"])
+        self._session_mask_full = None
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        bb_width_val = float(self.bb_width[-1])
+        bb_width_percentile = np.percentile(self.bb_width, self.spec["regime_filter"]["params"]["percentile"])
+        if bb_width_val < bb_width_percentile:
+            return True
+        return False
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        if not self._regime_ok() or not self._filters_ok():
+            return
+        close = float(self.data.Close[-1])
+        upper_bb = float(self.bollinger_bands[-1][1])
+        lower_bb = float(self.bollinger_bands[-1][0])
+        rsi_val = float(self.rsi[-1])
+        if (close > upper_bb and rsi_val > self.spec["entry_rule"]["params"]["rsi_thresholds"][1]) or \
+           (close < lower_bb and rsi_val < self.spec["entry_rule"]["params"]["rsi_thresholds"][0]):
+            if close > upper_bb:
+                self.position.enter_short(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data))
+            else:
+                self.position.enter_long(lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data))
+            self.sl_price = self.data.Close[-1] * (1 - self.spec["exit_rule"]["params"]["sl_multiplier"] * 0.01)
+            self.tp_price = None
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rule", {})
+        time_stop = exit_cfg.get("time_stop_bars")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        if self.position.is_long:
+            self.sl_price = min(self.sl_price, self.data.Low[-1] * (1 - self.spec["exit_rule"]["params"]["sl_multiplier"] * 0.01))
+        else:
+            self.sl_price = max(self.sl_price, self.data.High[-1] * (1 + self.spec["exit_rule"]["params"]["sl_multiplier"] * 0.01))

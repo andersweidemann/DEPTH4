@@ -1,0 +1,32 @@
+{
+  "symbol": "US500",
+  "timeframe": "M5",
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs frequently",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch_bounce",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

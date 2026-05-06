@@ -1,0 +1,21 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_xau_bb_rsi_meanrev_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: Complete Failure\n\nThe sole candidate `00_xau_bb_rsi_meanrev_m15` produced **zero trades across all four symbol/timeframe combinations** (XAUUSD M5/M15, GER40 M5/M15) over a 4.5-year IS window (2020-01-01 to 2024-06-30). This is not a performance issue \u2014 it is a **signal generation failure**. The strategy never fired entries, meaning at least one of the following is broken:\n\n1. Entry conditions (BB touch + RSI confirmation) are logically contradictory or mutually exclusive as coded.\n2. Indicator buffers/handles are misaligned (off-by-one, uninitialized, or wrong shift).\n3. Threshold parameters (RSI oversold/overbought, BB std dev) are set outside any reachable value range.\n4. Session/filter gates (spread, time-of-day, news) are rejecting 100% of bars.\n5. Data feed for the test harness is not wired to the strategy's OnTick/OnBar path.\n\nNo acceptance threshold (pf\u22652.0, sharpe\u22651.5, trades\u2265200, dd\u226415%) is remotely satisfied. Fitness is 0.0 by construction.\n\n**Recommendation:** Do not tune parameters. Debug the signal pipeline first. If after instrumentation the strategy still cannot produce \u2265200 trades on XAUUSD M15 over 4.5 years, abandon the BB+RSI mean-reversion family on these instruments \u2014 XAUUSD trends strongly and BB mean-reversion without a regime filter is a known dead-end on gold.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "BB+RSI pure mean-reversion on XAUUSD without a trend/regime filter \u2014 repeatedly fails on trending gold regimes; do not revisit without ADX<20 or Hurst<0.5 gating.",
+    "Any candidate that produces 0 trades in backtest \u2014 treat as build/logic bug, not a strategy variant; fix harness before re-ranking."
+  ]
+}

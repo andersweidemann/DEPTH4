@@ -1,0 +1,53 @@
+{
+  "hypothesis": "Mean reversion occurs on US500 M5 when price reaches extreme deviations from its mean with high ATR",
+  "regime_filter": {
+    "type": "atr_threshold",
+    "params": {
+      "period": 14,
+      "threshold": 1.5
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "multi_condition",
+    "params": {
+      "conditions": [
+        {
+          "type": "take_profit",
+          "params": {
+            "target": "1.2 * atr(14)"
+          }
+        },
+        {
+          "type": "stop_loss",
+          "params": {
+            "distance": "0.8 * atr(14)"
+          }
+        },
+        {
+          "type": "time_stop",
+          "params": {
+            "bars": 25
+          }
+        }
+      ]
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "hypothesis": "Price reverts to mean after extreme movements",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 70,
+      "lookback": 20
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0,
+      "rsi_period": 14,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_stop_loss",
+    "params": {
+      "take_profit": "middle_bb",
+      "stop_loss": "2_atr",
+      "time_stop": 45
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

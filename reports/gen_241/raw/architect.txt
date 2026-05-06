@@ -1,0 +1,128 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_dev": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "London session breakouts on GER40 M15 can be profitable with a volatility-based filter",
+    "regime_filter": {
+      "type": "atr_breakout",
+      "params": {
+        "atr_period": 14,
+        "breakout_threshold": 1.2
+      }
+    },
+    "entry_rule": {
+      "type": "london_breakout",
+      "params": {
+        "breakout_window": 9
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "fixed_pips",
+        "sl": "fixed_pips",
+        "time_stop": 20
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion on XAUUSD M5 can be traded with a Bollinger Band-based strategy",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "session": "asia_london"
+      }
+    },
+    "entry_rule": {
+      "type": "bb_range_expansion",
+      "params": {
+        "bb_period": 20,
+        "bb_dev": 1.75
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "BTCUSD M15 mean reversion can be profitable with an RSI-based strategy and a volatility filter",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_dev": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  }
+]
+```

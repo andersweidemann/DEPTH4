@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Asia-London range expansion strategy is effective on US500 M5",
+  "regime_filter": {
+    "type": "asia_session",
+    "params": {
+      "start_hour": 0,
+      "end_hour": 6
+    }
+  },
+  "entry_rule": {
+    "type": "range_expansion",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "time_stop",
+    "params": {
+      "time_stop_bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

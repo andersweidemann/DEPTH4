@@ -1,0 +1,92 @@
+{
+  "spec_id": "02_ger40_atr_breakout_pullback_m15",
+  "hypothesis": "On GER40 M15, naive donchian breakouts lose to noise (gen0 PF=1.00); requiring a pullback-retest of the broken ATR-breakout level within a trending ADX regime filters false breaks and lifts PF above 2.0.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "family": "breakout_pullback",
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile",
+      "session_mask"
+    ],
+    "rules": [
+      {
+        "name": "trend_regime",
+        "primitive": "adx",
+        "params": {
+          "period": 14
+        },
+        "condition": "gt_22"
+      },
+      {
+        "name": "vol_live",
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 500
+        },
+        "condition": "between_30_and_95"
+      },
+      {
+        "name": "cash_session",
+        "primitive": "session_mask",
+        "params": {
+          "hours_utc": "07-16"
+        },
+        "condition": "true"
+      }
+    ],
+    "combine": "all"
+  },
+  "entry": {
+    "long": "close > atr_breakout_level_upper(period=20, atr_mult=1.0) on bar N; then wait up to 6 bars for pullback within 0.25*ATR of broken level; enter long on next bar close above level",
+    "short": "mirror",
+    "only_first_signal_per_session": true,
+    "max_spread_points": 30
+  },
+  "exit": {
+    "tp": "2.5 * ATR(14) from entry",
+    "sl": "1.0 * ATR(14) below retest low (long) / above retest high (short)",
+    "time_stop_bars": 24,
+    "trail": "chandelier_3ATR_after_1R"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "params_to_search": {
+    "breakout_period": [
+      15,
+      20,
+      30
+    ],
+    "atr_breakout_mult": [
+      0.75,
+      1.0,
+      1.25
+    ],
+    "retest_max_bars": [
+      4,
+      6,
+      8
+    ],
+    "retest_touch_atr": [
+      0.2,
+      0.25,
+      0.35
+    ],
+    "adx_threshold": [
+      18,
+      22,
+      26
+    ],
+    "atr_tp_mult": [
+      2.0,
+      2.5,
+      3.0
+    ]
+  },
+  "notes": "Explicit pivot from gen0 dead branch (naive donchian breakout on DAX, PF=1.00). Adds ADX trend gate + pullback-retest requirement. Dead branch banned: plain donchian breakout without retest."
+}

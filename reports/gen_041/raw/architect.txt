@@ -1,0 +1,166 @@
+[
+  {
+    "spec_id": "gen41_cand_0",
+    "name": "Asia-London Range Breakout XAUUSD M5",
+    "family": "breakout",
+    "hypothesis": "On XAUUSD M5, price breaking the Asia-session (00:00-06:00 UTC) high/low with a strong body during the London window (07:00-10:00 UTC) continues for at least 1R, provided the Asia range is neither too tight nor too wide (ATR-normalized). Outside this window or with degenerate ranges, the edge vanishes.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"type": "atr", "period": 14, "id": "atr14"},
+      {"type": "session_mask", "window_utc": "00:00-06:00", "id": "asia_sess"},
+      {"type": "session_mask", "window_utc": "07:00-10:00", "id": "london_sess"},
+      {"type": "donchian", "period": 72, "id": "asia_range", "restrict_to": "asia_sess"}
+    ],
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "session_mask", "window_utc": "07:00-10:00"},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "min_pct": 25, "max_pct": 95},
+        {"rule": "asia_range_atr_between", "min": 0.5, "max": 2.0, "ref": "atr14"},
+        {"rule": "bars_since_london_open_max", "value": 9}
+      ]
+    },
+    "entry_rules": {
+      "long": "close > asia_range.high + 0.5*atr14 AND bar_body >= 1.2*atr14 AND only_first_breakout_per_day",
+      "short": "close < asia_range.low  - 0.5*atr14 AND bar_body >= 1.2*atr14 AND only_first_breakout_per_day"
+    },
+    "exit_rules": {
+      "sl": "1.2 * atr14 from entry (opposite side of broken level, whichever is further)",
+      "tp": "2.4 * atr14 (2R)",
+      "time_stop": "close at end of London window (10:00 UTC) or after 24 M5 bars, whichever first",
+      "trailing": "after +1R, trail at 1.0*atr14"
+    },
+    "sizing": {
+      "mode": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 12
+    },
+    "diversification_tag": "session_breakout",
+    "notes": "Pivot away from generic MA/RSI rules that failed in gen40. Signal is time-gated and volatility-normalized; regime filter explicitly rejects all-day trading."
+  },
+  {
+    "spec_id": "gen41_cand_1",
+    "name": "Donchian Trend Continuation GER40 M15",
+    "family": "breakout",
+    "hypothesis": "GER40 M15 exhibits momentum continuation when a 20-bar Donchian high is broken during European cash hours (07:00-16:00 UTC) while ADX(14) >= 22 and ATR percentile > 50. Breakouts in chop or outside trend regime fail.",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"type": "donchian", "period": 20, "id": "dc20"},
+      {"type": "atr", "period": 14, "id": "atr14"},
+      {"type": "adx", "period": 14, "id": "adx14"},
+      {"type": "ema", "period": 50, "id": "ema50"},
+      {"type": "session_mask", "window_utc": "07:00-16:00", "id": "eu_sess"}
+    ],
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "session_mask", "window_utc": "07:00-16:00"},
+        {"primitive": "adx", "period": 14, "min": 22},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "min_pct": 50},
+        {"rule": "trend_alignment", "expr": "long_only if close>ema50 else short_only"}
+      ]
+    },
+    "entry_rules": {
+      "long": "close crosses above dc20.high[1] AND close > ema50 AND adx14 >= 22",
+      "short": "close crosses below dc20.low[1]  AND close < ema50 AND adx14 >= 22"
+    },
+    "exit_rules": {
+      "sl": "1.5 * atr14 (fixed on entry)",
+      "tp": "3.0 * atr14 (2R)",
+      "time_stop": "16 M15 bars (~4h)",
+      "trailing": "Chandelier: highest_high(10) - 2.5*atr14 for longs, mirror for shorts; activates after +1R"
+    },
+    "sizing": {
+      "mode": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 4
+    },
+    "diversification_tag": "trend_breakout",
+    "notes": "Trend-filtered breakout distinct from the XAUUSD session-range idea. Uses ADX to avoid the chop that killed gen40."
+  },
+  {
+    "spec_id": "gen41_cand_2",
+    "name": "BB+RSI Mean Reversion US500 M5",
+    "family": "mean_reversion",
+    "hypothesis": "US500 M5 reverts to the BB mid when price closes beyond BB(20, 2.0) with RSI(2) at extremes, but only when volatility is active (BB-width above 30th percentile) and during US cash session (13:30-20:00 UTC). Outside these conditions the edge is dominated by trend drift.",
+    "symbols": ["US500"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"type": "bollinger", "period": 20, "stddev": 2.0, "id": "bb20"},
+      {"type": "bb_width", "period": 20, "stddev": 2.0, "lookback": 500, "id": "bbw"},
+      {"type": "rsi", "period": 2, "id": "rsi2"},
+      {"type": "atr", "period": 14, "id": "atr14"},
+      {"type": "session_mask", "window_utc": "13:30-20:00", "id": "us_sess"}
+    ],
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "session_mask", "window_utc": "13:30-20:00"},
+        {"rule": "bb_width_percentile_min", "value": 30, "ref": "bbw"},
+        {"primitive": "adx", "period": 14, "max": 25, "note": "reject strong trend"}
+      ]
+    },
+    "entry_rules": {
+      "long": "close < bb20.lower AND rsi2 < 5 AND prev_close < bb20.lower",
+      "short": "close > bb20.upper AND rsi2 > 95 AND prev_close > bb20.upper"
+    },
+    "exit_rules": {
+      "sl": "1.5 * atr14 from entry",
+      "tp": "bb20.middle (dynamic)",
+      "time_stop": "30 M5 bars (~2.5h)",
+      "trailing": "none"
+    },
+    "sizing": {
+      "mode": "risk_pct_per_trade",
+      "risk_pct": 0.4,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 6
+    },
+    "diversification_tag": "mean_reversion",
+    "notes": "Different family from candidates 0/1. BB-width percentile and ADX ceiling are the key regime gates; plain BB+RSI without them historically produces zero-edge churn like gen40."
+  },
+  {
+    "spec_id": "gen41_cand_3",
+    "name": "ATR Breakout Retest XAUUSD M15",
+    "family": "breakout_retest",
+    "hypothesis": "On XAUUSD M15, an ATR-measured displacement beyond prior structure (atr_breakout_level) followed by a controlled retest within 5 bars offers a higher-quality long/short entry than the naked breakout, because the retest filters fakeouts that plagued simple MA-cross logic.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"type": "atr", "period": 14, "id": "atr14"},
+      {"type": "atr_breakout_levels", "lookback": 30, "atr_mult": 1.0, "id": "brk_lvl"},
+      {"type": "ema", "period": 100, "id": "ema100"},
+      {"type": "session_mask", "window_utc": "06:00-20:00", "id": "active_sess"}
+    ],
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "session_mask", "window_utc": "06:00-20:00"},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 500, "min_pct": 35, "max_pct": 95},
+        {"rule": "trend_bias", "expr": "long_only if close>ema100 else short_only"}
+      ]
+    },
+    "entry_rules": {
+      "long": "prior bar had close > brk_lvl.upper by >=0.5*atr14; current bar retests within 0.2*atr14 of brk_lvl.upper and closes back above it; within 5 bars of breakout",
+      "short": "mirror on brk_lvl.lower"
+    },
+    "exit_rules": {
+      "sl": "1.0 * atr14 beyond retest extreme",
+      "tp": "2.5 * atr14 (≈2.5R)",
+      "time_stop": "20 M15 bars (~5h)",
+      "trailing": "after +1.5R, trail by 1.2*atr14"
+    },
+    "sizing": {
+      "mode": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 8
+    },
+    "diversification_tag": "breakout_retest",
+    "notes": "Distinct from cand_1 (no retest requirement) and cand_0 (session-range, not ATR-structure). Retest requirement is explicitly designed to avoid the churn/zero-edge seen in gen40."
+  }
+]

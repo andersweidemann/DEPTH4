@@ -1,0 +1,161 @@
+[
+  {
+    "id": "00_atr_breakout_trend_xau_m15_v1",
+    "name": "XAU M15 ATR Breakout Trend with ADX Regime",
+    "family": "volatility_breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "hypothesis": "On XAUUSD M15, when ADX(14) > 25 indicating trending regime and ATR percentile > 50 indicating sufficient volatility, a breakout above the prior 20-bar Donchian high (long) or below the 20-bar Donchian low (short) confirmed by a candle body >= 0.8 ATR will continue in the breakout direction long enough to yield >=1.5R on average. Falsifiable: if PF<1.3 or trend-continuation win rate<40% over 200+ trades, hypothesis is rejected.",
+    "signals": [
+      {"type": "donchian", "period": 20, "outputs": ["upper", "lower"]},
+      {"type": "atr", "period": 14},
+      {"type": "atr_breakout_levels", "atr_mult": 0.8},
+      {"type": "session_mask", "sessions": ["london", "newyork"]}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"indicator": "adx", "period": 14, "operator": ">", "threshold": 25},
+        {"indicator": "atr_percentile", "period": 100, "operator": ">", "threshold": 50}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "close > donchian_upper[1] AND (close - open) >= 0.8 * atr(14) AND regime_active AND session_active",
+      "short": "close < donchian_lower[1] AND (open - close) >= 0.8 * atr(14) AND regime_active AND session_active"
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "multiplier": 1.5, "period": 14},
+      "take_profit": {"type": "atr", "multiplier": 3.0, "period": 14},
+      "trailing_stop": {"type": "atr_chandelier", "multiplier": 2.5, "period": 14, "activate_at_r": 1.0},
+      "time_stop": {"bars": 48}
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 4
+    },
+    "notes": "Addresses prior failure: XAU trends are exploited here rather than faded. ADX+ATR regime gate prevents chop. Donchian breakout with candle-body confirmation reduces false breaks."
+  },
+  {
+    "id": "01_asia_london_range_break_xau_m5_v2",
+    "name": "XAU M5 Asia Range → London Breakout (Fixed)",
+    "family": "session_breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "hypothesis": "The Asia-session range (00:00-06:00 UTC) on XAUUSD acts as a liquidity pool; when London opens (07:00-10:00 UTC), a break of that range by >=0.4 ATR accompanied by a body-to-ATR ratio >=1.0 continues in the breakout direction at least once per active London session with positive expectancy, provided the range itself is between 0.5 and 2.0 ATR(14). Falsifiable: if fewer than 1.5 trades/day or PF<1.4 over the trade window.",
+    "signals": [
+      {"type": "atr", "period": 14},
+      {"type": "session_mask", "sessions": ["asia_range_build", "london_trade"], "asia_start_utc": "00:00", "asia_end_utc": "06:00", "london_start_utc": "07:00", "london_end_utc": "10:00"},
+      {"type": "donchian", "period": 72, "scope": "asia_session_only", "outputs": ["asia_high", "asia_low"]},
+      {"type": "atr_breakout_levels", "atr_mult": 0.4}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"indicator": "custom_range_atr_ratio", "min": 0.5, "max": 2.0},
+        {"indicator": "atr_percentile", "period": 100, "operator": ">", "threshold": 30}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "time_in_london_window AND close > asia_high + 0.4*atr(14) AND (close-open) >= 1.0*atr(14) AND bars_since_london_open <= 9 AND no_prior_trade_today",
+      "short": "time_in_london_window AND close < asia_low - 0.4*atr(14) AND (open-close) >= 1.0*atr(14) AND bars_since_london_open <= 9 AND no_prior_trade_today",
+      "notes": "Prior spec produced zero trades — thresholds relaxed (0.5->0.4 ATR breakout, 1.2->1.0 body), and single-trade-per-day gating is implemented via explicit flag not nested conditions."
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "structure", "level": "opposite_side_of_asia_range", "fallback_atr_mult": 1.2},
+      "take_profit": {"type": "atr", "multiplier": 2.5, "period": 14},
+      "trailing_stop": {"type": "atr", "multiplier": 2.0, "period": 14, "activate_at_r": 1.0},
+      "time_stop": {"bars": 36, "note": "close at or before 14:00 UTC regardless"}
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "max_trades_per_day": 1
+    },
+    "notes": "Re-spec of previous zero-trade candidate. Relaxed breakout distance, clarified session/range computation, explicit max-trades-per-day flag."
+  },
+  {
+    "id": "02_donchian_breakout_ger40_m15_v1",
+    "name": "GER40 M15 Donchian Breakout Trend",
+    "family": "volatility_breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "hypothesis": "GER40 exhibits persistent intraday momentum during European cash hours. A break of the prior 30-bar Donchian channel during 08:00-16:00 UTC, filtered by ADX(14)>22 and EMA(50)>EMA(200) for longs (inverse for shorts), yields positive expectancy with R:R 2:1. Falsifiable: rejected if Sharpe<1.0 or trend-alignment trades underperform counter-trend trades.",
+    "signals": [
+      {"type": "donchian", "period": 30},
+      {"type": "ema", "period": 50},
+      {"type": "ema", "period": 200},
+      {"type": "atr", "period": 14},
+      {"type": "session_mask", "sessions": ["frankfurt", "london"]}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"indicator": "adx", "period": 14, "operator": ">", "threshold": 22},
+        {"indicator": "ema_alignment", "fast": 50, "slow": 200, "required": "match_trade_direction"}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "close > donchian_upper[1] AND ema50 > ema200 AND adx>22 AND session_active",
+      "short": "close < donchian_lower[1] AND ema50 < ema200 AND adx>22 AND session_active"
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "multiplier": 2.0, "period": 14},
+      "take_profit": {"type": "atr", "multiplier": 4.0, "period": 14},
+      "trailing_stop": {"type": "atr_chandelier", "multiplier": 3.0, "period": 14, "activate_at_r": 1.5},
+      "time_stop": {"bars": 64}
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 6
+    },
+    "notes": "Classic trend-following on an index known for intraday momentum. Regime filter combines ADX (strength) and EMA alignment (direction)."
+  },
+  {
+    "id": "03_bb_meanrev_us500_m5_v1",
+    "name": "US500 M5 BB+RSI Mean Reversion with Volatility Gate",
+    "family": "mean_reversion",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "hypothesis": "US500 on M5 is structurally mean-reverting during RTH (13:30-20:00 UTC) when not in strong trend (ADX<20). A close outside BB(20, 2.0) with RSI(7)<10 (long) or >90 (short), filtered by BB-width above 30th percentile, reverts to the middle band within 30 bars with positive expectancy. Falsifiable: if ADX<20 subset does not outperform ADX>=20 subset, the regime filter is invalid.",
+    "signals": [
+      {"type": "bollinger", "period": 20, "std": 2.0},
+      {"type": "bb_width", "period": 20, "std": 2.0, "percentile_lookback": 200},
+      {"type": "rsi", "period": 7},
+      {"type": "atr", "period": 14},
+      {"type": "session_mask", "sessions": ["newyork_rth"]}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"indicator": "adx", "period": 14, "operator": "<", "threshold": 20},
+        {"indicator": "bb_width_percentile", "period": 200, "operator": ">", "threshold": 30},
+        {"indicator": "atr_percentile", "period": 100, "operator": "<", "threshold": 85}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "close < bb_lower AND rsi(7) < 10 AND regime_active AND session_active AND bars_since_last_trade >= 3",
+      "short": "close > bb_upper AND rsi(7) > 90 AND regime_active AND session_active AND bars_since_last_trade >= 3"
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "multiplier": 1.5, "period": 14},
+      "take_profit": {"type": "bb_middle", "band_period": 20},
+      "time_stop": {"bars": 30}
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "cooldown_bars": 3
+    },
+    "notes": "Mean reversion applied to an index (US500) rather than XAU — per generation review, XAU M15 mean-rev failed due to trending regime. ADX<20 filter explicitly excludes trending conditions, directly testing whether regime gating rescues the family."
+  }
+]

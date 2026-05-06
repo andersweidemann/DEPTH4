@@ -1,0 +1,44 @@
+{
+  "name": "US500_M5_ATRBreakoutNYOpen_v1",
+  "family": "breakout",
+  "hypothesis": "On US500 M5, ATR-band breakouts triggered within the first 90 minutes of the NY cash session (13:30-15:00 UTC), filtered by ADX trend strength, capture opening-drive momentum with PF >= 2.0 over 200+ trades.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": "close > ema(20) + 1.5*ATR(14) AND close > highest(close, 12) AND session in [13:30,15:00] UTC",
+    "entry_short": "close < ema(20) - 1.5*ATR(14) AND close < lowest(close, 12) AND session in [13:30,15:00] UTC",
+    "primitives_used": [
+      "ema",
+      "atr",
+      "atr_breakout_levels",
+      "session_mask",
+      "adx"
+    ]
+  },
+  "regime_filter": {
+    "type": "trend_and_volatility",
+    "rules": [
+      "adx(14) >= 18",
+      "atr_percentile(200) >= 40",
+      "session_mask: 13:30-15:00 UTC only",
+      "max 1 entry per session per direction"
+    ]
+  },
+  "exits": {
+    "stop_loss": "1.2*ATR(14) from entry",
+    "take_profit": "2.4*ATR(14) from entry (R:R 2.0)",
+    "time_stop": "close at 16:00 UTC or after 18 M5 bars, whichever first",
+    "trailing": "move to breakeven at +1.0*ATR; trail by 1.0*ATR thereafter"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "cooldown_bars": 6
+  },
+  "diversity_tag": "breakout_nyopen"
+}

@@ -1,0 +1,88 @@
+{
+  "spec_id": "33_02_bb_bounce_3bar_xauusd_m15",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "On XAUUSD M15, a 3-bar Bollinger Band rejection pattern (prior bar inside, middle bar pierces band, current bar closes back inside) signals exhaustion and reverts with a favorable asymmetric R:R of ~2.5:1, producing PF>=2.0 over 200+ trades when ADX is low.",
+  "regime_filter": {
+    "type": "low_trend_regime",
+    "rules": [
+      {
+        "primitive": "adx",
+        "params": {
+          "period": 14
+        },
+        "condition": "< 25"
+      },
+      {
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 500
+        },
+        "condition": "> 15"
+      },
+      {
+        "primitive": "session_mask",
+        "params": {
+          "hours_utc": [
+            6,
+            21
+          ]
+        },
+        "condition": "true"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close[2] > lower_bb[2] AND low[1] <= lower_bb[1] AND close[0] > lower_bb[0] AND adx(14) < 25",
+    "short": "close[2] < upper_bb[2] AND high[1] >= upper_bb[1] AND close[0] < upper_bb[0] AND adx(14) < 25",
+    "cooldown_bars": 4,
+    "max_spread_points": 40
+  },
+  "exit_rules": {
+    "take_profit": "2.5 * atr(14) (approx middle-to-opposite-band)",
+    "stop_loss": "1.0 * atr(14) below pattern low (long) / above pattern high (short)",
+    "time_stop_bars": 24,
+    "early_exit": "close on touch of opposite BB"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "max_daily_loss_pct": 3.0
+  },
+  "params_to_optimize": {
+    "bb_period": [
+      18,
+      20,
+      24
+    ],
+    "bb_stddev": [
+      2.0,
+      2.25,
+      2.5
+    ],
+    "atr_tp_mult": [
+      2.0,
+      2.5,
+      3.0
+    ],
+    "atr_sl_mult": [
+      0.8,
+      1.0,
+      1.25
+    ],
+    "adx_max": [
+      20,
+      25,
+      30
+    ],
+    "time_stop_bars": [
+      16,
+      24,
+      32
+    ]
+  },
+  "notes": "Inspired by BB Gold Scalper. Uses ATR-scaled SL/TP instead of fixed pips to avoid the point-size mismatch failure seen in gen 32."
+}

@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Breakouts occur on GER40 M15 when price breaks out of the Asia range with high momentum",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_atr_multiplier": 1.2,
+      "breakout_atr_multiplier": 0.5
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "sl_multiplier": 1.2,
+      "ts_multiplier": 0.5
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

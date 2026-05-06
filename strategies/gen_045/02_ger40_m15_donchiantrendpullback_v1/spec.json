@@ -1,0 +1,72 @@
+{
+  "name": "GER40_M15_DonchianTrendPullback_v1",
+  "family": "trend_pullback",
+  "hypothesis": "On GER40 M15 during European cash hours, pullbacks to EMA20 within a Donchian(40) breakout regime resume the trend with positive expectancy.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 40
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "trade_window": "07:00-16:00",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": {
+      "adx_min": 22,
+      "atr_percentile_min": 35,
+      "atr_percentile_max": 95
+    }
+  },
+  "entry_rules": {
+    "long": "Close made new Donchian40 high within last 10 bars AND price pulls back to within 0.3*ATR of EMA20 AND EMA20>EMA50 AND RSI(14)>45 AND bullish close",
+    "short": "Close made new Donchian40 low within last 10 bars AND price rallies to within 0.3*ATR of EMA20 AND EMA20<EMA50 AND RSI(14)<55 AND bearish close",
+    "cooldown_bars": 8
+  },
+  "exit_rules": {
+    "sl": "1.5 * ATR(14) below/above swing (entry +/- 1.5*ATR)",
+    "tp": "3.0 * ATR(14) (1:2 R)",
+    "time_stop_bars": 48,
+    "breakeven_trigger_R": 1.0,
+    "trailing": "EMA20 trail after BE"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "notes": "Original trend-pullback construction; avoids Pine reference code."
+}

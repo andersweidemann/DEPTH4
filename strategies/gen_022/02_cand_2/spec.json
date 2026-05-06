@@ -1,0 +1,103 @@
+{
+  "spec_id": "03_xau_asia_london_range_expansion_m5",
+  "hypothesis": "XAUUSD M5 breakouts of the Asia-session range (00:00-06:00 UTC) during the London window (07:00-10:00 UTC) with body>=1.2*ATR and displacement>=0.5*ATR capture session volatility expansion for PF>=2.0.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "session_range_breakout",
+  "regime_filter": {
+    "primitives": [
+      "atr_percentile",
+      "session_mask",
+      "classify"
+    ],
+    "rules": [
+      {
+        "name": "london_window",
+        "primitive": "session_mask",
+        "params": {
+          "hours_utc": "07-10"
+        },
+        "condition": "true"
+      },
+      {
+        "name": "asia_range_valid",
+        "primitive": "classify",
+        "params": {
+          "asia_hours_utc": "00-06",
+          "min_range_atr": 0.5,
+          "max_range_atr": 2.0,
+          "atr_period": 14
+        },
+        "condition": "true"
+      },
+      {
+        "name": "vol_live",
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 500
+        },
+        "condition": "gt_25"
+      }
+    ],
+    "combine": "all"
+  },
+  "entry": {
+    "long": "within first 9 M5 bars of london_window: close > asia_range_high + 0.5*ATR(14) AND candle_body >= 1.2*ATR(14)",
+    "short": "mirror on asia_range_low",
+    "only_first_breakout_per_day": true,
+    "max_spread_points": 40
+  },
+  "exit": {
+    "tp": "2.0 * ATR(14)",
+    "sl": "0.75 * ATR(14)",
+    "time_stop_bars": 36,
+    "eod_flat_utc": "16:00"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "params_to_search": {
+    "asia_start_utc": [
+      "00:00",
+      "23:00"
+    ],
+    "asia_end_utc": [
+      "06:00",
+      "07:00"
+    ],
+    "london_max_bars": [
+      6,
+      9,
+      12
+    ],
+    "breakout_atr_mult": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "body_atr_min": [
+      1.0,
+      1.2,
+      1.5
+    ],
+    "min_range_atr": [
+      0.4,
+      0.5,
+      0.7
+    ],
+    "max_range_atr": [
+      1.5,
+      2.0,
+      2.5
+    ],
+    "sl_atr_mult": [
+      0.6,
+      0.75,
+      1.0
+    ]
+  },
+  "notes": "Re-attempt of gen0 session strategy which produced 0 trades \u2014 likely timezone/session mis-spec. This spec pins UTC explicitly and provides param search over session boundaries. Harness must verify broker server time offset before rejecting."
+}

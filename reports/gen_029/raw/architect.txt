@@ -1,0 +1,225 @@
+[
+  {
+    "name": "XAUUSD_M5_AsiaLondonBreakout_ATR",
+    "hypothesis": "On XAUUSD M5, when the Asia session (00:00-06:00 UTC) builds a compressed range (0.5-2.0 ATR) and London session (07:00-10:00 UTC) breaks out with a strong body, directional follow-through persists long enough to yield >1.5R before mean reversion.",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "breakout",
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "adx", "period": 14, "op": ">=", "value": 18},
+        {"primitive": "atr_percentile", "period": 100, "op": ">=", "value": 40},
+        {"primitive": "session_mask", "sessions": ["london_open"], "window_utc": "07:00-10:00"}
+      ]
+    },
+    "entry_rules": {
+      "long": [
+        "build asia_range from 00:00-06:00 UTC high/low",
+        "asia_range_size between 0.5*ATR(14) and 2.0*ATR(14)",
+        "close > asia_high + 0.5*ATR(14)",
+        "breakout candle body >= 1.2*ATR(14)",
+        "breakout occurs within first 9 M5 bars of 07:00 UTC",
+        "only first breakout of the day"
+      ],
+      "short": [
+        "build asia_range from 00:00-06:00 UTC high/low",
+        "asia_range_size between 0.5*ATR(14) and 2.0*ATR(14)",
+        "close < asia_low - 0.5*ATR(14)",
+        "breakout candle body >= 1.2*ATR(14)",
+        "breakout occurs within first 9 M5 bars of 07:00 UTC",
+        "only first breakout of the day"
+      ]
+    },
+    "exit_rules": {
+      "stop_loss": "1.3 * ATR(14) from entry (opposite side of asia_range edge)",
+      "take_profit": "2.6 * ATR(14) (R:R ~2.0)",
+      "time_stop": "close at 15:00 UTC or after 36 M5 bars, whichever first",
+      "trailing": "after +1.0R, trail by 1.0*ATR(14)"
+    },
+    "sizing": {
+      "method": "risk_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "cooldown_bars": 12
+    },
+    "params": {
+      "atr_period": 14,
+      "asia_start_utc": "00:00",
+      "asia_end_utc": "06:00",
+      "london_start_utc": "07:00",
+      "london_end_utc": "10:00",
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0,
+      "breakout_dist_atr": 0.5,
+      "breakout_body_atr": 1.2,
+      "max_breakout_bars": 9
+    },
+    "falsification": "Reject if PF<2.0 or trades<200 over 2y backtest, or if >60% of signals occur outside first 9 bars (structural invalidation)."
+  },
+  {
+    "name": "XAUUSD_M15_BBRSIMeanReversion",
+    "hypothesis": "On XAUUSD M15, extreme BB(20,2.0) excursions combined with RSI(7) extremes during active sessions with sufficient volatility revert to the middle band within 30 bars, producing a positive-expectancy scalp.",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "family": "mean_reversion",
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "bb_width", "period": 20, "stddev": 2.0, "percentile_min": 30, "lookback": 200},
+        {"primitive": "adx", "period": 14, "op": "<=", "value": 25},
+        {"primitive": "session_mask", "sessions": ["london", "ny"], "window_utc": "07:00-20:00"}
+      ]
+    },
+    "entry_rules": {
+      "long": [
+        "bar[-2] close > lower_BB(20,2.0)",
+        "bar[-1] low <= lower_BB(20,2.0)",
+        "bar[0] close > lower_BB(20,2.0)",
+        "RSI(7) at bar[-1] < 15"
+      ],
+      "short": [
+        "bar[-2] close < upper_BB(20,2.0)",
+        "bar[-1] high >= upper_BB(20,2.0)",
+        "bar[0] close < upper_BB(20,2.0)",
+        "RSI(7) at bar[-1] > 85"
+      ]
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "middle_BB(20) touch OR opposite BB, whichever first",
+      "time_stop": "close after 30 M15 bars (~7.5h)",
+      "trailing": "none"
+    },
+    "sizing": {
+      "method": "risk_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "cooldown_bars": 3
+    },
+    "params": {
+      "bb_period": 20,
+      "bb_stddev": 2.0,
+      "rsi_period": 7,
+      "rsi_long_max": 15,
+      "rsi_short_min": 85,
+      "atr_period": 14,
+      "sl_atr_mult": 1.5,
+      "bb_width_percentile_min": 30,
+      "time_stop_bars": 30
+    },
+    "falsification": "Reject if win-rate<50% combined with avg_win/avg_loss<1.2, or if >40% of trades hit time_stop (indicating regime filter failure)."
+  },
+  {
+    "name": "GER40_M15_DonchianTrendPullback",
+    "hypothesis": "On GER40 M15, after a Donchian(20) breakout confirming a trending regime, pullbacks to EMA(20) that hold above/below ATR-defined structure resume the trend for at least 2R.",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "family": "trend_pullback",
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "adx", "period": 14, "op": ">=", "value": 22},
+        {"primitive": "classify", "method": "ema_slope", "ema_fast": 20, "ema_slow": 50, "require": "aligned"},
+        {"primitive": "session_mask", "sessions": ["frankfurt", "london"], "window_utc": "07:00-16:00"}
+      ]
+    },
+    "entry_rules": {
+      "long": [
+        "within last 30 bars: close > Donchian_high(20)[prior]",
+        "EMA(20) > EMA(50) and both rising",
+        "current bar low touches EMA(20) within 0.3*ATR(14)",
+        "current bar close > EMA(20)",
+        "close > close[1] (bullish confirmation candle)"
+      ],
+      "short": [
+        "within last 30 bars: close < Donchian_low(20)[prior]",
+        "EMA(20) < EMA(50) and both falling",
+        "current bar high touches EMA(20) within 0.3*ATR(14)",
+        "current bar close < EMA(20)",
+        "close < close[1] (bearish confirmation candle)"
+      ]
+    },
+    "exit_rules": {
+      "stop_loss": "1.8 * ATR(14) below entry (long) / above entry (short), or below/above swing point — whichever wider",
+      "take_profit": "3.6 * ATR(14) (R:R 2.0) scaled: 50% at 1.8R, remainder trails",
+      "time_stop": "close after 40 M15 bars",
+      "trailing": "after +1R, trail by 2.0*ATR(14) Chandelier-style"
+    },
+    "sizing": {
+      "method": "risk_per_trade",
+      "risk_pct": 0.75,
+      "max_concurrent": 1,
+      "cooldown_bars": 6
+    },
+    "params": {
+      "donchian_period": 20,
+      "ema_fast": 20,
+      "ema_slow": 50,
+      "atr_period": 14,
+      "adx_min": 22,
+      "pullback_tolerance_atr": 0.3,
+      "sl_atr_mult": 1.8,
+      "tp_atr_mult": 3.6,
+      "time_stop_bars": 40
+    },
+    "falsification": "Reject if trades<200, or if performance in trending regime (ADX>=22) is not materially better than in chop (indicating filter adds no edge)."
+  },
+  {
+    "name": "US500_M5_ORB_VolExpansion",
+    "hypothesis": "On US500 M5, the first 30-minute opening range (13:30-14:00 UTC) breakout during high-volatility regimes captures directional NY-session continuation with positive expectancy when filtered by ATR percentile.",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "family": "breakout",
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "atr_percentile", "period": 100, "op": ">=", "value": 50},
+        {"primitive": "adx", "period": 14, "op": ">=", "value": 15},
+        {"primitive": "session_mask", "sessions": ["ny_open"], "window_utc": "14:00-18:00"}
+      ]
+    },
+    "entry_rules": {
+      "long": [
+        "define OR_high/OR_low from 13:30-14:00 UTC (6 M5 bars)",
+        "OR range between 0.4*ATR(14) and 2.5*ATR(14)",
+        "first close > OR_high after 14:00 UTC",
+        "breakout candle body >= 0.8*ATR(14)",
+        "within 14:00-16:00 UTC window",
+        "only first breakout per day"
+      ],
+      "short": [
+        "define OR_high/OR_low from 13:30-14:00 UTC (6 M5 bars)",
+        "OR range between 0.4*ATR(14) and 2.5*ATR(14)",
+        "first close < OR_low after 14:00 UTC",
+        "breakout candle body >= 0.8*ATR(14)",
+        "within 14:00-16:00 UTC window",
+        "only first breakout per day"
+      ]
+    },
+    "exit_rules": {
+      "stop_loss": "opposite side of OR (OR_low for longs, OR_high for shorts), capped at 1.5*ATR(14)",
+      "take_profit": "2.0 * OR_range (measured move), split: 50% at 1.0*OR_range, 50% at 2.0*OR_range",
+      "time_stop": "close at 20:00 UTC or after 48 M5 bars",
+      "trailing": "after 1.0*OR_range achieved, trail remainder by 1.5*ATR(14)"
+    },
+    "sizing": {
+      "method": "risk_per_trade",
+      "risk_pct": 0.6,
+      "max_concurrent": 1,
+      "cooldown_bars": 24
+    },
+    "params": {
+      "or_start_utc": "13:30",
+      "or_end_utc": "14:00",
+      "trade_window_end_utc": "16:00",
+      "atr_period": 14,
+      "min_or_atr": 0.4,
+      "max_or_atr": 2.5,
+      "breakout_body_atr": 0.8,
+      "sl_atr_cap": 1.5,
+      "tp_or_mult": 2.0
+    },
+    "falsification": "Reject if PF<2.0 across 2y or if OOS PF is <60% of IS PF (overfitting to specific volatility regime)."
+  }
+]

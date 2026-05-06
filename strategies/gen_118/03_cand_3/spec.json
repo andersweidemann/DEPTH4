@@ -1,0 +1,44 @@
+{
+  "hypothesis": "RSI extremes lead to mean reversion during low volatility",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "max_width": 1.0
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "rsi_period": 14,
+      "rsi_thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit",
+    "params": {
+      "target": "fixed",
+      "pips": 200
+    }
+  },
+  "stop_loss": {
+    "type": "fixed",
+    "params": {
+      "pips": 50
+    }
+  },
+  "time_stop": {
+    "type": "hours",
+    "params": {
+      "num_hours": 1
+    }
+  },
+  "sizing": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 1
+    }
+  }
+}

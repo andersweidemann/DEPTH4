@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Breakouts occur after Asia range expansion",
+  "regime_filter": {
+    "type": "asia_london_session",
+    "params": {
+      "asia_start": "00:00",
+      "asia_end": "06:00",
+      "london_start": "07:00",
+      "london_end": "10:00"
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_atr_min": 0.5,
+      "range_atr_max": 2.0,
+      "breakout_atr": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit",
+    "params": {
+      "target": "fixed_pips",
+      "pips": 500
+    }
+  },
+  "stop_loss": {
+    "type": "fixed",
+    "params": {
+      "distance": "100 pips"
+    }
+  },
+  "time_stop": {
+    "type": "fixed",
+    "params": {
+      "bars": 20
+    }
+  },
+  "sizing": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

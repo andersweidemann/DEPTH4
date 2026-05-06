@@ -1,0 +1,73 @@
+{
+  "name": "US500_M5_ORB_VolExpansion",
+  "hypothesis": "On US500 M5, the first 30-minute opening range (13:30-14:00 UTC) breakout during high-volatility regimes captures directional NY-session continuation with positive expectancy when filtered by ATR percentile.",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "family": "breakout",
+  "regime_filter": {
+    "type": "composite",
+    "rules": [
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "op": ">=",
+        "value": 50
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "op": ">=",
+        "value": 15
+      },
+      {
+        "primitive": "session_mask",
+        "sessions": [
+          "ny_open"
+        ],
+        "window_utc": "14:00-18:00"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": [
+      "define OR_high/OR_low from 13:30-14:00 UTC (6 M5 bars)",
+      "OR range between 0.4*ATR(14) and 2.5*ATR(14)",
+      "first close > OR_high after 14:00 UTC",
+      "breakout candle body >= 0.8*ATR(14)",
+      "within 14:00-16:00 UTC window",
+      "only first breakout per day"
+    ],
+    "short": [
+      "define OR_high/OR_low from 13:30-14:00 UTC (6 M5 bars)",
+      "OR range between 0.4*ATR(14) and 2.5*ATR(14)",
+      "first close < OR_low after 14:00 UTC",
+      "breakout candle body >= 0.8*ATR(14)",
+      "within 14:00-16:00 UTC window",
+      "only first breakout per day"
+    ]
+  },
+  "exit_rules": {
+    "stop_loss": "opposite side of OR (OR_low for longs, OR_high for shorts), capped at 1.5*ATR(14)",
+    "take_profit": "2.0 * OR_range (measured move), split: 50% at 1.0*OR_range, 50% at 2.0*OR_range",
+    "time_stop": "close at 20:00 UTC or after 48 M5 bars",
+    "trailing": "after 1.0*OR_range achieved, trail remainder by 1.5*ATR(14)"
+  },
+  "sizing": {
+    "method": "risk_per_trade",
+    "risk_pct": 0.6,
+    "max_concurrent": 1,
+    "cooldown_bars": 24
+  },
+  "params": {
+    "or_start_utc": "13:30",
+    "or_end_utc": "14:00",
+    "trade_window_end_utc": "16:00",
+    "atr_period": 14,
+    "min_or_atr": 0.4,
+    "max_or_atr": 2.5,
+    "breakout_body_atr": 0.8,
+    "sl_atr_cap": 1.5,
+    "tp_or_mult": 2.0
+  },
+  "falsification": "Reject if PF<2.0 across 2y or if OOS PF is <60% of IS PF (overfitting to specific volatility regime)."
+}

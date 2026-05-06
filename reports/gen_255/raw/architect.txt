@@ -1,0 +1,80 @@
+```json
+[
+  {
+    "name": "London Range Expansion",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "hypothesis": "London open range expansion after Asia session consolidation",
+    "regime_filter": "adx > 20",
+    "entry_rules": {
+      "long": "close > upper_bollinger_band(20, 2.0) and rsi(14) < 30",
+      "short": "close < lower_bollinger_band(20, 2.0) and rsi(14) > 70"
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * atr(14)",
+      "take_profit": "2 * atr(14)",
+      "time_stop": "30 minutes"
+    },
+    "sizing": {
+      "fixed_size": 0.1
+    }
+  },
+  {
+    "name": "Mean Reversion Scalper",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "hypothesis": "Mean reversion after extreme price deviations",
+    "regime_filter": "bb_width_percentile(20, 2.0) > 30",
+    "entry_rules": {
+      "long": "close < lower_bollinger_band(20, 2.0) and rsi(7) < 10",
+      "short": "close > upper_bollinger_band(20, 2.0) and rsi(7) > 90"
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * atr(14)",
+      "take_profit": "opposite_bollinger_band(20, 2.0)",
+      "time_stop": "30 minutes"
+    },
+    "sizing": {
+      "fixed_size": 0.1
+    }
+  },
+  {
+    "name": "Volatility Squeeze",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "hypothesis": "Volatility expansion after contraction",
+    "regime_filter": "atr_percentile(14) < 20",
+    "entry_rules": {
+      "long": "close > upper_bollinger_band(20, 2.0) and atr(14) > atr(14)[1]",
+      "short": "close < lower_bollinger_band(20, 2.0) and atr(14) > atr(14)[1]"
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * atr(14)",
+      "take_profit": "2 * atr(14)",
+      "time_stop": "30 minutes"
+    },
+    "sizing": {
+      "fixed_size": 0.1
+    }
+  },
+  {
+    "name": "Trend Pullback",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "hypothesis": "Trend continuation after pullback",
+    "regime_filter": "adx > 25",
+    "entry_rules": {
+      "long": "close > ema(50) and close < ema(50)[1]",
+      "short": "close < ema(50) and close > ema(50)[1]"
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * atr(14)",
+      "take_profit": "2 * atr(14)",
+      "time_stop": "30 minutes"
+    },
+    "sizing": {
+      "fixed_size": 0.1
+    }
+  }
+]
+```

@@ -1,0 +1,99 @@
+{
+  "spec_id": "01_xau_bb_rsi_meanrev_m5",
+  "hypothesis": "On XAUUSD M5, when price closes outside a 1.75-sigma Bollinger Band with RSI(7) at extreme and BB width is elevated (avoiding dead ranges), price reverts to the mean within ~30 bars, producing PF>=2.0 after ATR stops.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "mean_reversion",
+  "regime_filter": {
+    "primitives": [
+      "bb_width",
+      "atr_percentile",
+      "session_mask"
+    ],
+    "rules": [
+      {
+        "name": "bb_width_above_30pct",
+        "primitive": "bb_width",
+        "params": {
+          "period": 20,
+          "stddev": 1.75,
+          "lookback": 500
+        },
+        "condition": "percentile_gt_30"
+      },
+      {
+        "name": "atr_regime_live",
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 500
+        },
+        "condition": "between_20_and_90"
+      },
+      {
+        "name": "active_session",
+        "primitive": "session_mask",
+        "params": {
+          "hours_utc": "07-20"
+        },
+        "condition": "true"
+      }
+    ],
+    "combine": "all"
+  },
+  "entry": {
+    "long": "close < lower_bb(20,1.75) AND rsi(7) < 10",
+    "short": "close > upper_bb(20,1.75) AND rsi(7) > 90",
+    "cooldown_bars": 3,
+    "max_spread_points": 35
+  },
+  "exit": {
+    "tp": "opposite_bollinger_band",
+    "sl": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 30,
+    "breakeven_after_r": 1.0
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "params_to_search": {
+    "bb_period": [
+      18,
+      20,
+      22
+    ],
+    "bb_stddev": [
+      1.6,
+      1.75,
+      2.0
+    ],
+    "rsi_period": [
+      5,
+      7,
+      9
+    ],
+    "rsi_long_threshold": [
+      8,
+      10,
+      15
+    ],
+    "rsi_short_threshold": [
+      85,
+      90,
+      92
+    ],
+    "atr_sl_mult": [
+      1.2,
+      1.5,
+      1.8
+    ],
+    "time_stop_bars": [
+      24,
+      30,
+      40
+    ]
+  },
+  "notes": "Ported-idea from MIT mean-reversion-mql5 (port_allowed). Previous gen M15 XAU version produced 0 trades \u2014 move to M5 where BB/RSI extremes occur often enough for >=200 trades. Add explicit cooldown and spread cap."
+}

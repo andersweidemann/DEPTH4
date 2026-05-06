@@ -1,0 +1,33 @@
+{
+  "hypothesis": "Mean reversion scalping strategy using RSI and ATR is effective on US500 M5 when price reaches extreme RSI levels and ATR is above a certain threshold.",
+  "regime_filter": {
+    "type": "atr_threshold",
+    "params": {
+      "atr_period": 14,
+      "atr_threshold": 10
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_atr_mean_reversion",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl",
+    "params": {
+      "tp_pips": 200,
+      "sl_pips": 50
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

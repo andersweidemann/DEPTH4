@@ -1,0 +1,51 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = risk.DailyKillState(start_of_day_equity=self._equity_start)
+        self._adx_series = self.I(adx, self.data, 14)
+        self._atr_series = self.I(atr, self.data, 14)
+        self._bb_series = self.I(bollinger, self.data, 20)
+        self._lower_bb = self._bb_series[0]
+        self._upper_bb = self._bb_series[1]
+        self._middle_bb = self._bb_series[2]
+
+    def _regime_ok(self):
+        adx_val = float(self._adx_series[-1])
+        return adx_val > self.spec["regime_filter"]["params"]["threshold"]
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        close = self.data.Close[-1]
+        if close < self._lower_bb[-1] and self._adx_series[-1] > self.spec["regime_filter"]["params"]["threshold"]:
+            self.position.enter_long()
+            self.sl_price = close - 2 * self._atr_series[-1]
+            self.tp_price = self._middle_bb[-1]
+        elif close > self._upper_bb[-1] and self._adx_series[-1] > self.spec["regime_filter"]["params"]["threshold"]:
+            self.position.enter_short()
+            self.sl_price = close + 2 * self._atr_series[-1]
+            self.tp_price = self._middle_bb[-1]
+
+    def _manage_open(self):
+        if not self.position:
+            return
+        if self.position.is_long and self.data.Close[-1] < self.sl_price:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] > self.sl_price:
+            self.position.close()
+        if self.position.is_long and self.data.Close[-1] > self.tp_price:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] < self.tp_price:
+            self.position.close()
+        if len(self.data) - self.position.entry_bar >= self.spec["exit_rules"]["time_stop"]["params"]["num_bars"]:
+            self.position.close()

@@ -1,0 +1,171 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion occurs on GER40 M15",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > 1.2 * atr(14) && breakout > 0.5 * range_atr"
+      },
+      "short": {
+        "condition": "breakout < -1.2 * atr(14) && breakout < -0.5 * range_atr"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 2
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M5",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "min_width": 0.5,
+        "max_width": 2.0
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > lower_bb && close < lower_bb + 0.2 * atr(14)"
+      },
+      "short": {
+        "condition": "close < upper_bb && close > upper_bb - 0.2 * atr(14)"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs on US500 M15 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "rsi",
+      "params": {
+        "period": 7,
+        "threshold": 90
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 2
+      }
+    }
+  }
+]
+```

@@ -1,0 +1,23 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_cand_2",
+      "fitness": 0.08,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 1.23,
+        "sharpe_avg": 0.08,
+        "max_dd_pct": 4.05,
+        "trades_total": 31
+      }
+    }
+  ],
+  "summary_markdown": "## Generation 02 Critic Report\n\n**Verdict: Full rejection. Strategy-family pivot recommended.**\n\nCandidate `02_cand_2` fails every acceptance gate by a wide margin across all four symbol/TF combos:\n\n| Combo | Trades | PF | Sharpe | MaxDD% | Return% |\n|---|---|---|---|---|---|\n| XAUUSD M5 | 0 | n/a | n/a | 0.0 | 0.0 |\n| XAUUSD M15 | 4 | 0.77 | -0.03 | 2.02 | -0.15 |\n| GER40 M5 | 9 | 1.97 | 0.29 | 1.52 | +2.16 |\n| GER40 M15 | 18 | 0.94 | -0.01 | 4.05 | -0.09 |\n\n### Gate failures\n- **trades_min=200**: total trades = 31 across 4.5 years. Entry logic is far too restrictive (or broken on XAUUSD M5 where it produced zero fills).\n- **pf_min=2.0**: only GER40 M5 approaches threshold (1.97) and only over 9 trades — this is statistical noise, not edge.\n- **sharpe_min=1.5**: best combo is 0.29. Nothing in the same zip code.\n- **require_all_combos_positive**: 3 of 4 combos are flat-to-negative.\n\n### Red flags\n- GER40 M5 PF≈2 on 9 trades is the classic small-n mirage — do not chase.\n- XAUUSD M5 produced **zero trades** → either the signal never fires on M5 gold or there is a filter/session bug.\n- Exposure% is microscopic (0.02–0.17%) → the strategy is barely in the market, confirming over-filtering.\n\n### Recommendation\nThis is a generation-wide failure, not a tuning problem. Pivot the family rather than nudging parameters.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Ultra-selective multi-filter entry stacks that yield <10 trades/year per combo — current family cannot reach trades_min=200 without a fundamental redesign.",
+    "Applying the same entry logic to XAUUSD M5 without instrument-specific volatility/session gating — it produces zero fills.",
+    "Using GER40 M5 PF≈2 on <10 trades as evidence of edge — discard and require n>=100 before taking any PF seriously.",
+    "Further parameter tweaks on 02_cand_2 family; next generation should pivot to a different signal family (e.g., volatility-breakout or session-open momentum) with looser base filters and ATR-scaled exits, targeting >=50 trades/year/combo before adding filters."
+  ]
+}

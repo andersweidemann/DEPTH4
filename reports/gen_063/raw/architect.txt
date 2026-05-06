@@ -1,0 +1,202 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "target": "opposite_bb"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "distance": "1.5 * atr(14)"
+            }
+          },
+          {
+            "type": "time_stop",
+            "params": {
+              "bars": 30
+            }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "London breakout occurs on GER40 M15 when Asia range is broken with sufficient volatility",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "period": 14,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "london_breakout",
+      "params": {
+        "asia_range_period": "06:00-07:00",
+        "london_breakout_period": "07:00-10:00",
+        "volatility_threshold": "1.2 * atr(14)"
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "target": "1.5 * atr(14)"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "distance": "1.0 * atr(14)"
+            }
+          },
+          {
+            "type": "time_stop",
+            "params": {
+              "bars": 20
+            }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce occurs on XAUUSD M15 when price touches the band and closes back inside",
+    "regime_filter": {
+      "type": "session_mask",
+      "params": {
+        "session": "07:00-20:00"
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch_and_bounce",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "touch_tolerance": 0.2
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "target": "0.5 * atr(14)"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "distance": "1.0 * atr(14)"
+            }
+          },
+          {
+            "type": "time_stop",
+            "params": {
+              "bars": 15
+            }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs on US500 M5 when price reaches extreme deviations from its mean with high ATR",
+    "regime_filter": {
+      "type": "atr_threshold",
+      "params": {
+        "period": 14,
+        "threshold": 1.5
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "target": "1.2 * atr(14)"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "distance": "0.8 * atr(14)"
+            }
+          },
+          {
+            "type": "time_stop",
+            "params": {
+              "bars": 25
+            }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]
+```

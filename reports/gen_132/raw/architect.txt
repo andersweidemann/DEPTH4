@@ -1,0 +1,130 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "bb_period": 20,
+        "bb_dev": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during the London session after an Asia range expansion",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_atr_min": 0.5,
+        "asia_range_atr_max": 2.0,
+        "breakout_atr_displacement": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "500_pips",
+        "sl": "100_pips",
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to the mean after extreme movements",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "period": 14,
+        "percentile": 70
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_extremes",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "middle_bb",
+        "sl": "2_atr",
+        "time_stop": 45
+      }
+    },
+    "sizing_rule": {
+      "type": "proportional",
+      "params": {
+        "proportion": 0.05
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversals occur frequently",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "min_width": 10,
+        "max_width": 50
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_dev": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time",
+      "params": {
+        "tp": "200_pips",
+        "sl": "50_pips",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "scaled",
+      "params": {
+        "scale": 0.02
+      }
+    }
+  }
+]
+```

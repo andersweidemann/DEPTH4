@@ -1,0 +1,182 @@
+[
+  {
+    "name": "01_ger40_london_open_range_breakout_m15",
+    "hypothesis": "On GER40 M15, the first 60 minutes after the Frankfurt/London open (07:00-08:00 UTC) forms an opening range whose directional breakout during 08:00-11:00 UTC captures the institutional order flow imbalance, producing a positive-expectancy trend-day filter that Donchian-on-all-hours fails to isolate.",
+    "family": "session_breakout",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "session_mask", "window_utc": "08:00-11:00", "active": true},
+        {"primitive": "adx", "period": 14, "min": 20},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 200, "min_pct": 35, "max_pct": 95}
+      ]
+    },
+    "entry_rules": {
+      "opening_range_window_utc": "07:00-08:00",
+      "trade_window_utc": "08:00-11:00",
+      "long": "close > OR_high AND close - OR_high >= 0.25 * ATR(14) AND body >= 0.6 * ATR(14)",
+      "short": "close < OR_low AND OR_low - close >= 0.25 * ATR(14) AND body >= 0.6 * ATR(14)",
+      "first_signal_only_per_day": true,
+      "OR_range_constraint": "0.4*ATR(14) <= (OR_high - OR_low) <= 2.0*ATR(14)"
+    },
+    "exit_rules": {
+      "stop_loss": "opposite side of opening range OR 1.0 * ATR(14), whichever is tighter",
+      "take_profit": "2.2 * initial_risk (R-multiple)",
+      "breakeven_trigger": "1.0 R",
+      "trailing": "chandelier 2.5 * ATR(14) after 1.5 R",
+      "time_stop_bars": 24,
+      "force_flat_utc": "16:00"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1,
+      "pyramiding": 0
+    },
+    "params_to_search": {
+      "or_atr_min": [0.3, 0.4, 0.5],
+      "or_atr_max": [1.8, 2.0, 2.5],
+      "breakout_atr_buffer": [0.15, 0.25, 0.4],
+      "tp_R": [1.8, 2.2, 2.8],
+      "adx_min": [18, 20, 25]
+    },
+    "acceptance_notes": "Expect ~1-2 trades per day per symbol across ~3 years => >500 trades on M15. Avoids the all-hours chop that killed the prior Donchian variant."
+  },
+  {
+    "name": "02_xauusd_bb_rsi_mean_reversion_m15",
+    "hypothesis": "XAUUSD M15 exhibits statistically reliable mean reversion when price closes outside a tight Bollinger Band with a simultaneous RSI extreme, provided volatility is in a mid regime (not in a trend-day blowoff). Reverting to the mid-band yields >2 PF with >200 trades over 3 years.",
+    "family": "bb_rsi_mean_reversion",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "adx", "period": 14, "max": 25},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 200, "min_pct": 20, "max_pct": 80},
+        {"primitive": "bb_width", "period": 20, "stddev": 2.0, "min_percentile": 30},
+        {"primitive": "session_mask", "window_utc": "06:00-20:00", "active": true}
+      ]
+    },
+    "entry_rules": {
+      "long": "close < lower_BB(20, 2.0) AND RSI(7) < 12 AND prior_bar_low < lower_BB",
+      "short": "close > upper_BB(20, 2.0) AND RSI(7) > 88 AND prior_bar_high > upper_BB",
+      "cooldown_bars": 4,
+      "max_spread_points": 40
+    },
+    "exit_rules": {
+      "take_profit": "mid_BB(20)",
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "time_stop_bars": 28,
+      "early_exit": "opposite BB touch"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.6,
+      "max_concurrent_positions": 1,
+      "pyramiding": 0
+    },
+    "params_to_search": {
+      "bb_stddev": [1.75, 2.0, 2.25],
+      "rsi_period": [5, 7, 9],
+      "rsi_long_thresh": [8, 12, 15],
+      "rsi_short_thresh": [85, 88, 92],
+      "sl_atr_mult": [1.2, 1.5, 1.8],
+      "adx_max": [20, 25, 30]
+    },
+    "acceptance_notes": "Reference scout card reports PF 1.51 / Sharpe 2.48 on EURUSD; XAUUSD M15 has larger edges. Target PF >= 2.0 with tighter RSI thresholds and ADX regime filter."
+  },
+  {
+    "name": "03_us500_pullback_ema_trend_m15",
+    "hypothesis": "US500 M15 during US cash session (13:30-20:00 UTC) exhibits persistent intraday trend continuation; buying shallow pullbacks to EMA20 within an EMA50>EMA200 uptrend (and mirror for downtrend) produces positive expectancy with ADX>20 regime filter. Avoids counter-trend and Asia chop that hurt Donchian.",
+    "family": "pullback_trend_follow",
+    "symbols": ["US500"],
+    "timeframes": ["M15"],
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "ema", "period": 50, "compare": ">", "vs": {"primitive": "ema", "period": 200}, "for_longs": true},
+        {"primitive": "ema", "period": 50, "compare": "<", "vs": {"primitive": "ema", "period": 200}, "for_shorts": true},
+        {"primitive": "adx", "period": 14, "min": 18},
+        {"primitive": "session_mask", "window_utc": "13:30-20:00", "active": true},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 200, "min_pct": 25}
+      ]
+    },
+    "entry_rules": {
+      "long": "trend_up AND low <= EMA(20) AND close > EMA(20) AND RSI(14) between 40 and 65",
+      "short": "trend_down AND high >= EMA(20) AND close < EMA(20) AND RSI(14) between 35 and 60",
+      "confirmation": "bullish/bearish engulfing or close in upper/lower 40% of bar range",
+      "cooldown_bars": 3
+    },
+    "exit_rules": {
+      "stop_loss": "swing_low(5) - 0.2*ATR(14) for longs; mirror for shorts; cap at 1.5*ATR",
+      "take_profit": "2.0 * initial_risk",
+      "breakeven_trigger": "1.0 R",
+      "trailing": "EMA(20) cross or 2.0*ATR chandelier after 1.2 R",
+      "time_stop_bars": 20,
+      "force_flat_utc": "20:30"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1,
+      "pyramiding": 0
+    },
+    "params_to_search": {
+      "ema_fast": [10, 20, 34],
+      "ema_slow": [50, 100],
+      "ema_trend": [150, 200],
+      "adx_min": [15, 18, 22],
+      "tp_R": [1.5, 2.0, 2.5],
+      "rsi_long_band": [[35,60],[40,65],[45,70]]
+    },
+    "acceptance_notes": "US cash-session-only reduces noise trades. Expected >250 trades/3yr on M15. Family diverges from BB mean-reversion and from session breakout."
+  },
+  {
+    "name": "04_xauusd_asia_london_range_expansion_m5",
+    "hypothesis": "XAUUSD M5 breakouts from an Asia-session accumulation range (00:00-06:00 UTC) during the London window (07:00-11:00 UTC) capture liquidity-driven volatility expansion; ATR-normalized range gating filters chop days from trend days, yielding PF>=2.0 with sufficient sample.",
+    "family": "session_breakout",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "regime_filter": {
+      "type": "composite",
+      "rules": [
+        {"primitive": "session_mask", "window_utc": "07:00-11:00", "active": true},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 288, "min_pct": 30, "max_pct": 95},
+        {"primitive": "adx", "period": 14, "min": 15}
+      ]
+    },
+    "entry_rules": {
+      "asia_range_window_utc": "00:00-06:00",
+      "trade_window_utc": "07:00-11:00",
+      "range_constraint": "0.5*ATR(14) <= (asia_high - asia_low) <= 2.0*ATR(14)",
+      "long": "close > asia_high + 0.3*ATR(14) AND body >= 1.0*ATR(14)",
+      "short": "close < asia_low - 0.3*ATR(14) AND body >= 1.0*ATR(14)",
+      "first_signal_only_per_day": true
+    },
+    "exit_rules": {
+      "stop_loss": "0.75 * ATR(14)",
+      "take_profit": "2.5 * initial_risk",
+      "breakeven_trigger": "1.0 R",
+      "trailing": "2.0 * ATR(14) chandelier after 1.5 R",
+      "time_stop_bars": 48,
+      "force_flat_utc": "15:00"
+    },
+    "sizing": {
+      "mode": "risk_pct_of_equity",
+      "risk_per_trade_pct": 0.6,
+      "max_concurrent_positions": 1,
+      "pyramiding": 0
+    },
+    "params_to_search": {
+      "breakout_atr_buffer": [0.2, 0.3, 0.5],
+      "body_atr_min": [0.8, 1.0, 1.2],
+      "range_atr_min": [0.4, 0.5, 0.7],
+      "range_atr_max": [1.8, 2.0, 2.5],
+      "sl_atr_mult": [0.6, 0.75, 1.0],
+      "tp_R": [2.0, 2.5, 3.0]
+    },
+    "acceptance_notes": "M5 on XAUUSD + daily session setup generates ~1 trade/day nominal, but with range gating expect ~0.5/day => ~400 trades/3yr. Complements GER40 session breakout on a different symbol for portfolio diversity."
+  }
+]

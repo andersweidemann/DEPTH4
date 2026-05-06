@@ -1,0 +1,197 @@
+```python
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        super().init()
+        self._atr_series = self.I(signals.atr, self.data, 14)
+
+        df = self.data.df if hasattr(self.data, "df") else None
+        idx = df.index if df is not None else self.data.index
+        idx_utc = pd.DatetimeIndex(idx)
+        if idx_utc.tz is None:
+            idx_utc = idx_utc.tz_localize("UTC")
+        else:
+            idx_utc = idx_utc.tz_convert("UTC")
+
+        high = np.asarray(self.data.High, dtype=float)
+        low = np.asarray(self.data.Low, dtype=float)
+        n = len(idx_utc)
+
+        asia_high = np.full(n, np.nan)
+        asia_low = np.full(n, np.nan)
+
+        dates = idx_utc.strftime("%Y-%m-%d").values
+        hours = idx_utc.hour.values
+
+        cur_date = None
+        cur_hi = -np.inf
+        cur_lo = np.inf
+        day_hi = np.nan
+        day_lo = np.nan
+        for i in range(n):
+            d = dates[i]
+            h = hours[i]
+            if d != cur_date:
+                cur_date = d
+                cur_hi = -np.inf
+                cur_lo = np.inf
+                day_hi = np.nan
+                day_lo = np.nan
+            if h < 6:
+                if high[i] > cur_hi:
+                    cur_hi = high[i]
+                if low[i] < cur_lo:
+                    cur_lo = low[i]
+                if np.isfinite(cur_hi):
+                    day_hi = cur_hi
+                    day_lo = cur_lo
+            elif h == 6:
+                if np.isfinite(cur_hi):
+                    day_hi = cur_hi
+                    day_lo = cur_lo
+            asia_high[i] = day_hi
+            asia_low[i] = day_lo
+
+        self._asia_high = self.I(lambda: asia_high)
+        self._asia_low = self.I(lambda: asia_low)
+
+        london_mask = (hours >= 7) & (hours < 10)
+        self._london_mask = london_mask
+        self._bar_hours = hours
+        self._bar_dates = dates
+
+        self._entered_date: Optional[str] = None
+
+    def _regime_ok(self) -> bool:
+        atr = float(self._atr_series[-1])
+        ah = float(self._asia_high[-1])
+        al = float(self._asia_low[-1])
+        if not (np.isfinite(atr) and np.isfinite(ah) and np.isfinite(al)) or atr <= 0:
+            return False
+        rng_ratio = (ah - al) / atr
+        return 0.5 <= rng_ratio <= 2.0
+
+    def _filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        if not (0 <= bar_i < len(self._london_mask)):
+            return False
+        if not bool(self._london_mask[bar_i]):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        bar_i = len(self.data) - 1
+        today = self._bar_dates[bar_i]
+        if self._entered_date == today:
+            return
+
+        atr = float(self._atr_series[-1])
+        ah = float(self._asia_high[-1])
+        al = float(self._asia_low[-1])
+        if not (np.isfinite(atr) and np.isfinite(ah) and np.isfinite(al)):
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        body = abs(close - open_)
+        price = close
+
+        long_trigger = close > ah + 0.5 * atr
+        short_trigger = close < al - 0.5 * atr
+        body_ok = body >= 1.0 * atr
+
+        if not body_ok:
+            return
+
+        equity = float(self.equity)
+        risk_pct = float(self.spec.get("sizing", {}).get("risk_pct_per_trade", 0.75))
+
+        if long_trigger:
+            sl = al - 0.1 * atr
+            tp = price + 2.0 * atr
+            if sl >= price:
+                return
+            size = risk.lots_by_risk_pct(equity, risk_pct, price, sl, self._symbol)
+            if size and size > 0:
+                self.sl_price = sl
+                self.tp_price = tp
+                try:
+                    self.buy(size=size, sl=sl, tp=tp)
+                    self._entered_date = today
+                except Exception:
+                    pass
+        elif short_trigger:
+            sl = ah + 0.1 * atr
+            tp = price - 2.0 * atr
+            if sl <= price:
+                return
+            size = risk.lots_by_risk_pct(equity, risk_pct, price, sl, self._symbol)
+            if size and size > 0:
+                self.sl_price = sl
+                self.tp_price = tp
+                try:
+                    self.sell(size=size, sl=sl, tp=tp)
+                    self._entered_date = today
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+
+        bar_i = len(self.data) - 1
+        if 0 <= bar_i < len(self._bar_hours):
+            if self._bar_hours[bar_i] >= 15:
+                self.position.close()
+                return
+
+        atr = float(self._atr_series[-1])
+        if not np.isfinite(atr) or atr <= 0:
+            return
+        price = float(self.data.Close[-1])
+
+        for trade in self.trades:
+            if trade.is_long:
+                entry = trade.entry_price
+                init_risk = entry - (self._asia_low[-1] - 0.1 * atr)
+                if init_risk <= 0:
+                    continue
+                if price - entry >= init_risk:
+                    new_sl = price - 1.5 * atr
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                entry = trade.entry_price
+                init_risk = (self._asia_high[-1] + 0.1 * atr) - entry
+                if init_risk <= 0:
+                    continue
+                if entry - price >= init_risk:
+                    new_sl = price + 1.5 * atr
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

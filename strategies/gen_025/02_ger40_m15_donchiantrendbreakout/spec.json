@@ -1,0 +1,70 @@
+{
+  "name": "GER40_M15_DonchianTrendBreakout",
+  "family": "breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "GER40 M15 breakouts of the 40-bar Donchian channel during European cash-session hours, filtered by rising ADX and elevated ATR percentile, capture momentum continuation beyond a 1R threshold before pullback.",
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "adx",
+        "params": {
+          "period": 14
+        },
+        "min": 22,
+        "rising": true
+      },
+      {
+        "name": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 200
+        },
+        "min": 40
+      },
+      {
+        "name": "session_mask",
+        "params": {
+          "sessions": [
+            "frankfurt_open"
+          ],
+          "start_utc": "07:00",
+          "end_utc": "15:30"
+        }
+      }
+    ]
+  },
+  "signals": {
+    "entry": {
+      "long": "close > donchian_high(40) AND close > EMA(50) AND close-open > 0.6*ATR(14)",
+      "short": "close < donchian_low(40) AND close < EMA(50) AND open-close > 0.6*ATR(14)"
+    },
+    "primitives_used": [
+      "donchian",
+      "ema",
+      "atr",
+      "adx",
+      "session_mask"
+    ]
+  },
+  "exits": {
+    "stop_loss": "1.2*ATR(14) from entry",
+    "take_profit": "3.0*ATR(14) (R:R 2.5)",
+    "time_stop_bars": 48,
+    "breakeven_trigger": "1.0*ATR(14) in favor",
+    "trailing": "ATR trail 2.0*ATR after 1.5R"
+  },
+  "sizing": {
+    "model": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_daily_trades": 2
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

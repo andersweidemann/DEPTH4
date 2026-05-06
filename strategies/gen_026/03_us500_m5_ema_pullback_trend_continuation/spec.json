@@ -1,0 +1,103 @@
+{
+  "id": "g26_us500_m5_ema_pullback_trend",
+  "name": "US500 M5 EMA Pullback Trend Continuation",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "hypothesis": "US500 M5 during US cash session (13:30-20:00 UTC) exhibits trend-pullback continuation: in an EMA20>EMA50>EMA200 stack with ADX>=18, a shallow pullback where low touches EMA20 and RSI(14) dips to 40-55 then reclaims, produces a trend-continuation entry with PF>=2.0.",
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "ema20>ema50 AND ema50>ema200 AND adx14>=18 AND low_prev <= ema20_prev AND close > ema20 AND rsi14 between 40 and 60 AND close > open",
+    "short": "ema20<ema50 AND ema50<ema200 AND adx14>=18 AND high_prev >= ema20_prev AND close < ema20 AND rsi14 between 40 and 60 AND close < open",
+    "cooldown_bars": 6,
+    "max_concurrent": 1
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "atr_period": 14,
+      "atr_lookback": 300
+    },
+    "allow_when": "regime == 'trend' AND atr_pct >= 20",
+    "rationale": "Pullback continuation requires an underlying trend and non-dead vol; pure range kills win rate."
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 1.5
+    },
+    "take_profit": {
+      "type": "atr_rr",
+      "rr": 2.0
+    },
+    "time_stop": {
+      "bars": 36,
+      "close_at_utc": "20:30"
+    },
+    "breakeven": {
+      "trigger_atr_mult": 1.0,
+      "offset_atr_mult": 0.1
+    },
+    "trailing": {
+      "type": "ema",
+      "period": 20,
+      "activate_at_rr": 1.0
+    }
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_daily_loss_pct": 2.5,
+    "max_positions": 1
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "windows_utc": [
+      [
+        "13:30",
+        "20:00"
+      ]
+    ]
+  },
+  "min_trades_expected": 260,
+  "notes": "Explicitly targets US500 (prior gen ran this candidate on wrong symbols). Verify symbol mapping to broker (US500, SPX500, US500.cash)."
+}

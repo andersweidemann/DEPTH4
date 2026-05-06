@@ -1,0 +1,14 @@
+{
+  "ranking": [
+    {"candidate": "00_cand_0", "fitness": 0.0, "verdict": "reject", "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}},
+    {"candidate": "02_cand_2", "fitness": 0.0, "verdict": "reject", "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}},
+    {"candidate": "03_cand_3", "fitness": 0.0, "verdict": "reject", "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}}
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nAll three candidates produced **zero trades** across all 4 symbol/TF combos (XAUUSD M5/M15, GER40 M5/M15) over the full 2020-01-01 to 2024-06-30 IS window. This is not a parameter-tuning problem — it is a structural failure in the strategy family or the execution pipeline.\n\n### Root-cause hypotheses (in priority order)\n1. **Entry conditions never fire.** Signal logic likely uses conjunctive filters (e.g., trend + momentum + session + volatility regime) whose joint probability over ~4.5 years of M5 data is effectively zero. With XAUUSD M5 alone offering ~300k bars, zero trades implies a logic bug or impossible threshold.\n2. **Data/symbol mapping issue.** Broker-specific symbol names (XAUUSD vs XAUUSD.sml, GER40 vs DE40) may not resolve, causing the strategy to see empty series. Verify bar counts loaded per combo before signal evaluation.\n3. **Indicator warmup / lookahead guard** rejecting every bar (e.g., ATR period > available history, or a `if bars < N: return` that is never false because N is misconfigured).\n4. **Order sizing / risk filter** vetoing every would-be trade (min lot, margin check, spread filter set tighter than instrument's typical spread — e.g., max_spread=5 points on XAUUSD which normally runs 20–40).\n\n### Recommendation: PIVOT, do not tweak\nDo not refine parameters on these candidates. Instead:\n- Add an instrumentation pass: log (bars_loaded, signals_generated, signals_filtered, orders_attempted, orders_rejected_reason) per combo. Without this telemetry we are blind.\n- Regenerate a new family using a *known-firing* baseline (e.g., simple Donchian breakout or EMA cross with no regime filter) as a sanity anchor. If the baseline also produces zero trades, the bug is in the harness, not the strategy.\n- Abandon multi-filter confluence designs until single-filter variants are shown to trade.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Any candidate in this generation (00_cand_0, 02_cand_2, 03_cand_3) as-is — all produced zero trades and carry no learnable signal.",
+    "Multi-condition confluence entry logic until a single-condition baseline is verified to generate trades on the same data pipeline.",
+    "Further parameter sweeps on current strategy family before adding pipeline instrumentation (bars_loaded, signals_generated, rejections_by_reason)."
+  ]
+}

@@ -1,0 +1,100 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("filters", {}).get("session_utc") or []
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, sessions), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self._bb_period = self.spec["entry_rule"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["entry_rule"]["params"]["bb_deviation"]
+        self._atr_period = self.spec["sl_rule"]["params"]["atr_period"]
+        self._atr_multiplier = self.spec["sl_rule"]["params"]["atr_multiplier"]
+        self._ratio = self.spec["tp_rule"]["params"]["ratio"]
+        self._bars = self.spec["time_stop_rule"]["params"]["bars"]
+        self._fraction = self.spec["sizing_rule"]["params"]["fraction"]
+        self._bb_series = self.I(bollinger, self.data, self._bb_period, self._bb_deviation)
+        self._atr_series = self.I(atr, self.data, self._atr_period)
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        ind = rf.get("indicator", "adx")
+        if ind == "adx":
+            adx_val = float(self._adx_series[-1]) if hasattr(self, "_adx_series") else np.nan
+            if np.isnan(adx_val):
+                return False
+            mn = rf.get("min")
+            mx = rf.get("max")
+            if mn is not None and adx_val < mn:
+                return False
+            if mx is not None and adx_val > mx:
+                return False
+            return True
+        if ind == "classify":
+            allowed = rf.get("allowed", ["TREND"])
+            reg = self._regime_series[-1] if hasattr(self, "_regime_series") else "RANGE"
+            return reg in allowed
+        return True
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        if self._filters_ok() and self._regime_ok():
+            close_price = self.data.Close[-1]
+            bb_lower = self._bb_series[0][-1]
+            bb_upper = self._bb_series[1][-1]
+            if close_price <= bb_lower or close_price >= bb_upper:
+                self.sl_price = close_price - self._atr_multiplier * self._atr_series[-1] if close_price >= bb_upper else close_price + self._atr_multiplier * self._atr_series[-1]
+                self.tp_price = close_price + self._ratio * (close_price - self.sl_price) if close_price >= bb_upper else close_price - self._ratio * (self.sl_price - close_price)
+                lots = lots_by_risk_pct(self._fraction, self._equity_start, self.data)
+                self.position.enter(lots)
+
+    def _manage_open(self):
+        if self.position:
+            close_price = self.data.Close[-1]
+            bb_lower = self._bb_series[0][-1]
+            bb_upper = self._bb_series[1][-1]
+            if close_price <= bb_lower or close_price >= bb_upper:
+                self.position.close()
+            if self._bars is not None:
+                trade = self.trades[-1]
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= self._bars:
+                    self.position.close()
+```

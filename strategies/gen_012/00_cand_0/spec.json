@@ -1,0 +1,72 @@
+{
+  "strategy_id": "gen12_xau_asia_london_breakout_m5",
+  "family": "breakout",
+  "hypothesis": "On XAUUSD M5, when the Asia session (00:00-06:00 UTC) range is between 0.5x and 2.0x ATR(14), a London-session (07:00-10:00 UTC) close beyond the range by >= 0.5x ATR with body >= 1.0x ATR leads to continuation that achieves >= 1.5R within 20 bars more often than random, yielding PF > 2.0.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "asia_start_utc": "00:00",
+        "asia_end_utc": "06:00",
+        "trade_start_utc": "07:00",
+        "trade_end_utc": "10:00"
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "lookback_session": "asia",
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0,
+        "breakout_atr_mult": 0.5,
+        "body_atr_mult": 1.0
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitives": [
+      {
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 200,
+          "min_pct": 30,
+          "max_pct": 95
+        }
+      },
+      {
+        "primitive": "adx",
+        "params": {
+          "period": 14,
+          "min": 18
+        }
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry_rules": {
+    "long": "Within trade window, first close above Asia-range-high by >= 0.5*ATR14 with candle body >= 1.0*ATR14, and regime filter true; only first breakout per day.",
+    "short": "Mirror: first close below Asia-range-low by >= 0.5*ATR14 with body >= 1.0*ATR14."
+  },
+  "exit_rules": {
+    "stop_loss": "0.75 * ATR(14) from entry, placed on opposite side of breakout candle",
+    "take_profit": "2.0 * ATR(14) from entry (R:R ~2.67)",
+    "time_stop_bars": 20,
+    "breakeven_after": "1.0 * ATR(14) favorable excursion"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "diversification_tag": "session_breakout_xau",
+  "notes": "Inspired by LVC scout card; strict single-entry-per-day to avoid chop."
+}

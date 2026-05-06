@@ -1,0 +1,70 @@
+{
+  "name": "ger40_m15_ema_pullback_trend",
+  "hypothesis": "On GER40 M15 during European cash session, pullbacks to EMA(20) within an established EMA(20)>EMA(50) trend and ADX>22 resume in the trend direction with positive expectancy. This replaces the failed Donchian breakout by entering on retracements (not breakouts) with a regime gate.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "family": "trend_pullback",
+  "signals": {
+    "ema": [
+      {
+        "period": 20
+      },
+      {
+        "period": 50
+      },
+      {
+        "period": 200
+      }
+    ],
+    "atr": {
+      "period": 14
+    },
+    "adx": {
+      "period": 14
+    },
+    "rsi": {
+      "period": 14
+    },
+    "session_mask": {
+      "sessions": [
+        "frankfurt",
+        "london"
+      ],
+      "utc_hours": [
+        7,
+        16
+      ]
+    }
+  },
+  "entry_rules": {
+    "long": "EMA20>EMA50>EMA200 AND ADX(14)>22 AND low <= EMA20 AND close > EMA20 AND RSI(14) between 40 and 65 AND session_active",
+    "short": "EMA20<EMA50<EMA200 AND ADX(14)>22 AND high >= EMA20 AND close < EMA20 AND RSI(14) between 35 and 60 AND session_active",
+    "cooldown_bars": 3
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "rule": "ADX(14) > 22 AND ADX(14) < 45",
+    "classify": "trending_not_exhausted"
+  },
+  "exit_rules": {
+    "sl": "1.5 * ATR(14) beyond EMA50 on entry side",
+    "tp": "2.0R fixed, partial 50% at 1R",
+    "time_stop_bars": 20,
+    "trailing": "after partial, trail remainder at 1.5 * ATR(14)"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.6,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  }
+}

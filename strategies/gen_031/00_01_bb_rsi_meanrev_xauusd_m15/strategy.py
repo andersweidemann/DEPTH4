@@ -1,0 +1,253 @@
+"""Strategy 01_bb_rsi_meanrev_xauusd_m15.
+
+Mean-reversion on XAUUSD M15 using Bollinger Band extremes + RSI(7) extremes,
+restricted to London/NY sessions with BB-width percentile filter.
+"""
+from __future__ import annotations
+
+import json
+import os
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+def _bb_upper(close, period, dev):
+    _, upper, _ = signals.bollinger(close, period, dev)
+    return upper
+
+
+def _bb_lower(close, period, dev):
+    _, _, lower = signals.bollinger(close, period, dev)
+    return lower
+
+
+def _bb_mid(close, period, dev):
+    mid, _, _ = signals.bollinger(close, period, dev)
+    return mid
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    _SPEC_DEFAULT: Dict[str, Any] = {
+        "name": "01_bb_rsi_meanrev_xauusd_m15",
+        "symbol": "XAUUSD",
+        "timeframe": "M15",
+        "bb_period": 20,
+        "bb_dev": 2.0,
+        "rsi_period": 7,
+        "rsi_long_thresh": 15,
+        "rsi_short_thresh": 85,
+        "bb_width_lookback": 500,
+        "bb_width_pct_floor": 30,
+        "atr_period": 14,
+        "atr_pct_min": 20,
+        "atr_pct_max": 90,
+        "sl_atr_mult": 1.8,
+        "time_stop_bars": 30,
+        "cooldown_bars": 3,
+        "breakeven_at_r": 1.0,
+        "risk_per_trade_pct": 0.5,
+        "max_spread_points": 40,
+        "max_concurrent": 1,
+        "filters": {
+            "session_utc": ["london", "ny"],
+            "max_spread_points": 40,
+        },
+        "risk": {
+            "daily_dd_kill_pct": 5.0,
+        },
+        "exit": {
+            "time_stop_bars": 30,
+        },
+    }
+
+    def init(self):
+        if not self._spec:
+            try:
+                here = os.path.dirname(os.path.abspath(__file__))
+                with open(os.path.join(here, self.spec_path), "r") as f:
+                    type(self)._spec = json.load(f)
+            except Exception:
+                type(self)._spec = dict(self._SPEC_DEFAULT)
+
+        merged = dict(self._SPEC_DEFAULT)
+        merged.update(self._spec or {})
+        merged.setdefault("filters", self._SPEC_DEFAULT["filters"])
+        merged.setdefault("exit", self._SPEC_DEFAULT["exit"])
+        merged.setdefault("risk", self._SPEC_DEFAULT["risk"])
+        type(self)._spec = merged
+
+        super().init()
+
+        p = self.spec
+        bb_n = int(p.get("bb_period", 20))
+        bb_d = float(p.get("bb_dev", 2.0))
+        rsi_n = int(p.get("rsi_period", 7))
+        atr_n = int(p.get("atr_period", 14))
+        self._bb_width_lookback = int(p.get("bb_width_lookback", 500))
+        self._bb_width_floor = float(p.get("bb_width_pct_floor", 30))
+        self._atr_pct_min = float(p.get("atr_pct_min", 20))
+        self._atr_pct_max = float(p.get("atr_pct_max", 90))
+
+        self._upper_bb = self.I(_bb_upper, self.data.Close, bb_n, bb_d)
+        self._lower_bb = self.I(_bb_lower, self.data.Close, bb_n, bb_d)
+        self._mid_bb = self.I(_bb_mid, self.data.Close, bb_n, bb_d)
+        self._rsi_series = self.I(signals.rsi, self.data.Close, rsi_n)
+        self._atr_series = self.I(signals.atr, self.data, atr_n)
+        self._bb_width_series = self.I(signals.bb_width, self.data.Close, bb_n, bb_d)
+
+        self._last_entry_bar = -10_000
+        self._be_moved_trade_ids: set = set()
+
+    def _bb_width_pct(self) -> float:
+        bar_i = len(self.data) - 1
+        lb = self._bb_width_lookback
+        start = max(0, bar_i - lb + 1)
+        window = np.asarray(self._bb_width_series)[start:bar_i + 1]
+        window = window[~np.isnan(window)]
+        if len(window) < 30:
+            return np.nan
+        cur = float(self._bb_width_series[-1])
+        if np.isnan(cur):
+            return np.nan
+        return float((window <= cur).mean() * 100.0)
+
+    def _atr_pct(self) -> float:
+        bar_i = len(self.data) - 1
+        lb = 500
+        start = max(0, bar_i - lb + 1)
+        window = np.asarray(self._atr_series)[start:bar_i + 1]
+        window = window[~np.isnan(window)]
+        if len(window) < 30:
+            return np.nan
+        cur = float(self._atr_series[-1])
+        if np.isnan(cur):
+            return np.nan
+        return float((window <= cur).mean() * 100.0)
+
+    def _regime_ok(self) -> bool:
+        w_pct = self._bb_width_pct()
+        if np.isnan(w_pct) or w_pct <= self._bb_width_floor:
+            return False
+        a_pct = self._atr_pct()
+        if np.isnan(a_pct):
+            return False
+        if a_pct < self._atr_pct_min or a_pct > self._atr_pct_max:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.trades) >= int(self.spec.get("max_concurrent", 1)):
+            return
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < int(self.spec.get("cooldown_bars", 3)):
+            return
+        if len(self.data.Close) < 3:
+            return
+
+        close = float(self.data.Close[-1])
+        close_prev = float(self.data.Close[-2])
+        upper = float(self._upper_bb[-1])
+        lower = float(self._lower_bb[-1])
+        mid = float(self._mid_bb[-1])
+        upper_prev = float(self._upper_bb[-2])
+        lower_prev = float(self._lower_bb[-2])
+        rsi_v = float(self._rsi_series[-1])
+        atr_v = float(self._atr_series[-1])
+
+        if any(np.isnan(x) for x in (close, close_prev, upper, lower, mid,
+                                      upper_prev, lower_prev, rsi_v, atr_v)):
+            return
+        if atr_v <= 0:
+            return
+
+        sl_mult = float(self.spec.get("sl_atr_mult", 1.8))
+        risk_pct = float(self.spec.get("risk_per_trade_pct", 0.5))
+        equity = float(self.equity)
+
+        long_sig = (close_prev < lower_prev and close > lower
+                    and rsi_v < float(self.spec.get("rsi_long_thresh", 15)))
+        short_sig = (close_prev > upper_prev and close < upper
+                     and rsi_v > float(self.spec.get("rsi_short_thresh", 85)))
+
+        if long_sig:
+            sl = close - sl_mult * atr_v
+            tp = upper
+            if sl >= close or tp <= close:
+                return
+            stop_dist = close - sl
+            lots = risk.lots_by_risk_pct(equity, risk_pct, stop_dist, self._symbol)
+            if lots <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=lots, sl=sl, tp=tp)
+                self._last_entry_bar = bar_i
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                    self._last_entry_bar = bar_i
+                except Exception:
+                    pass
+        elif short_sig:
+            sl = close + sl_mult * atr_v
+            tp = lower
+            if sl <= close or tp >= close:
+                return
+            stop_dist = sl - close
+            lots = risk.lots_by_risk_pct(equity, risk_pct, stop_dist, self._symbol)
+            if lots <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=lots, sl=sl, tp=tp)
+                self._last_entry_bar = bar_i
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                    self._last_entry_bar = bar_i
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        be_r = float(self.spec.get("breakeven_at_r", 0) or 0)
+        if be_r > 0 and self.trades:
+            price = float(self.data.Close[-1])
+            for trade in self.trades:
+                tid = id(trade)
+                if tid in self._be_moved_trade_ids:
+                    continue
+                entry = float(trade.entry_price)
+                if trade.sl is None:
+                    continue
+                if trade.is_long:
+                    r = entry - float(trade.sl)
+                    if r > 0 and (price - entry) >= be_r * r:
+                        trade.sl = entry
+                        self._be_moved_trade_ids.add(tid)
+                else:
+                    r = float(trade.sl) - entry
+                    if r > 0 and (entry - price) >= be_r * r:
+                        trade.sl = entry
+                        self._be_moved_trade_ids.add(tid)
+        super()._manage_open()
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

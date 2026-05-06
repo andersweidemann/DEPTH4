@@ -1,0 +1,17 @@
+## Generation Review: Empty Candidate Set
+
+**Status:** No candidates submitted for evaluation.
+
+### Observations
+- The candidate metrics array is empty (`[]`). There is nothing to rank, score, or critique.
+- Fitness cannot be computed; acceptance thresholds (PF>=2.0, DD<=15%, Sharpe>=1.5, trades>=200) are not applicable.
+
+### Recommended Actions for the Factory
+1. **Verify the Generator pipeline.** Confirm that candidate EAs are being compiled, backtested, and that metrics JSON is being emitted to the Critic's input queue.
+2. **Check the Backtester adapter.** If runs completed but no metrics surfaced, the failure is in the metrics-collection step (file path, serialization, or schema mismatch), not in strategy quality.
+3. **Sanity-run a known-good baseline.** Submit one reference EA (e.g., a simple MA-cross or breakout on EURUSD H1) end-to-end to validate the plumbing before scaling generation breadth.
+4. **Do not pivot strategy families yet.** With zero data, there is no evidence to condemn any idea space. Dead-branch decisions require failed evidence, not missing evidence.
+
+### Next Generation Guidance
+- Resubmit with at least 3-5 candidates across distinct families (mean-reversion, trend, breakout) on multiple symbols/TFs so consistency_score is meaningful.
+- Ensure each candidate reports: pf, sharpe, max_dd_pct, trades, IS vs OOS split, and local-vs-MT5 divergence.

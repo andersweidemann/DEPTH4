@@ -1,0 +1,47 @@
+{
+  "hypothesis": "Mean reversion occurs when RSI is oversold or overbought",
+  "regime_filter": {
+    "type": "rsi",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_extremes",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "middle_bb",
+    "params": {}
+  },
+  "sl_rule": {
+    "type": "atr",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.5
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_rr",
+    "params": {
+      "rr": 1.2
+    }
+  },
+  "time_stop": 30,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

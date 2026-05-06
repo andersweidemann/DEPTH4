@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Mean reversion occurs on US500 M15 when price closes outside Bollinger Bands with extreme RSI readings",
+  "regime_filter": {
+    "type": "rsi",
+    "params": {
+      "period": 7,
+      "threshold": 90
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb && rsi(7) < 10"
+    },
+    "short": {
+      "condition": "close > upper_bb && rsi(7) > 90"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 2
+    }
+  }
+}

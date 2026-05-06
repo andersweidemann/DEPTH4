@@ -1,0 +1,58 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_width = self.I(bb_width, self.data, n=20)
+        self._bollinger = self.I(bollinger, self.data, n=20, dev=2.0)
+        self._broker_spread_points = 0
+
+    def _regime_ok(self):
+        min_width = self.spec["regime_filter"]["params"]["min_width"]
+        return self._bb_width[-1] > min_width
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        bb_touch = self.spec["entry_rule"]["params"]
+        bb_period = bb_touch["bb_period"]
+        bb_dev = bb_touch["bb_dev"]
+        bollinger_bands = self._bollinger
+        if bollinger_bands is not None:
+            lower_band = bollinger_bands[-1][0]
+            upper_band = bollinger_bands[-1][1]
+            close_price = self.data.Close[-1]
+            if close_price <= lower_band:
+                self.position.enter_long(lots_by_risk_pct(self.equity, self.spec["sizing_rule"]["params"]["fraction"]))
+                sl_mult = self.spec["exit_rule"]["params"]["sl_mult"]
+                self.sl_price = close_price - sl_mult * (upper_band - lower_band)
+            elif close_price >= upper_band:
+                self.position.enter_short(lots_by_risk_pct(self.equity, self.spec["sizing_rule"]["params"]["fraction"]))
+                sl_mult = self.spec["exit_rule"]["params"]["sl_mult"]
+                self.sl_price = close_price + sl_mult * (upper_band - lower_band)
+
+    def _manage_open(self):
+        time_stop_bars = self.spec["exit_rule"]["params"]["time_stop_bars"]
+        if time_stop_bars is not None:
+            trade = self.trades[-1] if self.trades else None
+            if trade is not None:
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= time_stop_bars:
+                    self.position.close()
+        opposite_bb = self.spec["exit_rule"]["type"]
+        if opposite_bb == "opposite_bb":
+            bollinger_bands = self._bollinger
+            if bollinger_bands is not None:
+                lower_band = bollinger_bands[-1][0]
+                upper_band = bollinger_bands[-1][1]
+                close_price = self.data.Close[-1]
+                if self.position.is_long and close_price >= upper_band:
+                    self.position.close()
+                elif self.position.is_short and close_price <= lower_band:
+                    self.position.close()

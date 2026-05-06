@@ -1,0 +1,31 @@
+{
+  "hypothesis": "London breakout strategy is effective on GER40 M15 when Asia range is within ATR-based bounds and breakout occurs early in the London session.",
+  "regime_filter": {
+    "type": "asia_london_range",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "entry_rule": {
+    "type": "london_breakout",
+    "params": {
+      "breakout_threshold": 0.5,
+      "retest_threshold": 0.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl",
+    "params": {
+      "tp_pips": 500,
+      "sl_pips": 100
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

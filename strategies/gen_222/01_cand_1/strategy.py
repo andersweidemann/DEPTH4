@@ -1,0 +1,64 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._adx_series = self.I(adx, self.data, 14)
+        self._donchian_series = self.I(donchian, self.data, 20)
+        self._atr_series = self.I(atr, self.data, 14)
+        self._session_mask_full = None
+
+    def _regime_ok(self):
+        adx_val = float(self._adx_series[-1])
+        return adx_val > self.spec["regime_filter"]["params"]["threshold"]
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            close = self.data.Close[-1]
+            high = self.data.High[-1]
+            low = self.data.Low[-1]
+            donchian_high = self._donchian_series[-1][1]
+            donchian_low = self._donchian_series[-1][0]
+            if close > donchian_high:
+                self.position.enter(long=True, size=lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data))
+                self.sl_price = close - self.spec["sl_rule"]["params"]["pips"] * self.data._pip
+                self.tp_price = close + self.spec["tp_rule"]["params"]["pips"] * self.data._pip
+            elif close < donchian_low:
+                self.position.enter(long=False, size=lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data))
+                self.sl_price = close + self.spec["sl_rule"]["params"]["pips"] * self.data._pip
+                self.tp_price = close - self.spec["tp_rule"]["params"]["pips"] * self.data._pip
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rule", {})
+        time_stop = exit_cfg.get("time_stop")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        trail_mult = exit_cfg.get("atr_multiplier")
+        if trail_mult and hasattr(self, "_atr_series") and self.trades:
+            atr_now = float(self._atr_series[-1])
+            if not np.isnan(atr_now):
+                price = float(self.data.Close[-1])
+                for trade in self.trades:
+                    if trade.is_long and trade.pl_pct > 0:
+                        new_sl = price - trail_mult * atr_now * self.data._pip
+                        if trade.sl is None or new_sl > trade.sl:
+                            trade.sl = new_sl
+                    elif not trade.is_long and trade.pl_pct > 0:
+                        new_sl = price + trail_mult * atr_now * self.data._pip
+                        if trade.sl is None or new_sl < trade.sl:
+                            trade.sl = new_sl

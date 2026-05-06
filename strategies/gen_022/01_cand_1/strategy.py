@@ -1,0 +1,269 @@
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+def _upper_break(data, period, mult):
+    upper, _lower = signals.atr_breakout_levels(data, period, mult)
+    return upper
+
+
+def _lower_break(data, period, mult):
+    _upper, lower = signals.atr_breakout_levels(data, period, mult)
+    return lower
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    breakout_period = 20
+    atr_breakout_mult = 1.0
+    retest_max_bars = 6
+    retest_touch_atr = 0.25
+    adx_threshold = 22
+    atr_tp_mult = 2.5
+    atr_sl_mult = 1.0
+    risk_pct = 0.5
+    max_spread_points = 30
+    time_stop_bars = 24
+    trail_atr_mult = 3.0
+    session_start_hour = 7
+    session_end_hour = 16
+    atr_pct_lookback = 500
+    atr_pct_min = 30.0
+    atr_pct_max = 95.0
+
+    def init(self):
+        super().init()
+
+        p = self.spec.get("params", {}) if isinstance(self.spec, dict) else {}
+        self.breakout_period = int(p.get("breakout_period", self.breakout_period))
+        self.atr_breakout_mult = float(p.get("atr_breakout_mult", self.atr_breakout_mult))
+        self.retest_max_bars = int(p.get("retest_max_bars", self.retest_max_bars))
+        self.retest_touch_atr = float(p.get("retest_touch_atr", self.retest_touch_atr))
+        self.adx_threshold = float(p.get("adx_threshold", self.adx_threshold))
+        self.atr_tp_mult = float(p.get("atr_tp_mult", self.atr_tp_mult))
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._upper_series = self.I(_upper_break, self.data,
+                                    self.breakout_period, self.atr_breakout_mult)
+        self._lower_series = self.I(_lower_break, self.data,
+                                    self.breakout_period, self.atr_breakout_mult)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atr_pct_series = self.I(regime.atr_percentile, self.data, 14,
+                                      self.atr_pct_lookback)
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        hours = pd.DatetimeIndex(idx).hour
+        mask = (hours >= self.session_start_hour) & (hours <= self.session_end_hour)
+        self._session_mask_full = np.asarray(mask, dtype=bool)
+
+        self._long_break_bar: Optional[int] = None
+        self._long_break_level: Optional[float] = None
+        self._long_retest_low: Optional[float] = None
+        self._long_retest_seen: bool = False
+
+        self._short_break_bar: Optional[int] = None
+        self._short_break_level: Optional[float] = None
+        self._short_retest_high: Optional[float] = None
+        self._short_retest_seen: bool = False
+
+        self._last_session_day = None
+        self._traded_this_session = False
+
+    def _regime_ok(self) -> bool:
+        adx_v = float(self._adx_series[-1]) if len(self._adx_series) else np.nan
+        if np.isnan(adx_v) or adx_v <= self.adx_threshold:
+            return False
+        atr_pct = float(self._atr_pct_series[-1]) if len(self._atr_pct_series) else np.nan
+        if np.isnan(atr_pct):
+            return False
+        if not (self.atr_pct_min < atr_pct < self.atr_pct_max):
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        mask = self._session_mask_full
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        now_ts = pd.Timestamp(self.data.index[-1])
+        dd_kill_pct = self.spec.get("risk", {}).get(
+            "daily_dd_kill_pct", config.load()["risk"]["daily_dd_kill_pct"])
+        if not risk.daily_kill_ok(self._kill_state, now_ts.strftime("%Y-%m-%d"),
+                                  self.equity, dd_kill_pct):
+            return False
+        return True
+
+    def _reset_session_if_new(self):
+        ts = pd.Timestamp(self.data.index[-1])
+        day = ts.strftime("%Y-%m-%d")
+        if day != self._last_session_day:
+            self._last_session_day = day
+            self._traded_this_session = False
+            self._long_break_bar = None
+            self._long_break_level = None
+            self._long_retest_low = None
+            self._long_retest_seen = False
+            self._short_break_bar = None
+            self._short_break_level = None
+            self._short_retest_high = None
+            self._short_retest_seen = False
+
+    def _enter_if_signal(self) -> None:
+        self._reset_session_if_new()
+
+        if self.position:
+            return
+        if self._traded_this_session:
+            return
+
+        i = len(self.data) - 1
+        if i < 2:
+            return
+
+        close = float(self.data.Close[-1])
+        high = float(self.data.High[-1])
+        low = float(self.data.Low[-1])
+        prev_close = float(self.data.Close[-2])
+
+        upper = float(self._upper_series[-1])
+        lower = float(self._lower_series[-1])
+        prev_upper = float(self._upper_series[-2])
+        prev_lower = float(self._lower_series[-2])
+        atr = float(self._atr_series[-1])
+
+        if np.isnan(upper) or np.isnan(lower) or np.isnan(atr) or atr <= 0:
+            return
+
+        regime_ok = self._regime_ok()
+        filters_ok = self._filters_ok()
+
+        if regime_ok and filters_ok:
+            if prev_close > prev_upper and self._long_break_bar is None:
+                self._long_break_bar = i - 1
+                self._long_break_level = prev_upper
+                self._long_retest_low = None
+                self._long_retest_seen = False
+                self._short_break_bar = None
+            if prev_close < prev_lower and self._short_break_bar is None:
+                self._short_break_bar = i - 1
+                self._short_break_level = prev_lower
+                self._short_retest_high = None
+                self._short_retest_seen = False
+                self._long_break_bar = None
+
+        if self._long_break_bar is not None and self._long_break_level is not None:
+            bars_since = i - self._long_break_bar
+            if bars_since > self.retest_max_bars:
+                self._long_break_bar = None
+            else:
+                touch_dist = self.retest_touch_atr * atr
+                if low <= self._long_break_level + touch_dist:
+                    self._long_retest_seen = True
+                    if self._long_retest_low is None or low < self._long_retest_low:
+                        self._long_retest_low = low
+                if (self._long_retest_seen and close > self._long_break_level
+                        and regime_ok and filters_ok):
+                    retest_low = self._long_retest_low if self._long_retest_low is not None else low
+                    sl = retest_low - self.atr_sl_mult * atr
+                    tp = close + self.atr_tp_mult * atr
+                    if sl < close:
+                        self._open_trade(True, close, sl, tp)
+                        self._long_break_bar = None
+                        self._short_break_bar = None
+                        self._traded_this_session = True
+                        return
+
+        if self._short_break_bar is not None and self._short_break_level is not None:
+            bars_since = i - self._short_break_bar
+            if bars_since > self.retest_max_bars:
+                self._short_break_bar = None
+            else:
+                touch_dist = self.retest_touch_atr * atr
+                if high >= self._short_break_level - touch_dist:
+                    self._short_retest_seen = True
+                    if self._short_retest_high is None or high > self._short_retest_high:
+                        self._short_retest_high = high
+                if (self._short_retest_seen and close < self._short_break_level
+                        and regime_ok and filters_ok):
+                    retest_high = self._short_retest_high if self._short_retest_high is not None else high
+                    sl = retest_high + self.atr_sl_mult * atr
+                    tp = close - self.atr_tp_mult * atr
+                    if sl > close:
+                        self._open_trade(False, close, sl, tp)
+                        self._short_break_bar = None
+                        self._long_break_bar = None
+                        self._traded_this_session = True
+                        return
+
+    def _open_trade(self, is_long: bool, price: float, sl: float, tp: float):
+        stop_dist = abs(price - sl)
+        if stop_dist <= 0:
+            return
+        equity = float(self.equity)
+        size = risk.lots_by_risk_pct(equity, self.risk_pct / 100.0, stop_dist, price)
+        try:
+            size = float(size)
+        except Exception:
+            return
+        if size <= 0 or np.isnan(size):
+            return
+        if size < 1:
+            frac = max(min(size, 0.9999), 1e-4)
+            if is_long:
+                self.buy(size=frac, sl=sl, tp=tp)
+            else:
+                self.sell(size=frac, sl=sl, tp=tp)
+        else:
+            units = int(size)
+            if units <= 0:
+                return
+            if is_long:
+                self.buy(size=units, sl=sl, tp=tp)
+            else:
+                self.sell(size=units, sl=sl, tp=tp)
+        self.sl_price = sl
+        self.tp_price = tp
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        if self.time_stop_bars is not None and self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                self.position.close()
+                return
+        if self.trail_atr_mult and len(self._atr_series):
+            atr_now = float(self._atr_series[-1])
+            if not np.isnan(atr_now) and atr_now > 0:
+                price = float(self.data.Close[-1])
+                for trade in self.trades:
+                    entry = float(trade.entry_price)
+                    if trade.is_long:
+                        r_dist = entry - (trade.sl if trade.sl is not None else entry)
+                        if r_dist > 0 and price - entry >= r_dist:
+                            new_sl = price - self.trail_atr_mult * atr_now
+                            if trade.sl is None or new_sl > trade.sl:
+                                trade.sl = new_sl
+                    else:
+                        r_dist = (trade.sl if trade.sl is not None else entry) - entry
+                        if r_dist > 0 and entry - price >= r_dist:
+                            new_sl = price + self.trail_atr_mult * atr_now
+                            if trade.sl is None or new_sl < trade.sl:
+                                trade.sl = new_sl
+
+    def next(self):
+        self._manage_open()
+        self._enter_if_signal()

@@ -1,0 +1,44 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.donchian_high = self.I(donchian, self.data, n=self.spec["regime_filter"]["params"]["donchian_period"])
+        self.donchian_low = self.I(donchian, self.data, n=self.spec["regime_filter"]["params"]["donchian_period"], low=True)
+        self.atr = self.I(atr, self.data, n=self.spec["exit_rules"]["stop_loss"]["params"]["atr_period"])
+
+    def _regime_ok(self):
+        return True
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.spec["entry_rules"]["long"]["condition"] == "close > donchian_high":
+            if self.data.Close[-1] > self.donchian_high[-1]:
+                self.position.enter_long()
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["stop_loss"]["params"]["atr_multiplier"] * self.atr[-1]
+                self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["take_profit"]["params"]["pips"]
+        elif self.spec["entry_rules"]["short"]["condition"] == "close < donchian_low":
+            if self.data.Close[-1] < self.donchian_low[-1]:
+                self.position.enter_short()
+                self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["stop_loss"]["params"]["atr_multiplier"] * self.atr[-1]
+                self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["take_profit"]["params"]["pips"]
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rules"]["time_stop"]["params"]["bars"]
+        if self.position:
+            if time_stop is not None:
+                if len(self.data) - self.position.entry_bar >= time_stop:
+                    self.position.close()
+            else:
+                if self.position.is_long and self.data.Close[-1] < self.sl_price:
+                    self.position.close()
+                elif not self.position.is_long and self.data.Close[-1] > self.sl_price:
+                    self.position.close()

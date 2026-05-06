@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Asia-London range expansion occurs on GER40 M15 with high probability",
+  "regime_filter": {
+    "type": "time_of_day",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_atr_min": 0.5,
+      "range_atr_max": 2.0,
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_stop_loss",
+    "params": {
+      "take_profit": "fixed_pips",
+      "stop_loss": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "hypothesis": "Bollinger Band touch leads to mean reversion",
+  "regime_filter": {
+    "type": "bb_touch",
+    "params": {
+      "threshold": 0.2
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb && rsi(7) < 20"
+    },
+    "short": {
+      "condition": "close > upper_bb && rsi(7) > 80"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 1
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "amount": 0.05
+    }
+  }
+}

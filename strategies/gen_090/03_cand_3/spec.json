@@ -1,0 +1,31 @@
+{
+  "hypothesis": "ATR breakout levels are effective for capturing trend continuation",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rule": {
+    "type": "atr_breakout",
+    "params": {
+      "atr_period": 14,
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "1.5_atr",
+      "time_stop": 50
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

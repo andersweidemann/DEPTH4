@@ -1,0 +1,68 @@
+{
+  "name": "03_donchian_trend_breakout_ger40_m15",
+  "hypothesis": "On GER40 M15, Donchian(40) breakouts filtered by ADX>22 and EMA(50)>EMA(200) alignment during European cash hours capture intraday trend impulses with PF>=2.0.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "family": "breakout",
+  "signals": [
+    {
+      "type": "donchian",
+      "period": 40
+    },
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "ema",
+      "period": 200
+    },
+    {
+      "type": "adx",
+      "period": 14
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "sessions": [
+        "frankfurt_0700_1530_utc"
+      ],
+      "tz": "UTC"
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "require": {
+      "adx_gt": 22,
+      "atr_percentile_gt": 30
+    },
+    "reject_when_all_on": true
+  },
+  "entry_rules": {
+    "long": "close > donchian_upper(40)[1] AND ema50 > ema200 AND adx > 22 AND in_session",
+    "short": "close < donchian_lower(40)[1] AND ema50 < ema200 AND adx > 22 AND in_session",
+    "cooldown_bars": 6
+  },
+  "exit_rules": {
+    "take_profit": "3.0 * ATR(14) from entry",
+    "stop_loss": "1.8 * ATR(14) from entry",
+    "time_stop_bars": 32,
+    "trailing_stop": "donchian(20) opposite band after +1.5R",
+    "breakeven_at_r": 1.0
+  },
+  "sizing": {
+    "method": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1,
+    "max_spread_points": 30
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

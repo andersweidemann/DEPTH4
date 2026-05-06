@@ -1,0 +1,125 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with an extreme RSI reading",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during the London session after an Asia range expansion",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "atr_period": 14,
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl",
+      "params": {
+        "tp_pips": 500,
+        "sl_pips": 100
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to the mean after a strong trend",
+    "regime_filter": {
+      "type": "adx",
+      "params": {
+        "period": 14,
+        "threshold": 25
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "middle_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs during high volatility",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "threshold": 2.0
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.05
+      }
+    }
+  }
+]

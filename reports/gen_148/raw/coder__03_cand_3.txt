@@ -1,0 +1,55 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "US500"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = risk.DailyKillState(start_of_day_equity=self._equity_start)
+        self.rsi = self.I(rsi, self.data, 7)
+        self.bollinger = self.I(bollinger, self.data, 20)
+        self.upper_bb = self.bollinger[:, 2]
+        self.lower_bb = self.bollinger[:, 0]
+
+    def _regime_ok(self) -> bool:
+        return self.rsi[-1] < 50
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.rsi[-1] < 30 and self.data.Close[-1] < self.lower_bb[-1]:
+            size = lots_by_risk_pct(self._spec, self.data, self._equity_start)
+            self.position.open_long(size)
+            self.sl_price = self.data.Close[-1] - 50 * self.data._pip
+            self.tp_price = self.data.Close[-1] + 200 * self.data._pip
+        elif self.rsi[-1] > 70 and self.data.Close[-1] > self.upper_bb[-1]:
+            size = lots_by_risk_pct(self._spec, self.data, self._equity_start)
+            self.position.open_short(size)
+            self.sl_price = self.data.Close[-1] + 50 * self.data._pip
+            self.tp_price = self.data.Close[-1] - 200 * self.data._pip
+
+    def _manage_open(self) -> None:
+        if self.position:
+            if self.position.is_long and self.data.Close[-1] >= self.tp_price:
+                self.position.close()
+            elif not self.position.is_long and self.data.Close[-1] <= self.tp_price:
+                self.position.close()
+            elif self.position.is_long and self.data.Close[-1] <= self.sl_price:
+                self.position.close()
+            elif not self.position.is_long and self.data.Close[-1] >= self.sl_price:
+                self.position.close()
+            elif len(self.data) - self.position.entry_bar >= 20:
+                self.position.close()
+```

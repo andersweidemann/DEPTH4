@@ -1,0 +1,42 @@
+{
+  "hypothesis": "The Bollinger Band touch-and-bounce reversal strategy is effective in XAUUSD on M15, with a 3-bar pattern confirming the reversal.",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "period": 20,
+      "deviation": 2.0
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "bar[-2] close > lower_bb && bar[-1] touched/broke lower_bb && bar[0] closed back above lower_bb"
+    },
+    "short": {
+      "condition": "bar[-2] close < upper_bb && bar[-1] touched/broke upper_bb && bar[0] closed back below upper_bb"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 15
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

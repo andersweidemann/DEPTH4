@@ -1,0 +1,6 @@
+{
+  "ranking": [],
+  "summary_markdown": "## Critic Report\n\n**Status: EMPTY GENERATION**\n\nNo candidate metrics were provided for evaluation. Cannot rank or assess fitness without backtest results.\n\n### Required Inputs Missing\n- Zero candidates submitted\n- No PF, Sharpe, drawdown, or trade count data available\n- Cannot evaluate against thresholds (PF≥2.0, DD≤15%, Sharpe≥1.5, trades≥200)\n\n### Recommendation\nRe-run the generation pipeline and ensure:\n1. Synthesizer produces at least 3-5 candidate EAs per cycle\n2. Backtester emits metrics objects for each (candidate, symbol, TF) combo\n3. Both local and MT5 backtest results are attached for divergence checks\n4. IS/OOS splits are reported separately to enable degradation analysis\n\nNo strategy-family pivot can be recommended without evidence of failure modes.",
+  "per_survivor_notes": {},
+  "dead_branches": []
+}

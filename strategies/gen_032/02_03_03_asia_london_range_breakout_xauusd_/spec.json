@@ -1,0 +1,75 @@
+{
+  "name": "03_03_asia_london_range_breakout_xauusd_m5",
+  "hypothesis": "On XAUUSD M5, the Asia-session (00:00-06:00 UTC) high/low forms an accumulation range; a close beyond the range by >=0.5 ATR with a body >=1.0 ATR during the London window (07:00-10:00 UTC) continues in the breakout direction, yielding positive expectancy.",
+  "family": "session_breakout",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "00:00",
+        "end_utc": "06:00",
+        "label": "asia"
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "10:00",
+        "label": "london"
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "session": "asia",
+        "atr_period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "london_session==1 AND close > asia_high + 0.5*ATR(14) AND candle_body >= 1.0*ATR(14) AND (asia_range/ATR(14)) between 0.5 and 2.0 AND bars_since_london_open <= 9",
+    "short": "london_session==1 AND close < asia_low - 0.5*ATR(14) AND candle_body >= 1.0*ATR(14) AND (asia_range/ATR(14)) between 0.5 and 2.0 AND bars_since_london_open <= 9",
+    "max_trades_per_day": 1
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "period": 14,
+      "lookback": 200
+    },
+    "rule": "atr_percentile > 20 (skip dead volatility days)"
+  },
+  "exit_rules": {
+    "take_profit": "2.0 * ATR(14) from entry (R:R ~ 1.6)",
+    "stop_loss": "opposite side of asia range, capped at 1.5*ATR(14)",
+    "time_stop_bars": 36,
+    "trailing": "after 1.0*ATR profit, trail by 1.2*ATR"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_spread_points": 40
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  },
+  "diversification_tag": "session_range_breakout",
+  "notes": "Inspired by LVC EA scout card (inspiration_only). Distinct from prior Donchian dead-branch: session-anchored range, not rolling N-bar channel."
+}

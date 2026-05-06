@@ -1,0 +1,78 @@
+{
+  "name": "03_cand_3_donchian_trend_ger40_m15",
+  "hypothesis": "On GER40 M15, classical Donchian channel breakouts during the active European cash session (07:00-15:30 UTC) with ADX>20 produce trend-following edge when risk is capped by ATR and exits trail dynamically.",
+  "family": "trend_breakout",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "donchian_20": {
+      "primitive": "donchian",
+      "period": 20
+    },
+    "donchian_10": {
+      "primitive": "donchian",
+      "period": 10
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "ema_fast": {
+      "primitive": "ema",
+      "period": 20
+    },
+    "ema_slow": {
+      "primitive": "ema",
+      "period": 50
+    },
+    "session": {
+      "primitive": "session_mask",
+      "start_utc": "07:00",
+      "end_utc": "15:30"
+    }
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "require": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 20
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min": 25
+      },
+      {
+        "ema_alignment_long": "ema_fast > ema_slow",
+        "ema_alignment_short": "ema_fast < ema_slow"
+      },
+      {
+        "session_active": true
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close > donchian_20.upper[1] AND ema_fast > ema_slow AND regime passes",
+    "short": "close < donchian_20.lower[1] AND ema_fast < ema_slow AND regime passes",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "stop_loss": "2.0 * ATR(14) from entry",
+    "take_profit": "4.0 * ATR(14) (2R) OR trail",
+    "trailing_stop": "Donchian_10 opposite band (chandelier-style)",
+    "time_stop": "Close after 40 bars (~10h) if neither hit",
+    "breakeven": "Move SL to entry + 0.25*ATR after +1.5 ATR profit"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.75,
+    "max_positions": 1
+  },
+  "diversity_tag": "trend_breakout_donchian"
+}

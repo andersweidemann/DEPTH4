@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Breakout of the Asia range in GER40 on M15 leads to a mean reversion opportunity when price retests the broken range within 5 bars.",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start": "07:00",
+      "end": "10:00"
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > high_asia_range && close[-1] < high_asia_range"
+    },
+    "short": {
+      "condition": "close < low_asia_range && close[-1] > low_asia_range"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "retest",
+      "params": {
+        "tolerance": 0.2
+      }
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "count": 10
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

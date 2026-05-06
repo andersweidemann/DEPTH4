@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Price rejection from the Bollinger Bands can be a profitable entry signal",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 50
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rejection",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0,
+      "rejection_threshold": 0.5
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "trailing_stop_pips": 20,
+      "trailing_step_pips": 10
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "id": "03_xau_ema_pullback_trend_m15",
+  "family": "trend_pullback",
+  "hypothesis": "XAUUSD M15 trends strongly during London+NY overlap (12:00-16:00 UTC). Pullbacks to EMA21 within an EMA50>EMA200 trend, confirmed by RSI14 recovering from the 40-50 zone (mirrored for shorts), provide asymmetric trend-continuation entries \u2014 addressing the prior-gen failure of pure mean-reversion on gold.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "name": "ema21",
+      "primitive": "ema",
+      "params": {
+        "period": 21
+      }
+    },
+    {
+      "name": "ema50",
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "name": "ema200",
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "name": "rsi14",
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "atr14",
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "ldn_ny_session",
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "12:00",
+        "end_utc": "16:00"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "adx_period": 14,
+      "adx_min": 20,
+      "atr_pct_min": 40
+    },
+    "description": "Require trending regime: ADX14 >= 20 AND ATR percentile >= 40 AND in LDN/NY overlap."
+  },
+  "entry_rules": {
+    "long": "EMA50 > EMA200 AND prior bar low touched/crossed below EMA21 AND current bar closes > EMA21 AND RSI14 crossed up through 50 from below 50 in last 3 bars",
+    "short": "EMA50 < EMA200 AND prior bar high touched/crossed above EMA21 AND current bar closes < EMA21 AND RSI14 crossed down through 50 from above 50 in last 3 bars",
+    "gates": [
+      "ADX14 >= 20",
+      "in LDN/NY overlap session",
+      "cooldown 6 bars after exit"
+    ]
+  },
+  "exit_rules": {
+    "stop_loss": "1.5x ATR14 below entry (long) / above (short), or below/above EMA50, whichever is farther but capped at 2.5x ATR",
+    "take_profit": "partial 50% at 1.5x ATR14; trail remainder at EMA21 or 2.0x ATR14 chandelier",
+    "time_stop": "close after 32 M15 bars (~8h) if not filled targets"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "falsifiable_kpis": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  },
+  "diversity_tag": "trend_pullback_ema"
+}

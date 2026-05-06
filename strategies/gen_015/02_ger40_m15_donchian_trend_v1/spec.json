@@ -1,0 +1,110 @@
+{
+  "name": "ger40_m15_donchian_trend_v1",
+  "hypothesis": "On GER40 M15, a 40-bar Donchian breakout confirmed by EMA(50)>EMA(200) slope alignment during Frankfurt+London hours captures intraday trend days and yields PF>=2.0 with ATR trailing.",
+  "family": "trend_breakout",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "params": {
+            "period": 40
+          },
+          "condition": "close > upper_channel_prev"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 50
+          },
+          "condition": "ema50 > ema200"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 200
+          },
+          "condition": "ema200_slope_20 > 0"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "params": {
+            "period": 40
+          },
+          "condition": "close < lower_channel_prev"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 50
+          },
+          "condition": "ema50 < ema200"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 200
+          },
+          "condition": "ema200_slope_20 < 0"
+        }
+      ]
+    },
+    "cooldown_bars": 5
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14
+    },
+    "condition": "adx > 18",
+    "rationale": "Only trend when ADX signals directional pressure; 18 is permissive to avoid zero-trade failure mode of prior gen."
+  },
+  "session_mask": {
+    "primitive": "session_mask",
+    "params": {
+      "hours": "07:00-18:00",
+      "timezone": "UTC"
+    }
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 2.0
+    },
+    "take_profit": {
+      "type": "r_multiple",
+      "r": 3.0
+    },
+    "time_stop": {
+      "bars": 64,
+      "close_at_session_end_utc": "20:00"
+    },
+    "trailing": {
+      "type": "chandelier",
+      "period": 22,
+      "mult": 2.5,
+      "activate_r": 1.0
+    },
+    "breakeven": {
+      "enable": true,
+      "trigger_r": 1.0
+    }
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.6,
+    "max_concurrent": 1
+  },
+  "notes": "Diversity anchor vs. mean-rev candidates. Inspired by DAX10 PineConnector EA (inspiration only). Donchian(40) on M15 ~= 10h channel. Explicitly using broker point conversion via ATR multipliers to avoid pip/point mismatch that killed prior gen."
+}

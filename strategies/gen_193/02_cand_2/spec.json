@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Mean reversion occurs on BTCUSD M5 when price closes outside Bollinger Bands with extreme RSI readings during Asian session",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "asia"
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb(20, 1.75) and rsi(7) < 10"
+    },
+    "short": {
+      "condition": "close > upper_bb(20, 1.75) and rsi(7) > 90"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "opposite_bb",
+      "params": {
+        "period": 20,
+        "deviation": 1.75
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

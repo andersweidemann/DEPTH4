@@ -1,0 +1,45 @@
+{
+  "hypothesis": "The Bollinger Band touch-and-bounce reversal strategy is effective on XAUUSD M5, with mean reversion occurring after a 3-bar pattern.",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "period": 20,
+      "min_width": 0.5
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > lower_bb(20, 2.0) and close[-1] < lower_bb(20, 2.0) and close[-2] > lower_bb(20, 2.0)"
+    },
+    "short": {
+      "condition": "close < upper_bb(20, 2.0) and close[-1] > upper_bb(20, 2.0) and close[-2] < upper_bb(20, 2.0)"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "opposite_bb",
+      "params": {
+        "period": 20,
+        "deviation": 2.0
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 15
+      }
+    }
+  },
+  "sizing": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

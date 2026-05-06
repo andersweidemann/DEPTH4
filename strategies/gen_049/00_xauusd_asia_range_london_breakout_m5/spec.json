@@ -1,0 +1,112 @@
+{
+  "id": "gen49_cand00_xau_asia_london_breakout",
+  "name": "XAUUSD Asia Range London Breakout M5",
+  "hypothesis": "On XAUUSD M5, a tight Asia-session range (00:00-06:00 UTC) within 0.5-2.0x ATR(14) gets expanded during the London window (07:00-10:00 UTC); the first true breakout with displacement >=1.2x ATR and range break >=0.5x ATR has positive expectancy before mean reversion sets in.",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "adx_trending",
+        "primitive": "adx",
+        "period": 14,
+        "min": 18
+      },
+      {
+        "name": "atr_active",
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min_percentile": 35
+      },
+      {
+        "name": "london_window",
+        "primitive": "session_mask",
+        "tz": "UTC",
+        "start": "07:00",
+        "end": "10:00"
+      }
+    ],
+    "combine": "all"
+  },
+  "entries": {
+    "long": {
+      "description": "Close breaks above Asia-session high by >=0.5*ATR(14) with body >=1.2*ATR(14), during first 9 bars of London window",
+      "primitives": [
+        {
+          "type": "session_mask",
+          "tz": "UTC",
+          "record_start": "00:00",
+          "record_end": "06:00",
+          "output": "asia_high,asia_low"
+        },
+        {
+          "type": "atr_breakout_levels",
+          "atr_period": 14,
+          "mult_break": 0.5,
+          "mult_body": 1.2,
+          "reference": "asia_high"
+        }
+      ],
+      "conditions": [
+        "close > asia_high + 0.5*atr14",
+        "(close-open) >= 1.2*atr14",
+        "asia_range_atr between 0.5 and 2.0",
+        "bars_since_london_open <= 9",
+        "first_breakout_of_day"
+      ]
+    },
+    "short": {
+      "description": "Mirror for Asia low",
+      "primitives": [
+        {
+          "type": "atr_breakout_levels",
+          "atr_period": 14,
+          "mult_break": 0.5,
+          "mult_body": 1.2,
+          "reference": "asia_low"
+        }
+      ],
+      "conditions": [
+        "close < asia_low - 0.5*atr14",
+        "(open-close) >= 1.2*atr14",
+        "asia_range_atr between 0.5 and 2.0",
+        "bars_since_london_open <= 9",
+        "first_breakout_of_day"
+      ]
+    }
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 1.2,
+      "anchor": "entry"
+    },
+    "take_profit": {
+      "type": "atr",
+      "period": 14,
+      "mult": 2.4,
+      "anchor": "entry"
+    },
+    "time_stop": {
+      "bars": 36,
+      "action": "market_close"
+    },
+    "trailing": {
+      "type": "atr",
+      "period": 14,
+      "mult": 2.0,
+      "activate_at_r": 1.0
+    }
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "max_daily_trades": 2
+  },
+  "notes": "Inspired by asia-london-range-expansion scout card. Fixes gen48 no-trade issue by using explicit session-anchored levels instead of continuous indicator crossings. R:R 2:1 to clear pf_min 2.0."
+}

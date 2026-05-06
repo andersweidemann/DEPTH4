@@ -1,0 +1,175 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs in XAUUSD on M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur in GER40 on M15 when price breaks out of the Asia range with high momentum",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "high > asia_range_high && momentum > 50"
+      },
+      "short": {
+        "condition": "low < asia_range_low && momentum < -50"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk_percent",
+      "params": {
+        "percent": 2
+      }
+    }
+  },
+  {
+    "hypothesis": "Trend following works in US500 on M5 when price is above the 50-period SMA",
+    "regime_filter": {
+      "type": "sma",
+      "params": {
+        "period": 50
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > sma(50) && rsi(14) < 70"
+      },
+      "short": {
+        "condition": "close < sma(50) && rsi(14) > 30"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "period": 14,
+          "multiplier": 2
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 200
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Range trading works in BTCUSD on M15 when price is between the 20-period high and low",
+    "regime_filter": {
+      "type": "range",
+      "params": {
+        "period": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > lower_range && rsi(14) < 30"
+      },
+      "short": {
+        "condition": "close < upper_range && rsi(14) > 70"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "take_profit": {
+        "type": "opposite_range"
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 1
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk_percent",
+      "params": {
+        "percent": 1
+      }
+    }
+  }
+]
+```

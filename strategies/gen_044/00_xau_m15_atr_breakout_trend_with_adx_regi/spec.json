@@ -1,0 +1,83 @@
+{
+  "id": "00_atr_breakout_trend_xau_m15_v1",
+  "name": "XAU M15 ATR Breakout Trend with ADX Regime",
+  "family": "volatility_breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "On XAUUSD M15, when ADX(14) > 25 indicating trending regime and ATR percentile > 50 indicating sufficient volatility, a breakout above the prior 20-bar Donchian high (long) or below the 20-bar Donchian low (short) confirmed by a candle body >= 0.8 ATR will continue in the breakout direction long enough to yield >=1.5R on average. Falsifiable: if PF<1.3 or trend-continuation win rate<40% over 200+ trades, hypothesis is rejected.",
+  "signals": [
+    {
+      "type": "donchian",
+      "period": 20,
+      "outputs": [
+        "upper",
+        "lower"
+      ]
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "atr_breakout_levels",
+      "atr_mult": 0.8
+    },
+    {
+      "type": "session_mask",
+      "sessions": [
+        "london",
+        "newyork"
+      ]
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "operator": ">",
+        "threshold": 25
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 100,
+        "operator": ">",
+        "threshold": 50
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry_rules": {
+    "long": "close > donchian_upper[1] AND (close - open) >= 0.8 * atr(14) AND regime_active AND session_active",
+    "short": "close < donchian_lower[1] AND (open - close) >= 0.8 * atr(14) AND regime_active AND session_active"
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "multiplier": 1.5,
+      "period": 14
+    },
+    "take_profit": {
+      "type": "atr",
+      "multiplier": 3.0,
+      "period": 14
+    },
+    "trailing_stop": {
+      "type": "atr_chandelier",
+      "multiplier": 2.5,
+      "period": 14,
+      "activate_at_r": 1.0
+    },
+    "time_stop": {
+      "bars": 48
+    }
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 4
+  },
+  "notes": "Addresses prior failure: XAU trends are exploited here rather than faded. ADX+ATR regime gate prevents chop. Donchian breakout with candle-body confirmation reduces false breaks."
+}

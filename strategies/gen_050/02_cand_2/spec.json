@@ -1,0 +1,86 @@
+{
+  "id": "02_xauusd_session_vol_expansion_m5",
+  "hypothesis": "On XAUUSD M5, a tight Asia range (range/ATR in [0.4, 1.6]) followed by a London-open displacement candle (body >= 1.1*ATR(14)) closing beyond the Asia extreme by >= 0.4*ATR signals genuine vol expansion that continues for ~12-18 bars. Entry at market on breakout bar close; ATR-scaled stops avoid the LVC-EA-style 'never fires' bug by using close-based breakout rather than intrabar touch.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "volatility_breakout",
+  "signals": [
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "anchor": "asia_range",
+        "buffer_atr": 0.4
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "sessions": [
+          "asia"
+        ],
+        "start_utc": "00:00",
+        "end_utc": "06:00",
+        "label": "asia_build"
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "sessions": [
+          "london"
+        ],
+        "start_utc": "07:00",
+        "end_utc": "11:00",
+        "label": "london_trade"
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    }
+  ],
+  "entry_rules": {
+    "precondition": "asia_range_width / ATR(14) between 0.4 and 1.6, measured at 06:00 UTC",
+    "long": "london_trade==1 AND close > asia_high + 0.4*ATR AND (close-open) >= 1.1*ATR AND close > ema50",
+    "short": "london_trade==1 AND close < asia_low - 0.4*ATR AND (open-close) >= 1.1*ATR AND close < ema50",
+    "max_entries_per_day": 1,
+    "max_bars_from_london_open": 12,
+    "one_and_done": true
+  },
+  "exit_rules": {
+    "take_profit": "2.2 * ATR(14) (target ~2.0R)",
+    "stop_loss": "1.1 * ATR(14) from entry",
+    "time_stop_bars": 18,
+    "trailing_stop": "chandelier 2.5*ATR after 1.0R reached",
+    "breakeven_after_R": 1.0
+  },
+  "regime_filter": {
+    "primitives": [
+      "atr_percentile",
+      "adx"
+    ],
+    "rule": "atr_percentile(14, 200) >= 30 AND adx(14, H1) >= 15",
+    "rationale": "Need some baseline volatility and at least mild directional bias on H1."
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "sl_basis": "atr",
+    "max_concurrent_positions": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 220,
+    "max_dd_pct": 15.0
+  },
+  "notes": "Rewrite of prior zero-trade Asia-London spec. Fix: close-based (not touch) breakout, explicit broker-UTC conversion handled in session_mask primitive, EMA50 trend gate, one trade per day cap. Inspired by inspiration_only LVC-EA card."
+}

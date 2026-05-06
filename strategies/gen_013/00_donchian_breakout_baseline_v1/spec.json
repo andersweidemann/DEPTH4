@@ -1,0 +1,65 @@
+{
+  "name": "donchian_breakout_baseline_v1",
+  "hypothesis": "A plain 20-bar Donchian breakout with ATR stop produces a non-zero, measurable trade count on XAUUSD and GER40 M15. This is a sanity-anchor baseline to confirm the harness fires orders at all; if this trades, prior zero-trade failures were due to over-filtering.",
+  "family": "breakout",
+  "symbols": [
+    "XAUUSD",
+    "GER40",
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close crosses above donchian_upper[1]",
+    "short": "close crosses below donchian_lower[1]"
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "lookback": 200,
+      "min_percentile": 20,
+      "max_percentile": 95
+    },
+    "description": "Skip only dead-flat or blow-off regimes; deliberately permissive to guarantee trade flow."
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "take_profit": "3.0 * ATR(14) from entry (2R)",
+    "time_stop": "48 bars (12h on M15)",
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": "none",
+  "max_spread_points": {
+    "XAUUSD": 80,
+    "GER40": 200,
+    "US500": 150
+  },
+  "instrumentation_required": [
+    "bars_loaded",
+    "signals_generated",
+    "signals_filtered",
+    "orders_attempted",
+    "orders_rejected_reason"
+  ],
+  "diversity_tag": "baseline_breakout"
+}

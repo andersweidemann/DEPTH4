@@ -1,0 +1,80 @@
+{
+  "name": "03_02_bb_rsi_mean_reversion_us500_m5",
+  "hypothesis": "On US500 M5, short-horizon BB+RSI extremes during the 13:00-20:00 UTC US session revert within 24 bars, offering a positive-expectancy scalp when volatility is neither dead nor panicked.",
+  "family": "mean_reversion",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "deviation": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "deviation": 2.0,
+        "lookback": 300
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "13:00",
+        "end_utc": "20:00"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi(7) < 15 AND bb_width_percentile(300) > 25 AND session_mask==1",
+    "short": "close > upper_bb AND rsi(7) > 85 AND bb_width_percentile(300) > 25 AND session_mask==1",
+    "cooldown_bars": 5
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14
+    },
+    "rule": "adx < 28 (mean-reversion only outside strong trends)"
+  },
+  "exit_rules": {
+    "take_profit": "middle Bollinger Band (SMA20)",
+    "stop_loss": "1.8 * ATR(14) from entry",
+    "time_stop_bars": 24,
+    "breakeven": "move SL to entry after price reaches 0.8*ATR in favor"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.4,
+    "max_concurrent_positions": 1,
+    "max_spread_points": 15
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  },
+  "diversification_tag": "mean_reversion_bb_rsi",
+  "notes": "Same family as candidate 1 but different symbol/TF/session to test portability."
+}

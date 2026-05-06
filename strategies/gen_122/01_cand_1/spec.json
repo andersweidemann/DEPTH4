@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Asia-London range expansion leads to breakout opportunities",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_breakout",
+    "params": {
+      "asia_range_atr_min": 0.5,
+      "asia_range_atr_max": 2.0,
+      "breakout_atr_displacement": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "500_pips",
+      "sl": "100_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Asia-London range expansion occurs on XAUUSD M5 with high probability",
+  "regime_filter": {
+    "type": "asia_session",
+    "params": {
+      "start_hour": 0,
+      "end_hour": 6
+    }
+  },
+  "entry_rule": {
+    "type": "range_expansion",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

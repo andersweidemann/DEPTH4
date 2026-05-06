@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Breakouts occur during the London session after an Asia range expansion",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl",
+    "params": {
+      "tp_pips": 500,
+      "sl_pips": 100
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Breakouts from the Asia range during the London session can be profitable",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "session_start": "07:00",
+      "session_end": "10:00"
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_range_expansion",
+    "params": {
+      "asia_range_start": "00:00",
+      "asia_range_end": "06:00",
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "fixed_tp_sl",
+    "params": {
+      "tp_pips": 100,
+      "sl_pips": 50
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

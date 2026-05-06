@@ -1,0 +1,1 @@
+No candidates met the acceptance thresholds. Consider a strategy-family pivot.

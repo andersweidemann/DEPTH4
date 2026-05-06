@@ -1,0 +1,78 @@
+{
+  "name": "XAUUSD_M5_AsiaLondonRangeBreakout",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "After a contained Asia session range (0.5-2.0x ATR) on XAUUSD M5, the first true breakout during the London window (07:00-10:00 UTC) with body >=1.2x ATR produces a directional expansion that persists for at least 1.5x ATR before mean-reverting.",
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "adx",
+        "params": {
+          "period": 14
+        },
+        "min": 18
+      },
+      {
+        "name": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 200
+        },
+        "min": 30,
+        "max": 95
+      },
+      {
+        "name": "session_mask",
+        "params": {
+          "sessions": [
+            "london"
+          ],
+          "start_utc": "07:00",
+          "end_utc": "10:00"
+        }
+      }
+    ]
+  },
+  "signals": {
+    "entry": {
+      "long": "close > asia_range_high + 0.5*ATR(14) AND bar_body >= 1.2*ATR(14) AND bars_since_london_open <= 9",
+      "short": "close < asia_range_low - 0.5*ATR(14) AND bar_body >= 1.2*ATR(14) AND bars_since_london_open <= 9"
+    },
+    "primitives_used": [
+      "atr",
+      "donchian",
+      "atr_breakout_levels",
+      "session_mask"
+    ],
+    "asia_window_utc": [
+      "00:00",
+      "06:00"
+    ],
+    "range_bounds_atr": [
+      0.5,
+      2.0
+    ],
+    "only_first_breakout_per_day": true
+  },
+  "exits": {
+    "stop_loss": "0.75*ATR(14) from entry, placed on opposite side of broken level",
+    "take_profit": "2.0*ATR(14) (R:R ~2.67)",
+    "time_stop_bars": 36,
+    "breakeven_trigger": "1.0*ATR(14) in favor -> move SL to entry",
+    "trailing": "Chandelier 2.0*ATR(14) after TP1 half-close at 1.0*ATR"
+  },
+  "sizing": {
+    "model": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_daily_trades": 2
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

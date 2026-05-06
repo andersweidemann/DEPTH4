@@ -1,0 +1,37 @@
+# Promotion phase: XAUUSD M15 only with production acceptance.
+
+timeframes: [M15]
+
+factory_backtest_symbols: [XAUUSD]
+
+acceptance:
+  pf_min: 1.999
+  return_cagr_pct_min: 5.0
+  max_dd_pct: 25.0
+  sharpe_min: 0.2
+  trades_min: 100
+  require_all_combos_positive: true
+  max_local_vs_mt5_divergence_pct: 20.0
+
+loop:
+  candidates_per_gen: 4
+  survivors: 2
+  scout_every_n_gens: 4
+
+llm:
+  temperature: 0.35
+
+scout:
+  max_results_per_query: 30
+  default_queries:
+    - "XAUUSD M15 systematic gold EA MQL5"
+    - "MT5 gold walk forward 15 minute strategy"
+    - "MQL5 gold trend filter ATR position sizing"
+
+campaign:
+  name: xauusd_m15_strict
+  architect_brief: |
+    CAMPAIGN (strict / promotion): XAUUSD on M15 ONLY.
+    Every spec MUST set "symbols": ["XAUUSD"] and "timeframes": ["M15"].
+    Prefer robust session/vol filters and explicit risk. regime_filter must be a JSON object, never a string.
+    Two distinct families per batch. No equity indices or crypto symbols.

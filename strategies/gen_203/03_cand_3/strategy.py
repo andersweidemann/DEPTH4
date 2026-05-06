@@ -1,0 +1,51 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import rsi, atr
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        super().init()
+        self._rsi_series = self.I(rsi, self.data, 7)
+        self._atr_series = self.I(atr, self.data, 14)
+
+    def _regime_ok(self) -> bool:
+        return True
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        rsi_val = float(self._rsi_series[-1])
+        if rsi_val < 30 and not self.position:
+            self.sl_price = self.data.Close[-1] - 1.5 * float(self._atr_series[-1])
+            self.tp_price = self.data.Close[-1] + 50
+            self.position.enter_long(lots_by_risk_pct(self.spec, self.data, self.equity))
+
+        elif rsi_val > 70 and not self.position:
+            self.sl_price = self.data.Close[-1] + 1.5 * float(self._atr_series[-1])
+            self.tp_price = self.data.Close[-1] - 50
+            self.position.enter_short(lots_by_risk_pct(self.spec, self.data, self.equity))
+
+    def _manage_open(self) -> None:
+        time_stop = self.spec.get("exit_rules", {}).get("time_stop", {}).get("bars")
+        if time_stop is not None:
+            trade = self.trades[-1] if self.trades else None
+            if trade is not None:
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= time_stop:
+                    self.position.close()
+
+        atr_now = float(self._atr_series[-1])
+        if not np.isnan(atr_now):
+            price = float(self.data.Close[-1])
+            for trade in self.trades:
+                if trade.is_long and trade.pl_pct > 0:
+                    new_sl = price - 1.5 * atr_now
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+                elif not trade.is_long and trade.pl_pct > 0:
+                    new_sl = price + 1.5 * atr_now
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl

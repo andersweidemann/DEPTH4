@@ -1,0 +1,118 @@
+{
+  "id": "gen49_cand02_ger40_donchian_trend",
+  "name": "GER40 Donchian Trend Breakout M15",
+  "hypothesis": "On GER40 M15, breakouts of the 20-bar Donchian channel during EU cash session (07:00-15:30 UTC) with ADX(14)>22 and rising ATR capture index momentum continuation with payoff ratio >=2:1.",
+  "family": "trend_breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "adx_trending",
+        "primitive": "adx",
+        "period": 14,
+        "min": 22
+      },
+      {
+        "name": "atr_active",
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min_percentile": 40
+      },
+      {
+        "name": "eu_session",
+        "primitive": "session_mask",
+        "tz": "UTC",
+        "start": "07:00",
+        "end": "15:30"
+      },
+      {
+        "name": "trend_filter",
+        "primitive": "ema",
+        "period": 200,
+        "direction_match_required": true
+      }
+    ],
+    "combine": "all"
+  },
+  "entries": {
+    "long": {
+      "description": "Close breaks above Donchian(20) upper and EMA200 sloping up",
+      "primitives": [
+        {
+          "type": "donchian",
+          "period": 20
+        },
+        {
+          "type": "ema",
+          "period": 200
+        },
+        {
+          "type": "atr",
+          "period": 14
+        }
+      ],
+      "conditions": [
+        "close > donchian_upper[1]",
+        "close > ema200",
+        "ema200 > ema200[10]",
+        "atr14 > atr14[20]"
+      ]
+    },
+    "short": {
+      "description": "Mirror Donchian lower with EMA200 sloping down",
+      "primitives": [
+        {
+          "type": "donchian",
+          "period": 20
+        },
+        {
+          "type": "ema",
+          "period": 200
+        },
+        {
+          "type": "atr",
+          "period": 14
+        }
+      ],
+      "conditions": [
+        "close < donchian_lower[1]",
+        "close < ema200",
+        "ema200 < ema200[10]",
+        "atr14 > atr14[20]"
+      ]
+    }
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 2.0,
+      "anchor": "entry"
+    },
+    "take_profit": {
+      "type": "atr",
+      "period": 14,
+      "mult": 4.0,
+      "anchor": "entry"
+    },
+    "time_stop": {
+      "bars": 48,
+      "action": "market_close"
+    },
+    "trailing": {
+      "type": "donchian",
+      "period": 10,
+      "activate_at_r": 1.5
+    }
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.6,
+    "max_concurrent": 1,
+    "max_daily_trades": 2
+  },
+  "notes": "Classical Donchian trend-follow with EMA200 regime gate and ADX confirmation. Loosely inspired by DAX10 Pine art's pyramiding breakout approach but simplified: no pyramiding, trailing replaces scale-ins. Targets GER40 M15 where gen48 cand02 at least traded (387 trades)."
+}

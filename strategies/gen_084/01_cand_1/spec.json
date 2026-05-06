@@ -1,0 +1,33 @@
+{
+  "hypothesis": "Price breaks out of the Asia range during the London session",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "entry_rule": {
+    "type": "asia_london_range_expansion",
+    "params": {
+      "asia_range_start": 0,
+      "asia_range_end": 6,
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl",
+    "params": {
+      "tp": 500,
+      "sl": 100
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

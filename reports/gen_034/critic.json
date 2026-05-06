@@ -1,0 +1,21 @@
+{
+  "ranking": [
+    {
+      "candidate": "03_xau_atr_breakout_pullback_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Verdict: Full rejection \u2014 zero trades across all 4 symbol/TF combos (XAUUSD M5/M15, GER40 M5/M15) over the 2020-01-01 \u2192 2024-06-30 IS window.**\n\nThis is not a performance problem; it is a signal-generation failure. The ATR breakout + pullback logic never fired a single entry in ~4.5 years of data on two highly volatile instruments. That points to one or more of:\n\n1. Entry conditions stacked too restrictively (e.g., breakout + pullback + trend filter + session filter all required simultaneously).\n2. ATR breakout threshold set far too wide (e.g., >2.0\u00d7ATR from prior range high/low) for M5/M15.\n3. Pullback retracement tolerance too narrow (e.g., must retrace exactly to breakout level \u00b1 tiny buffer).\n4. Symbol/point-size or digits handling bug \u2014 breakout distance computed in wrong units for XAUUSD (2-digit) vs GER40 (1-digit index CFD).\n5. Time/session filter excluding all bars (timezone mismatch between broker server and filter).\n\nWith zero trades there is no PF, Sharpe, DD, or consistency to score. Fitness = 0. Candidate does not meet any acceptance threshold (trades_min=200).",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "ATR breakout + pullback on M5/M15 with the current parameter stack \u2014 do not re-tune in place; first instrument the signal pipeline with a bar-level debug log (count: range formed, breakout touched, pullback touched, entry fired) before another full backtest.",
+    "Do NOT abandon the ATR breakout family yet \u2014 the strategy never executed, so we have no evidence it fails. Pivot only if a debugged version with relaxed filters (breakout=1.0\u00d7ATR, pullback tolerance=0.5\u00d7ATR, no session filter) still produces <50 trades/year on XAUUSD M5."
+  ]
+}

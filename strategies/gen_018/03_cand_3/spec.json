@@ -1,0 +1,89 @@
+{
+  "id": "london_momentum_continuation_xau_m15",
+  "family": "momentum_continuation",
+  "hypothesis": "On XAUUSD M15, the first strong-body candle after London open (08:00-10:00 UTC) in the direction of the EMA(50) vs EMA(200) trend continues for 2-4x ATR, when ADX>22 confirms trend regime. Pivot from prior-gen Asia/London rangebreak failure.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "session": {
+    "enabled": true,
+    "start_utc": "08:00",
+    "end_utc": "11:00",
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ]
+  },
+  "signals": [
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "ema",
+      "period": 200
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "rsi",
+      "period": 14
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "op": ">",
+        "value": 22
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "op": ">",
+        "value": 40
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry": {
+    "long": "ema(50) > ema(200) AND close > open AND (close-open) > 1.0*atr(14) AND rsi(14) > 55 AND rsi(14) < 80",
+    "short": "ema(50) < ema(200) AND close < open AND (open-close) > 1.0*atr(14) AND rsi(14) < 45 AND rsi(14) > 20",
+    "cooldown_bars": 8,
+    "only_first_signal_per_day": true
+  },
+  "exit": {
+    "tp": {
+      "type": "atr_mult",
+      "period": 14,
+      "mult": 2.5
+    },
+    "sl": {
+      "type": "atr_mult",
+      "period": 14,
+      "mult": 1.2
+    },
+    "time_stop_bars": 20,
+    "breakeven_at_r": 1.0,
+    "trailing": {
+      "type": "atr",
+      "atr_period": 14,
+      "mult": 2.0,
+      "activate_at_r": 1.5
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "acceptance_notes": "Pivot from dead Asia-London rangebreak branch per prior-gen critic. UTC-native session; no range computation dependency.",
+  "diversity_tag": "momentum_continuation_london"
+}

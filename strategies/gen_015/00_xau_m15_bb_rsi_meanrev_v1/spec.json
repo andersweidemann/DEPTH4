@@ -1,0 +1,113 @@
+{
+  "name": "xau_m15_bb_rsi_meanrev_v1",
+  "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands (20, 2.0) with RSI(2) at an extreme AND BB width exceeds its 40th percentile (avoiding dead chop), price mean-reverts to the middle band within 20 bars more often than random, producing PF>=2.0.",
+  "family": "mean_reversion",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "params": {
+            "period": 20,
+            "stddev": 2.0
+          },
+          "condition": "close < lower_band"
+        },
+        {
+          "primitive": "rsi",
+          "params": {
+            "period": 2
+          },
+          "condition": "rsi < 10"
+        },
+        {
+          "primitive": "bb_width",
+          "params": {
+            "period": 20,
+            "stddev": 2.0,
+            "percentile_lookback": 500
+          },
+          "condition": "percentile > 0.40"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "params": {
+            "period": 20,
+            "stddev": 2.0
+          },
+          "condition": "close > upper_band"
+        },
+        {
+          "primitive": "rsi",
+          "params": {
+            "period": 2
+          },
+          "condition": "rsi > 90"
+        },
+        {
+          "primitive": "bb_width",
+          "params": {
+            "period": 20,
+            "stddev": 2.0,
+            "percentile_lookback": 500
+          },
+          "condition": "percentile > 0.40"
+        }
+      ]
+    },
+    "cooldown_bars": 3
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14
+    },
+    "condition": "adx < 28",
+    "rationale": "Mean reversion only in non-strong-trend regimes; excludes top ~20% trending bars but keeps most of the series active."
+  },
+  "session_mask": {
+    "primitive": "session_mask",
+    "params": {
+      "include": [
+        "london",
+        "newyork"
+      ],
+      "timezone": "UTC",
+      "hours": "07:00-20:00"
+    }
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 1.5
+    },
+    "take_profit": {
+      "type": "target_band",
+      "target": "middle_band_bb_20_2"
+    },
+    "time_stop": {
+      "bars": 20
+    },
+    "breakeven": {
+      "enable": true,
+      "trigger_r": 0.8
+    }
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "notes": "Inspired by port_allowed mean-reversion-scalper-mql5 card. Loosened RSI period (7->2) for more frequent extremes; widened BB width filter (30th->40th) only slightly; removed spread cap to ensure trade count on M15."
+}

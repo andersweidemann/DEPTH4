@@ -1,0 +1,46 @@
+{
+  "id": "02_ger40_donchian_breakout_m15",
+  "hypothesis": "On GER40 M15 during European session, a close above Donchian(20) high with ATR-expansion momentum continues for at least 2R when ADX(14)>22 and ATR percentile>0.50.",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "family": "trend_breakout",
+  "signal": {
+    "primitives": [
+      "donchian",
+      "atr",
+      "ema"
+    ],
+    "entry_long": "close > donchian_high(20, shift=1) AND close > ema(50) AND (high-low) > 0.8 * ATR(14)",
+    "entry_short": "close < donchian_low(20, shift=1) AND close < ema(50) AND (high-low) > 0.8 * ATR(14)",
+    "cooldown_bars": 6
+  },
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile"
+    ],
+    "rule": "adx(14) > 22 AND atr_percentile(14, lookback=200) > 0.50"
+  },
+  "exits": {
+    "sl": "1.2 * ATR(14)",
+    "tp": "3.0 * ATR(14)",
+    "time_stop_bars": 32,
+    "trailing": "chandelier(ATR(14)*2.5) after +1R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session": {
+    "mask_utc": "07:00-16:00",
+    "avoid_news_buffer_min": 10
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  },
+  "notes": "Donchian breakout filtered by trend + volatility regime. Avoids Asia flat hours for GER40."
+}

@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Price reverts to the mean after extreme movements",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_extremes",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "middle_bb",
+      "sl": "2_atr",
+      "time_stop": 45
+    }
+  },
+  "sizing_rule": {
+    "type": "proportional",
+    "params": {
+      "proportion": 0.05
+    }
+  }
+}

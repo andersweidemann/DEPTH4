@@ -1,0 +1,87 @@
+{
+  "id": "02_us500_bb_meanrev_overnight_m15",
+  "family": "mean_reversion",
+  "hypothesis": "US500 M15 mean-reverts off Bollinger Band extremes during low-volatility overnight/early hours (21:00-13:30 UTC). A 3-bar BB-rejection pattern (pierce then close back inside) with ATR percentile in mid-band (30-70) captures clean reversions while avoiding breakout regimes.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "name": "bb20",
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "stddev": 2.0
+      }
+    },
+    {
+      "name": "bb_width",
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "stddev": 2.0,
+        "percentile_lookback": 200
+      }
+    },
+    {
+      "name": "rsi7",
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "name": "atr14",
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "name": "overnight_session",
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "21:00",
+        "end_utc": "13:30"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "period": 200,
+      "min_pct": 30,
+      "max_pct": 70
+    },
+    "description": "ATR percentile 30-70 AND BB-width percentile >= 25; avoid dead flat and explosive regimes."
+  },
+  "entry_rules": {
+    "long": "bar[-1] low < lower_BB AND bar[-1] close < lower_BB AND bar[0] close > lower_BB AND RSI7 < 15",
+    "short": "bar[-1] high > upper_BB AND bar[-1] close > upper_BB AND bar[0] close < upper_BB AND RSI7 > 85",
+    "gates": [
+      "in overnight session",
+      "cooldown 4 bars after exit",
+      "max 2 trades per UTC day"
+    ]
+  },
+  "exit_rules": {
+    "stop_loss": "1.5x ATR14 from entry",
+    "take_profit": "opposite Bollinger Band (middle band partial at 50%)",
+    "time_stop": "close after 24 M15 bars (~6h) if neither SL/TP hit"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.4,
+    "max_concurrent_positions": 1
+  },
+  "falsifiable_kpis": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200,
+    "max_dd_pct": 15.0
+  },
+  "diversity_tag": "bb_meanrev_session"
+}

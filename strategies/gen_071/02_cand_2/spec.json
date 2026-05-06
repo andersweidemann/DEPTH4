@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M15 when price touches and bounces off Bollinger Bands.",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch_and_bounce",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "multi_exit",
+    "params": {
+      "take_profit": {
+        "type": "opposite_bb",
+        "params": {}
+      },
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

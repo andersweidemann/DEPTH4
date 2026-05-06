@@ -1,0 +1,203 @@
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        spec_file = Path(__file__).parent / self.spec_path
+        if spec_file.exists():
+            try:
+                self._spec = json.loads(spec_file.read_text())
+            except Exception:
+                pass
+        if not self.spec.get("filters"):
+            self.spec.setdefault("filters", {})["session_utc"] = ["07:00-10:00"]
+
+        super().init()
+
+        p = self._spec.get("params", {})
+        self._donchian_period = int(p.get("donchian_period", 30))
+        self._atr_period = int(p.get("atr_period", 14))
+        self._atr_exp_lb = int(p.get("atr_expansion_lookback", 20))
+        self._atr_exp_mult = float(p.get("atr_expansion_mult", 1.1))
+        self._breakout_mult = float(p.get("breakout_atr_mult", 0.3))
+        self._adx_min = float(p.get("adx_min", 18))
+        self._atrp_min = float(p.get("atrp_min", 40))
+        self._sl_mult = float(p.get("sl_atr_mult", 1.0))
+        self._rr_target = float(p.get("rr_target", 2.0))
+        self._time_stop_bars = int(self._spec.get("risk", {}).get("time_stop_bars", 36))
+        self._risk_pct = float(self._spec.get("risk", {}).get("risk_per_trade_pct", 0.5))
+        self._max_trades_per_day = int(self._spec.get("risk", {}).get("max_trades_per_day", 2))
+        self._trail_mult = 2.5
+
+        self._atr_series = self.I(signals.atr, self.data, self._atr_period)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atrp_series = self.I(regime.atr_percentile, self.data, self._atr_period, 200)
+
+        dc = signals.donchian(self.data, self._donchian_period)
+        if isinstance(dc, tuple) and len(dc) == 3:
+            hi, mid, lo = dc
+            self._dc_hi = self.I(lambda: np.asarray(hi, dtype=float))
+            self._dc_mid = self.I(lambda: np.asarray(mid, dtype=float))
+            self._dc_lo = self.I(lambda: np.asarray(lo, dtype=float))
+        else:
+            arr = np.asarray(dc)
+            self._dc_hi = self.I(lambda: arr[0].astype(float))
+            self._dc_mid = self.I(lambda: arr[1].astype(float))
+            self._dc_lo = self.I(lambda: arr[2].astype(float))
+
+        self._trades_today = 0
+        self._current_day = None
+        self._entry_risk = {}
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 1 or len(self._atrp_series) < 1:
+            return False
+        adx_v = float(self._adx_series[-1])
+        atrp_v = float(self._atrp_series[-1])
+        if np.isnan(adx_v) or np.isnan(atrp_v):
+            return False
+        if adx_v <= self._adx_min:
+            return False
+        if atrp_v < self._atrp_min:
+            return False
+        return True
+
+    def _update_day_counter(self):
+        ts = pd.Timestamp(self.data.index[-1])
+        day = ts.strftime("%Y-%m-%d")
+        if day != self._current_day:
+            self._current_day = day
+            self._trades_today = 0
+
+    def _enter_if_signal(self) -> None:
+        self._update_day_counter()
+        if self.position:
+            return
+        if self._trades_today >= self._max_trades_per_day:
+            return
+        if len(self.data) < max(self._donchian_period + 2, self._atr_exp_lb + 2, 200):
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+        if len(self._atr_series) <= self._atr_exp_lb:
+            return
+        atr_prev = float(self._atr_series[-1 - self._atr_exp_lb])
+        if np.isnan(atr_prev) or atr_prev <= 0:
+            return
+        if atr_now <= self._atr_exp_mult * atr_prev:
+            return
+
+        dc_hi_prev = float(self._dc_hi[-2])
+        dc_lo_prev = float(self._dc_lo[-2])
+        if np.isnan(dc_hi_prev) or np.isnan(dc_lo_prev):
+            return
+
+        close = float(self.data.Close[-1])
+        long_sig = close > dc_hi_prev + self._breakout_mult * atr_now
+        short_sig = close < dc_lo_prev - self._breakout_mult * atr_now
+
+        if not (long_sig or short_sig):
+            return
+
+        if long_sig:
+            sl = close - self._sl_mult * atr_now
+            tp = close + self._rr_target * (close - sl)
+            if sl >= close:
+                return
+            size = risk.lots_by_risk_pct(self.equity, self._risk_pct, close - sl, close)
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+                self._trades_today += 1
+            except Exception:
+                pass
+        elif short_sig:
+            sl = close + self._sl_mult * atr_now
+            tp = close - self._rr_target * (sl - close)
+            if sl <= close:
+                return
+            size = risk.lots_by_risk_pct(self.equity, self._risk_pct, sl - close, close)
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+                self._trades_today += 1
+            except Exception:
+                pass
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        close = float(self.data.Close[-1])
+        dc_mid = float(self._dc_mid[-1])
+        atr_now = float(self._atr_series[-1]) if len(self._atr_series) else np.nan
+
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        session_end = False
+        if mask is not None and 0 <= bar_i < len(mask):
+            in_sess = bool(mask[bar_i])
+            next_in = bool(mask[bar_i + 1]) if bar_i + 1 < len(mask) else False
+            if in_sess and not next_in:
+                session_end = True
+            if not in_sess:
+                session_end = True
+
+        for trade in list(self.trades):
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self._time_stop_bars:
+                trade.close()
+                continue
+            if session_end:
+                trade.close()
+                continue
+            if not np.isnan(dc_mid):
+                if trade.is_long and close < dc_mid:
+                    trade.close()
+                    continue
+                if not trade.is_long and close > dc_mid:
+                    trade.close()
+                    continue
+
+            if not np.isnan(atr_now) and atr_now > 0:
+                entry = trade.entry_price
+                if trade.is_long:
+                    init_risk = entry - (trade.sl if trade.sl is not None else entry - self._sl_mult * atr_now)
+                    if init_risk > 0 and (close - entry) >= init_risk:
+                        new_sl = close - self._trail_mult * atr_now
+                        if trade.sl is None or new_sl > trade.sl:
+                            trade.sl = new_sl
+                else:
+                    init_risk = (trade.sl if trade.sl is not None else entry + self._sl_mult * atr_now) - entry
+                    if init_risk > 0 and (entry - close) >= init_risk:
+                        new_sl = close + self._trail_mult * atr_now
+                        if trade.sl is None or new_sl < trade.sl:
+                            trade.sl = new_sl
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

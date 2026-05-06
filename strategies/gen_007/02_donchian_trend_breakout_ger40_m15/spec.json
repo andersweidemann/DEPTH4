@@ -1,0 +1,91 @@
+{
+  "id": "gen7_donchian_trend_ger40_m15",
+  "name": "Donchian Trend Breakout GER40 M15",
+  "family": "trend_breakout",
+  "hypothesis": "GER40 M15 exhibits persistent intraday trending behavior during European cash hours; breakouts of the 40-bar Donchian channel in the direction of a rising/falling EMA stack with ADX confirmation produce positive expectancy when trailed by ATR.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "donchian": {
+      "primitive": "donchian",
+      "period": 40
+    },
+    "ema_fast": {
+      "primitive": "ema",
+      "period": 20
+    },
+    "ema_slow": {
+      "primitive": "ema",
+      "period": 50
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "adx": {
+      "primitive": "adx",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "start_utc": "07:00",
+      "end_utc": "15:30"
+    }
+  },
+  "entry_rules": {
+    "long": "session AND close > donchian.upper[1] AND ema_fast > ema_slow AND adx > 22",
+    "short": "session AND close < donchian.lower[1] AND ema_fast < ema_slow AND adx > 22",
+    "one_per_bar": true
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 22
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min_percentile": 25,
+        "max_percentile": 95
+      }
+    ]
+  },
+  "exits": {
+    "sl": {
+      "type": "atr",
+      "mult": 1.5
+    },
+    "tp": {
+      "type": "atr",
+      "mult": 4.5,
+      "rr": 3.0
+    },
+    "time_stop": {
+      "bars": 32,
+      "comment": "8h M15; force-close before close of session"
+    },
+    "trailing": {
+      "type": "chandelier",
+      "atr_mult": 2.5,
+      "activate_at_rr": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

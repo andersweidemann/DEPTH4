@@ -1,0 +1,85 @@
+{
+  "strategy_id": "gen12_us500_vwap_pullback_ema_m5",
+  "family": "trend_pullback",
+  "hypothesis": "On US500 M5 during US cash session (13:30-20:00 UTC), when EMA(20) > EMA(50) > EMA(200) and ADX > 20, a pullback to EMA(20) with RSI(14) crossing back above 45 produces long continuation trades with PF > 2.0 (mirror for shorts).",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "trade_start_utc": "13:30",
+        "trade_end_utc": "20:00"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitives": [
+      {
+        "primitive": "adx",
+        "params": {
+          "period": 14,
+          "min": 20
+        }
+      },
+      {
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 300,
+          "min_pct": 25,
+          "max_pct": 90
+        }
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry_rules": {
+    "long": "EMA20 > EMA50 > EMA200 AND prior bar low touched or pierced EMA20 AND current bar closes above EMA20 AND RSI(14) crosses up through 45 AND ADX > 20 AND session active.",
+    "short": "EMA20 < EMA50 < EMA200 AND prior bar high touched or pierced EMA20 AND current bar closes below EMA20 AND RSI(14) crosses down through 55."
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry (below/above pullback swing)",
+    "take_profit": "2.5 * ATR(14) from entry (R:R ~1.67)",
+    "time_stop_bars": 24,
+    "breakeven_after": "1.0 * ATR(14) favorable",
+    "trailing_stop": "Trail at EMA(20) once 1.5*ATR in profit"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "diversification_tag": "trend_pullback_us_equities",
+  "notes": "Distinct family from breakout/MR; uses stacked EMAs + RSI midline cross instead of band extremes."
+}

@@ -1,0 +1,62 @@
+import numpy as np
+import pandas as pd
+from dataclasses import dataclass
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_period = self.spec["entry_rule"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["entry_rule"]["params"]["bb_deviation"]
+        self._displacement = self.spec["entry_rule"]["params"]["displacement"]
+        self._tp = self.spec["exit_rule"]["params"]["tp"]
+        self._sl = self.spec["exit_rule"]["params"]["sl"]
+        self._time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        self._fraction = self.spec["sizing_rule"]["params"]["fraction"]
+        self._bb_width = self.I(bb_width, self.data, self._bb_period)
+        self._bb_middle = self.I(sma, self.data.Close, self._bb_period)
+        self._bb_upper = self._bb_middle + self._bb_deviation * self._bb_width
+        self._bb_lower = self._bb_middle - self._bb_deviation * self._bb_width
+        self._session_mask_full = np.asarray(session_mask(self.data.index, [{"start_hour": 7, "end_hour": 10}]), dtype=bool)
+
+    def _regime_ok(self):
+        return True
+
+    def _filters_ok(self):
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = self._session_mask_full
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        return True
+
+    def _enter_if_signal(self):
+        if self._filters_ok():
+            close = self.data.Close[-1]
+            if close > self._bb_upper[-1] * (1 + self._displacement / 100000):
+                self.position.enter_long(lots_by_risk_pct(self._fraction, self._equity_start, self.data))
+                self.sl_price = self._bb_lower[-1]
+                self.tp_price = close + (close - self._bb_lower[-1]) * 2
+            elif close < self._bb_lower[-1] * (1 - self._displacement / 100000):
+                self.position.enter_short(lots_by_risk_pct(self._fraction, self._equity_start, self.data))
+                self.sl_price = self._bb_upper[-1]
+                self.tp_price = close - (self._bb_upper[-1] - close) * 2
+
+    def _manage_open(self):
+        if self.position:
+            if self._time_stop is not None:
+                trade = self.trades[-1]
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= self._time_stop:
+                    self.position.close()
+            else:
+                close = self.data.Close[-1]
+                if self.position.is_long and close < self.sl_price:
+                    self.position.close()
+                elif not self.position.is_long and close > self.sl_price:
+                    self.position.close()

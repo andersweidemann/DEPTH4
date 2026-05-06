@@ -1,0 +1,73 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("filters", {}).get("session_utc") or []
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, sessions), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self._bb = self.I(bollinger, self.data, self.spec["regime_filter"]["params"]["bb_period"], self.spec["regime_filter"]["params"]["bb_dev"])
+        self._rsi = self.I(rsi, self.data, self.spec["entry_rule"]["params"]["rsi_period"])
+        self._atr = self.I(atr, self.data, 14)
+
+    def _regime_ok(self):
+        bb_width_val = float(self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["bb_period"])[-1])
+        percentile = self.spec["regime_filter"]["params"]["percentile"]
+        bb_width_percentile = np.percentile(self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["bb_period"]), percentile)
+        return bb_width_val < bb_width_percentile
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        upper_bb = self._bb[2]
+        lower_bb = self._bb[0]
+        close = self.data.Close
+        rsi = self._rsi
+        rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        if close[-1] >= upper_bb[-1] and rsi[-1] <= rsi_thresholds[0]:
+            self.position.entry(1)
+            self.sl_price = close[-1] - 1.5 * self._atr[-1]
+            self.tp_price = lower_bb[-1]
+        elif close[-1] <= lower_bb[-1] and rsi[-1] >= rsi_thresholds[1]:
+            self.position.entry(-1)
+            self.sl_price = close[-1] + 1.5 * self._atr[-1]
+            self.tp_price = upper_bb[-1]
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        if self.position.is_long and self.data.Close[-1] <= self.sl_price:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] >= self.sl_price:
+            self.position.close()
+        if self.position.is_long and self.data.Close[-1] >= self.tp_price:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] <= self.tp_price:
+            self.position.close()
+```

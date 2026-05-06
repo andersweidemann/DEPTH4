@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Breakout occurs when price breaks out of the Asia range with sufficient volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 14
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > asia_range_high && atr(14) > atr_percentile"
+    },
+    "short": {
+      "condition": "close < asia_range_low && atr(14) > atr_percentile"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 20
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 2
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "proportional",
+    "params": {
+      "proportion": 0.02
+    }
+  }
+}

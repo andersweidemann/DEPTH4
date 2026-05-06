@@ -1,0 +1,47 @@
+{
+  "id": "02_xauusd_asia_london_range_breakout_m5",
+  "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) expands the Asia session range (00:00-06:00 UTC) directionally; a close beyond the Asia high/low by >= 0.4*ATR with strong body captures the expansion, provided Asia range is 0.5-2.0 ATR and ATR percentile is above median (avoid dead days).",
+  "family": "session_breakout",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": "time in [07:00,10:00] UTC AND close > asia_high + 0.4*atr(14) AND (close-open) >= 0.8*atr(14) AND first_breakout_of_day",
+    "entry_short": "time in [07:00,10:00] UTC AND close < asia_low - 0.4*atr(14) AND (open-close) >= 0.8*atr(14) AND first_breakout_of_day",
+    "exit_long": "close < asia_high OR session_end(14:00 UTC)",
+    "exit_short": "close > asia_low OR session_end(14:00 UTC)"
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      "0.5 <= (asia_high - asia_low)/atr(14) <= 2.0",
+      "atr_percentile(14, 100) >= 50",
+      "session_mask(07:00-14:00 UTC)"
+    ],
+    "action_when_false": "no_new_entries"
+  },
+  "risk": {
+    "sl": "asia_midpoint OR 0.75*atr(14) from entry whichever_tighter",
+    "tp": "2.0 * initial_risk (2R)",
+    "time_stop_bars": 48,
+    "sizing": "risk_per_trade_pct = 0.5, max_concurrent = 1, one_trade_per_day"
+  },
+  "params": {
+    "asia_start_utc": "00:00",
+    "asia_end_utc": "06:00",
+    "london_start_utc": "07:00",
+    "london_end_utc": "10:00",
+    "flat_by_utc": "14:00",
+    "breakout_atr_mult": 0.4,
+    "body_atr_mult": 0.8,
+    "min_range_atr": 0.5,
+    "max_range_atr": 2.0,
+    "sl_atr_mult": 0.75,
+    "rr_target": 2.0
+  },
+  "falsification": "If trades < 200 over 4.5y IS, session logic is too strict \u2014 relax body filter to 0.6*ATR. If PF < 1.5, reject.",
+  "diversity_tag": "session_breakout_asia_london"
+}

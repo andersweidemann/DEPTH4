@@ -1,0 +1,94 @@
+{
+  "spec_id": "33_03_donchian_atr_breakout_ger40_m15",
+  "family": "trend_breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "On GER40 M15 during European cash session, a close beyond the 20-bar Donchian channel by >=0.5*ATR with ADX rising above 20 captures directional momentum, delivering PF>=2.0 with trailing ATR stop over 200+ trades.",
+  "regime_filter": {
+    "type": "trend_regime",
+    "rules": [
+      {
+        "primitive": "adx",
+        "params": {
+          "period": 14
+        },
+        "condition": "> 20 AND rising_over(3)"
+      },
+      {
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 500
+        },
+        "condition": "between(30, 98)"
+      },
+      {
+        "primitive": "session_mask",
+        "params": {
+          "hours_utc": [
+            7,
+            16
+          ]
+        },
+        "condition": "true"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close > donchian_high(20)[1] AND (close - donchian_high(20)[1]) >= 0.5 * atr(14) AND adx(14) > 20",
+    "short": "close < donchian_low(20)[1] AND (donchian_low(20)[1] - close) >= 0.5 * atr(14) AND adx(14) > 20",
+    "cooldown_bars": 6,
+    "max_spread_points": 30,
+    "one_entry_per_bar": true
+  },
+  "exit_rules": {
+    "take_profit": "3.0 * atr(14) from entry",
+    "stop_loss": "1.5 * atr(14) from entry",
+    "trailing_stop": "chandelier: highest_high(10) - 2.5*atr(14) (long) / mirror short, activated after +1*ATR",
+    "time_stop_bars": 48
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1,
+    "max_daily_loss_pct": 3.0
+  },
+  "params_to_optimize": {
+    "donchian_period": [
+      15,
+      20,
+      30
+    ],
+    "breakout_atr_buffer": [
+      0.3,
+      0.5,
+      0.75
+    ],
+    "atr_sl_mult": [
+      1.25,
+      1.5,
+      2.0
+    ],
+    "atr_tp_mult": [
+      2.5,
+      3.0,
+      4.0
+    ],
+    "adx_min": [
+      18,
+      20,
+      25
+    ],
+    "trail_atr_mult": [
+      2.0,
+      2.5,
+      3.0
+    ],
+    "time_stop_bars": [
+      32,
+      48,
+      64
+    ]
+  },
+  "notes": "Replaces the failed Asia-London XAUUSD session-breakout concept with a simpler, symbol-agnostic Donchian+ATR framework on GER40 European hours. No brittle tz-dependent session range computation."
+}

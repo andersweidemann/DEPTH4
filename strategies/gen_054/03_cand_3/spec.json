@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Mean reversion occurs when RSI reaches extreme levels",
+  "regime_filter": {
+    "type": "rsi_extremes",
+    "params": {
+      "lower_threshold": 20,
+      "upper_threshold": 80
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "rsi(7) < 20"
+    },
+    "short": {
+      "condition": "rsi(7) > 80"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 30
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 15
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 1
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "proportional",
+    "params": {
+      "percentage": 0.01
+    }
+  }
+}

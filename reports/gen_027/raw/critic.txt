@@ -1,0 +1,25 @@
+{
+  "ranking": [
+    {
+      "candidate": "01_xauusd_m15_bbrsimeanreversion_v1",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Status: FAILED — zero trades across all candidates.**\n\nThe sole candidate `01_xauusd_m15_bbrsimeanreversion_v1` produced **0 trades** over the 4.5-year IS window (2020-01-01 to 2024-06-30) on XAUUSD M15. All metrics are NaN/zero, indicating the entry logic never triggered.\n\n### Root cause hypotheses\n1. **Entry conditions too restrictive** — Typical BB+RSI mean-reversion on XAUUSD M15 should fire 500–2000 times over 4.5y. Zero trades implies a logic bug or impossibly tight filter (e.g., RSI<20 AND price<lower BB AND additional trend filter AND session filter all ANDed).\n2. **Indicator handle / buffer error** — MQL5 `CopyBuffer` failures silently skip ticks; OnTick may be returning early.\n3. **Symbol/contract-size/stops-level rejection** — Orders failing broker validation (min stop distance on XAUUSD is often 30–50 points) and being aborted before `OrderSend`.\n4. **Timeframe/bar-gate logic** — `IsNewBar()` gate may be broken, or the EA is checking conditions only on tick 0.\n\n### Recommendation\nDo **not** iterate parameters — the EA is non-functional. Fix the code path first, then re-run a sanity backtest. If after plumbing fixes the BB+RSI family still under-trades on XAUUSD M15, pivot away from this family on this instrument.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "BB+RSI mean-reversion on XAUUSD M15 in current v1 form — pending plumbing fix; if still 0 trades after fix, retire this family for XAUUSD (gold trends persistently and punishes naive MR on M15)."
+  ],
+  "refinement_notes_for_next_gen": {
+    "01_xauusd_m15_bbrsimeanreversion_v1": [
+      "DEBUG FIRST: Add Print() statements in OnTick logging (a) indicator values, (b) each condition boolean, (c) OrderSend return code + GetLastError(). Re-run 1 month and confirm non-zero signals before any optimization.",
+      "Verify `CopyBuffer` return != -1 and that `ArraySetAsSeries` is called on all indicator arrays.",
+      "Loosen entry to sanity-check: RSI<30 AND Close<LowerBB(20,2.0) — nothing else. Expect 200–600 trades/yr on XAUUSD M15.",
+      "Check broker stops level: `SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL)` and ensure SL/TP distances exceed it (XAUUSD often 30–100 points).",
+      "Confirm lot size passes `SYMBOL_VOLUME_MIN` / `SYMBOL_VOLUME_STEP` normalization — a bad volume calc aborts sends silently.",
+      "Confirm new-bar gate uses `iTime(_Symbol, PERIOD_M15, 0)` compared to a static `last_bar_time`, not a tick counter."
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "hypothesis": "The 3-bar Bollinger Band rejection pattern can be used to identify mean reversion opportunities",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 20
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rejection",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {}
+  },
+  "stop_loss": {
+    "type": "fixed",
+    "params": {
+      "pips": 100
+    }
+  },
+  "take_profit": {
+    "type": "fixed",
+    "params": {
+      "pips": 200
+    }
+  },
+  "time_stop": {
+    "type": "fixed",
+    "params": {
+      "bars": 60
+    }
+  },
+  "sizing": {
+    "type": "fixed",
+    "params": {
+      "lots": 0.1
+    }
+  }
+}

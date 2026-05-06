@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Breakouts occur in GER40 during the London session on the M15 timeframe",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rules": {
+    "type": "breakout",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 60
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "hypothesis": "ATR breakout occurs frequently during high-volatility regimes on US500 M5",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rule": {
+    "type": "atr_breakout",
+    "params": {
+      "atr_period": 14,
+      "multiplier": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "atr_period": 14,
+      "multiplier": 1.0
+    }
+  },
+  "sl": {
+    "type": "fixed",
+    "params": {
+      "pips": 50
+    }
+  },
+  "tp": {
+    "type": "risk_reward",
+    "params": {
+      "risk_reward_ratio": 1.5
+    }
+  },
+  "time_stop": {
+    "type": "hours",
+    "params": {
+      "hours": 1
+    }
+  },
+  "sizing": {
+    "type": "proportional",
+    "params": {
+      "percentage": 1.5
+    }
+  }
+}

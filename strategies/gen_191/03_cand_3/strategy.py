@@ -1,0 +1,57 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import donchian, momentum
+from agents.risk import lots_by_risk_pct, DailyKillState, daily_kill_ok, spread_ok
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.donchian_channel = self.I(donchian, self.data, self.spec["regime_filter"]["params"]["donchian_period"])
+        self.momentum = self.I(momentum, self.data, 14)
+        self._broker_spread_points = 0
+
+    def _regime_ok(self):
+        return True
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if not self.position:
+            if self.data.Close[-1] > self.donchian_channel.upper[-1] and self.momentum[-1] > 0:
+                self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["stop_loss"]["params"]["pips"] / 10000
+                self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["take_profit"]["params"]["pips"] / 10000
+                lots = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["risk_percent"], self._equity, self.data.Close[-1], self.sl_price)
+                self.position.enter_long(lots)
+            elif self.data.Close[-1] < self.donchian_channel.lower[-1] and self.momentum[-1] < 0:
+                self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["stop_loss"]["params"]["pips"] / 10000
+                self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["take_profit"]["params"]["pips"] / 10000
+                lots = lots_by_risk_pct(self.spec["sizing_rules"]["params"]["risk_percent"], self._equity, self.data.Close[-1], self.sl_price)
+                self.position.enter_short(lots)
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rules", {})
+        time_stop = exit_cfg.get("time_stop", {}).get("hours")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1] if self.trades else None
+            if trade is not None:
+                bars_open = len(self.data) - trade.entry_bar
+                hours_open = bars_open * 15 / 60
+                if hours_open >= time_stop:
+                    self.position.close()
+        stop_loss = exit_cfg.get("stop_loss", {}).get("pips")
+        if stop_loss is not None:
+            if self.position.is_long:
+                self.sl_price = self.data.Close[-1] - stop_loss / 10000
+            else:
+                self.sl_price = self.data.Close[-1] + stop_loss / 10000
+        take_profit = exit_cfg.get("take_profit", {}).get("pips")
+        if take_profit is not None:
+            if self.position.is_long:
+                self.tp_price = self.data.Close[-1] + take_profit / 10000
+            else:
+                self.tp_price = self.data.Close[-1] - take_profit / 10000

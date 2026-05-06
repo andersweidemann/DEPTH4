@@ -1,0 +1,171 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 100
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during London session with sufficient volatility",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > upper_bb && atr(14) > 10"
+      },
+      "short": {
+        "condition": "close < lower_bb && atr(14) > 10"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 20
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "proportional",
+      "params": {
+        "percentage": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on XAUUSD M15",
+    "regime_filter": {
+      "type": "symbol",
+      "params": {
+        "symbol": "XAUUSD"
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > lower_bb && rsi(7) < 30"
+      },
+      "short": {
+        "condition": "close < upper_bb && rsi(7) > 70"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.2
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs when RSI reaches extreme levels",
+    "regime_filter": {
+      "type": "rsi_extremes",
+      "params": {
+        "lower_threshold": 20,
+        "upper_threshold": 80
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "rsi(7) < 20"
+      },
+      "short": {
+        "condition": "rsi(7) > 80"
+      }
+    },
+    "exit_rules": {
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 30
+        }
+      },
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 15
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 1
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "proportional",
+      "params": {
+        "percentage": 0.01
+      }
+    }
+  }
+]

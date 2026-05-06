@@ -1,0 +1,146 @@
+[
+  {
+    "name": "xauusd_m5_bb_rsi_meanrev_session",
+    "hypothesis": "On XAUUSD M5 during active London+NY sessions, price closes outside BB(20,2.0) with RSI(7) extreme revert to the mean within 30 bars, producing positive expectancy when BB width is above its 40th percentile (avoids dead chop) and ATR regime is moderate (not crisis).",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "family": "mean_reversion",
+    "signals": {
+      "bollinger": {"period": 20, "dev": 2.0, "source": "close"},
+      "rsi": {"period": 7, "long_threshold": 10, "short_threshold": 90},
+      "bb_width": {"lookback": 500, "min_percentile": 40},
+      "atr": {"period": 14},
+      "session_mask": {"sessions": ["london", "newyork"], "utc_hours": [7, 20]}
+    },
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi(7) < 10 AND bb_width_pct > 40 AND session_active AND atr_pct_rank < 90",
+      "short": "close > upper_bb AND rsi(7) > 90 AND bb_width_pct > 40 AND session_active AND atr_pct_rank < 90",
+      "cooldown_bars": 3
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "rule": "atr_percentile_rank(14, 500) between 20 and 90",
+      "classify": "exclude_dead_range_and_crisis"
+    },
+    "exit_rules": {
+      "sl": "1.5 * ATR(14) from entry",
+      "tp": "opposite Bollinger Band (middle BB as partial at 1R optional)",
+      "time_stop_bars": 30,
+      "trailing": "none"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "trades_min": 200, "max_dd_pct": 15.0}
+  },
+  {
+    "name": "xauusd_m15_bb_bounce_threebar",
+    "hypothesis": "On XAUUSD M15, a confirmed three-bar Bollinger Band bounce (prior-bar pierce, current-bar close back inside) marks a high-probability mean-reversion entry with 2.5R target, provided it happens during session hours and outside extreme ADX trend regimes.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "family": "mean_reversion",
+    "signals": {
+      "bollinger": {"period": 20, "dev": 2.0, "source": "close"},
+      "atr": {"period": 14},
+      "adx": {"period": 14},
+      "session_mask": {"sessions": ["london", "newyork"], "utc_hours": [7, 20]}
+    },
+    "entry_rules": {
+      "long": "bar[-2].close > lower_bb AND bar[-1].low <= lower_bb AND bar[0].close > lower_bb AND session_active",
+      "short": "bar[-2].close < upper_bb AND bar[-1].high >= upper_bb AND bar[0].close < upper_bb AND session_active",
+      "cooldown_bars": 4
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "rule": "ADX(14) < 28",
+      "classify": "range_or_mild_trend_only"
+    },
+    "exit_rules": {
+      "sl": "1.8 * ATR(14) below/above entry bar low/high",
+      "tp": "2.5R fixed OR opposite BB touch, whichever first",
+      "time_stop_bars": 24,
+      "trailing": "activate after 1.5R, trail at 1.0 * ATR(14)"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "trades_min": 200, "max_dd_pct": 15.0}
+  },
+  {
+    "name": "ger40_m15_ema_pullback_trend",
+    "hypothesis": "On GER40 M15 during European cash session, pullbacks to EMA(20) within an established EMA(20)>EMA(50) trend and ADX>22 resume in the trend direction with positive expectancy. This replaces the failed Donchian breakout by entering on retracements (not breakouts) with a regime gate.",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "family": "trend_pullback",
+    "signals": {
+      "ema": [{"period": 20}, {"period": 50}, {"period": 200}],
+      "atr": {"period": 14},
+      "adx": {"period": 14},
+      "rsi": {"period": 14},
+      "session_mask": {"sessions": ["frankfurt", "london"], "utc_hours": [7, 16]}
+    },
+    "entry_rules": {
+      "long": "EMA20>EMA50>EMA200 AND ADX(14)>22 AND low <= EMA20 AND close > EMA20 AND RSI(14) between 40 and 65 AND session_active",
+      "short": "EMA20<EMA50<EMA200 AND ADX(14)>22 AND high >= EMA20 AND close < EMA20 AND RSI(14) between 35 and 60 AND session_active",
+      "cooldown_bars": 3
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "rule": "ADX(14) > 22 AND ADX(14) < 45",
+      "classify": "trending_not_exhausted"
+    },
+    "exit_rules": {
+      "sl": "1.5 * ATR(14) beyond EMA50 on entry side",
+      "tp": "2.0R fixed, partial 50% at 1R",
+      "time_stop_bars": 20,
+      "trailing": "after partial, trail remainder at 1.5 * ATR(14)"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.6,
+      "max_concurrent": 1
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "trades_min": 200, "max_dd_pct": 15.0}
+  },
+  {
+    "name": "us500_m15_opening_range_highatr",
+    "hypothesis": "On US500 M15, the first 30-minute range after NY cash open (13:30-14:00 UTC) produces a tradable breakout only on days where daily ATR is in the top 40th percentile (high-volatility regime), avoiding chop days that killed generic breakout systems. Breakouts taken only in the direction of the prior-day close vs open bias.",
+    "symbols": ["US500"],
+    "timeframes": ["M15"],
+    "family": "opening_range_breakout",
+    "signals": {
+      "atr": [{"period": 14, "timeframe": "D1"}, {"period": 14}],
+      "atr_percentile": {"lookback": 100, "timeframe": "D1", "min_rank": 60},
+      "atr_breakout_levels": {"range_start_utc": "13:30", "range_end_utc": "14:00", "buffer_atr_mult": 0.1},
+      "ema": {"period": 200},
+      "session_mask": {"sessions": ["newyork"], "utc_hours": [14, 19]}
+    },
+    "entry_rules": {
+      "long": "close > OR_high + 0.1*ATR(14) AND daily_ATR_percentile >= 60 AND close > EMA200 AND first_breakout_of_day AND time between 14:00-17:00 UTC",
+      "short": "close < OR_low - 0.1*ATR(14) AND daily_ATR_percentile >= 60 AND close < EMA200 AND first_breakout_of_day AND time between 14:00-17:00 UTC",
+      "cooldown_bars": 0,
+      "max_trades_per_day": 1
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "rule": "daily ATR(14) percentile_rank(100) >= 60",
+      "classify": "high_volatility_days_only"
+    },
+    "exit_rules": {
+      "sl": "opposite side of opening range OR 1.0 * OR_width, whichever tighter",
+      "tp": "2.0 * OR_width from breakout level, partial 50% at 1.0 * OR_width",
+      "time_stop_bars": 16,
+      "trailing": "after partial, trail at 1.2 * ATR(14)"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "trades_min": 200, "max_dd_pct": 15.0}
+  }
+]

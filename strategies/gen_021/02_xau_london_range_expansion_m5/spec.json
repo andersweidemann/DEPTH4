@@ -1,0 +1,88 @@
+{
+  "name": "xau_london_range_expansion_m5",
+  "hypothesis": "On XAUUSD M5, after an Asia-session (00:00-06:00 UTC) accumulation range sized 0.5-2.0x ATR, a London-session (07:00-11:00 UTC) close beyond the range by >=0.5 ATR with body >=1.0 ATR yields positive expectancy via continuation.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "family": "session_range_breakout",
+  "signals": [
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "range_window_utc": [
+          0,
+          6
+        ],
+        "trade_window_utc": [
+          7,
+          11
+        ],
+        "broker_tz_aware": true
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "source": "session_range",
+        "buffer_atr": 0.5
+      }
+    }
+  ],
+  "entry_rules": {
+    "asia_range": "high/low of bars 00:00-06:00 UTC",
+    "range_filter": "0.5*ATR14 <= (range_high - range_low) <= 2.0*ATR14",
+    "long": "close > range_high + 0.5*ATR14 AND body >= 1.0*ATR14 during trade window",
+    "short": "close < range_low - 0.5*ATR14 AND body >= 1.0*ATR14 during trade window",
+    "first_breakout_per_day_only": true
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "period": 14,
+      "lookback": 500,
+      "min_percentile": 30
+    },
+    "rationale": "Expansion plays require baseline volatility; dead days produce fakeouts."
+  },
+  "exit_rules": {
+    "tp": "2.0 * ATR(14) or opposite range extreme + 1x ATR, whichever closer",
+    "sl": "0.75 * ATR(14)",
+    "time_stop_bars": 36,
+    "breakeven_after": "+1R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "params": {
+      "include_hours_utc": [
+        7,
+        8,
+        9,
+        10,
+        11
+      ],
+      "broker_tz_aware": true
+    }
+  },
+  "falsification_criteria": "Zero trades on first IS bar (indicates session/TZ bug) OR PF<1.3 OR range-filter rejects >90% of days.",
+  "instrumentation_required": [
+    "bars_seen_in_range_window",
+    "ranges_formed",
+    "range_size_atr_distribution",
+    "breakout_triggers_evaluated",
+    "orders_submitted"
+  ]
+}

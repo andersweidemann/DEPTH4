@@ -1,0 +1,52 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import atr, donchian, session_mask
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("session")
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, [sessions]), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self.upper_range = self.I(donchian, self.data, n=14)[1]
+        self.lower_range = self.I(donchian, self.data, n=14)[0]
+        self.atr = self.I(atr, self.data, n=14)
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        return self._session_mask_full[-1] if self._session_mask_full is not None else True
+
+    def _filters_ok(self):
+        return self._regime_ok()
+
+    def _enter_if_signal(self):
+        long_condition = self.data.Close[-1] > self.upper_range[-1] and self.data.Close[-1] - self.lower_range[-1] > 1.2 * self.atr[-1]
+        short_condition = self.data.Close[-1] < self.lower_range[-1] and self.upper_range[-1] - self.data.Close[-1] > 1.2 * self.atr[-1]
+        if long_condition and not self.position:
+            size = lots_by_risk_pct(self._equity_start, self.spec["sizing_rules"]["params"]["risk_percent"], self.data.Close[-1], self.spec["exit_rules"]["stop_loss"]["params"]["pips"])
+            self.position.enter_long(size)
+            self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["stop_loss"]["params"]["pips"] * self.data.pips
+            self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["take_profit"]["params"]["pips"] * self.data.pips
+        elif short_condition and not self.position:
+            size = lots_by_risk_pct(self._equity_start, self.spec["sizing_rules"]["params"]["risk_percent"], self.data.Close[-1], self.spec["exit_rules"]["stop_loss"]["params"]["pips"])
+            self.position.enter_short(size)
+            self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["stop_loss"]["params"]["pips"] * self.data.pips
+            self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["take_profit"]["params"]["pips"] * self.data.pips
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rules"]["time_stop"]["params"]["num_hours"]
+        if self.position:
+            bars_open = len(self.data) - self.position.entry_bar
+            if bars_open >= time_stop * 60:
+                self.position.close()
+```

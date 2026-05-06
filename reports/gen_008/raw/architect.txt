@@ -1,0 +1,199 @@
+[
+  {
+    "name": "XAU_AsiaLondon_RangeBreakout_M5",
+    "family": "breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "hypothesis": "After a contained Asian session range (0.5-2.0x ATR), XAUUSD breaks out during London open (07:00-10:00 UTC) with follow-through exceeding 1x ATR within 3 hours. A volatility-normalized range filter avoids both chop and exhausted ranges.",
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "session_mask", "sessions": ["london_open"], "hours_utc": [7, 8, 9, 10]},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 100, "min_pct": 30, "max_pct": 90},
+        {"primitive": "adx", "period": 14, "min": 18}
+      ]
+    },
+    "entry_rules": {
+      "asia_range_window_utc": [0, 6],
+      "london_window_utc": [7, 10],
+      "range_atr_min": 0.5,
+      "range_atr_max": 2.0,
+      "breakout_close_beyond_atr": 0.5,
+      "breakout_body_atr_min": 1.0,
+      "max_breakouts_per_day": 1,
+      "direction": "long_or_short"
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "atr_period": 14, "atr_mult": 0.75},
+      "take_profit": {"type": "atr", "atr_period": 14, "atr_mult": 1.75},
+      "time_stop_bars": 36,
+      "trailing": {"type": "atr_chandelier", "atr_mult": 2.0, "activate_after_r": 1.0},
+      "breakeven_after_r": 0.7
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "params_to_optimize": {
+      "range_atr_min": [0.4, 0.6, 0.8],
+      "breakout_close_beyond_atr": [0.3, 0.5, 0.7],
+      "sl_atr_mult": [0.6, 0.75, 1.0],
+      "tp_atr_mult": [1.5, 1.75, 2.25]
+    }
+  },
+  {
+    "name": "XAU_BB_RSI_MeanReversion_M15",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "hypothesis": "When XAUUSD M15 closes outside BB(20, 2.0) with RSI(7) at an extreme, price reverts to the mean within ~30 bars, provided BB width is above the 40th percentile (so there is something to revert) and ADX is below 25 (no strong trend).",
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "adx", "period": 14, "max": 25},
+        {"primitive": "bb_width", "period": 20, "stddev": 2.0, "percentile_min": 40, "lookback": 200},
+        {"primitive": "session_mask", "hours_utc": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]}
+      ]
+    },
+    "entry_rules": {
+      "long": {
+        "conditions": [
+          {"primitive": "bollinger", "period": 20, "stddev": 2.0, "condition": "close_below_lower"},
+          {"primitive": "rsi", "period": 7, "max": 12}
+        ]
+      },
+      "short": {
+        "conditions": [
+          {"primitive": "bollinger", "period": 20, "stddev": 2.0, "condition": "close_above_upper"},
+          {"primitive": "rsi", "period": 7, "min": 88}
+        ]
+      },
+      "cooldown_bars": 4
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "atr_period": 14, "atr_mult": 1.5},
+      "take_profit": {"type": "bollinger_opposite", "period": 20, "stddev": 2.0, "target": "middle_then_opposite"},
+      "time_stop_bars": 32,
+      "min_rr": 1.0
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "params_to_optimize": {
+      "bb_stddev": [1.75, 2.0, 2.25],
+      "rsi_extreme_long": [8, 12, 15],
+      "rsi_extreme_short": [85, 88, 92],
+      "sl_atr_mult": [1.25, 1.5, 2.0],
+      "bb_width_percentile_min": [30, 40, 50]
+    }
+  },
+  {
+    "name": "GER40_Donchian_Breakout_M15",
+    "family": "breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "hypothesis": "GER40 exhibits trend-continuation behavior during the European cash session; a 20-bar Donchian breakout in the direction of a higher-timeframe EMA regime (EMA50 slope positive/negative) captures intraday trend legs better than random entries, especially when ATR is in the 40-90 percentile band.",
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "session_mask", "hours_utc": [7, 8, 9, 10, 11, 12, 13, 14, 15]},
+        {"primitive": "adx", "period": 14, "min": 20},
+        {"primitive": "atr_percentile", "period": 14, "lookback": 200, "min_pct": 40, "max_pct": 90},
+        {"primitive": "ema", "period": 50, "condition": "slope_nonzero", "slope_lookback": 10}
+      ]
+    },
+    "entry_rules": {
+      "long": {
+        "conditions": [
+          {"primitive": "donchian", "period": 20, "condition": "close_above_upper"},
+          {"primitive": "ema", "period": 50, "condition": "price_above"}
+        ]
+      },
+      "short": {
+        "conditions": [
+          {"primitive": "donchian", "period": 20, "condition": "close_below_lower"},
+          {"primitive": "ema", "period": 50, "condition": "price_below"}
+        ]
+      },
+      "one_entry_per_signal": true,
+      "max_trades_per_day": 3
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "atr_period": 14, "atr_mult": 1.5},
+      "take_profit": {"type": "atr", "atr_period": 14, "atr_mult": 3.0},
+      "time_stop_bars": 48,
+      "trailing": {"type": "donchian_opposite", "period": 10, "activate_after_r": 1.0},
+      "breakeven_after_r": 1.0
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "params_to_optimize": {
+      "donchian_period": [15, 20, 30],
+      "ema_period": [30, 50, 80],
+      "sl_atr_mult": [1.25, 1.5, 2.0],
+      "tp_atr_mult": [2.5, 3.0, 4.0]
+    }
+  },
+  {
+    "name": "US500_PullbackEMA_Trend_M15",
+    "family": "trend_pullback",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "hypothesis": "US500 in a clear uptrend (price above EMA200, EMA20>EMA50) tends to resume after shallow pullbacks that tag EMA20 with RSI(14) in the 35-50 zone. Longs-only bias reflects the well-documented equity index drift; shorts only active when EMA stack is bearish AND VIX-proxy (ATR percentile > 70) is elevated.",
+    "regime_filter": {
+      "type": "composite",
+      "conditions": [
+        {"primitive": "session_mask", "hours_utc": [13, 14, 15, 16, 17, 18, 19, 20]},
+        {"primitive": "adx", "period": 14, "min": 18},
+        {"primitive": "classify", "regime": "trending"}
+      ]
+    },
+    "entry_rules": {
+      "long": {
+        "conditions": [
+          {"primitive": "ema", "period": 200, "condition": "price_above"},
+          {"primitive": "ema", "period": 20, "compare": "above", "to": {"primitive": "ema", "period": 50}},
+          {"primitive": "ema", "period": 20, "condition": "price_touched_within_atr", "atr_mult": 0.3},
+          {"primitive": "rsi", "period": 14, "min": 35, "max": 52}
+        ]
+      },
+      "short": {
+        "conditions": [
+          {"primitive": "ema", "period": 200, "condition": "price_below"},
+          {"primitive": "ema", "period": 20, "compare": "below", "to": {"primitive": "ema", "period": 50}},
+          {"primitive": "ema", "period": 20, "condition": "price_touched_within_atr", "atr_mult": 0.3},
+          {"primitive": "rsi", "period": 14, "min": 48, "max": 65},
+          {"primitive": "atr_percentile", "period": 14, "lookback": 200, "min_pct": 70}
+        ]
+      },
+      "cooldown_bars": 8,
+      "max_trades_per_day": 2
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "atr_period": 14, "atr_mult": 1.25},
+      "take_profit": {"type": "atr", "atr_period": 14, "atr_mult": 2.5},
+      "time_stop_bars": 40,
+      "trailing": {"type": "ema", "period": 20, "activate_after_r": 1.2},
+      "breakeven_after_r": 1.0
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.6,
+      "max_concurrent_positions": 1
+    },
+    "params_to_optimize": {
+      "ema_fast": [15, 20, 30],
+      "ema_slow": [40, 50, 80],
+      "rsi_long_min": [32, 35, 40],
+      "rsi_long_max": [48, 52, 58],
+      "sl_atr_mult": [1.0, 1.25, 1.5],
+      "tp_atr_mult": [2.0, 2.5, 3.0]
+    }
+  }
+]

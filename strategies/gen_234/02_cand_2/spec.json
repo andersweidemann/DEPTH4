@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Asia-London range expansion leads to breakouts",
+  "regime_filter": {
+    "type": "asia_london_range",
+    "params": {
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > upper_range and atr(14) > 10"
+    },
+    "short": {
+      "condition": "close < lower_range and atr(14) > 10"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "opposite_range"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

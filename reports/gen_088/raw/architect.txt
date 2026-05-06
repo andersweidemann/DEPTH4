@@ -1,0 +1,56 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with an RSI(7) extreme reading, and volatility is above the 30th percentile.",
+    "regime_filter": "bb_width > 30th percentile",
+    "entry_rule": "Close > Upper BB(20, 1.75) AND RSI(7) > 90 OR Close < Lower BB(20, 1.75) AND RSI(7) < 10",
+    "exit_rule": {
+      "sl": "1.5 * ATR(14)",
+      "tp": "opposite Bollinger Band",
+      "time_stop": "30 bars"
+    },
+    "sizing_rule": "fixed fraction of equity",
+    "symbol": "XAUUSD",
+    "timeframe": "M5"
+  },
+  {
+    "hypothesis": "Asia-London range expansion leads to a breakout, which can be traded with a stop loss and take profit based on ATR.",
+    "regime_filter": "asia_range_atr > 0.5 AND asia_range_atr < 2.0",
+    "entry_rule": "breakout of Asia range",
+    "exit_rule": {
+      "sl": "1 * ATR(14)",
+      "tp": "2 * ATR(14)",
+      "time_stop": "9 bars"
+    },
+    "sizing_rule": "fixed fraction of equity",
+    "symbol": "GER40",
+    "timeframe": "M15"
+  },
+  {
+    "hypothesis": "Price touching the Bollinger Band with an RSI extreme reading leads to a mean reversion opportunity, which can be traded with a trailing stop loss.",
+    "regime_filter": "bb_width > 20th percentile",
+    "entry_rule": "Close > Upper BB(20, 2.0) AND RSI(7) > 80 OR Close < Lower BB(20, 2.0) AND RSI(7) < 20",
+    "exit_rule": {
+      "sl": "trailing stop loss of 100 pips",
+      "tp": "500 pips",
+      "time_stop": "20 bars"
+    },
+    "sizing_rule": "fixed fraction of equity",
+    "symbol": "BTCUSD",
+    "timeframe": "M5"
+  },
+  {
+    "hypothesis": "Donchian channel breakout leads to a trend following opportunity, which can be traded with a stop loss based on ATR and a take profit based on the channel width.",
+    "regime_filter": "donchian_channel_width > 50 pips",
+    "entry_rule": "breakout of Donchian channel",
+    "exit_rule": {
+      "sl": "1 * ATR(14)",
+      "tp": "channel width",
+      "time_stop": "15 bars"
+    },
+    "sizing_rule": "fixed fraction of equity",
+    "symbol": "US500",
+    "timeframe": "M15"
+  }
+]
+```

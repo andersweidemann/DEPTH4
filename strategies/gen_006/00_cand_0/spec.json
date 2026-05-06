@@ -1,0 +1,46 @@
+{
+  "id": "01_xauusd_bb_rsi_meanrev_m15",
+  "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands(20, 2.0) with RSI(2) at extreme, price mean-reverts to the middle band within 20 bars, provided BB width is above the 30th percentile (not dead range) and ADX(14) is below 25 (non-trending regime).",
+  "family": "mean_reversion",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "close < lower_bb(20,2.0) AND rsi(2) < 10",
+    "entry_short": "close > upper_bb(20,2.0) AND rsi(2) > 90",
+    "exit_long": "close >= sma(20) OR bars_in_trade >= 20",
+    "exit_short": "close <= sma(20) OR bars_in_trade >= 20"
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      "adx(14) < 25",
+      "bb_width(20,2.0) > percentile_30(bb_width, 500)",
+      "session_mask(07:00-20:00 UTC)"
+    ],
+    "action_when_false": "no_new_entries"
+  },
+  "risk": {
+    "sl": "1.5 * atr(14)",
+    "tp": "opposite_bb OR 2.5 * atr(14) whichever_first",
+    "time_stop_bars": 20,
+    "sizing": "risk_per_trade_pct = 0.5, max_concurrent = 1",
+    "cooldown_bars": 3
+  },
+  "params": {
+    "bb_period": 20,
+    "bb_dev": 2.0,
+    "rsi_period": 2,
+    "rsi_long_th": 10,
+    "rsi_short_th": 90,
+    "atr_period": 14,
+    "sl_atr_mult": 1.5,
+    "adx_max": 25,
+    "bbw_pct_min": 30
+  },
+  "falsification": "If PF < 1.3 or trades < 200 on 2020-01-01..2024-06-30 IS, reject. If BBW filter eliminates >80% of bars, widen to percentile 20.",
+  "diversity_tag": "mean_reversion_bb_rsi"
+}

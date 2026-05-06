@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs during active sessions",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 20
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {
+      "sl_multiplier": 1.5,
+      "time_stop_bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

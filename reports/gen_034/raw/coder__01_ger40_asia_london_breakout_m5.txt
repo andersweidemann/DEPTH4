@@ -1,0 +1,285 @@
+```python
+"""ger40_asia_london_breakout_m5 strategy."""
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+def _asia_high(high: np.ndarray, idx_hour: np.ndarray, idx_minute: np.ndarray,
+               idx_date_key: np.ndarray) -> np.ndarray:
+    """Per-bar running Asia-session high (00:00-06:00 UTC) for that date.
+
+    Value is NaN until 06:00 completes; after that, stays fixed for the rest of the day.
+    """
+    n = len(high)
+    out = np.full(n, np.nan)
+    cur_key = None
+    running = -np.inf
+    finalized = np.nan
+    for i in range(n):
+        key = idx_date_key[i]
+        h = idx_hour[i]
+        if key != cur_key:
+            cur_key = key
+            running = -np.inf
+            finalized = np.nan
+        if h < 6:
+            if high[i] > running:
+                running = high[i]
+            out[i] = np.nan
+        elif h == 6:
+            # still within 06:00-06:59 we consider Asia window [00:00, 06:00) closed? spec says 00-06 UTC.
+            # Treat Asia range = bars with hour in [0,5]. At hour==6 we finalize.
+            if np.isnan(finalized):
+                finalized = running if running != -np.inf else np.nan
+            out[i] = finalized
+        else:
+            if np.isnan(finalized):
+                finalized = running if running != -np.inf else np.nan
+            out[i] = finalized
+    return out
+
+
+def _asia_low(low: np.ndarray, idx_hour: np.ndarray, idx_minute: np.ndarray,
+              idx_date_key: np.ndarray) -> np.ndarray:
+    n = len(low)
+    out = np.full(n, np.nan)
+    cur_key = None
+    running = np.inf
+    finalized = np.nan
+    for i in range(n):
+        key = idx_date_key[i]
+        h = idx_hour[i]
+        if key != cur_key:
+            cur_key = key
+            running = np.inf
+            finalized = np.nan
+        if h < 6:
+            if low[i] < running:
+                running = low[i]
+            out[i] = np.nan
+        elif h == 6:
+            if np.isnan(finalized):
+                finalized = running if running != np.inf else np.nan
+            out[i] = finalized
+        else:
+            if np.isnan(finalized):
+                finalized = running if running != np.inf else np.nan
+            out[i] = finalized
+    return out
+
+
+def _daily_atr(close: np.ndarray, high: np.ndarray, low: np.ndarray,
+               idx_date_key: np.ndarray, n: int = 14) -> np.ndarray:
+    """Prior-day ATR(n) on D1, broadcast to each M5 bar (no lookahead)."""
+    df = pd.DataFrame({"high": high, "low": low, "close": close, "dk": idx_date_key})
+    daily = df.groupby("dk").agg(h=("high", "max"), l=("low", "min"), c=("close", "last"))
+    prev_c = daily["c"].shift(1)
+    tr = pd.concat([
+        (daily["h"] - daily["l"]),
+        (daily["h"] - prev_c).abs(),
+        (daily["l"] - prev_c).abs(),
+    ], axis=1).max(axis=1)
+    atr_d = tr.rolling(n, min_periods=n).mean().shift(1)  # shift to avoid lookahead
+    mapping = atr_d.to_dict()
+    out = np.array([mapping.get(k, np.nan) for k in idx_date_key])
+    return out
+
+
+def _day_entered_flag_reset(idx_date_key: np.ndarray) -> np.ndarray:
+    """Returns array of day-transition markers; used externally to reset per-day state."""
+    return idx_date_key
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        super().init()
+        # Load spec file if available next to this module
+        spec_file = Path(__file__).parent / self.spec_path
+        if spec_file.exists():
+            try:
+                self.spec = json.loads(spec_file.read_text())
+            except Exception:
+                pass
+
+        df = self.data.df if hasattr(self.data, "df") else None
+        idx = df.index if df is not None else self.data.index
+        idx = pd.DatetimeIndex(idx)
+        if idx.tz is None:
+            idx_utc = idx.tz_localize("UTC")
+        else:
+            idx_utc = idx.tz_convert("UTC")
+
+        hours = idx_utc.hour.to_numpy()
+        minutes = idx_utc.minute.to_numpy()
+        date_keys = idx_utc.strftime("%Y-%m-%d").to_numpy()
+
+        self._hours = hours
+        self._minutes = minutes
+        self._date_keys = date_keys
+
+        high_arr = np.asarray(self.data.High)
+        low_arr = np.asarray(self.data.Low)
+        close_arr = np.asarray(self.data.Close)
+
+        self._asia_hi = self.I(lambda: _asia_high(high_arr, hours, minutes, date_keys))
+        self._asia_lo = self.I(lambda: _asia_low(low_arr, hours, minutes, date_keys))
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._atr_d = self.I(lambda: _daily_atr(close_arr, high_arr, low_arr, date_keys, 14))
+
+        self._last_trade_day: Optional[str] = None
+        self._day_r_locked: dict = {}  # trade id -> bool for trailing activation
+
+    # ------------------------------------------------------------------
+    def _regime_ok(self) -> bool:
+        i = len(self.data) - 1
+        if i < 0:
+            return False
+        ah = float(self._asia_hi[i]) if not np.isnan(self._asia_hi[i]) else np.nan
+        al = float(self._asia_lo[i]) if not np.isnan(self._asia_lo[i]) else np.nan
+        atrd = float(self._atr_d[i]) if not np.isnan(self._atr_d[i]) else np.nan
+        if np.isnan(ah) or np.isnan(al) or np.isnan(atrd) or atrd <= 0:
+            return False
+        asia_range = ah - al
+        if asia_range <= 0:
+            return False
+        ratio = asia_range / atrd
+        return 0.4 <= ratio <= 2.5
+
+    def _filters_ok(self) -> bool:
+        i = len(self.data) - 1
+        if i < 0:
+            return False
+        h = int(self._hours[i])
+        m = int(self._minutes[i])
+        # London entry window 07:00 - 10:00 UTC, first 9 M5 bars => 07:00..07:40
+        if h != 7:
+            return False
+        # minutes 0,5,10,...,40 are first 9 bars of 07:00 window
+        if m > 40:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        i = len(self.data) - 1
+        day = self._date_keys[i]
+        if self._last_trade_day == day:
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        atr_m5 = float(self._atr_series[-1]) if not np.isnan(self._atr_series[-1]) else np.nan
+        if np.isnan(atr_m5) or atr_m5 <= 0:
+            return
+        ah = float(self._asia_hi[i])
+        al = float(self._asia_lo[i])
+        if np.isnan(ah) or np.isnan(al):
+            return
+        asia_range = ah - al
+        body = abs(close - open_)
+        if body < 1.0 * atr_m5:
+            return
+
+        risk_pct = float(self.spec.get("sizing", {}).get("risk_per_trade_pct", 0.75))
+
+        long_trigger = ah + 0.5 * atr_m5
+        short_trigger = al - 0.5 * atr_m5
+
+        if close >= long_trigger and close > open_:
+            sl_range = al
+            sl_atr = close - 1.5 * atr_m5
+            sl = max(sl_range, sl_atr)  # closer to price = higher for long
+            if sl >= close:
+                return
+            tp = close + 2.0 * asia_range
+            size = risk.lots_by_risk_pct(self.equity, risk_pct / 100.0, close, sl)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+                self._last_trade_day = day
+            except Exception:
+                pass
+            return
+
+        if close <= short_trigger and close < open_:
+            sl_range = ah
+            sl_atr = close + 1.5 * atr_m5
+            sl = min(sl_range, sl_atr)
+            if sl <= close:
+                return
+            tp = close - 2.0 * asia_range
+            size = risk.lots_by_risk_pct(self.equity, risk_pct / 100.0, close, sl)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+                self._last_trade_day = day
+            except Exception:
+                pass
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        i = len(self.data) - 1
+        h = int(self._hours[i])
+
+        # Time stop: close at/after 16:00 UTC same day
+        if h >= 16:
+            self.position.close()
+            return
+
+        atr_m5 = float(self._atr_series[-1]) if not np.isnan(self._atr_series[-1]) else np.nan
+        if np.isnan(atr_m5) or atr_m5 <= 0:
+            return
+        price = float(self.data.Close[-1])
+
+        for trade in self.trades:
+            entry = trade.entry_price
+            init_sl = trade.sl
+            if init_sl is None:
+                continue
+            if trade.is_long:
+                r = entry - init_sl
+                if r <= 0:
+                    continue
+                if price >= entry + r:  # +1R reached
+                    new_sl = price - 1.0 * atr_m5
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                r = init_sl - entry
+                if r <= 0:
+                    continue
+                if price <= entry - r:
+                    new_sl = price + 1.0 * atr_m5
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

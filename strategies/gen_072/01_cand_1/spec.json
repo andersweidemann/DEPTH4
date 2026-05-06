@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Asia-London range expansion occurs in GER40 on M15, and trading the breakout with proper risk management yields a profitable strategy.",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > asia_high && close - asia_low > 0.5 * atr(14)"
+    },
+    "short": {
+      "condition": "close < asia_low && asia_high - close > 0.5 * atr(14)"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

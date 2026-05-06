@@ -1,0 +1,158 @@
+[
+  {
+    "id": "01_xau_bb_rsi_meanrev_m15",
+    "hypothesis": "On XAUUSD M15, price closes outside Bollinger(20, 2.0) combined with RSI(2) extremes revert to the middle band within 20 bars, but only when ADX<22 (range regime) and ATR percentile between 20-80 (avoid dead and panic markets).",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "family": "mean_reversion",
+    "signal": {
+      "primitives": ["bollinger", "rsi", "atr"],
+      "entry_long": "close < lower_bb(20,2.0) AND rsi(2) < 10",
+      "entry_short": "close > upper_bb(20,2.0) AND rsi(2) > 90",
+      "cooldown_bars": 4
+    },
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile"],
+      "rule": "adx(14) < 22 AND atr_percentile(14, lookback=200) BETWEEN 0.20 AND 0.80"
+    },
+    "exits": {
+      "sl": "1.5 * ATR(14)",
+      "tp": "middle_bb(20) OR opposite_bb_touch",
+      "time_stop_bars": 20,
+      "breakeven_at_r": 1.0
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session": {
+      "mask_utc": "06:00-20:00",
+      "avoid_news_buffer_min": 15
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    },
+    "notes": "Mean reversion baseline inspired by mean-reversion-scalper-mql5 (MIT). Tuned for XAU M15 volatility."
+  },
+  {
+    "id": "02_ger40_donchian_breakout_m15",
+    "hypothesis": "On GER40 M15 during European session, a close above Donchian(20) high with ATR-expansion momentum continues for at least 2R when ADX(14)>22 and ATR percentile>0.50.",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "family": "trend_breakout",
+    "signal": {
+      "primitives": ["donchian", "atr", "ema"],
+      "entry_long": "close > donchian_high(20, shift=1) AND close > ema(50) AND (high-low) > 0.8 * ATR(14)",
+      "entry_short": "close < donchian_low(20, shift=1) AND close < ema(50) AND (high-low) > 0.8 * ATR(14)",
+      "cooldown_bars": 6
+    },
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile"],
+      "rule": "adx(14) > 22 AND atr_percentile(14, lookback=200) > 0.50"
+    },
+    "exits": {
+      "sl": "1.2 * ATR(14)",
+      "tp": "3.0 * ATR(14)",
+      "time_stop_bars": 32,
+      "trailing": "chandelier(ATR(14)*2.5) after +1R"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session": {
+      "mask_utc": "07:00-16:00",
+      "avoid_news_buffer_min": 10
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    },
+    "notes": "Donchian breakout filtered by trend + volatility regime. Avoids Asia flat hours for GER40."
+  },
+  {
+    "id": "03_us500_pullback_ema_m15",
+    "hypothesis": "On US500 M15, trend-pullback longs to EMA(20) inside a bullish EMA(20)>EMA(50) stack during US session deliver >2R when RSI(14) dips to 40-50 then turns up, gated by ADX(14)>18.",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "family": "trend_pullback",
+    "signal": {
+      "primitives": ["ema", "rsi", "atr"],
+      "entry_long": "ema(20) > ema(50) AND low <= ema(20) AND rsi(14) crossed_up 50 from below AND rsi(14) > 40",
+      "entry_short": "ema(20) < ema(50) AND high >= ema(20) AND rsi(14) crossed_down 50 from above AND rsi(14) < 60",
+      "cooldown_bars": 5
+    },
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile"],
+      "rule": "adx(14) > 18 AND atr_percentile(14, lookback=200) BETWEEN 0.25 AND 0.90"
+    },
+    "exits": {
+      "sl": "1.3 * ATR(14) below/above swing",
+      "tp": "2.5 * ATR(14)",
+      "time_stop_bars": 24,
+      "breakeven_at_r": 1.0
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session": {
+      "mask_utc": "13:00-20:00",
+      "avoid_news_buffer_min": 15
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    },
+    "notes": "Classic EMA pullback on US500 during NY session; avoids Asia/early-London thin liquidity."
+  },
+  {
+    "id": "04_xau_bb_squeeze_expansion_m5",
+    "hypothesis": "On XAUUSD M5, a Bollinger squeeze (bb_width at <20th percentile) followed by a bar closing outside the bands signals a volatility expansion that runs >=1.5R within 30 bars, filtered by ATR percentile rising (not dead market).",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "volatility_expansion",
+    "signal": {
+      "primitives": ["bollinger", "bb_width", "atr"],
+      "entry_long": "bb_width(20,2.0) 5-bars-ago was < 20th_percentile(200) AND close > upper_bb(20,2.0) AND close > close[5]",
+      "entry_short": "bb_width(20,2.0) 5-bars-ago was < 20th_percentile(200) AND close < lower_bb(20,2.0) AND close < close[5]",
+      "cooldown_bars": 8
+    },
+    "regime_filter": {
+      "primitives": ["atr_percentile", "adx"],
+      "rule": "atr_percentile(14, lookback=300) > 0.30 AND adx(14) > 15"
+    },
+    "exits": {
+      "sl": "1.2 * ATR(14)",
+      "tp": "2.0 * ATR(14)",
+      "time_stop_bars": 30,
+      "trailing": "ATR(14)*1.8 after +1R"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.4,
+      "max_concurrent_positions": 1
+    },
+    "session": {
+      "mask_utc": "07:00-21:00",
+      "avoid_news_buffer_min": 10
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "max_dd_pct": 15.0,
+      "sharpe_min": 1.5,
+      "trades_min": 200
+    },
+    "notes": "Squeeze-to-expansion breakout distinct from Donchian N-bar breakout; entry requires compression precondition."
+  }
+]

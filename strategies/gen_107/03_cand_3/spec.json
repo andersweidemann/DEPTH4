@@ -1,0 +1,31 @@
+{
+  "hypothesis": "ATR-based volatility expansion during the US session is a good trading opportunity",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 70,
+      "lookback": 20
+    }
+  },
+  "entry_rule": {
+    "type": "atr_breakout",
+    "params": {
+      "atr_period": 14,
+      "breakout_threshold": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_atr_level",
+      "sl": "1.5_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

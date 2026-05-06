@@ -1,0 +1,95 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("start_hour", 7), self.spec.get("regime_filter", {}).get("params", {}).get("end_hour", 10)
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(session_mask(full_idx, [(sessions[0], sessions[1])]), dtype=bool)
+        self._broker_spread_points = 0
+        self.asia_range_start = self.spec.get("entry_rule", {}).get("params", {}).get("asia_range_start", 0)
+        self.asia_range_end = self.spec.get("entry_rule", {}).get("params", {}).get("asia_range_end", 6)
+        self.breakout_threshold = self.spec.get("entry_rule", {}).get("params", {}).get("breakout_threshold", 1.2)
+        self.atr_period = self.spec.get("exit_rule", {}).get("params", {}).get("atr_period", 14)
+        self.atr_multiplier = self.spec.get("exit_rule", {}).get("params", {}).get("atr_multiplier", 1.5)
+        self.stop_loss_pips = self.spec.get("stop_loss", {}).get("params", {}).get("pips", 100)
+        self.take_profit_pips = self.spec.get("take_profit", {}).get("params", {}).get("pips", 200)
+        self.time_stop_bars = self.spec.get("time_stop", {}).get("params", {}).get("bars", 60)
+        self.lots = self.spec.get("sizing", {}).get("params", {}).get("lots", 0.1)
+        self._atr_series = self.I(atr, self.data, self.atr_period)
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        start_hour = rf.get("params", {}).get("start_hour", 7)
+        end_hour = rf.get("params", {}).get("end_hour", 10)
+        current_hour = pd.Timestamp(self.data.index[-1]).hour
+        return start_hour <= current_hour < end_hour
+
+    def _filters_ok(self):
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 10)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            high = self.data.High[-1]
+            low = self.data.Low[-1]
+            close = self.data.Close[-1]
+            asia_high = self.data.High[self.asia_range_start:self.asia_range_end].max()
+            asia_low = self.data.Low[self.asia_range_start:self.asia_range_end].min()
+            if high > asia_high * self.breakout_threshold:
+                self.position.enter_long(lots=self.lots)
+                self.sl_price = close - self.stop_loss_pips * self.data._pip
+                self.tp_price = close + self.take_profit_pips * self.data._pip
+            elif low < asia_low / self.breakout_threshold:
+                self.position.enter_short(lots=self.lots)
+                self.sl_price = close + self.stop_loss_pips * self.data._pip
+                self.tp_price = close - self.take_profit_pips * self.data._pip
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rule", {})
+        time_stop = exit_cfg.get("time_stop_bars")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        trail_mult = exit_cfg.get("atr_multiplier")
+        if trail_mult and hasattr(self, "_atr_series") and self.trades:
+            atr_now = float(self._atr_series[-1])
+            if not np.isnan(atr_now):
+                price = float(self.data.Close[-1])
+                for trade in self.trades:
+                    if trade.is_long and trade.pl_pct > 0:
+                        new_sl = price - trail_mult * atr_now
+                        if trade.sl is None or new_sl > trade.sl:
+                            trade.sl = new_sl
+                    elif not trade.is_long and trade.pl_pct > 0:
+                        new_sl = price + trail_mult * atr_now
+                        if trade.sl is None or new_sl < trade.sl:
+                            trade.sl = new_sl

@@ -1,0 +1,105 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings, and volatility is above the 30th percentile.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "threshold": 30
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_threshold": 10
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "sl": "1.5 * atr(14)",
+      "tp": "opposite_bb",
+      "time_stop": 30
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "fraction": 0.01
+    }
+  },
+  {
+    "hypothesis": "Breakout of the Asia range during the London session results in a profitable trade.",
+    "regime_filter": {
+      "type": "session",
+      "start_hour": 7,
+      "end_hour": 10
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_start": 0,
+        "asia_range_end": 6,
+        "breakout_threshold": 0.5
+      }
+    },
+    "exit_rule": {
+      "type": "take_profit",
+      "sl": "100 pips",
+      "tp": "500 pips",
+      "time_stop": 10
+    },
+    "sizing_rule": {
+      "type": "fixed_size",
+      "size": 0.1
+    }
+  },
+  {
+    "hypothesis": "Price rejection off the Bollinger Bands results in a mean reversion opportunity.",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "threshold": 50
+    },
+    "entry_rule": {
+      "type": "bb_rejection",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0,
+        "rejection_threshold": 0.2
+      }
+    },
+    "exit_rule": {
+      "type": "middle_bb",
+      "sl": "1.2 * atr(14)",
+      "tp": "middle_bb",
+      "time_stop": 20
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "fraction": 0.02
+    }
+  },
+  {
+    "hypothesis": "Donchian channel breakout results in a trend following opportunity.",
+    "regime_filter": {
+      "type": "adx",
+      "threshold": 20
+    },
+    "entry_rule": {
+      "type": "donchian_breakout",
+      "params": {
+        "donchian_period": 20,
+        "breakout_threshold": 0.5
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "sl": "2 * atr(14)",
+      "tp": "1000 pips",
+      "time_stop": 30
+    },
+    "sizing_rule": {
+      "type": "fixed_size",
+      "size": 0.2
+    }
+  }
+]
+```

@@ -1,0 +1,72 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.asia_range_start = self.spec["entry_rule"]["params"]["asia_range_start"]
+        self.asia_range_end = self.spec["entry_rule"]["params"]["asia_range_end"]
+        self.breakout_threshold = self.spec["entry_rule"]["params"]["breakout_threshold"]
+        self.tp = self.spec["exit_rule"]["params"]["tp"]
+        self.sl = self.spec["exit_rule"]["params"]["sl"]
+        self.time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        self.size = self.spec["sizing_rule"]["params"]["size"]
+        self._session_mask_full = np.asarray(session_mask(self.data.index, [{"start_hour": 7, "end_hour": 10}]), dtype=bool)
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        if rf["type"] == "session":
+            start_hour = rf["params"]["start_hour"]
+            end_hour = rf["params"]["end_hour"]
+            current_hour = pd.Timestamp(self.data.index[-1]).hour
+            return start_hour <= current_hour < end_hour
+        return True
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            high = self.data.High[-1]
+            low = self.data.Low[-1]
+            close = self.data.Close[-1]
+            asia_high = self.data.High[self.asia_range_start:self.asia_range_end].max()
+            asia_low = self.data.Low[self.asia_range_start:self.asia_range_end].min()
+            if high > asia_high * self.breakout_threshold:
+                self.position.enter(long=True, size=self.size)
+                self.sl_price = low - self.sl
+                self.tp_price = high + self.tp
+            elif low < asia_low / self.breakout_threshold:
+                self.position.enter(long=False, size=self.size)
+                self.sl_price = high + self.sl
+                self.tp_price = low - self.tp
+
+    def _manage_open(self):
+        if self.position:
+            if self.time_stop is not None:
+                trade = self.trades[-1]
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= self.time_stop:
+                    self.position.close()
+            if self.tp_price is not None and self.position.is_long and self.data.Close[-1] >= self.tp_price:
+                self.position.close()
+            elif self.tp_price is not None and not self.position.is_long and self.data.Close[-1] <= self.tp_price:
+                self.position.close()
+            elif self.sl_price is not None and self.position.is_long and self.data.Close[-1] <= self.sl_price:
+                self.position.close()
+            elif self.sl_price is not None and not self.position.is_long and self.data.Close[-1] >= self.sl_price:
+                self.position.close()

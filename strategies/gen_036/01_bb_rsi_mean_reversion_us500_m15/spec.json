@@ -1,0 +1,81 @@
+{
+  "name": "bb_rsi_mean_reversion_us500_m15",
+  "hypothesis": "On US500 M15, mean-reversion of BB extremes with RSI confirmation produces positive expectancy outside high-ADX trending regimes, generalizing the BB+RSI family to equity index behavior.",
+  "family": "mean_reversion",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "signals": {
+    "entry_long": "close < lower_bb(20, 2.0) AND rsi(7) < 15 AND bb_width > bb_width_percentile(200, 25)",
+    "entry_short": "close > upper_bb(20, 2.0) AND rsi(7) > 85 AND bb_width > bb_width_percentile(200, 25)",
+    "primitives_used": [
+      "bollinger",
+      "rsi",
+      "bb_width",
+      "session_mask",
+      "adx"
+    ]
+  },
+  "regime_filter": {
+    "type": "non_trend_gate",
+    "rules": [
+      "adx(14) < 25",
+      "atr_percentile(14, 200) >= 20",
+      "session_mask: 13:30-21:00 UTC (US cash + overlap)"
+    ]
+  },
+  "exits": {
+    "take_profit": "middle bollinger band (SMA20) as primary, opposite band as runner",
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "time_stop": "close after 24 M15 bars (~6h)",
+    "breakeven": "move SL to entry after price tags middle band"
+  },
+  "sizing": {
+    "type": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 3
+  },
+  "params_to_optimize": {
+    "bb_period": [
+      18,
+      20,
+      24
+    ],
+    "bb_dev": [
+      1.8,
+      2.0,
+      2.2
+    ],
+    "rsi_len": [
+      5,
+      7,
+      9
+    ],
+    "rsi_long_thresh": [
+      10,
+      15,
+      20
+    ],
+    "rsi_short_thresh": [
+      80,
+      85,
+      90
+    ],
+    "atr_sl_mult": [
+      1.2,
+      1.5,
+      1.8
+    ],
+    "time_stop_bars": [
+      18,
+      24,
+      32
+    ]
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

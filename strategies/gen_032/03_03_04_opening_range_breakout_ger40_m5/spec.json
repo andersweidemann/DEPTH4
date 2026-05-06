@@ -1,0 +1,80 @@
+{
+  "name": "03_04_opening_range_breakout_ger40_m5",
+  "hypothesis": "On GER40 M5, the opening range of the first 30 minutes of the Frankfurt/London session (07:00-07:30 UTC) contains the day's initial liquidity; a breakout beyond that range with ATR-confirmed momentum during 07:30-11:00 UTC yields positive expectancy with trailing exits.",
+  "family": "session_breakout",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "07:30",
+        "label": "or"
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:30",
+        "end_utc": "11:00",
+        "label": "trade"
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "session": "or",
+        "atr_period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "trade_session==1 AND close > or_high + 0.25*ATR(14) AND close > ema(50) AND bars_since_trade_open <= 24 AND (or_range/ATR(14)) >= 0.3",
+    "short": "trade_session==1 AND close < or_low - 0.25*ATR(14) AND close < ema(50) AND bars_since_trade_open <= 24 AND (or_range/ATR(14)) >= 0.3",
+    "max_trades_per_day": 1
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14
+    },
+    "rule": "adx > 18 (require some directional pressure; avoid pure chop)"
+  },
+  "exit_rules": {
+    "take_profit": "2.5 * ATR(14) from entry",
+    "stop_loss": "opposite side of opening range, capped at 1.5*ATR(14)",
+    "time_stop_bars": 48,
+    "trailing": "after 1.0*ATR profit, trail by 1.0*ATR; force flat at 15:30 UTC"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "max_spread_points": 30
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  },
+  "diversification_tag": "opening_range_breakout",
+  "notes": "Opening range is session-anchored (not rolling Donchian) to avoid prior dead-branch failure mode. EMA(50) acts as light trend filter, not a strict HTF gate."
+}

@@ -1,0 +1,122 @@
+{
+  "name": "XAU_BB_RSI_MeanReversion_M15",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "When XAUUSD M15 closes outside BB(20, 2.0) with RSI(7) at an extreme, price reverts to the mean within ~30 bars, provided BB width is above the 40th percentile (so there is something to revert) and ADX is below 25 (no strong trend).",
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "max": 25
+      },
+      {
+        "primitive": "bb_width",
+        "period": 20,
+        "stddev": 2.0,
+        "percentile_min": 40,
+        "lookback": 200
+      },
+      {
+        "primitive": "session_mask",
+        "hours_utc": [
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ]
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": {
+      "conditions": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "stddev": 2.0,
+          "condition": "close_below_lower"
+        },
+        {
+          "primitive": "rsi",
+          "period": 7,
+          "max": 12
+        }
+      ]
+    },
+    "short": {
+      "conditions": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "stddev": 2.0,
+          "condition": "close_above_upper"
+        },
+        {
+          "primitive": "rsi",
+          "period": 7,
+          "min": 88
+        }
+      ]
+    },
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 1.5
+    },
+    "take_profit": {
+      "type": "bollinger_opposite",
+      "period": 20,
+      "stddev": 2.0,
+      "target": "middle_then_opposite"
+    },
+    "time_stop_bars": 32,
+    "min_rr": 1.0
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "params_to_optimize": {
+    "bb_stddev": [
+      1.75,
+      2.0,
+      2.25
+    ],
+    "rsi_extreme_long": [
+      8,
+      12,
+      15
+    ],
+    "rsi_extreme_short": [
+      85,
+      88,
+      92
+    ],
+    "sl_atr_mult": [
+      1.25,
+      1.5,
+      2.0
+    ],
+    "bb_width_percentile_min": [
+      30,
+      40,
+      50
+    ]
+  }
+}

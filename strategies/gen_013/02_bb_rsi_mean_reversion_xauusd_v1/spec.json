@@ -1,0 +1,78 @@
+{
+  "name": "bb_rsi_mean_reversion_xauusd_v1",
+  "hypothesis": "On XAUUSD M15, closes outside Bollinger(20,2.0) combined with RSI(2) extremes produce a short-horizon mean reversion edge when BB width is above its 30th percentile (not dead) and below its 90th (not crisis). Expected >=200 trades with PF>1.5.",
+  "family": "mean_reversion",
+  "symbols": [
+    "XAUUSD",
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "stddev": 2.0
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "lookback": 500
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 2
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi(2) < 10",
+    "short": "close > upper_bb AND rsi(2) > 90"
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "bb_width_percentile_min": 30,
+      "bb_width_percentile_max": 90,
+      "adx_max": 30
+    },
+    "description": "Trade only when volatility is alive but market is not strongly trending (ADX<30); this is the single regime filter, no additional stacking."
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "take_profit": "opposite Bollinger Band (middle BB as fallback if band crossed in < 3 bars)",
+    "time_stop": "30 bars (7.5h on M15)",
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 3
+  },
+  "session_filter": "07:00-20:00 UTC",
+  "max_spread_points": {
+    "XAUUSD": 60,
+    "US500": 100
+  },
+  "instrumentation_required": [
+    "bars_loaded",
+    "signals_generated",
+    "signals_filtered",
+    "orders_attempted",
+    "orders_rejected_reason"
+  ],
+  "diversity_tag": "mean_reversion"
+}

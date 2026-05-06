@@ -1,0 +1,56 @@
+{
+  "name": "xau_asia_london_range_breakout_m5",
+  "hypothesis": "On XAUUSD M5, a London-session breakout of the Asia-session range, filtered to ATR-normalized range sizes, produces positive expectancy because accumulation during low-liquidity Asia resolves directionally when London liquidity arrives.",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": {
+    "asia_range": {
+      "primitive": "donchian",
+      "period": 72,
+      "session": "asia_00_06_utc"
+    },
+    "breakout_levels": {
+      "primitive": "atr_breakout_levels",
+      "atr_period": 14,
+      "buffer_atr_mult": 0.5
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "window_utc": "07:00-10:00"
+    }
+  },
+  "entry_rules": {
+    "long": "During London window 07:00-10:00 UTC, close > AsiaHigh + 0.5*ATR(14) AND candle body >= 1.2*ATR(14) AND Asia range between 0.5*ATR and 2.0*ATR. First signal of day only.",
+    "short": "Mirror: close < AsiaLow - 0.5*ATR(14) with same body and range filters."
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "require": {
+      "adx_min": 18,
+      "adx_period": 14,
+      "atr_percentile_min": 35,
+      "atr_percentile_lookback": 200
+    },
+    "rationale": "Require moderate trending conditions and non-dead volatility; reject chop and exhausted days."
+  },
+  "exits": {
+    "stop_loss": "0.75*ATR(14) from entry, placed on opposite side of the breakout level",
+    "take_profit": "2.0*ATR(14) (R:R ~2.67)",
+    "time_stop_bars": 36,
+    "breakeven_trigger": "1.0*ATR(14) in favor"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "daily_limits": {
+    "max_trades_per_day": 1,
+    "max_daily_loss_pct": 2.0
+  }
+}

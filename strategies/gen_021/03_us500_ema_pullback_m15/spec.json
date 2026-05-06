@@ -1,0 +1,81 @@
+{
+  "name": "us500_ema_pullback_m15",
+  "hypothesis": "On US500 M15, in an ADX-confirmed uptrend (EMA50>EMA200, ADX>18), a pullback to EMA20 with RSI(14) dipping to 40-50 then turning up offers asymmetric continuation trades during US cash hours.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "family": "trend_pullback",
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "periods": [
+          20,
+          50,
+          200
+        ]
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "ema50 > ema200 AND low <= ema20 AND rsi14 crosses up through 50 AND close > ema20",
+    "short": "ema50 < ema200 AND high >= ema20 AND rsi14 crosses down through 50 AND close < ema20"
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14,
+      "min": 18
+    },
+    "rationale": "Pullback entries only work in directional regimes; ADX<18 means chop where EMA20 touches are noise."
+  },
+  "exit_rules": {
+    "tp": "2.0 * ATR(14)",
+    "sl": "1.3 * ATR(14) below swing low / above swing high",
+    "time_stop_bars": 20,
+    "trailing": "EMA20 cross against position after +1R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "params": {
+      "include_hours_utc": [
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20
+      ],
+      "broker_tz_aware": true
+    }
+  },
+  "falsification_criteria": "PF<1.3 IS, or trades<200, or win rate on pullback entries indistinguishable from random EMA20 touches (A/B vs non-ADX-filtered baseline)."
+}

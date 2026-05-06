@@ -1,0 +1,204 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "tp_price": "opposite_bb"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "sl_price": "1.5_atr"
+            }
+          },
+          {
+            "type": "time_stop",
+            "params": {
+              "time_stop_bar": 30
+            }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur on GER40 M15 after an Asia-London range expansion",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session_start": "07:00",
+        "session_end": "10:00"
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_period": 14,
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0,
+        "breakout_atr_multiplier": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "tp_price": "500_pips"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "sl_price": "100_pips"
+            }
+          },
+          {
+            "type": "time_stop",
+    "params": {
+      "time_stop_bar": 20
+    }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside the Bollinger Bands with an extreme RSI(7) reading",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "tp_price": "middle_bb"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "sl_price": "2_atr"
+            }
+          },
+          {
+            "type": "time_stop",
+            "params": {
+              "time_stop_bar": 40
+            }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur on US500 M5 after a volatility contraction",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 20
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_period": 14,
+        "min_range_atr": 0.2,
+        "max_range_atr": 1.5,
+        "breakout_atr_multiplier": 1.5
+      }
+    },
+    "exit_rule": {
+      "type": "multi_condition",
+      "params": {
+        "conditions": [
+          {
+            "type": "take_profit",
+            "params": {
+              "tp_price": "300_pips"
+            }
+          },
+          {
+            "type": "stop_loss",
+            "params": {
+              "sl_price": "150_pips"
+            }
+          },
+          {
+            "type": "time_stop",
+            "params": {
+              "time_stop_bar": 30
+            }
+          }
+        ]
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]

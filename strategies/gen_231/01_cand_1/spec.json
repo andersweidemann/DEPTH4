@@ -1,0 +1,43 @@
+{
+  "hypothesis": "Breakouts occur during the London session after a period of consolidation",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "consolidation_period": 10,
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "trailing_stop": 50,
+      "trailing_step": 10
+    }
+  },
+  "sl_rule": {
+    "type": "fixed",
+    "params": {
+      "stop_loss": 100
+    }
+  },
+  "tp_rule": {
+    "type": "fixed",
+    "params": {
+      "take_profit": 200
+    }
+  },
+  "time_stop": 60,
+  "sizing_rule": {
+    "type": "proportional",
+    "params": {
+      "risk_percentage": 2
+    }
+  }
+}

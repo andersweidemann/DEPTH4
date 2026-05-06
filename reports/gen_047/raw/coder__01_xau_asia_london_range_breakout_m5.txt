@@ -1,0 +1,241 @@
+```python
+import json
+import os
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+        p = self.spec.get("params", {})
+        self.atr_period = int(p.get("atr_period", 14))
+        self.min_range_atr = float(p.get("min_range_atr", 0.5))
+        self.max_range_atr = float(p.get("max_range_atr", 2.0))
+        self.breakout_buffer_atr = float(p.get("breakout_buffer_atr", 0.5))
+        self.body_min_atr = float(p.get("body_min_atr", 1.0))
+        self.max_breakout_bars = int(p.get("max_breakout_bars", 9))
+        self.sl_atr_mult = float(p.get("sl_atr_mult", 1.2))
+        self.tp_atr_mult = float(p.get("tp_atr_mult", 2.0))
+
+        rf = self.spec.get("regime_filter", {}) or {}
+        rules = rf.get("rules", {}) if isinstance(rf.get("rules"), dict) else rf
+        self.atr_pct_min = float(rules.get("atr_percentile_min", 20))
+        self.atr_pct_lookback = int(rules.get("atr_percentile_lookback", 200))
+        self.adx_min = float(rules.get("adx_min", 15))
+        self.adx_period = int(rules.get("adx_period", 14))
+        asia = rules.get("asia_session_utc", ["00:00", "06:00"])
+        london = rules.get("london_window_utc", ["07:00", "10:00"])
+        self.asia_start = asia[0]
+        self.asia_end = asia[1]
+        self.london_start = london[0]
+        self.london_end = london[1]
+
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+        self._atr_pct_series = self.I(
+            regime.atr_percentile, self.data, self.atr_period, self.atr_pct_lookback
+        )
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._asia_mask = np.asarray(
+            signals.session_mask(idx, [[self.asia_start, self.asia_end]]), dtype=bool
+        )
+        self._london_mask = np.asarray(
+            signals.session_mask(idx, [[self.london_start, self.london_end]]), dtype=bool
+        )
+
+        self._current_date = None
+        self._asia_high = np.nan
+        self._asia_low = np.nan
+        self._london_bar_count = 0
+        self._breakout_done_date = None
+        self._prev_london = False
+
+        self._equity_sod = self._equity_start
+        self._kill_date = None
+
+    def _update_day_state(self, ts: pd.Timestamp, bar_i: int) -> None:
+        day = ts.date()
+        if self._current_date != day:
+            self._current_date = day
+            self._asia_high = np.nan
+            self._asia_low = np.nan
+            self._london_bar_count = 0
+            self._breakout_done_date = None
+            self._prev_london = False
+
+        if bar_i < len(self._asia_mask) and self._asia_mask[bar_i]:
+            h = float(self.data.High[-1])
+            l = float(self.data.Low[-1])
+            self._asia_high = h if np.isnan(self._asia_high) else max(self._asia_high, h)
+            self._asia_low = l if np.isnan(self._asia_low) else min(self._asia_low, l)
+
+        in_london = bar_i < len(self._london_mask) and self._london_mask[bar_i]
+        if in_london:
+            self._london_bar_count += 1
+        self._prev_london = in_london
+
+    def _daily_kill_check(self, ts: pd.Timestamp) -> bool:
+        day_str = ts.strftime("%Y-%m-%d")
+        if self._kill_date != day_str:
+            self._kill_date = day_str
+            self._equity_sod = float(self.equity)
+        max_daily = self.spec.get("sizing", {}).get("max_daily_loss_pct", 3.0)
+        loss_pct = (self._equity_sod - float(self.equity)) / max(self._equity_sod, 1e-9) * 100.0
+        return loss_pct < max_daily
+
+    def next(self):
+        bar_i = len(self.data) - 1
+        ts = pd.Timestamp(self.data.index[-1])
+        self._update_day_state(ts, bar_i)
+
+        if self.position:
+            self._manage_open_custom()
+            return
+
+        if not self._daily_kill_check(ts):
+            return
+
+        atr = float(self._atr_series[-1])
+        if np.isnan(atr) or atr <= 0:
+            return
+
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val < self.adx_min:
+            return
+
+        atr_pct = float(self._atr_pct_series[-1])
+        if np.isnan(atr_pct) or atr_pct < self.atr_pct_min:
+            return
+
+        in_london = bar_i < len(self._london_mask) and self._london_mask[bar_i]
+        if not in_london:
+            return
+        if self._london_bar_count > self.max_breakout_bars:
+            return
+        if self._breakout_done_date == self._current_date:
+            return
+        if np.isnan(self._asia_high) or np.isnan(self._asia_low):
+            return
+
+        rng = self._asia_high - self._asia_low
+        if rng <= 0:
+            return
+        rng_atr = rng / atr
+        if rng_atr < self.min_range_atr or rng_atr > self.max_range_atr:
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        body = abs(close - open_)
+        if body < self.body_min_atr * atr:
+            return
+
+        long_trigger = self._asia_high + self.breakout_buffer_atr * atr
+        short_trigger = self._asia_low - self.breakout_buffer_atr * atr
+
+        direction = 0
+        if close > long_trigger and close > open_:
+            direction = 1
+        elif close < short_trigger and close < open_:
+            direction = -1
+        else:
+            return
+
+        if direction == 1:
+            sl_range = self._asia_low
+            sl_atr_based = close - self.sl_atr_mult * atr
+            sl = max(sl_range, sl_atr_based)
+            if sl >= close:
+                return
+            tp = close + self.tp_atr_mult * atr
+        else:
+            sl_range = self._asia_high
+            sl_atr_based = close + self.sl_atr_mult * atr
+            sl = min(sl_range, sl_atr_based)
+            if sl <= close:
+                return
+            tp = close - self.tp_atr_mult * atr
+
+        risk_pct = float(self.spec.get("sizing", {}).get("risk_per_trade_pct", 0.75))
+        stop_dist = abs(close - sl)
+        if stop_dist <= 0:
+            return
+
+        try:
+            lots = risk.lots_by_risk_pct(
+                equity=float(self.equity),
+                risk_pct=risk_pct,
+                stop_distance=stop_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+        except Exception:
+            lots = (float(self.equity) * risk_pct / 100.0) / stop_dist
+
+        if lots is None or lots <= 0:
+            return
+
+        size_frac = (lots * stop_dist) / max(float(self.equity), 1e-9)
+        size_frac = min(max(size_frac, 1e-4), 0.99)
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        if direction == 1:
+            self.buy(sl=sl, tp=tp, size=size_frac)
+        else:
+            self.sell(sl=sl, tp=tp, size=size_frac)
+
+        self._breakout_done_date = self._current_date
+
+    def _manage_open_custom(self):
+        if not self.position or not self.trades:
+            return
+        atr = float(self._atr_series[-1])
+        if np.isnan(atr) or atr <= 0:
+            return
+        price = float(self.data.Close[-1])
+        time_stop = self.spec.get("exit", {}).get("time_stop_bars", 24)
+
+        for trade in self.trades:
+            bars_open = len(self.data) - trade.entry_bar
+            if time_stop is not None and bars_open >= time_stop:
+                trade.close()
+                continue
+
+            entry = trade.entry_price
+            if trade.is_long:
+                r = entry - (trade.sl if trade.sl is not None else entry - atr)
+                if r <= 0:
+                    continue
+                profit = price - entry
+                if profit >= 1.0 * r:
+                    be = entry
+                    if trade.sl is None or be > trade.sl:
+                        trade.sl = be
+                    trail = price - 2.5 * atr
+                    if trade.sl is None or trail > trade.sl:
+                        trade.sl = trail
+            else:
+                r = (trade.sl if trade.sl is not None else entry + atr) - entry
+                if r <= 0:
+                    continue
+                profit = entry - price
+                if profit >= 1.0 * r:
+                    be = entry
+                    if trade.sl is None or be < trade.sl:
+                        trade.sl = be
+                    trail = price + 2.5 * atr
+                    if trade.sl is None or trail < trade.sl:
+                        trade.sl = trail
+```

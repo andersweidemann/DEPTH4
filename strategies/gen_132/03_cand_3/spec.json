@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversals occur frequently",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "min_width": 10,
+      "max_width": 50
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch",
+    "params": {
+      "bb_period": 20,
+      "bb_dev": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "200_pips",
+      "sl": "50_pips",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "scaled",
+    "params": {
+      "scale": 0.02
+    }
+  }
+}

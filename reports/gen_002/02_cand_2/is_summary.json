@@ -1,0 +1,27 @@
+{
+  "candidate": "02_cand_2",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "US500",
+      "timeframe": "M15",
+      "trades": 2,
+      "metrics": {
+        "return_pct": 0.9944291132203886,
+        "pf": NaN,
+        "sharpe": 0.7305657311533205,
+        "sortino": Infinity,
+        "max_dd_pct": 0.7526125292871777,
+        "trades": 2.0,
+        "win_rate": 50.0,
+        "expectancy": 0.4975061989308527,
+        "avg_trade": 0.49627475576481395,
+        "exposure_pct": 0.04402312681595398
+      }
+    }
+  ]
+}

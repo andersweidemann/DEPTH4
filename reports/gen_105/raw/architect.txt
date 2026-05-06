@@ -1,0 +1,124 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price reaches extreme deviations from its mean on XAUUSD M5",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during London session on GER40 M15",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 2
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl",
+      "params": {
+        "tp_pips": 100,
+        "sl_pips": 50
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Volatility expansion occurs after Asia range on XAUUSD M5",
+    "regime_filter": {
+      "type": "asia_range",
+      "params": {
+        "start_hour": 0,
+        "end_hour": 6
+      }
+    },
+    "entry_rule": {
+      "type": "range_breakout",
+      "params": {
+        "atr_period": 14,
+        "min_range_atr": 0.5,
+        "max_range_atr": 2
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "atr_multiplier": 1,
+        "trailing_step": 10
+      }
+    },
+    "sizing_rule": {
+      "type": "proportional",
+      "params": {
+        "proportion": 0.05
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs when RSI reaches extreme levels on BTCUSD M15",
+    "regime_filter": {
+      "type": "rsi_extremes",
+      "params": {
+        "rsi_period": 14,
+        "rsi_thresholds": [30, 70]
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_mean_reversion",
+      "params": {
+        "rsi_period": 14,
+        "rsi_thresholds": [30, 70]
+      }
+    },
+    "exit_rule": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75
+      }
+    },
+    "sizing_rule": {
+      "type": "scaled",
+      "params": {
+        "scale": 0.01
+      }
+    }
+  }
+]

@@ -1,0 +1,173 @@
+{
+  "gen": 17,
+  "candidates": [
+    {
+      "name": "00_xau_asialondon_rangebreak_m5",
+      "path": "/Users/User/Library/CloudStorage/OneDrive-Personal/Dokument/TRADING/strategies/gen_017/00_xau_asialondon_rangebreak_m5",
+      "strict_is_pass": false,
+      "strict_failures": [
+        "XAUUSD_M5",
+        "XAUUSD_M15",
+        "GER40_M5",
+        "GER40_M15",
+        "not_all_combos_positive"
+      ],
+      "hunt_profitable": false,
+      "hunt_reason": "XAUUSD_M5:return<=0",
+      "combos": [
+        {
+          "symbol": "XAUUSD",
+          "timeframe": "M5",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        },
+        {
+          "symbol": "XAUUSD",
+          "timeframe": "M15",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        },
+        {
+          "symbol": "GER40",
+          "timeframe": "M5",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        },
+        {
+          "symbol": "GER40",
+          "timeframe": "M15",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        }
+      ]
+    },
+    {
+      "name": "02_ger40_donchian_breakout_m15",
+      "path": "/Users/User/Library/CloudStorage/OneDrive-Personal/Dokument/TRADING/strategies/gen_017/02_ger40_donchian_breakout_m15",
+      "strict_is_pass": false,
+      "strict_failures": [
+        "XAUUSD_M5",
+        "XAUUSD_M15",
+        "GER40_M5",
+        "GER40_M15",
+        "not_all_combos_positive"
+      ],
+      "hunt_profitable": false,
+      "hunt_reason": "XAUUSD_M5:return<=0",
+      "combos": [
+        {
+          "symbol": "XAUUSD",
+          "timeframe": "M5",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        },
+        {
+          "symbol": "XAUUSD",
+          "timeframe": "M15",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        },
+        {
+          "symbol": "GER40",
+          "timeframe": "M5",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        },
+        {
+          "symbol": "GER40",
+          "timeframe": "M15",
+          "trades": 0,
+          "metrics": {
+            "return_pct": 0.0,
+            "pf": NaN,
+            "sharpe": NaN,
+            "sortino": NaN,
+            "max_dd_pct": 0.0,
+            "trades": 0.0,
+            "win_rate": NaN,
+            "expectancy": NaN,
+            "avg_trade": NaN,
+            "exposure_pct": 0.0
+          }
+        }
+      ]
+    }
+  ]
+}

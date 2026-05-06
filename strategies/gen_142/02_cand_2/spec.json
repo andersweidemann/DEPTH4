@@ -1,0 +1,29 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal is profitable on XAUUSD M15",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "min_width": 10
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch",
+    "params": {
+      "bb_period": 20,
+      "bb_dev": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {
+      "sl_mult": 1.5,
+      "time_stop_bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

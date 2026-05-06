@@ -1,0 +1,125 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur on GER40 M15 when price breaks out of the Asia range with high momentum",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_multiplier": 1.2,
+        "breakout_atr_multiplier": 0.5
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "sl_multiplier": 1.2,
+        "ts_multiplier": 0.5
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Reversals occur on US500 M5 when price touches the Bollinger Band with high RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.2,
+        "time_stop_bars": 20
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Momentum continuation occurs on BTCUSD M15 when price breaks out of the Donchian channel with high momentum",
+    "regime_filter": {
+      "type": "donchian_channel",
+      "params": {
+        "channel_period": 20
+      }
+    },
+    "entry_rule": {
+      "type": "breakout",
+      "params": {
+        "range_atr_multiplier": 1.5,
+        "breakout_atr_multiplier": 0.8
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "sl_multiplier": 1.5,
+        "ts_multiplier": 0.8
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.05
+      }
+    }
+  }
+]
+```

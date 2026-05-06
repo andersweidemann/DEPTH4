@@ -1,0 +1,47 @@
+```json
+{
+  "ranking": [
+    {
+      "candidate": "Candidate_1",
+      "fitness": 0.82,
+      "verdict": "survive",
+      "metrics_summary": {
+        "pf_avg": 2.5,
+        "sharpe_avg": 0.6,
+        "max_dd_pct": 18.0,
+        "trades_total": 150
+      }
+    },
+    {
+      "candidate": "Candidate_2",
+      "fitness": 0.69,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 2.0,
+        "sharpe_avg": 0.4,
+        "max_dd_pct": 25.0,
+        "trades_total": 100
+      }
+    },
+    {
+      "candidate": "Candidate_3",
+      "fitness": 0.91,
+      "verdict": "survive",
+      "metrics_summary": {
+        "pf_avg": 3.2,
+        "sharpe_avg": 0.7,
+        "max_dd_pct": 15.0,
+        "trades_total": 200
+      }
+    }
+  ],
+  "summary_markdown": "This generation shows promise with two candidates surpassing the acceptance thresholds. However, Candidate_2's high maximum drawdown percentage is a concern.",
+  "per_survivor_notes": {
+    "Candidate_1": "SL 2.0xATR is tighter than p90 MAE of 2.4xATR; raise to 2.6.",
+    "Candidate_3": "Consider increasing the trade size to improve profitability while maintaining risk control."
+  },
+  "dead_branches": [
+    "Strategy family with high maximum drawdown percentage (> 25%) due to overly aggressive position sizing."
+  ]
+}
+```

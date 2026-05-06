@@ -1,0 +1,43 @@
+{
+  "name": "XAUUSD_M5_AsiaLondonBreakout_v1",
+  "family": "breakout",
+  "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) expansion of a contained Asia-session range (00:00-06:00 UTC) produces directional follow-through when the breakout candle body exceeds 1.2x ATR, yielding positive expectancy over 200+ trades.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": "price closes >= AsiaHigh + 0.5*ATR(14) AND candle_body >= 1.2*ATR(14) AND time in [07:00,10:00] UTC AND 0.5 <= (AsiaHigh-AsiaLow)/ATR(14) <= 2.0",
+    "entry_short": "price closes <= AsiaLow  - 0.5*ATR(14) AND candle_body >= 1.2*ATR(14) AND time in [07:00,10:00] UTC AND 0.5 <= (AsiaHigh-AsiaLow)/ATR(14) <= 2.0",
+    "primitives_used": [
+      "atr",
+      "donchian",
+      "session_mask",
+      "atr_breakout_levels"
+    ]
+  },
+  "regime_filter": {
+    "type": "trend_or_expansion",
+    "rules": [
+      "adx(14) >= 20",
+      "atr_percentile(100) >= 40",
+      "session_mask: London 07:00-10:00 UTC only",
+      "only first valid breakout per day"
+    ]
+  },
+  "exits": {
+    "stop_loss": "opposite side of Asia range OR 1.5*ATR(14), whichever is tighter",
+    "take_profit": "2.5*ATR(14) from entry (R:R ~1.67)",
+    "time_stop": "close after 24 M5 bars (2 hours) if neither hit",
+    "trailing": "activate trailing at +1.0*ATR, trail by 1.2*ATR"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "cooldown_bars": 12
+  },
+  "diversity_tag": "breakout_session"
+}

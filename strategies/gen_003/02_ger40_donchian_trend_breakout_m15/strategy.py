@@ -1,0 +1,287 @@
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    donchian_period = 20
+    ema_fast_period = 50
+    ema_slow_period = 200
+    atr_period = 14
+    adx_period = 14
+    adx_min = 22.0
+    atr_pctile_period = 150
+    atr_pctile_min = 0.4
+    risk_pct = 0.6
+    sl_atr_mult = 2.0
+    trail_atr_mult = 3.0
+    trail_activate_r = 1.5
+    tp1_r = 2.0
+    tp2_r = 5.0
+    pyramid_trigger_r = 1.0
+    max_pyramids = 1
+
+    def init(self):
+        super().init()
+
+        self._donch_high = self.I(lambda: signals.donchian(self.data, self.donchian_period)[0])
+        self._donch_low = self.I(lambda: signals.donchian(self.data, self.donchian_period)[1])
+        self._ema_fast = self.I(signals.ema, self.data.Close, self.ema_fast_period)
+        self._ema_slow = self.I(signals.ema, self.data.Close, self.ema_slow_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+        self._atr_pct_series = self.I(
+            regime.atr_percentile, self.data, self.atr_period, self.atr_pctile_period
+        )
+
+        # Session mask 07:00 - 15:30 UTC, with force-close at 20:00
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = self._build_session_mask(idx, "07:00", "15:30")
+        self._force_close_mask = self._build_force_close_mask(idx, "20:00")
+        self._flatten_unfilled_mask = self._build_force_close_mask(idx, "16:00")
+
+        self._last_breakout_level_long: Optional[float] = None
+        self._last_breakout_level_short: Optional[float] = None
+        self._entry_price: Optional[float] = None
+        self._entry_direction: int = 0
+        self._entry_risk: Optional[float] = None
+        self._pyramid_count: int = 0
+        self._tp1_done: bool = False
+        self._trail_active: bool = False
+
+    @staticmethod
+    def _build_session_mask(idx, start_str, end_str):
+        ts = pd.DatetimeIndex(idx)
+        if ts.tz is None:
+            ts = ts.tz_localize("UTC")
+        else:
+            ts = ts.tz_convert("UTC")
+        sh, sm = map(int, start_str.split(":"))
+        eh, em = map(int, end_str.split(":"))
+        mins = ts.hour * 60 + ts.minute
+        return np.asarray((mins >= sh * 60 + sm) & (mins <= eh * 60 + em), dtype=bool)
+
+    @staticmethod
+    def _build_force_close_mask(idx, cutoff_str):
+        ts = pd.DatetimeIndex(idx)
+        if ts.tz is None:
+            ts = ts.tz_localize("UTC")
+        else:
+            ts = ts.tz_convert("UTC")
+        ch, cm = map(int, cutoff_str.split(":"))
+        mins = ts.hour * 60 + ts.minute
+        return np.asarray(mins >= ch * 60 + cm, dtype=bool)
+
+    def _regime_ok(self) -> bool:
+        if len(self.data) < max(self.atr_pctile_period, self.ema_slow_period) + 5:
+            return False
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val < self.adx_min:
+            return False
+        atr_pct = float(self._atr_pct_series[-1])
+        if np.isnan(atr_pct) or atr_pct < self.atr_pctile_min:
+            return False
+        return True
+
+    def _session_active(self) -> bool:
+        bar_i = len(self.data) - 1
+        if self._session_mask_full is None:
+            return True
+        if 0 <= bar_i < len(self._session_mask_full):
+            return bool(self._session_mask_full[bar_i])
+        return False
+
+    def _ema_aligned_long(self) -> bool:
+        return float(self._ema_fast[-1]) > float(self._ema_slow[-1])
+
+    def _ema_aligned_short(self) -> bool:
+        return float(self._ema_fast[-1]) < float(self._ema_slow[-1])
+
+    def next(self):
+        bar_i = len(self.data) - 1
+        price = float(self.data.Close[-1])
+
+        # Force close at 20:00 UTC
+        if bar_i < len(self._force_close_mask) and bool(self._force_close_mask[bar_i]):
+            if self.position:
+                self.position.close()
+            self._reset_trade_state()
+            return
+
+        self._manage_open_custom()
+
+        # Flatten at 16:00 if no TP yet (treat as time stop)
+        if bar_i < len(self._flatten_unfilled_mask) and bool(self._flatten_unfilled_mask[bar_i]):
+            if self.position and not self._tp1_done:
+                self.position.close()
+                self._reset_trade_state()
+                return
+
+        if not self._session_active():
+            return
+        if not self._regime_ok():
+            return
+
+        prior_dh = float(self._donch_high[-2]) if len(self._donch_high) >= 2 else np.nan
+        prior_dl = float(self._donch_low[-2]) if len(self._donch_low) >= 2 else np.nan
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(prior_dh) or np.isnan(prior_dl) or np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        long_break = price > prior_dh and self._ema_aligned_long()
+        short_break = price < prior_dl and self._ema_aligned_short()
+
+        if not self.position:
+            if long_break and self._last_breakout_level_long != prior_dh:
+                self._open_long(price, atr_now, prior_dl, prior_dh)
+            elif short_break and self._last_breakout_level_short != prior_dl:
+                self._open_short(price, atr_now, prior_dh, prior_dl)
+        else:
+            # Pyramiding
+            if self._pyramid_count < self.max_pyramids and self._entry_price and self._entry_risk:
+                r_mult = (price - self._entry_price) / self._entry_risk * self._entry_direction
+                if r_mult >= self.pyramid_trigger_r:
+                    if self._entry_direction > 0 and long_break and self._last_breakout_level_long != prior_dh:
+                        self._add_long(price, atr_now, prior_dl, prior_dh)
+                    elif self._entry_direction < 0 and short_break and self._last_breakout_level_short != prior_dl:
+                        self._add_short(price, atr_now, prior_dh, prior_dl)
+
+    def _open_long(self, price, atr_now, prior_dl, prior_dh):
+        sl_atr = price - self.sl_atr_mult * atr_now
+        sl_donch = prior_dl
+        sl = max(sl_atr, sl_donch)
+        if sl >= price:
+            return
+        risk_per_unit = price - sl
+        tp = price + self.tp2_r * risk_per_unit
+        size = self._size(price, risk_per_unit)
+        if size <= 0:
+            return
+        self.sl_price = sl
+        self.tp_price = tp
+        self.buy(size=size, sl=sl, tp=tp)
+        self._entry_price = price
+        self._entry_direction = 1
+        self._entry_risk = risk_per_unit
+        self._last_breakout_level_long = prior_dh
+        self._pyramid_count = 0
+        self._tp1_done = False
+        self._trail_active = False
+
+    def _open_short(self, price, atr_now, prior_dh, prior_dl):
+        sl_atr = price + self.sl_atr_mult * atr_now
+        sl_donch = prior_dh
+        sl = min(sl_atr, sl_donch)
+        if sl <= price:
+            return
+        risk_per_unit = sl - price
+        tp = price - self.tp2_r * risk_per_unit
+        size = self._size(price, risk_per_unit)
+        if size <= 0:
+            return
+        self.sl_price = sl
+        self.tp_price = tp
+        self.sell(size=size, sl=sl, tp=tp)
+        self._entry_price = price
+        self._entry_direction = -1
+        self._entry_risk = risk_per_unit
+        self._last_breakout_level_short = prior_dl
+        self._pyramid_count = 0
+        self._tp1_done = False
+        self._trail_active = False
+
+    def _add_long(self, price, atr_now, prior_dl, prior_dh):
+        sl_atr = price - self.sl_atr_mult * atr_now
+        sl = max(sl_atr, prior_dl)
+        if sl >= price:
+            return
+        risk_per_unit = price - sl
+        size = self._size(price, risk_per_unit)
+        if size <= 0:
+            return
+        self.buy(size=size, sl=sl, tp=price + self.tp2_r * risk_per_unit)
+        self._pyramid_count += 1
+        self._last_breakout_level_long = prior_dh
+
+    def _add_short(self, price, atr_now, prior_dh, prior_dl):
+        sl_atr = price + self.sl_atr_mult * atr_now
+        sl = min(sl_atr, prior_dh)
+        if sl <= price:
+            return
+        risk_per_unit = sl - price
+        size = self._size(price, risk_per_unit)
+        if size <= 0:
+            return
+        self.sell(size=size, sl=sl, tp=price - self.tp2_r * risk_per_unit)
+        self._pyramid_count += 1
+        self._last_breakout_level_short = prior_dl
+
+    def _size(self, price, risk_per_unit):
+        try:
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                stop_distance=risk_per_unit,
+                price=price,
+                symbol=self._symbol,
+            )
+        except TypeError:
+            size = (self.equity * (self.risk_pct / 100.0)) / max(risk_per_unit, 1e-9)
+        if isinstance(size, float):
+            if size <= 0:
+                return 0
+            if size < 1:
+                return max(min(size, 0.9999), 0.0)
+            return int(size)
+        return size
+
+    def _manage_open_custom(self):
+        if not self.position or self._entry_price is None or self._entry_risk is None:
+            return
+        price = float(self.data.Close[-1])
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now):
+            return
+
+        r_mult = (price - self._entry_price) / self._entry_risk * self._entry_direction
+
+        # Partial TP at 2R: close half
+        if not self._tp1_done and r_mult >= self.tp1_r:
+            for trade in list(self.trades):
+                try:
+                    trade.close(portion=0.5)
+                except Exception:
+                    pass
+            self._tp1_done = True
+
+        # Activate trailing after 1.5R
+        if r_mult >= self.trail_activate_r:
+            self._trail_active = True
+
+        if self._trail_active:
+            for trade in self.trades:
+                if trade.is_long:
+                    new_sl = price - self.trail_atr_mult * atr_now
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+                else:
+                    new_sl = price + self.trail_atr_mult * atr_now
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+
+    def _reset_trade_state(self):
+        self._entry_price = None
+        self._entry_direction = 0
+        self._entry_risk = None
+        self._pyramid_count = 0
+        self._tp1_done = False
+        self._trail_active = False

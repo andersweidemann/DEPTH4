@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Volatility increases during the London session",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rule": {
+    "type": "volatility_breakout",
+    "params": {
+      "atr_period": 14,
+      "min_atr": 10,
+      "max_atr": 50
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_and_stop_loss",
+    "params": {
+      "take_profit": "200_pips",
+      "stop_loss": "100_pips",
+      "time_stop": 40
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.2
+    }
+  }
+}

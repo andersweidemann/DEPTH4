@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Volatility contraction precedes expansion on GER40 M5",
+  "regime_filter": {
+    "type": "volatility",
+    "params": {
+      "volatility_period": 20,
+      "volatility_threshold": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "volatility < threshold && close > sma(50)"
+    },
+    "short": {
+      "condition": "volatility < threshold && close < sma(50)"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 15
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

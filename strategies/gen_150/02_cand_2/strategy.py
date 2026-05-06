@@ -1,0 +1,39 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, atr
+from agents.regime import atr_percentile
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.bollinger = self.I(bollinger, self.data, n=self.spec["entry_rule"]["params"]["bb_period"], dev=self.spec["entry_rule"]["params"]["bb_deviation"])
+        self.bb_width = self.I(bb_width, self.data, n=self.spec["regime_filter"]["params"]["bb_period"], dev=self.spec["regime_filter"]["params"]["bb_deviation"])
+        self.atr = self.I(atr, self.data, n=14)
+        self._atr_series = self.atr
+        self._regime_series = self.I(atr_percentile, self.data, n=self.spec["regime_filter"]["params"]["bb_period"], dev=self.spec["regime_filter"]["params"]["bb_deviation"], percentile=self.spec["regime_filter"]["params"]["percentile"])
+
+    def _regime_ok(self):
+        return self._regime_series[-1] <= self.spec["regime_filter"]["params"]["percentile"]
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        if self.bollinger['lower'][-1] <= self.data.Close[-1] <= self.bollinger['upper'][-1]:
+            size = lots_by_risk_pct(self.spec["sizing_rule"]["params"]["fraction"], self.equity, self.data.Close[-1], self.atr[-1])
+            self.position.enter_long(size)
+            self.sl_price = self.data.Close[-1] - self.spec["exit_rule"]["params"]["sl"] * self.atr[-1]
+            self.tp_price = self.bollinger['upper'][-1]
+
+    def _manage_open(self):
+        if self.position.is_long:
+            if self.data.Close[-1] >= self.tp_price:
+                self.position.close()
+            elif self.data.Close[-1] <= self.sl_price:
+                self.position.close()
+            elif len(self.data) - self.position.entry_bar >= self.spec["exit_rule"]["params"]["time_stop"]:
+                self.position.close()
+        super()._manage_open()

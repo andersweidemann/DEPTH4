@@ -1,0 +1,44 @@
+{
+  "hypothesis": "The RSI(7) and Bollinger Bands can be used to identify mean reversion opportunities in US500 on M5 when the price is in overbought/oversold territory and volatility is above the 50th percentile.",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "period": 20,
+      "deviation": 1.75,
+      "percentile": 50
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "rsi(7) < 10 && close < lower_bb"
+    },
+    "short": {
+      "condition": "rsi(7) > 90 && close > upper_bb"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 1.5
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "count": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

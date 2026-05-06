@@ -1,0 +1,82 @@
+{
+  "id": "bb_rsi_meanrev_us500_m15",
+  "family": "mean_reversion",
+  "hypothesis": "On US500 M15, RTH overbought/oversold BB+RSI extremes revert to the midband; index mean reversion is strongest when ATR percentile is moderate (not panic) and ADX indicates range.",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "session": {
+    "enabled": true,
+    "start_utc": "13:30",
+    "end_utc": "20:00",
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ]
+  },
+  "signals": [
+    {
+      "type": "bollinger",
+      "period": 20,
+      "dev": 2.0,
+      "source": "close"
+    },
+    {
+      "type": "rsi",
+      "period": 2
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "atr_percentile",
+      "period": 14,
+      "lookback": 500
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "op": "<",
+        "value": 25
+      },
+      {
+        "primitive": "atr_percentile",
+        "op": "between",
+        "value": [
+          20,
+          85
+        ]
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry": {
+    "long": "close < lower_bb AND rsi(2) < 5",
+    "short": "close > upper_bb AND rsi(2) > 95",
+    "cooldown_bars": 4
+  },
+  "exit": {
+    "tp": "middle_bb",
+    "sl": {
+      "type": "atr_mult",
+      "period": 14,
+      "mult": 2.0
+    },
+    "time_stop_bars": 24,
+    "breakeven_at_r": 0.8
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "acceptance_notes": "RTH-only US500 mean reversion. Distinct symbol from XAU sibling, same family but different RSI horizon.",
+  "diversity_tag": "mean_rev_bb_rsi2"
+}

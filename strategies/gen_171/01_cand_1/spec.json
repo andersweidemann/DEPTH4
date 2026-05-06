@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Breakouts on GER40 M15 during the London session can be profitable with a trailing stop loss",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > upper_bb"
+    },
+    "short": {
+      "condition": "close < lower_bb"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "trailing",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.0
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

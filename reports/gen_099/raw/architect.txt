@@ -1,0 +1,179 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Asia-London range expansion leads to breakout opportunities",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > 0 && displacement > 1.2 * atr(14)"
+      },
+      "short": {
+        "condition": "breakout < 0 && displacement < -1.2 * atr(14)"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Donchian channel breakouts lead to trend following opportunities",
+    "regime_filter": {
+      "type": "donchian_channel",
+      "params": {
+        "channel_period": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > donchian_channel_high"
+      },
+      "short": {
+        "condition": "close < donchian_channel_low"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 2
+        }
+      },
+      "tp": {
+        "type": "trailing",
+        "params": {
+          "trailing_pips": 200
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 40
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR-based volatility normalization improves trading performance",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "atr_period": 14,
+        "percentile": 50
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "rsi(7) < 30 && close > sma(50)"
+      },
+      "short": {
+        "condition": "rsi(7) > 70 && close < sma(50)"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "atr_period": 14,
+          "atr_multiplier": 1
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 300
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk": 0.01
+      }
+    }
+  }
+]
+```

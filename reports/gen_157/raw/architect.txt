@@ -1,0 +1,125 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs on XAUUSD M5 when price touches the upper or lower Bollinger Band with RSI(7) extreme readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time_stop",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "London breakout strategy is profitable on GER40 M15 when Asia range is within ATR-based bounds",
+    "regime_filter": {
+      "type": "atr_range_filter",
+      "params": {
+        "min_atr_range": 0.5,
+        "max_atr_range": 2.0
+      }
+    },
+    "entry_rule": {
+      "type": "london_breakout",
+      "params": {
+        "asia_range_hours": [0, 6],
+        "london_breakout_hours": [7, 10]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time_stop",
+      "params": {
+        "tp": "fixed_pips",
+        "sl": "fixed_pips",
+        "time_stop": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal is profitable on XAUUSD M15",
+    "regime_filter": {
+      "type": "session_filter",
+      "params": {
+        "session_hours": [7, 20]
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch_bounce",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time_stop",
+      "params": {
+        "tp": "opposite_bb",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs on US500 M5 when price reaches extreme RSI(7) readings with ATR-based stop loss",
+    "regime_filter": {
+      "type": "atr_filter",
+      "params": {
+        "min_atr": 10
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl_time_stop",
+      "params": {
+        "tp": "fixed_pips",
+        "sl": "1.5_atr",
+        "time_stop": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Breakouts occur on BTCUSD M5 after a volatility expansion.",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "breakout_threshold": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "tp_pips": 1000,
+      "sl": "fixed_pips",
+      "sl_pips": 200,
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "hypothesis": "Asia-London range expansion occurs on GER40 M5",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 0,
+      "end_hour": 6
+    }
+  },
+  "entry_rule": {
+    "type": "range_expansion",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.0
+    }
+  },
+  "sl_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 50
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 100
+    }
+  },
+  "time_stop_rule": {
+    "type": "fixed_bars",
+    "params": {
+      "bars": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "hypothesis": "RSI extremes lead to mean reversion on GER40 M5",
+  "regime_filter": {
+    "type": "symbol_timeframe",
+    "params": {
+      "symbol": "GER40",
+      "timeframe": "M5"
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_extreme",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "1.5_atr",
+      "time_stop": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

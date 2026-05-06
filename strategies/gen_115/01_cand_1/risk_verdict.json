@@ -1,0 +1,7 @@
+{
+  "pass": false,
+  "failures": [
+    "syntax_error:unmatched ')'"
+  ],
+  "warnings": []
+}

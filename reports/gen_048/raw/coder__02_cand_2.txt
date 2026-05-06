@@ -1,0 +1,266 @@
+```python
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    fast_ema_period = 50
+    slow_ema_period = 200
+    pullback_tol_atr = 0.4
+    rsi_period = 14
+    rsi_long_min = 40
+    rsi_long_max = 65
+    rsi_short_min = 35
+    rsi_short_max = 60
+    atr_period = 14
+    adx_period = 14
+    adx_min = 18
+    sl_atr_mult = 1.2
+    tp_atr_mult = 2.4
+    time_stop_bars = 20
+    risk_pct = 0.5
+    max_concurrent = 1
+    max_daily_trades = 3
+    session_start = "13:30"
+    session_end = "20:00"
+    trail_ema_period = 20
+
+    def init(self):
+        try:
+            spec_file = Path(__file__).parent / self.spec_path
+            if spec_file.exists():
+                self._spec = json.loads(spec_file.read_text())
+        except Exception:
+            pass
+        self.spec = dict(self._spec) if self._spec else {}
+        self._kill_state = risk.DailyKillState(start_of_day_equity=self._equity_start)
+
+        self._ema_fast = self.I(signals.ema, self.data.Close, self.fast_ema_period)
+        self._ema_slow = self.I(signals.ema, self.data.Close, self.slow_ema_period)
+        self._ema_trail = self.I(signals.ema, self.data.Close, self.trail_ema_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._rsi_series = self.I(signals.rsi, self.data.Close, self.rsi_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        sess = [{"start": self.session_start, "end": self.session_end}]
+        try:
+            self._session_mask_full = np.asarray(
+                signals.session_mask(full_idx, sess), dtype=bool)
+        except Exception:
+            self._session_mask_full = None
+
+        self._broker_spread_points = 0
+        self._last_trade_day = None
+        self._trades_today = 0
+        self._trade_entry_info = {}
+
+    def _in_session(self) -> bool:
+        mask = self._session_mask_full
+        if mask is None:
+            return True
+        i = len(self.data) - 1
+        if 0 <= i < len(mask):
+            return bool(mask[i])
+        return False
+
+    def _regime_ok(self) -> bool:
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val):
+            return False
+        if adx_val < self.adx_min:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        if not self._in_session():
+            return False
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        try:
+            dd_kill = self.spec.get("risk", {}).get(
+                "daily_dd_kill_pct", config.load()["risk"]["daily_dd_kill_pct"])
+        except Exception:
+            dd_kill = 0.03
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, dd_kill):
+            return False
+        return True
+
+    def _update_daily_counter(self):
+        now_date = pd.Timestamp(self.data.index[-1]).strftime("%Y-%m-%d")
+        if self._last_trade_day != now_date:
+            self._last_trade_day = now_date
+            self._trades_today = 0
+
+    def next(self):
+        self._update_daily_counter()
+
+        if self.position:
+            self._manage_open()
+            return
+
+        if not self._filters_ok():
+            return
+        if not self._regime_ok():
+            return
+        if self._trades_today >= self.max_daily_trades:
+            return
+
+        self._enter_if_signal()
+
+    def _enter_if_signal(self):
+        ema_f = float(self._ema_fast[-1])
+        ema_s = float(self._ema_slow[-1])
+        atr_v = float(self._atr_series[-1])
+        rsi_v = float(self._rsi_series[-1])
+        close = float(self.data.Close[-1])
+        low = float(self.data.Low[-1])
+        high = float(self.data.High[-1])
+
+        if any(np.isnan(x) for x in [ema_f, ema_s, atr_v, rsi_v]):
+            return
+        if atr_v <= 0:
+            return
+
+        tol = self.pullback_tol_atr * atr_v
+
+        long_ok = (
+            ema_f > ema_s
+            and low <= ema_f + tol
+            and close > ema_f
+            and self.rsi_long_min <= rsi_v <= self.rsi_long_max
+        )
+        short_ok = (
+            ema_f < ema_s
+            and high >= ema_f - tol
+            and close < ema_f
+            and self.rsi_short_min <= rsi_v <= self.rsi_short_max
+        )
+
+        if not (long_ok or short_ok):
+            return
+
+        if long_ok:
+            sl = low - self.sl_atr_mult * atr_v
+            if sl >= close:
+                return
+            tp = close + self.tp_atr_mult * atr_v
+            stop_dist = close - sl
+        else:
+            sl = high + self.sl_atr_mult * atr_v
+            if sl <= close:
+                return
+            tp = close - self.tp_atr_mult * atr_v
+            stop_dist = sl - close
+
+        if stop_dist <= 0:
+            return
+
+        try:
+            units = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                stop_distance=stop_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+        except Exception:
+            units = None
+
+        size_arg = None
+        if units is None or not np.isfinite(units) or units <= 0:
+            risk_cash = self.equity * (self.risk_pct / 100.0)
+            size_arg = max(risk_cash / stop_dist, 0.0)
+        else:
+            size_arg = units
+
+        if size_arg is None or size_arg <= 0:
+            return
+
+        if isinstance(size_arg, float) and 0 < size_arg < 1:
+            pass
+        else:
+            size_arg = max(int(size_arg), 1)
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        if long_ok:
+            self.buy(sl=sl, tp=tp, size=size_arg)
+        else:
+            self.sell(sl=sl, tp=tp, size=size_arg)
+
+        self._trades_today += 1
+        self._trade_entry_info[len(self.trades)] = {
+            "entry": close,
+            "atr": atr_v,
+            "stop_dist": stop_dist,
+            "is_long": long_ok,
+            "be_moved": False,
+            "trail_active": False,
+        }
+
+    def _manage_open(self):
+        if not self.position or not self.trades:
+            return
+
+        bar_i = len(self.data) - 1
+        price = float(self.data.Close[-1])
+        ema_trail = float(self._ema_trail[-1])
+
+        for trade in self.trades:
+            entry = float(trade.entry_price)
+            if trade.is_long:
+                r = price - entry
+            else:
+                r = entry - price
+
+            info = self._trade_entry_info.get(id(trade))
+            if info is None:
+                for k, v in list(self._trade_entry_info.items()):
+                    if abs(v["entry"] - entry) < 1e-8 and v["is_long"] == trade.is_long:
+                        info = v
+                        self._trade_entry_info[id(trade)] = v
+                        break
+            if info is None:
+                continue
+
+            stop_dist = info["stop_dist"]
+            if stop_dist <= 0:
+                continue
+
+            r_mult = r / stop_dist
+
+            if r_mult >= 1.0 and not info["be_moved"]:
+                if trade.is_long:
+                    if trade.sl is None or entry > trade.sl:
+                        trade.sl = entry
+                else:
+                    if trade.sl is None or entry < trade.sl:
+                        trade.sl = entry
+                info["be_moved"] = True
+
+            if r_mult >= 1.5 and not np.isnan(ema_trail):
+                info["trail_active"] = True
+
+            if info["trail_active"] and not np.isnan(ema_trail):
+                if trade.is_long:
+                    if trade.sl is None or ema_trail > trade.sl:
+                        trade.sl = ema_trail
+                else:
+                    if trade.sl is None or ema_trail < trade.sl:
+                        trade.sl = ema_trail
+
+            bars_open = bar_i - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                trade.close()
+```

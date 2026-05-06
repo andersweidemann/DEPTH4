@@ -1,0 +1,183 @@
+[
+  {
+    "name": "02_xauusd_m5_asia_london_breakout_v1",
+    "hypothesis": "On XAUUSD M5, the Asia-session (00:00-06:00 UTC) high/low range acts as accumulation; a London-session (07:00-10:00 UTC) ATR-normalized breakout with body confirmation captures directional expansion more often than it fails, yielding PF>=2.0.",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "session_breakout",
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile"],
+      "rules": [
+        {"indicator": "adx", "period": 14, "op": ">=", "value": 18},
+        {"indicator": "atr_percentile", "period": 100, "op": ">=", "value": 0.30}
+      ],
+      "description": "Only trade when market shows at least mild trendiness and non-dead volatility."
+    },
+    "signals": {
+      "primitives": ["atr", "session_mask", "donchian"],
+      "entry_long": "Price closes >= AsiaHigh + 0.5*ATR(14) AND candle body >= 1.2*ATR(14) during London window, within first 9 bars of window, and AsiaRange between 0.5*ATR and 2.0*ATR",
+      "entry_short": "Mirror: Price closes <= AsiaLow - 0.5*ATR(14) with body >= 1.2*ATR(14) in London window under same range filter",
+      "session_window_entry": "07:00-10:00 UTC",
+      "range_window": "00:00-06:00 UTC",
+      "one_trade_per_day": true,
+      "cooldown_bars": 12
+    },
+    "exits": {
+      "stop_loss": "1.5 * ATR(14) from entry, or opposite side of Asia range (whichever is tighter but >= broker stops_level)",
+      "take_profit": "3.0 * ATR(14) (RR ~2.0)",
+      "time_stop_bars": 60,
+      "breakeven_trigger": "Move SL to entry after +1.0*ATR favorable",
+      "trailing": "ATR-chandelier: 2.0*ATR from highest high (long) / lowest low (short) once in profit >1.5*ATR"
+    },
+    "sizing": {
+      "method": "fixed_risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "min_stop_points": 50
+    },
+    "parameter_grid": {
+      "atr_period": [14, 21],
+      "breakout_atr_mult": [0.4, 0.5, 0.6],
+      "body_atr_mult": [1.0, 1.2, 1.4],
+      "sl_atr_mult": [1.2, 1.5, 2.0],
+      "tp_atr_mult": [2.5, 3.0, 3.5]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200},
+    "diversity_tag": "session_breakout_gold"
+  },
+  {
+    "name": "03_ger40_m15_donchian_trend_v1",
+    "hypothesis": "On GER40 M15, a 20-bar Donchian breakout filtered by ADX>=22 and EMA50>EMA200 trend alignment captures sustained intraday-to-multiday trends, producing PF>=2.0 with acceptable drawdown.",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "family": "trend_breakout",
+    "regime_filter": {
+      "primitives": ["adx", "classify"],
+      "rules": [
+        {"indicator": "adx", "period": 14, "op": ">=", "value": 22},
+        {"indicator": "ema_trend", "fast": 50, "slow": 200, "op": "aligned_with_signal"}
+      ],
+      "description": "Only take breakouts in the direction of the higher-period EMA alignment and only when ADX confirms trend strength."
+    },
+    "signals": {
+      "primitives": ["donchian", "ema", "atr", "session_mask"],
+      "entry_long": "Close > Donchian_Upper(20)[1] AND EMA(50) > EMA(200) AND ADX(14) >= 22",
+      "entry_short": "Close < Donchian_Lower(20)[1] AND EMA(50) < EMA(200) AND ADX(14) >= 22",
+      "session_window_entry": "07:00-20:00 UTC",
+      "cooldown_bars": 8
+    },
+    "exits": {
+      "stop_loss": "2.0 * ATR(14) from entry",
+      "take_profit": "4.0 * ATR(14) (RR 2.0)",
+      "time_stop_bars": 96,
+      "breakeven_trigger": "Move SL to entry after +1.5*ATR favorable",
+      "trailing": "Chandelier 3.0*ATR once +2.0*ATR in profit"
+    },
+    "sizing": {
+      "method": "fixed_risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "min_stop_points": 40
+    },
+    "parameter_grid": {
+      "donchian_period": [15, 20, 30],
+      "adx_min": [20, 22, 25],
+      "sl_atr_mult": [1.5, 2.0, 2.5],
+      "tp_atr_mult": [3.0, 4.0, 5.0]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200},
+    "diversity_tag": "trend_breakout_index"
+  },
+  {
+    "name": "04_us500_m15_bb_rsi_mean_reversion_v1",
+    "hypothesis": "On US500 M15 during RTH, extreme BB(20,2.0) excursions combined with RSI(7) extremes revert toward the BB mid within 20 bars, and a BB-width percentile filter suppresses dead-range chop, yielding PF>=2.0.",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "family": "mean_reversion",
+    "regime_filter": {
+      "primitives": ["bb_width", "atr_percentile", "adx"],
+      "rules": [
+        {"indicator": "bb_width_percentile", "period": 200, "op": ">=", "value": 0.30},
+        {"indicator": "adx", "period": 14, "op": "<=", "value": 22}
+      ],
+      "description": "Only mean-revert when volatility is alive but ADX is low (non-trending regime)."
+    },
+    "signals": {
+      "primitives": ["bollinger", "rsi", "atr", "session_mask"],
+      "entry_long": "Close < LowerBB(20,2.0) AND RSI(7) < 10",
+      "entry_short": "Close > UpperBB(20,2.0) AND RSI(7) > 90",
+      "session_window_entry": "13:30-20:00 UTC (US RTH)",
+      "cooldown_bars": 4
+    },
+    "exits": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "Opposite BB band OR BB middle (whichever hit first); fallback fixed 2.0*ATR",
+      "time_stop_bars": 20,
+      "breakeven_trigger": "none",
+      "trailing": "none"
+    },
+    "sizing": {
+      "method": "fixed_risk_pct",
+      "risk_per_trade_pct": 0.4,
+      "max_concurrent_positions": 1,
+      "min_stop_points": 20
+    },
+    "parameter_grid": {
+      "bb_period": [20],
+      "bb_dev": [1.75, 2.0, 2.25],
+      "rsi_period": [5, 7, 9],
+      "rsi_long_thr": [8, 10, 15],
+      "rsi_short_thr": [85, 90, 92],
+      "sl_atr_mult": [1.2, 1.5, 2.0],
+      "bb_width_pct_min": [0.25, 0.30, 0.40]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200},
+    "diversity_tag": "mean_reversion_equity"
+  },
+  {
+    "name": "05_xauusd_m15_atr_breakout_retest_v1",
+    "hypothesis": "On XAUUSD M15, an ATR-breakout level that is broken and then retested (price returns within 0.2*ATR of the broken level and closes back in direction) produces higher win-rate continuation trades than naked breakouts, achieving PF>=2.0.",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "family": "breakout_retest",
+    "regime_filter": {
+      "primitives": ["adx", "atr_percentile"],
+      "rules": [
+        {"indicator": "adx", "period": 14, "op": ">=", "value": 20},
+        {"indicator": "atr_percentile", "period": 200, "op": "between", "value": [0.35, 0.95]}
+      ],
+      "description": "Trade breakout-retests only in lively-but-not-blowoff volatility and with minimal trend strength."
+    },
+    "signals": {
+      "primitives": ["atr_breakout_levels", "atr", "ema", "session_mask"],
+      "entry_long": "Prior bar closed > ATR_breakout_upper(lookback=20, k=1.5); within next 5 bars price retraces to within 0.2*ATR(14) of that level; retest bar closes green above level AND EMA(50) > EMA(200)",
+      "entry_short": "Mirror of long using ATR_breakout_lower",
+      "session_window_entry": "07:00-20:00 UTC",
+      "cooldown_bars": 10,
+      "max_retest_bars": 5
+    },
+    "exits": {
+      "stop_loss": "1.5 * ATR(14) below retest low (long) / above retest high (short)",
+      "take_profit": "3.0 * ATR(14) (RR 2.0)",
+      "time_stop_bars": 40,
+      "breakeven_trigger": "Move SL to entry after +1.0*ATR favorable",
+      "trailing": "Chandelier 2.5*ATR once +1.5*ATR in profit"
+    },
+    "sizing": {
+      "method": "fixed_risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "min_stop_points": 50
+    },
+    "parameter_grid": {
+      "breakout_lookback": [15, 20, 30],
+      "breakout_k_atr": [1.2, 1.5, 1.8],
+      "retest_atr_mult": [0.15, 0.20, 0.30],
+      "max_retest_bars": [3, 5, 8],
+      "sl_atr_mult": [1.2, 1.5, 2.0],
+      "tp_atr_mult": [2.5, 3.0, 4.0]
+    },
+    "acceptance_targets": {"pf_min": 2.0, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200},
+    "diversity_tag": "breakout_retest_gold"
+  }
+]

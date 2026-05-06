@@ -1,0 +1,83 @@
+{
+  "name": "xau_asia_london_range_breakout_m5",
+  "hypothesis": "On XAUUSD M5, a London-session breakout of the Asia-session range (when the range is between 0.5x and 2.0x daily ATR) produces a directional move of at least 1R within the London window.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "range_breakout",
+  "signals": [
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "donchian",
+      "params": {
+        "period_bars_asia_session": true,
+        "session_start_utc": "00:00",
+        "session_end_utc": "06:00"
+      }
+    },
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_period": 14,
+        "buffer_mult": 0.1
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "start_utc": "07:00",
+        "end_utc": "10:00"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "params": {
+      "asia_range_min_atr_mult": 0.5,
+      "asia_range_max_atr_mult": 2.0,
+      "require_session_mask": true,
+      "first_breakout_per_day_only": true
+    }
+  },
+  "entry_rules": {
+    "long": "session_in(07:00-10:00 UTC) AND close > asia_high + 0.1*ATR AND candle_body >= 1.0*ATR AND asia_range in [0.5*ATR, 2.0*ATR] AND not_yet_triggered_today",
+    "short": "session_in(07:00-10:00 UTC) AND close < asia_low - 0.1*ATR AND candle_body >= 1.0*ATR AND asia_range in [0.5*ATR, 2.0*ATR] AND not_yet_triggered_today",
+    "max_bars_into_window": 24,
+    "max_concurrent": 1
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "mult": 0.75
+    },
+    "take_profit": {
+      "type": "rr_multiple",
+      "rr": 2.0
+    },
+    "time_stop_bars": 36,
+    "trailing_stop": {
+      "type": "atr_trail",
+      "atr_period": 14,
+      "mult": 1.5,
+      "activate_after_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct_equity",
+    "risk_pct": 0.5,
+    "max_lot": 2.0,
+    "min_lot": 0.01
+  },
+  "diagnostics": {
+    "bar_counter": true,
+    "signal_counter": true,
+    "rejection_reason_counter": true,
+    "symbol_resolution_log": true,
+    "session_boundary_log": true
+  }
+}

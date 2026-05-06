@@ -1,0 +1,36 @@
+{
+  "hypothesis": "Mean reversion occurs when RSI reaches extreme levels on BTCUSD M15",
+  "regime_filter": {
+    "type": "rsi_extremes",
+    "params": {
+      "rsi_period": 14,
+      "rsi_thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_mean_reversion",
+    "params": {
+      "rsi_period": 14,
+      "rsi_thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "bb_touch",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75
+    }
+  },
+  "sizing_rule": {
+    "type": "scaled",
+    "params": {
+      "scale": 0.01
+    }
+  }
+}

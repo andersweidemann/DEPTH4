@@ -1,0 +1,33 @@
+{
+  "ranking": [
+    {
+      "candidate": "01_cand_1",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "02_cand_2",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nBoth candidates produced **zero trades** across all 4 symbol/TF combos (XAUUSD M5/M15, GER40 M5/M15) over the full 2020-01-01 to 2024-06-30 IS window. All metrics are NaN or 0.0. This is not a fitness problem \u2014 it is a signal-generation or execution-path problem.\n\n### Likely root causes (in priority order)\n1. **Entry conditions never trigger**: thresholds (e.g., z-score, RSI bands, breakout multipliers) are too restrictive or reference undefined/NaN indicator values during warmup.\n2. **Data feed / symbol mapping mismatch**: symbols `XAUUSD` and `GER40` may not match broker/backtest symbol strings (e.g., `XAUUSDm`, `DE40`, `GER40.cash`). Verify symbol resolution in the runner.\n3. **Session / time filter wipes out all bars**: a session gate (e.g., London-only, no-Friday, news blackout) may be evaluating to False universally.\n4. **Risk sizing returns 0 lots**: if min-lot rounding or free-margin check fails, orders are silently skipped.\n5. **Signal logic bug**: e.g., comparing incompatible series, wrong shift, or `and` vs `&` on vectorized conditions.\n\n### Recommendation: PIVOT \u2014 do not tune parameters\nRunning a fitness comparison on two zero-trade candidates is meaningless. Before generating candidates 3+, the factory must first prove the scaffold can produce *any* trades on a known-trivial strategy (e.g., MA(20)/MA(50) crossover, no filters) on each symbol/TF. Only after a smoke-test baseline produces trades should new candidate families be proposed.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not generate further parameter variants of 01_cand_1 or 02_cand_2 until a smoke-test baseline (simple MA crossover, no filters, fixed 0.01 lot) is verified to produce >100 trades on all 4 combos.",
+    "Do not propose additional restrictive-filter strategies (multi-confluence, regime-gated, session+volatility+trend stacks) until single-filter strategies are shown to trigger.",
+    "Avoid any new candidates referencing XAUUSD/GER40 symbol strings until symbol resolution against the data source is validated and logged by the runner."
+  ]
+}

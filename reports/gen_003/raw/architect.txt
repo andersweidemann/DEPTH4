@@ -1,0 +1,175 @@
+[
+  {
+    "name": "xauusd_asia_london_breakout_m5",
+    "hypothesis": "After a contained Asia-session range on XAUUSD, the London session produces a volatility expansion; trading the first ATR-confirmed breakout of the Asia range during 07:00-10:00 UTC yields positive expectancy because liquidity rotation creates directional follow-through.",
+    "family": "breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "signals": [
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "donchian", "params": {"period": 72, "source": "asia_session"}},
+      {"primitive": "atr_breakout_levels", "params": {"atr_period": 14, "mult_entry": 0.5, "mult_body": 1.2}},
+      {"primitive": "session_mask", "params": {"asia_start": "00:00", "asia_end": "06:00", "trade_start": "07:00", "trade_end": "10:00", "tz": "UTC"}}
+    ],
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {
+        "adx_period": 14,
+        "adx_min": 18,
+        "atr_pctile_period": 100,
+        "atr_pctile_min": 0.30,
+        "atr_pctile_max": 0.95,
+        "asia_range_atr_min": 0.5,
+        "asia_range_atr_max": 2.0
+      }
+    },
+    "entry_rules": {
+      "long": "During 07:00-10:00 UTC, candle closes above Asia-range high by >= 0.5*ATR(14) with body >= 1.2*ATR(14); only first breakout of the day; regime_filter must pass.",
+      "short": "Mirror: close below Asia-range low by >= 0.5*ATR(14) with body >= 1.2*ATR(14); only first breakout of the day."
+    },
+    "exit_rules": {
+      "stop_loss": "0.75 * ATR(14) from entry, capped to opposite side of Asia range",
+      "take_profit": "2.5 * ATR(14) from entry (R:R ~3.3)",
+      "trailing": "activate chandelier trail at 1.5R using 2.0*ATR(14)",
+      "time_stop": "close if not hit SL/TP within 36 M5 bars (3h) or at 12:00 UTC, whichever first"
+    },
+    "sizing": {
+      "model": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "pyramiding": 0
+    },
+    "falsifiable_conditions": "Reject if PF < 2.0, Sharpe < 1.5, trades < 200 over 3y, or if win rate on first-breakout subset is statistically indistinguishable from a random same-session entry.",
+    "notes": "Inspired by LVC scout card; distinct from Pine priors (which target indices)."
+  },
+  {
+    "name": "xauusd_bb_rsi_mean_reversion_m15",
+    "hypothesis": "On XAUUSD M15, simultaneous BB(20,2.0) band excursion and RSI(7) extreme reading mark short-term liquidity flushes that mean-revert to the middle band, especially when BB width is elevated but not in a trend regime.",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "dev": 2.0, "source": "close"}},
+      {"primitive": "bb_width", "params": {"period": 20, "dev": 2.0, "pctile_period": 200}},
+      {"primitive": "rsi", "params": {"period": 7}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"trade_start": "07:00", "trade_end": "20:00", "tz": "UTC"}}
+    ],
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {
+        "adx_period": 14,
+        "adx_max": 22,
+        "bb_width_pctile_min": 0.30,
+        "bb_width_pctile_max": 0.90
+      }
+    },
+    "entry_rules": {
+      "long": "Prior bar close < lower BB AND RSI(7) < 10; current bar closes back above lower BB; regime_filter passes; session active.",
+      "short": "Prior bar close > upper BB AND RSI(7) > 90; current bar closes back below upper BB."
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "middle BB (SMA20) primary; scale 50% at midline, remainder targets opposite band",
+      "trailing": "none before midline; after midline tag, trail by 1.0*ATR(14)",
+      "time_stop": "close after 30 M15 bars (~7.5h)"
+    },
+    "sizing": {
+      "model": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "pyramiding": 0,
+      "cooldown_bars": 3
+    },
+    "falsifiable_conditions": "Reject if any of (PF<2.0, Sharpe<1.5, MaxDD>15%, trades<200), or if performance in high-ADX regime exceeds low-ADX regime (thesis would be inverted).",
+    "notes": "Ported idea from MIT-licensed mean-reversion-mql5; adapted to XAUUSD M15 with regime gate."
+  },
+  {
+    "name": "ger40_donchian_trend_breakout_m15",
+    "hypothesis": "GER40 M15 exhibits persistent intraday trend continuation during European cash session (07:00-15:30 UTC); 20-bar Donchian breakouts filtered by ADX>22 and rising ATR percentile capture trend legs with positive expectancy.",
+    "family": "trend_breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "signals": [
+      {"primitive": "donchian", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "ema", "params": {"period": 200}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"trade_start": "07:00", "trade_end": "15:30", "tz": "UTC"}}
+    ],
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {
+        "adx_period": 14,
+        "adx_min": 22,
+        "atr_pctile_period": 150,
+        "atr_pctile_min": 0.40,
+        "ema_alignment_required": true
+      }
+    },
+    "entry_rules": {
+      "long": "Close > Donchian-20 high of prior bar AND EMA50 > EMA200 AND ADX(14) > 22 AND session active; one entry per breakout level.",
+      "short": "Close < Donchian-20 low of prior bar AND EMA50 < EMA200 AND ADX(14) > 22 AND session active."
+    },
+    "exit_rules": {
+      "stop_loss": "2.0 * ATR(14) from entry or opposite Donchian band, whichever closer",
+      "take_profit": "scale 50% at 2R, runner to 5R",
+      "trailing": "chandelier 3.0*ATR(14) activated after 1.5R",
+      "time_stop": "close at 16:00 UTC if unfilled TP; force-close any open trade at 20:00 UTC"
+    },
+    "sizing": {
+      "model": "risk_pct_of_equity",
+      "risk_pct": 0.6,
+      "max_concurrent": 1,
+      "pyramiding": 1,
+      "pyramid_trigger": "+1.0R, same-direction new Donchian break"
+    },
+    "falsifiable_conditions": "Reject if PF<2.0, Sharpe<1.5, or if low-ADX subset outperforms high-ADX subset (thesis inversion), or trades<200.",
+    "notes": "Distinct from Pine DAX10 prior (that was MACD/RSI momentum with PineConnector plumbing); this is pure Donchian-trend."
+  },
+  {
+    "name": "us500_vwap_pullback_trend_m5",
+    "hypothesis": "US500 M5 trends during the US cash session (13:30-20:00 UTC) revert to a rising/falling EMA20 within a broader EMA50>EMA200 alignment; entries on pullbacks to EMA20 with RSI not-yet-exhausted capture continuation legs.",
+    "family": "trend_pullback",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "signals": [
+      {"primitive": "ema", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "ema", "params": {"period": 200}},
+      {"primitive": "rsi", "params": {"period": 14}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"trade_start": "13:30", "trade_end": "20:00", "tz": "UTC"}}
+    ],
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {
+        "adx_period": 14,
+        "adx_min": 18,
+        "atr_pctile_period": 150,
+        "atr_pctile_min": 0.25,
+        "atr_pctile_max": 0.95,
+        "ema_alignment_required": true
+      }
+    },
+    "entry_rules": {
+      "long": "EMA50>EMA200 AND ADX>18 AND price pulls back to within 0.25*ATR of EMA20 from above AND RSI(14) between 40 and 65 AND current bar closes bullish; session active.",
+      "short": "EMA50<EMA200 AND ADX>18 AND price pulls back to within 0.25*ATR of EMA20 from below AND RSI(14) between 35 and 60 AND current bar closes bearish."
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry, placed beyond most recent swing",
+      "take_profit": "scale 50% at 1.5R; runner targets 3.5R or prior session extreme",
+      "trailing": "after 1R, trail by EMA20 cross on close",
+      "time_stop": "close after 24 M5 bars (2h) if not at least +0.5R; hard-close at 20:15 UTC"
+    },
+    "sizing": {
+      "model": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "pyramiding": 0,
+      "cooldown_bars": 4
+    },
+    "falsifiable_conditions": "Reject if PF<2.0, Sharpe<1.5, MaxDD>15%, trades<200, or if pullback-entries underperform immediate-breakout entries on same regime (thesis wrong).",
+    "notes": "Fourth family: trend_pullback, distinct from breakout, mean_reversion, and trend_breakout above."
+  }
+]

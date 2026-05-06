@@ -1,0 +1,236 @@
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
+
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._ema_fast = self.I(signals.ema, self.data.Close, 20)
+        self._ema_slow = self.I(signals.ema, self.data.Close, 50)
+
+        def donchian_upper(data, n):
+            d = signals.donchian(data, n)
+            if isinstance(d, tuple):
+                return np.asarray(d[0])
+            return np.asarray(d["upper"]) if hasattr(d, "__getitem__") else np.asarray(d)
+
+        def donchian_lower(data, n):
+            d = signals.donchian(data, n)
+            if isinstance(d, tuple):
+                return np.asarray(d[1])
+            return np.asarray(d["lower"])
+
+        try:
+            d20 = signals.donchian(self.data, 20)
+            d10 = signals.donchian(self.data, 10)
+            if isinstance(d20, tuple):
+                self._don20_upper = self.I(lambda: np.asarray(d20[0]))
+                self._don20_lower = self.I(lambda: np.asarray(d20[1]))
+                self._don10_upper = self.I(lambda: np.asarray(d10[0]))
+                self._don10_lower = self.I(lambda: np.asarray(d10[1]))
+            else:
+                self._don20_upper = self.I(lambda: np.asarray(d20["upper"]))
+                self._don20_lower = self.I(lambda: np.asarray(d20["lower"]))
+                self._don10_upper = self.I(lambda: np.asarray(d10["upper"]))
+                self._don10_lower = self.I(lambda: np.asarray(d10["lower"]))
+        except Exception:
+            high = np.asarray(self.data.High)
+            low = np.asarray(self.data.Low)
+
+            def upper_n(n):
+                out = np.full_like(high, np.nan, dtype=float)
+                for i in range(n, len(high)):
+                    out[i] = high[i - n:i].max()
+                return out
+
+            def lower_n(n):
+                out = np.full_like(low, np.nan, dtype=float)
+                for i in range(n, len(low)):
+                    out[i] = low[i - n:i].min()
+                return out
+
+            self._don20_upper = self.I(lambda: upper_n(20))
+            self._don20_lower = self.I(lambda: lower_n(20))
+            self._don10_upper = self.I(lambda: upper_n(10))
+            self._don10_lower = self.I(lambda: lower_n(10))
+
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atr_pct_series = self.I(regime.atr_percentile, self.data, 14, 100)
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        sessions = [{"start": "07:00", "end": "15:30"}]
+        try:
+            self._session_mask_full = np.asarray(
+                signals.session_mask(idx, sessions), dtype=bool)
+        except Exception:
+            ts = pd.DatetimeIndex(idx)
+            minutes = ts.hour * 60 + ts.minute
+            self._session_mask_full = (minutes >= 7 * 60) & (minutes <= 15 * 60 + 30)
+
+        self._last_entry_bar = -10_000
+        self._cooldown = 3
+        self._entry_atr: Dict[int, float] = {}
+        self._be_moved: Dict[int, bool] = {}
+
+    def _session_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        m = self._session_mask_full
+        if m is None or bar_i >= len(m):
+            return False
+        return bool(m[bar_i])
+
+    def _regime_ok(self) -> bool:
+        adx_v = float(self._adx_series[-1])
+        if np.isnan(adx_v) or adx_v < 20:
+            return False
+        atr_p = float(self._atr_pct_series[-1])
+        if np.isnan(atr_p) or atr_p < 25:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        if not self._session_ok():
+            return False
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        try:
+            from agents import config as _cfg
+            dd_kill = self.spec.get("risk", {}).get(
+                "daily_dd_kill_pct", _cfg.load()["risk"]["daily_dd_kill_pct"])
+        except Exception:
+            dd_kill = self.spec.get("risk", {}).get("daily_dd_kill_pct", 5.0)
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, dd_kill):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < self._cooldown:
+            return
+        if not self._regime_ok():
+            return
+        if not self._filters_ok():
+            return
+
+        close = float(self.data.Close[-1])
+        atr_v = float(self._atr_series[-1])
+        if np.isnan(atr_v) or atr_v <= 0:
+            return
+
+        ema_f = float(self._ema_fast[-1])
+        ema_s = float(self._ema_slow[-1])
+
+        don20_up_prev = float(self._don20_upper[-2])
+        don20_lo_prev = float(self._don20_lower[-2])
+
+        long_sig = (close > don20_up_prev) and (ema_f > ema_s)
+        short_sig = (close < don20_lo_prev) and (ema_f < ema_s)
+
+        if not (long_sig or short_sig):
+            return
+
+        sl_dist = 2.0 * atr_v
+        if long_sig:
+            sl = close - sl_dist
+            tp = close + 4.0 * atr_v
+        else:
+            sl = close + sl_dist
+            tp = close - 4.0 * atr_v
+
+        try:
+            units = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=0.75,
+                entry_price=close,
+                stop_price=sl,
+                symbol=self._symbol,
+            )
+        except Exception:
+            risk_amt = self.equity * 0.0075
+            units = max(risk_amt / sl_dist, 0.0)
+
+        if units <= 0:
+            return
+
+        size = units
+        if isinstance(size, float) and size < 1:
+            size = max(min(size, 0.999), 1e-4)
+        else:
+            size = max(int(size), 1)
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        try:
+            if long_sig:
+                self.buy(size=size, sl=sl, tp=tp)
+            else:
+                self.sell(size=size, sl=sl, tp=tp)
+            self._last_entry_bar = bar_i
+            self._entry_atr[bar_i] = atr_v
+        except Exception:
+            return
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        price = float(self.data.Close[-1])
+        atr_v = float(self._atr_series[-1])
+        don10_up = float(self._don10_upper[-1])
+        don10_lo = float(self._don10_lower[-1])
+
+        time_stop = 40
+
+        for trade in list(self.trades):
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                trade.close()
+                continue
+
+            entry_price = float(trade.entry_price)
+            tkey = trade.entry_bar
+            entry_atr = self._entry_atr.get(tkey, atr_v)
+            if np.isnan(entry_atr) or entry_atr <= 0:
+                entry_atr = atr_v
+
+            if trade.is_long:
+                profit = price - entry_price
+                if not self._be_moved.get(tkey, False) and profit >= 1.5 * entry_atr:
+                    be = entry_price + 0.25 * entry_atr
+                    if trade.sl is None or be > trade.sl:
+                        trade.sl = be
+                    self._be_moved[tkey] = True
+                if not np.isnan(don10_lo):
+                    if trade.sl is None or don10_lo > trade.sl:
+                        if don10_lo < price:
+                            trade.sl = don10_lo
+            else:
+                profit = entry_price - price
+                if not self._be_moved.get(tkey, False) and profit >= 1.5 * entry_atr:
+                    be = entry_price - 0.25 * entry_atr
+                    if trade.sl is None or be < trade.sl:
+                        trade.sl = be
+                    self._be_moved[tkey] = True
+                if not np.isnan(don10_up):
+                    if trade.sl is None or don10_up < trade.sl:
+                        if don10_up > price:
+                            trade.sl = don10_up
+
+    def next(self):
+        self._manage_open()
+        self._enter_if_signal()

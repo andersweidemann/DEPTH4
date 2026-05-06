@@ -1,0 +1,221 @@
+```python
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+def _bb_upper(close, n, dev):
+    mid, upper, lower = signals.bollinger(close, n, dev)
+    return upper
+
+
+def _bb_lower(close, n, dev):
+    mid, upper, lower = signals.bollinger(close, n, dev)
+    return lower
+
+
+def _bb_mid(close, n, dev):
+    mid, upper, lower = signals.bollinger(close, n, dev)
+    return mid
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    bb_period: int = 20
+    bb_dev: float = 2.0
+    atr_period: int = 14
+    adx_period: int = 14
+    sl_atr_mult: float = 1.8
+    tp_r_mult: float = 2.5
+    trail_atr_mult: float = 1.0
+    trail_activate_r: float = 1.5
+    time_stop_bars: int = 24
+    cooldown_bars: int = 4
+    adx_max: float = 28.0
+    session_start_hour: int = 7
+    session_end_hour: int = 20
+    risk_pct: float = 0.5
+
+    def init(self):
+        try:
+            p = Path(__file__).parent / self.spec_path
+            if p.exists():
+                self._spec = json.loads(p.read_text())
+        except Exception:
+            pass
+        super().init()
+
+        close = self.data.Close
+        self._bb_upper = self.I(_bb_upper, close, self.bb_period, self.bb_dev)
+        self._bb_lower = self.I(_bb_lower, close, self.bb_period, self.bb_dev)
+        self._bb_mid = self.I(_bb_mid, close, self.bb_period, self.bb_dev)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+
+        self._last_entry_bar = -10_000
+        self._entry_r_by_trade = {}
+
+    def _session_active(self) -> bool:
+        idx = self.data.index
+        ts = pd.Timestamp(idx[-1])
+        h = ts.hour
+        return self.session_start_hour <= h < self.session_end_hour
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 1:
+            return False
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val):
+            return False
+        return adx_val < self.adx_max
+
+    def _filters_ok(self) -> bool:
+        return self._session_active()
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.data.Close) < max(self.bb_period, self.atr_period, self.adx_period) + 3:
+            return
+
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < self.cooldown_bars:
+            return
+
+        atr_val = float(self._atr_series[-1])
+        if np.isnan(atr_val) or atr_val <= 0:
+            return
+
+        close_now = float(self.data.Close[-1])
+        close_prev2 = float(self.data.Close[-3])
+        low_prev = float(self.data.Low[-2])
+        high_prev = float(self.data.High[-2])
+        low_now = float(self.data.Low[-1])
+        high_now = float(self.data.High[-1])
+
+        lb_now = float(self._bb_lower[-1])
+        ub_now = float(self._bb_upper[-1])
+        lb_prev = float(self._bb_lower[-2])
+        ub_prev = float(self._bb_upper[-2])
+        lb_prev2 = float(self._bb_lower[-3])
+        ub_prev2 = float(self._bb_upper[-3])
+
+        if any(np.isnan(x) for x in [lb_now, ub_now, lb_prev, ub_prev, lb_prev2, ub_prev2]):
+            return
+
+        long_signal = (
+            close_prev2 > lb_prev2
+            and low_prev <= lb_prev
+            and close_now > lb_now
+        )
+        short_signal = (
+            close_prev2 < ub_prev2
+            and high_prev >= ub_prev
+            and close_now < ub_now
+        )
+
+        equity = float(self.equity)
+
+        if long_signal:
+            sl = low_now - self.sl_atr_mult * atr_val
+            if sl >= close_now:
+                return
+            risk_dist = close_now - sl
+            tp = close_now + self.tp_r_mult * risk_dist
+            size = risk.lots_by_risk_pct(equity, self.risk_pct, risk_dist, close_now)
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    return
+            self._last_entry_bar = bar_i
+
+        elif short_signal:
+            sl = high_now + self.sl_atr_mult * atr_val
+            if sl <= close_now:
+                return
+            risk_dist = sl - close_now
+            tp = close_now - self.tp_r_mult * risk_dist
+            size = risk.lots_by_risk_pct(equity, self.risk_pct, risk_dist, close_now)
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    return
+            self._last_entry_bar = bar_i
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        bar_i = len(self.data) - 1
+        price = float(self.data.Close[-1])
+        atr_val = float(self._atr_series[-1]) if len(self._atr_series) else np.nan
+        lb_now = float(self._bb_lower[-1])
+        ub_now = float(self._bb_upper[-1])
+
+        for trade in list(self.trades):
+            bars_open = bar_i - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                trade.close()
+                continue
+
+            entry = float(trade.entry_price)
+            sl = trade.sl
+            if sl is None:
+                continue
+
+            if trade.is_long:
+                if not np.isnan(ub_now) and price >= ub_now:
+                    trade.close()
+                    continue
+                r_dist = entry - sl
+                if r_dist <= 0:
+                    continue
+                r_mult = (price - entry) / r_dist
+                if r_mult >= self.trail_activate_r and not np.isnan(atr_val):
+                    new_sl = price - self.trail_atr_mult * atr_val
+                    if new_sl > sl:
+                        trade.sl = new_sl
+            else:
+                if not np.isnan(lb_now) and price <= lb_now:
+                    trade.close()
+                    continue
+                r_dist = sl - entry
+                if r_dist <= 0:
+                    continue
+                r_mult = (entry - price) / r_dist
+                if r_mult >= self.trail_activate_r and not np.isnan(atr_val):
+                    new_sl = price + self.trail_atr_mult * atr_val
+                    if new_sl < sl:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

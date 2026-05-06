@@ -1,0 +1,27 @@
+{
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "years": 4.4955509924709105,
+  "targets": {
+    "pf_gt": 1.5,
+    "cagr_pct_gt": 10.0,
+    "trades_min": 50
+  },
+  "best_met_targets": false,
+  "best_objective": 500000385.1630327,
+  "best_metrics": {
+    "trial": 60,
+    "trades": 223,
+    "return_pct": 14.729858074641855,
+    "pf": 1.7347305476567005,
+    "sharpe": 0.6907753073711019,
+    "max_dd_pct": 4.673802648365899,
+    "cagr_pct": 3.103773153485223,
+    "targets_ok": false
+  },
+  "best_cagr_pct": 3.103773153485223,
+  "n_trials": 140,
+  "seed": 99
+}

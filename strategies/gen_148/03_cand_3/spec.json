@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Mean reversion scalping using RSI and Bollinger Bands is profitable on US500 M15",
+  "regime_filter": {
+    "type": "rsi",
+    "params": {
+      "period": 7,
+      "threshold": 50
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "rsi(7) < 30 && close < lower_bb"
+    },
+    "short": {
+      "condition": "rsi(7) > 70 && close > upper_bb"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "count": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

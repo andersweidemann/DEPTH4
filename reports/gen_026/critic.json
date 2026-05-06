@@ -1,0 +1,6 @@
+{
+  "ranking": [],
+  "summary_markdown": "## Generation Review\n\n**Status: EMPTY GENERATION**\n\nNo candidate metrics were provided in the input array. No ranking, fitness scoring, or verdict assignment is possible without backtest results.\n\n### Required Inputs Missing\n- Per-candidate metrics (PF, Sharpe, max DD, trade count) across symbols/timeframes\n- IS vs OOS split results for degradation analysis\n- Local vs MT5 divergence measurements\n- Per-combo (symbol \u00d7 TF) breakdown for consistency scoring\n\n### Recommended Next Steps\n1. Verify the candidate pipeline is emitting metrics to the Critic stage (check serialization/IO between Backtester and Critic).\n2. Confirm at least one strategy family has been generated and compiled successfully.\n3. Re-run with a non-empty candidate set before requesting ranking.\n\nNo strategy-family pivot can be recommended at this stage because no families have been evaluated. Do not treat this as a 'bad generation' \u2014 treat it as a pipeline/plumbing issue upstream of the Critic.",
+  "per_survivor_notes": {},
+  "dead_branches": []
+}

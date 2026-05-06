@@ -1,0 +1,22 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_bb_bounce_xauusd_m15_simple",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Status: CRITICAL FAILURE \u2014 zero trades across all 4 symbol/TF combos.**\n\nThe sole candidate `00_bb_bounce_xauusd_m15_simple` produced 0 trades on XAUUSD M5/M15 and GER40 M5/M15 over the full IS window (2020-01-01 to 2024-06-30). This is not a performance problem \u2014 it is an implementation or signal-gating problem. Possible causes:\n\n1. **Entry condition never fires** \u2014 Bollinger bounce logic likely requires price to close back inside the bands after a breach; if coded as a strict single-bar reversal with extra confirming filters (RSI, trend, session), the intersection may be empty.\n2. **Symbol/broker naming mismatch** \u2014 `XAUUSD` and `GER40` may not match the data feed (e.g., `XAUUSDm`, `GER40.cash`, `DE40`). If the backtester silently skipped missing symbols, trade count would be 0 with no error.\n3. **Timeframe/data availability** \u2014 M5 history for 2020 may be truncated; verify bar counts loaded.\n4. **Lot sizing / margin filter** \u2014 orders rejected pre-submission (zero-lot rounding, min stop distance violations on XAUUSD where stops are in points not pips).\n5. **Strategy was designed for M15 XAUUSD only** \u2014 running it on GER40 and M5 without re-parameterising ATR/BB period is inappropriate regardless.\n\nNo fitness can be computed; all normalised inputs are NaN \u2192 fitness defaults to 0.\n\n**Recommendation:** do NOT iterate on parameters. First prove the strategy can fire at all on its native combo (XAUUSD M15). Add instrumentation logging every bar's BB state, signal evaluation, and rejection reason.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not submit further candidates without a smoke-test confirming trades_total > 0 on at least the primary symbol/TF before full grid evaluation.",
+    "Avoid blindly fanning a single-symbol strategy (XAUUSD M15 BB bounce) across unrelated instruments (GER40) and faster TFs (M5) in the same generation \u2014 each needs its own parameterisation.",
+    "Pause the 'simple BB bounce' family until the signal-firing bug is diagnosed; parameter sweeps on a zero-trade strategy are wasted compute."
+  ]
+}

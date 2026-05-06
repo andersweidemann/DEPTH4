@@ -1,0 +1,28 @@
+{
+  "ranking": [
+    {
+      "candidate": "01_xau_m15_bb_bounce_3bar",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    },
+    {
+      "candidate": "03_us500_m15_trend_pullback_ema",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Status: Total failure — zero trades across all candidates and combos.**\n\nBoth candidates (`01_xau_m15_bb_bounce_3bar`, `03_us500_m15_trend_pullback_ema`) produced 0 trades on XAUUSD M5/M15 and GER40 M5/M15 across the IS window 2020-01-01 → 2024-06-30. This is not a parameter-tuning problem; it is an entry-gate or data-plumbing problem. No meaningful PF, Sharpe, DD, or expectancy can be computed. All metrics are NaN/0.\n\n### Likely root causes (investigate before another generation)\n1. **Data feed / symbol mapping mismatch** — candidate `01` is named for XAU M15 and `03` for US500 M15, yet both were tested on XAUUSD and GER40. US500 bars may not even be loaded for candidate 03, explaining zero trades. Verify symbol registry and timeframe shifts are actually being passed to the signal engine.\n2. **Entry conditions too conjunctive** — 3-bar BB bounce confirmation and EMA pullback filters likely gate on simultaneous conditions (BB touch + 3 consecutive confirmation bars + trend filter) that almost never align on 5/15m. A sanity `--dry-run --log-signals` pass should be run to count *candidate* signals before risk filters.\n3. **Session / spread / ATR filters** — if session filter is set to a window that does not overlap with the data timezone, or ATR floor is above realized ATR, the strategy will never arm.\n4. **Warmup / indicator lookback** — BB(20) + 3-bar confirmation + EMA(e.g. 200) on M5 needs ~200 bars warmup; if the backtester is silently skipping due to NaN indicators, check the warmup handling.\n\n### Recommendation\nDo **not** iterate parameters on these two ideas until a diagnostic run proves the signal generator fires at all. If after instrumentation the signals still do not trigger on the intended symbol/TF, pivot the family.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not re-test 01_xau_m15_bb_bounce_3bar or 03_us500_m15_trend_pullback_ema on off-target symbols (GER40, XAUUSD for the US500 variant) until symbol routing is fixed.",
+    "Avoid multi-bar confirmation gates (>=3 bars) combined with BB touch on M5/M15 — empirically these stack to near-zero fire rate; prefer single-bar rejection wick + volatility filter.",
+    "Deprioritize EMA-pullback trend filters on intraday indices with tight pullback tolerance until a looser prototype (e.g. pullback to EMA ±0.5 ATR) is shown to produce >=200 signals IS."
+  ],
+  "refinement_notes_global": [
+    "Add a mandatory pre-backtest signal-count gate: reject any candidate producing <50 raw signals before risk management in the IS window, and surface the count in the metrics block instead of NaN.",
+    "Emit a `signals_generated`, `signals_filtered_by_session`, `signals_filtered_by_atr`, `signals_filtered_by_risk` breakdown so the Critic can see *where* trades die rather than only seeing trades=0.",
+    "Fix NaN serialization — JSON with bare NaN is invalid in strict parsers; coerce to null upstream."
+  ]
+}

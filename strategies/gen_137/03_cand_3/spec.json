@@ -1,0 +1,32 @@
+{
+  "hypothesis": "The Donchian channel breakout strategy is effective during high-volatility regimes",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 70,
+      "lookback": 20
+    }
+  },
+  "symbol": "US500",
+  "timeframe": "M15",
+  "entry_rule": {
+    "type": "donchian_breakout",
+    "params": {
+      "channel_period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

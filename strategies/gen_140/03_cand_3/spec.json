@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Asia-London range expansion occurs on US500 M15 with ATR-based breakout and retest logic",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "sessions": [
+        "asia",
+        "london"
+      ]
+    }
+  },
+  "entry_rule": {
+    "type": "breakout_retest",
+    "params": {
+      "atr_period": 14,
+      "atr_threshold": 1.5,
+      "retest_threshold": 0.5
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

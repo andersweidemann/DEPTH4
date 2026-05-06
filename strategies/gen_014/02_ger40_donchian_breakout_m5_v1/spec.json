@@ -1,0 +1,63 @@
+{
+  "name": "ger40_donchian_breakout_m5_v1",
+  "family": "breakout",
+  "hypothesis": "On GER40 M5, a close beyond the 40-bar Donchian extreme during high-ATR-percentile regime (>60th) produces sustained continuation for ~20 bars. A loose session mask (06:00\u201318:00 broker time) avoids thin overnight moves but does NOT hard-gate on UTC.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "min_pct": 60
+      },
+      {
+        "name": "adx",
+        "period": 14,
+        "min": 18
+      }
+    ],
+    "require_all": true
+  },
+  "entry": {
+    "long": "close > donchian_high(40, shifted 1 bar) AND atr_pct >= 60",
+    "short": "close < donchian_low(40, shifted 1 bar) AND atr_pct >= 60",
+    "primitives": [
+      "donchian",
+      "atr",
+      "atr_breakout_levels"
+    ],
+    "session_mask": {
+      "enabled": true,
+      "window_broker_time": "06:00-18:00",
+      "fallback_if_unresolved": "all_on"
+    },
+    "cooldown_bars": 8,
+    "max_concurrent_positions": 1
+  },
+  "exit": {
+    "take_profit": "2.5 * ATR(14)",
+    "stop_loss": "1.5 * ATR(14) (initial, below breakout level)",
+    "time_stop_bars": 40,
+    "trailing": "chandelier: max(high,20) - 2.5*ATR(14)"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "min_lots": 0.01,
+    "max_lots": 5.0
+  },
+  "instrumentation": {
+    "log_bars_loaded": true,
+    "log_signal_eval_counts": true,
+    "log_rejection_reasons": true,
+    "log_session_mask_pass_rate": true
+  },
+  "notes": "CRITICAL: session_mask falls back to all_on if TZ resolution fails (prior-gen zero-trade bug). Verify GER40/DE40/DAX40 alias. Donchian lookback 40 requires \u226540 bars warmup \u2014 log first-trade bar index."
+}

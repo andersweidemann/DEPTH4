@@ -1,0 +1,21 @@
+{
+  "ranking": [
+    {
+      "candidate": "03_atr_breakout_retest_xauusd_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FAIL\n\nOnly one candidate evaluated (`03_atr_breakout_retest_xauusd_m15`) and it produced **zero trades** over a 4.5-year IS window on XAUUSD M15. This is not a performance problem \u2014 it is a signal-generation problem. The entry logic (ATR breakout + retest) as coded never fires on gold M15, which means either (a) the breakout threshold is unreachable given ATR scaling on XAUUSD, (b) the retest tolerance window is too tight/short and expires before price returns, or (c) there is a logic bug gating entries (e.g., session filter, pending-order TTL, or symbol point/digits mismatch).\n\nNo metrics can be ranked meaningfully. Fitness defaults to 0. Recommend a **diagnostic pass before any parameter sweep**: log bar-by-bar whether breakout condition triggers, whether a pending retest order is placed, and whether it expires vs. fills. Without trade flow, acceptance thresholds (pf\u22652.0, sharpe\u22651.5, trades\u2265200) are unreachable by definition.\n\nIf diagnostics confirm the logic is correct but XAUUSD M15 simply doesn't offer clean ATR-breakout-retest setups (gold tends to trend-through or whipsaw rather than pull back cleanly), pivot the family rather than tune.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "ATR breakout + retest on XAUUSD M15 with default retest-expiry windows \u2014 gold M15 rarely offers clean retests after impulsive breakouts; consider momentum-continuation (no retest) or shift to M5 for retest frequency, or to H1 where structure is cleaner.",
+    "Any further parameter tuning on 03_atr_breakout_retest before verifying non-zero signal generation via logged entry-condition counters."
+  ]
+}

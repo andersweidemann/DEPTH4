@@ -1,0 +1,40 @@
+{
+  "name": "xau_atr_breakout_pullback_m5",
+  "family": "breakout_pullback",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "XAUUSD M5 ATR-breakout levels, when retested within 5 bars after initial break, provide high-RR continuation entries. Expect PF>=1.8 with trade count >= 300. Falsified if retest variant shows no edge over naive breakout.",
+  "regime_filter": {
+    "primitive": "classify",
+    "rule": "ATR(14) percentile over last 200 bars > 40 AND ADX(14) > 18",
+    "description": "Avoid lowest-40% volatility and pure range. Excludes ~55% of bars."
+  },
+  "signals": {
+    "entry_long": "price breaks atr_breakout_level_upper (prior_close + 1.5*ATR(14)), then within 5 bars returns within 0.25*ATR of level and closes back above it",
+    "entry_short": "mirror",
+    "session_mask": "06:00-21:00 UTC (exclude Asia thin liquidity and post-NY)"
+  },
+  "exits": {
+    "tp": "3.0 * ATR(14) from entry",
+    "sl": "1.2 * ATR(14) from entry (just beyond retest low/high)",
+    "time_stop": "20 bars",
+    "trailing": "move SL to breakeven after +1.5R"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "diagnostics": {
+    "log_rejections": true,
+    "counters": [
+      "bars_seen",
+      "initial_breaks",
+      "retests_valid",
+      "retest_confirmed_close",
+      "orders_filled",
+      "orders_rejected_reason"
+    ]
+  },
+  "notes": "Also emit a trivial always-on baseline counter (every 100th bar) to confirm plumbing per last-gen root-cause recommendation."
+}

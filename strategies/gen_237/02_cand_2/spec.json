@@ -1,0 +1,35 @@
+{
+  "hypothesis": "Price reverts to mean after extreme movements",
+  "regime_filter": {
+    "type": "volatility_gate",
+    "params": {
+      "atr_period": 14,
+      "atr_threshold": 2
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "middle_bb",
+    "params": {
+      "sl_multiplier": 1.5,
+      "time_stop_bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

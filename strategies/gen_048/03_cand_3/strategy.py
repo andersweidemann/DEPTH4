@@ -1,0 +1,206 @@
+import json
+import os
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents.backtester import RegimeStrategy
+from agents import signals, regime, risk
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+        spec = self.spec
+        sig_p = spec.get("signal", {}).get("params", {})
+        reg_p = spec.get("regime_filter", {}).get("params", {})
+
+        self._bb_period = int(sig_p.get("bb_period", 20))
+        self._bb_dev = float(sig_p.get("bb_dev", 2.0))
+        self._rsi_period = int(sig_p.get("rsi_period", 7))
+        self._rsi_os = float(sig_p.get("rsi_oversold", 15))
+        self._rsi_ob = float(sig_p.get("rsi_overbought", 85))
+        self._cooldown = int(sig_p.get("cooldown_bars", 4))
+        self._session_start = sig_p.get("session_utc_start", "06:00")
+        self._session_end = sig_p.get("session_utc_end", "21:00")
+
+        self._adx_period = int(reg_p.get("adx_period", 14))
+        self._adx_max = float(reg_p.get("adx_max", 22))
+        self._atr_pct_period = int(reg_p.get("atr_percentile_period", 100))
+        self._atr_pct_min = float(reg_p.get("atr_percentile_min", 25))
+        self._atr_pct_max = float(reg_p.get("atr_percentile_max", 85))
+        self._bbw_pct_min = float(reg_p.get("bb_width_percentile_min", 30))
+
+        self._time_stop = int(spec.get("exit", {}).get("time_stop_bars", 30))
+        self._sl_atr_mult = 1.5
+        self._risk_pct = float(spec.get("sizing", {}).get("risk_pct", 0.5))
+        self._max_daily_trades = int(spec.get("sizing", {}).get("max_daily_trades", 3))
+
+        def _bb_mid(close, n, dev):
+            mid, _, _ = signals.bollinger(pd.Series(close), n, dev)
+            return np.asarray(mid)
+
+        def _bb_up(close, n, dev):
+            _, up, _ = signals.bollinger(pd.Series(close), n, dev)
+            return np.asarray(up)
+
+        def _bb_lo(close, n, dev):
+            _, _, lo = signals.bollinger(pd.Series(close), n, dev)
+            return np.asarray(lo)
+
+        def _bbw(close, n, dev):
+            return np.asarray(signals.bb_width(pd.Series(close), n, dev))
+
+        def _rsi_f(close, n):
+            return np.asarray(signals.rsi(pd.Series(close), n))
+
+        def _atr_f(data, n):
+            return np.asarray(signals.atr(data, n))
+
+        def _adx_f(data, n):
+            return np.asarray(regime.adx(data, n))
+
+        def _atrp_f(data, n_atr, n_pct):
+            a = pd.Series(signals.atr(data, n_atr))
+            return np.asarray(regime.atr_percentile(a, n_pct))
+
+        def _bbwp_f(close, n, dev, n_pct):
+            w = pd.Series(signals.bb_width(pd.Series(close), n, dev))
+            return np.asarray(w.rolling(n_pct).rank(pct=True) * 100.0)
+
+        self._bb_mid = self.I(_bb_mid, self.data.Close, self._bb_period, self._bb_dev)
+        self._bb_up = self.I(_bb_up, self.data.Close, self._bb_period, self._bb_dev)
+        self._bb_lo = self.I(_bb_lo, self.data.Close, self._bb_period, self._bb_dev)
+        self._rsi = self.I(_rsi_f, self.data.Close, self._rsi_period)
+        self._atr_series = self.I(_atr_f, self.data, 14)
+        self._adx_series = self.I(_adx_f, self.data, self._adx_period)
+        self._atr_pct = self.I(_atrp_f, self.data, 14, self._atr_pct_period)
+        self._bbw_pct = self.I(_bbwp_f, self.data.Close, self._bb_period, self._bb_dev, self._atr_pct_period)
+
+        self._last_entry_bar = -10_000
+        self._trades_today = 0
+        self._current_day = None
+
+    def _in_session(self) -> bool:
+        ts = pd.Timestamp(self.data.index[-1])
+        try:
+            ts_utc = ts.tz_convert("UTC") if ts.tzinfo else ts
+        except Exception:
+            ts_utc = ts
+        t = ts_utc.time()
+        sh, sm = [int(x) for x in self._session_start.split(":")]
+        eh, em = [int(x) for x in self._session_end.split(":")]
+        from datetime import time as dtime
+        return dtime(sh, sm) <= t <= dtime(eh, em)
+
+    def _regime_on(self) -> bool:
+        if len(self.data) < max(self._atr_pct_period, self._bb_period, self._adx_period) + 2:
+            return False
+        adx_v = float(self._adx_series[-1])
+        atrp_v = float(self._atr_pct[-1])
+        bbwp_v = float(self._bbw_pct[-1])
+        if np.isnan(adx_v) or np.isnan(atrp_v) or np.isnan(bbwp_v):
+            return False
+        if adx_v > self._adx_max:
+            return False
+        if atrp_v < self._atr_pct_min or atrp_v > self._atr_pct_max:
+            return False
+        if bbwp_v < self._bbw_pct_min:
+            return False
+        return True
+
+    def next(self):
+        day = pd.Timestamp(self.data.index[-1]).strftime("%Y-%m-%d")
+        if day != self._current_day:
+            self._current_day = day
+            self._trades_today = 0
+
+        self._manage_open()
+
+        if self.position:
+            return
+
+        if len(self.data) < self._bb_period + 5:
+            return
+
+        if not self._in_session():
+            return
+
+        if not self._regime_on():
+            return
+
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < self._cooldown:
+            return
+
+        if self._trades_today >= self._max_daily_trades:
+            return
+
+        prev_low = float(self.data.Low[-2])
+        prev_high = float(self.data.High[-2])
+        prev_close = float(self.data.Close[-2])
+        prev_lbb = float(self._bb_lo[-2])
+        prev_ubb = float(self._bb_up[-2])
+        prev_rsi = float(self._rsi[-2])
+        mid = float(self._bb_mid[-1])
+        atr_now = float(self._atr_series[-1])
+        price = float(self.data.Close[-1])
+
+        if np.isnan(atr_now) or atr_now <= 0 or np.isnan(mid):
+            return
+
+        long_sig = (prev_low < prev_lbb) and (prev_close > prev_lbb) and (prev_rsi < self._rsi_os)
+        short_sig = (prev_high > prev_ubb) and (prev_close < prev_ubb) and (prev_rsi > self._rsi_ob)
+
+        if not (long_sig or short_sig):
+            return
+
+        if long_sig:
+            sl = price - self._sl_atr_mult * atr_now
+            tp = mid
+            if tp <= price:
+                return
+            if sl >= price:
+                return
+            size = risk.lots_by_risk_pct(self.equity, self._risk_pct, abs(price - sl), price)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+                self._last_entry_bar = bar_i
+                self._trades_today += 1
+            except Exception:
+                pass
+        elif short_sig:
+            sl = price + self._sl_atr_mult * atr_now
+            tp = mid
+            if tp >= price:
+                return
+            if sl <= price:
+                return
+            size = risk.lots_by_risk_pct(self.equity, self._risk_pct, abs(sl - price), price)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+                self._last_entry_bar = bar_i
+                self._trades_today += 1
+            except Exception:
+                pass
+
+    def _manage_open(self):
+        if not self.position or not self.trades:
+            return
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= self._time_stop:
+            self.position.close()
+            return

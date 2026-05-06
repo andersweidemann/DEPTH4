@@ -1,0 +1,84 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, atr
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.bollinger_band = self.I(bollinger, self.data, n=20, deviation=2.0)
+        self.bb_width = self.I(bb_width, self.data, n=20, deviation=2.0)
+        self.atr = self.I(atr, self.data, n=20)
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        bb_width_val = float(self.bb_width[-1])
+        percentile = rf.get("percentile")
+        if percentile is not None:
+            return bb_width_val <= np.percentile(self.bb_width, percentile)
+        return True
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        entry_rule = self.spec.get("entry_rule")
+        if entry_rule:
+            bb_touch_threshold = entry_rule.get("touch_threshold")
+            if bb_touch_threshold is not None:
+                close_price = float(self.data.Close[-1])
+                lower_band = float(self.bollinger_band.lower[-1])
+                upper_band = float(self.bollinger_band.upper[-1])
+                if close_price <= lower_band * (1 + bb_touch_threshold) or close_price >= upper_band * (1 - bb_touch_threshold):
+                    self.position.enter()
+                    self.sl_price = float(self.data.Close[-1]) - 1.5 * float(self.atr[-1])
+                    self.tp_price = float(self.bollinger_band.opposite[-1])
+
+    def _manage_open(self):
+        exit_rule = self.spec.get("exit_rule")
+        if exit_rule:
+            time_stop = exit_rule.get("time_stop")
+            if time_stop is not None:
+                trade = self.trades[-1] if self.trades else None
+                if trade is not None:
+                    bars_open = len(self.data) - trade.entry_bar
+                    if bars_open >= time_stop:
+                        self.position.close()
+                        return
+            take_profit = exit_rule.get("take_profit")
+            if take_profit == "opposite_bollinger_band":
+                if self.position.is_long and float(self.data.Close[-1]) >= float(self.bollinger_band.upper[-1]):
+                    self.position.close()
+                elif not self.position.is_long and float(self.data.Close[-1]) <= float(self.bollinger_band.lower[-1]):
+                    self.position.close()
+            stop_loss = exit_rule.get("stop_loss")
+            if stop_loss == "1.5x_atr":
+                if self.position.is_long and float(self.data.Close[-1]) <= self.sl_price:
+                    self.position.close()
+                elif not self.position.is_long and float(self.data.Close[-1]) >= self.sl_price:
+                    self.position.close()
+
+    def next(self):
+        self._regime_ok()
+        self._filters_ok()
+        self._enter_if_signal()
+        self._manage_open()

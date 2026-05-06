@@ -1,0 +1,33 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_asia_london_range_breakout_xauusd_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "03_donchian_trend_pullback_ger40_m15",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nBoth candidates produced **zero trades** across all four symbol/timeframe combos (XAUUSD M5/M15, GER40 M5/M15) over the full IS window 2020-01-01 to 2024-06-30. This is not a performance problem \u2014 it is an **execution/wiring problem**. No metrics can be computed (PF, Sharpe, DD all NaN/0).\n\n### Likely root causes (in order of probability)\n1. **Entry gating too strict or mis-scoped**: Asia/London session windows and Donchian breakout conditions likely reference broker server time vs UTC mismatch, or the session filter is evaluated on the wrong bar timestamp.\n2. **Symbol name mismatch**: Strategies may be hardcoded to `XAUUSD`/`GER40` but data feed uses suffixed symbols (`XAUUSD.pro`, `DE40`, `GER40.cash`). A single symbol-check reject \u2192 0 trades.\n3. **Indicator warmup / lookback never satisfied**: e.g., Donchian period + ATR filter + ADX filter stacked with AND gates.\n4. **Order placement blocked**: stop distance < broker min stops, or lot-size calc returning 0 on instruments with different contract sizes (XAUUSD=100oz, GER40=1 index point).\n\n### Recommendation\nDo **not** iterate parameters. Pivot the generation to debug-instrumented minimal versions before any fitness-based selection is meaningful.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Do not re-run these two candidates with parameter sweeps until a smoke-test harness proves >0 trades on each symbol/TF with permissive filters",
+    "Avoid stacking session-filter + volatility-filter + trend-filter AND gates in first-pass candidates \u2014 guarantees zero-trade outcomes",
+    "Abandon hardcoded symbol strings; require broker-symbol resolver before next generation"
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "name": "xau_m5_asia_london_range_break_v1",
+  "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) break of the Asia range (00:00-06:00 UTC) with body expansion produces a directional move of at least 1.0x Asia-range-size, yielding PF>=2.0 when ATR-normalized range gates out chop and exhaustion.",
+  "family": "session_breakout",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "session_mask",
+          "params": {
+            "range_window": "00:00-06:00",
+            "trade_window": "07:00-11:00",
+            "timezone": "UTC"
+          },
+          "condition": "in_trade_window"
+        },
+        {
+          "primitive": "atr_breakout_levels",
+          "params": {
+            "range_source": "asia_session_high_low",
+            "buffer_atr_mult": 0.3,
+            "atr_period": 14
+          },
+          "condition": "close > asia_high + 0.3*atr"
+        },
+        {
+          "primitive": "atr",
+          "params": {
+            "period": 14
+          },
+          "condition": "candle_body >= 1.0*atr"
+        }
+      ],
+      "any_gate": [
+        {
+          "primitive": "atr",
+          "params": {
+            "period": 14
+          },
+          "condition": "asia_range/atr between 0.5 and 2.0"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "session_mask",
+          "params": {
+            "range_window": "00:00-06:00",
+            "trade_window": "07:00-11:00",
+            "timezone": "UTC"
+          },
+          "condition": "in_trade_window"
+        },
+        {
+          "primitive": "atr_breakout_levels",
+          "params": {
+            "range_source": "asia_session_high_low",
+            "buffer_atr_mult": 0.3,
+            "atr_period": 14
+          },
+          "condition": "close < asia_low - 0.3*atr"
+        },
+        {
+          "primitive": "atr",
+          "params": {
+            "period": 14
+          },
+          "condition": "candle_body >= 1.0*atr"
+        }
+      ],
+      "any_gate": [
+        {
+          "primitive": "atr",
+          "params": {
+            "period": 14
+          },
+          "condition": "asia_range/atr between 0.5 and 2.0"
+        }
+      ]
+    },
+    "one_per_day": true,
+    "max_bars_after_window_open": 24
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "params": {
+      "period": 14,
+      "lookback": 500
+    },
+    "condition": "percentile > 0.20",
+    "rationale": "Skip only the deadest 20% volatility days; keeps the majority of trading days eligible."
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 0.9
+    },
+    "take_profit": {
+      "type": "r_multiple",
+      "r": 2.0
+    },
+    "time_stop": {
+      "bars": 48,
+      "close_at_session_end_utc": "16:00"
+    },
+    "trailing": {
+      "type": "atr",
+      "period": 14,
+      "mult": 1.5,
+      "activate_r": 1.0
+    }
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "notes": "Inspired by asia-london-range-expansion cards. Liberalized body gate (1.2->1.0 ATR) and buffer (0.5->0.3 ATR) to ensure nonzero trade count that killed prior gen. ATR range gate is a soft 'any_gate' filter."
+}

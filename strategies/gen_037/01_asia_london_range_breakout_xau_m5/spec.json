@@ -1,0 +1,94 @@
+{
+  "name": "asia_london_range_breakout_xau_m5",
+  "hypothesis": "On XAUUSD M5, the Asia-session (00:00-06:00 UTC) range, when sized 0.5-2.0 ATR, is broken during London (07:00-10:00 UTC) with continuation, yielding positive expectancy on the first breakout of the day.",
+  "family": "breakout_session",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "asia_range": "high/low from 00:00 UTC to 06:00 UTC (72 M5 bars)",
+    "entry_long": "breakout_window AND close > asia_high + 0.5*atr(14) AND body >= 1.0*atr(14) AND first_breakout_of_day",
+    "entry_short": "breakout_window AND close < asia_low - 0.5*atr(14) AND body >= 1.0*atr(14) AND first_breakout_of_day",
+    "indicators": [
+      "atr(14)",
+      "session_mask(asia=00:00-06:00 UTC, london=07:00-10:00 UTC)"
+    ]
+  },
+  "regime_filter": {
+    "type": "range_size_atr",
+    "min_range_atr": 0.5,
+    "max_range_atr": 2.0,
+    "atr_period": 14,
+    "rationale": "Skip days where Asia range is too tight (no fuel) or too wide (already exhausted)."
+  },
+  "entry_rules": {
+    "trade_window_utc": "07:00-10:00",
+    "max_breakout_bars_from_window_start": 9,
+    "one_trade_per_day": true,
+    "confirmation": "Close of breakout bar; enter next bar open."
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "opposite_range_side_plus_buffer",
+      "atr_buffer_mult": 0.3
+    },
+    "take_profit": {
+      "type": "r_multiple",
+      "r": 2.0
+    },
+    "time_stop": {
+      "type": "utc_time",
+      "close_at": "16:00"
+    },
+    "trailing": {
+      "type": "atr_chandelier",
+      "atr_period": 14,
+      "mult": 3.0,
+      "activate_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "min_lot": 0.01
+  },
+  "params_to_optimize": {
+    "breakout_distance_atr": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "breakout_body_atr": [
+      0.8,
+      1.0,
+      1.2
+    ],
+    "min_range_atr": [
+      0.4,
+      0.5,
+      0.7
+    ],
+    "max_range_atr": [
+      1.8,
+      2.0,
+      2.5
+    ],
+    "r_target": [
+      1.5,
+      2.0,
+      2.5
+    ]
+  },
+  "diagnostics_required": [
+    "bar_count_loaded_per_day",
+    "asia_range_computed_days_count",
+    "days_with_range_in_regime_band",
+    "breakouts_detected_total",
+    "entries_after_first_breakout_filter",
+    "session_mask_sample_timestamps"
+  ],
+  "falsification_criteria": "trades < 200 OR PF < 1.4 OR divergence between local and MT5 >20%."
+}

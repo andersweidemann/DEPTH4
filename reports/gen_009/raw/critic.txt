@@ -1,0 +1,6 @@
+{
+  "ranking": [],
+  "summary_markdown": "## Critic Report: Empty Generation\n\n**Status:** No candidates were submitted for evaluation. The input candidate metrics array is empty, so no ranking, fitness calculation, or survivor selection can be performed.\n\n**Recommendation:** The factory pipeline appears to have failed upstream. Likely causes:\n1. Researcher produced no viable strategy specs for this cycle.\n2. Builder/compiler failed to produce deployable EAs from specs.\n3. Backtester failed to execute or returned no metrics (check MT5 connection, symbol availability, data range).\n4. Metrics collator lost output between stages.\n\n**Action Items:**\n- Verify researcher output is non-empty and well-formed.\n- Confirm builder successfully compiled at least one EA (.ex5 artifact).\n- Check backtester logs for runtime errors, missing history, or zero-trade runs.\n- Re-run the generation with at least 3-5 candidate strategies across differing families (trend, mean-reversion, breakout) to give the critic a meaningful population to rank.\n\nNo strategy families can be marked as dead branches because none were tested.",
+  "per_survivor_notes": {},
+  "dead_branches": []
+}

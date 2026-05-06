@@ -1,0 +1,40 @@
+{
+  "hypothesis": "Volatility contraction precedes a breakout",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 20,
+      "lookback": 50
+    }
+  },
+  "entry_rule": {
+    "type": "volatility_breakout",
+    "params": {
+      "volatility_period": 10,
+      "breakout_threshold": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {}
+  },
+  "sl_rule": {
+    "type": "fixed",
+    "params": {
+      "stop_loss": 150
+    }
+  },
+  "tp_rule": {
+    "type": "fixed",
+    "params": {
+      "take_profit": 300
+    }
+  },
+  "time_stop": 80,
+  "sizing_rule": {
+    "type": "proportional",
+    "params": {
+      "risk_percentage": 3
+    }
+  }
+}

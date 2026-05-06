@@ -1,0 +1,134 @@
+[
+  {
+    "name": "xauusd_m5_asia_london_breakout",
+    "hypothesis": "XAUUSD Asia-session ranges (00:00-06:00 UTC) that fall within 0.5-2.0x ATR produce tradable London-session breakouts (07:00-10:00 UTC); a body-confirmed close beyond the range yields positive expectancy due to liquidity-driven volatility expansion.",
+    "family": "session_breakout",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": {
+      "asia_range": {"primitive": "donchian", "lookback_session": "00:00-06:00 UTC"},
+      "atr": {"primitive": "atr", "period": 14},
+      "session": {"primitive": "session_mask", "trade_window": "07:00-10:00 UTC"},
+      "breakout_levels": {"primitive": "atr_breakout_levels", "atr_mult": 0.5}
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "rules": [
+        {"primitive": "atr_percentile", "period": 100, "min_pct": 30, "max_pct": 95},
+        {"asia_range_atr_ratio": {"min": 0.5, "max": 2.0}}
+      ]
+    },
+    "entry_rules": {
+      "long": "During 07:00-10:00 UTC, first bar that closes >= asia_high + 0.5*ATR with body >= 1.2*ATR(prev)",
+      "short": "Mirror below asia_low",
+      "one_shot_per_day": true
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "mult": 0.75, "anchor": "entry"},
+      "take_profit": {"type": "atr", "mult": 2.25, "anchor": "entry"},
+      "time_stop_bars": 36,
+      "trailing": {"type": "chandelier", "atr_mult": 2.0, "activate_at_R": 1.0}
+    },
+    "sizing": {"type": "risk_pct", "risk_pct_per_trade": 0.5, "max_concurrent": 1},
+    "acceptance_targets": {"pf_min": 1.5, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200}
+  },
+  {
+    "name": "xauusd_m15_bb_rsi_mean_reversion",
+    "hypothesis": "On XAUUSD M15, simultaneous BB(20,2.0) extreme excursions with RSI(7) extremes revert to the BB midline with positive expectancy when BB-width is above the 30th percentile (avoiding dead ranges) and during liquid sessions.",
+    "family": "mean_reversion",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "signals": {
+      "bb": {"primitive": "bollinger", "period": 20, "dev": 2.0},
+      "bb_width": {"primitive": "bb_width", "period": 20},
+      "rsi": {"primitive": "rsi", "period": 7},
+      "atr": {"primitive": "atr", "period": 14},
+      "session": {"primitive": "session_mask", "trade_window": "07:00-20:00 UTC"}
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "rules": [
+        {"primitive": "adx", "period": 14, "max": 25},
+        {"bb_width_percentile": {"period": 200, "min_pct": 30}}
+      ]
+    },
+    "entry_rules": {
+      "long": "Close < lower_BB AND RSI(7) < 10",
+      "short": "Close > upper_BB AND RSI(7) > 90",
+      "cooldown_bars": 3
+    },
+    "exit_rules": {
+      "take_profit": {"type": "bb_midline"},
+      "stop_loss": {"type": "atr", "mult": 1.5, "anchor": "entry"},
+      "time_stop_bars": 30
+    },
+    "sizing": {"type": "risk_pct", "risk_pct_per_trade": 0.5, "max_concurrent": 1},
+    "acceptance_targets": {"pf_min": 1.5, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200}
+  },
+  {
+    "name": "ger40_m15_donchian_trend_breakout",
+    "hypothesis": "GER40 M15 exhibits persistent intraday trend continuation after 20-bar Donchian breaks during European cash session, when ADX>22 confirms directional regime; ATR-normalized stops and trailing exits capture the expansion.",
+    "family": "trend_breakout",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "signals": {
+      "donchian": {"primitive": "donchian", "period": 20},
+      "ema_fast": {"primitive": "ema", "period": 20},
+      "ema_slow": {"primitive": "ema", "period": 50},
+      "atr": {"primitive": "atr", "period": 14},
+      "session": {"primitive": "session_mask", "trade_window": "08:00-16:30 UTC"}
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "rules": [
+        {"primitive": "adx", "period": 14, "min": 22},
+        {"primitive": "atr_percentile", "period": 100, "min_pct": 35}
+      ]
+    },
+    "entry_rules": {
+      "long": "Close > donchian_high(20) AND ema20 > ema50",
+      "short": "Close < donchian_low(20) AND ema20 < ema50",
+      "one_entry_per_signal": true
+    },
+    "exit_rules": {
+      "stop_loss": {"type": "atr", "mult": 1.5, "anchor": "entry"},
+      "take_profit": {"type": "atr", "mult": 3.0, "anchor": "entry"},
+      "time_stop_bars": 40,
+      "trailing": {"type": "atr_chandelier", "atr_mult": 2.5, "activate_at_R": 1.0}
+    },
+    "sizing": {"type": "risk_pct", "risk_pct_per_trade": 0.5, "max_concurrent": 1},
+    "acceptance_targets": {"pf_min": 1.5, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200}
+  },
+  {
+    "name": "ger40_m5_open_range_fade",
+    "hypothesis": "On GER40 M5, the first 30-minute opening range (07:00-07:30 UTC) often overshoots; fading a 1.0x-ATR extension outside the opening range during low-ADX conditions reverts toward the range midpoint with positive expectancy.",
+    "family": "mean_reversion",
+    "symbols": ["GER40"],
+    "timeframes": ["M5"],
+    "signals": {
+      "open_range": {"primitive": "donchian", "lookback_session": "07:00-07:30 UTC"},
+      "atr": {"primitive": "atr", "period": 14},
+      "rsi": {"primitive": "rsi", "period": 14},
+      "session": {"primitive": "session_mask", "trade_window": "07:30-11:00 UTC"}
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "rules": [
+        {"primitive": "adx", "period": 14, "max": 22},
+        {"primitive": "atr_percentile", "period": 100, "min_pct": 20, "max_pct": 85}
+      ]
+    },
+    "entry_rules": {
+      "short": "Price >= opening_range_high + 1.0*ATR AND RSI(14) > 70 AND bar closes bearish",
+      "long": "Price <= opening_range_low - 1.0*ATR AND RSI(14) < 30 AND bar closes bullish",
+      "max_trades_per_day": 2
+    },
+    "exit_rules": {
+      "take_profit": {"type": "level", "target": "opening_range_mid"},
+      "stop_loss": {"type": "atr", "mult": 1.2, "anchor": "entry"},
+      "time_stop_bars": 24
+    },
+    "sizing": {"type": "risk_pct", "risk_pct_per_trade": 0.4, "max_concurrent": 1},
+    "acceptance_targets": {"pf_min": 1.5, "max_dd_pct": 15.0, "sharpe_min": 1.5, "trades_min": 200}
+  }
+]

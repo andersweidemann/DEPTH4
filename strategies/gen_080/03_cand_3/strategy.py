@@ -1,0 +1,56 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "US500"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.rsi_series = self.I(rsi, self.data, 7)
+        self.bollinger_series = self.I(bollinger, self.data, 20)
+        self.lower_bb = self.bollinger_series[:, 0]
+        self.upper_bb = self.bollinger_series[:, 2]
+        self.atr_series = self.I(atr, self.data, 14)
+
+    def _regime_ok(self) -> bool:
+        rsi_val = float(self.rsi_series[-1])
+        return rsi_val < 90
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def _enter_if_signal(self) -> None:
+        close = float(self.data.Close[-1])
+        if close < self.lower_bb[-1] and self.rsi_series[-1] < 10:
+            self.position.enter(long=True, size=lots_by_risk_pct(self._spec, self._symbol, self.equity, self.data))
+            self.sl_price = close - 1.5 * float(self.atr_series[-1])
+            self.tp_price = self.upper_bb[-1]
+        elif close > self.upper_bb[-1] and self.rsi_series[-1] > 90:
+            self.position.enter(long=False, size=lots_by_risk_pct(self._spec, self._symbol, self.equity, self.data))
+            self.sl_price = close + 1.5 * float(self.atr_series[-1])
+            self.tp_price = self.lower_bb[-1]
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        time_stop = self.spec.get("exit_rules", {}).get("time_stop", {}).get("num_bars")
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        if self.position.is_long and self.data.Close[-1] > self.upper_bb[-1]:
+            self.position.close()
+        elif not self.position.is_long and self.data.Close[-1] < self.lower_bb[-1]:
+            self.position.close()

@@ -1,0 +1,50 @@
+{
+  "hypothesis": "Breakouts occur on US500 M5 after a volatility contraction",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 20
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_atr_period": 14,
+      "min_range_atr": 0.2,
+      "max_range_atr": 1.5,
+      "breakout_atr_multiplier": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "multi_condition",
+    "params": {
+      "conditions": [
+        {
+          "type": "take_profit",
+          "params": {
+            "tp_price": "300_pips"
+          }
+        },
+        {
+          "type": "stop_loss",
+          "params": {
+            "sl_price": "150_pips"
+          }
+        },
+        {
+          "type": "time_stop",
+          "params": {
+            "time_stop_bar": 30
+          }
+        }
+      ]
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "hypothesis": "Donchian channel breakouts on BTCUSD M5 are profitable",
+  "regime_filter": {
+    "type": "donchian_channel",
+    "params": {
+      "period": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > donchian_channel_high"
+    },
+    "short": {
+      "condition": "close < donchian_channel_low"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 20
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "count": 2
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

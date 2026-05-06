@@ -1,0 +1,41 @@
+{
+  "hypothesis": "US500 M5 exhibits mean reversion when RSI(7) is overbought/oversold and price is outside the Donchian channel",
+  "regime_filter": {
+    "type": "donchian_channel",
+    "params": {
+      "donchian_period": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "rsi(7) < 10 && close < lower_donchian"
+    },
+    "short": {
+      "condition": "rsi(7) > 90 && close > upper_donchian"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 2
+      }
+    },
+    "tp": {
+      "type": "middle_donchian"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Mean reversion occurs when RSI reaches extreme levels on US500 M15",
+  "regime_filter": {
+    "type": "adx_level",
+    "params": {
+      "adx_period": 14,
+      "adx_level": 20
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "rsi_period": 14,
+      "rsi_thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

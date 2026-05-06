@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Breakout of the Asia range leads to a profitable trade on GER40 M15",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > asia_range_high"
+    },
+    "short": {
+      "condition": "close < asia_range_low"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "distance": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "distance": 200
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "count": 2
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 2
+    }
+  }
+}

@@ -1,0 +1,144 @@
+[
+  {
+    "name": "XAUUSD_M5_AsiaLondonRangeBreakout",
+    "family": "breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "hypothesis": "When XAUUSD builds a compressed Asia-session range (0.5-2.0x ATR) between 00:00-06:00 UTC, the first London-session breakout (07:00-10:00 UTC) with body >=1.0x ATR and close >=0.4x ATR beyond the range boundary produces a directional expansion yielding PF>=2.0 over 200+ trades.",
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "lookback": 200,
+      "min_percentile": 30,
+      "max_percentile": 95,
+      "notes": "Require non-dead-volatility regime; skip extreme spike bars."
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "allow_utc_hours": [7, 8, 9, 10],
+      "asia_range_utc_hours": [0, 1, 2, 3, 4, 5]
+    },
+    "entry_rules": {
+      "long": "After 06:00 UTC, record AsiaHigh/AsiaLow. Between 07:00-10:00 UTC, enter long on first M5 close > AsiaHigh + 0.4*ATR(14) with candle body >= 1.0*ATR(14). Asia range must satisfy 0.5 <= (AsiaHigh-AsiaLow)/ATR(14) <= 2.0.",
+      "short": "Mirror: first M5 close < AsiaLow - 0.4*ATR(14) with body >= 1.0*ATR(14) under same range-size constraints.",
+      "one_trade_per_day": true
+    },
+    "exit_rules": {
+      "stop_loss": "0.75 * ATR(14) from entry",
+      "take_profit": "2.25 * ATR(14) from entry (RR 3:1)",
+      "time_stop_bars": 36,
+      "trailing": "After +1.0 ATR in favor, move stop to breakeven; trail at 1.5*ATR chandelier"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "primitives_used": ["atr", "atr_percentile", "session_mask", "donchian"],
+    "falsifier": "If <150 qualifying breakouts over 3yr backtest or PF<1.6 across XAUUSD M5, kill branch."
+  },
+  {
+    "name": "XAUUSD_M15_BBRSI_MeanReversion",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "hypothesis": "On XAUUSD M15, closes outside BB(20,2.0) coincident with RSI(7) extremes revert to the middle band when BB-width is in the 30-90th percentile (active but not climactic), yielding Sharpe>=1.5 and PF>=2.0.",
+    "regime_filter": {
+      "primitive": "bb_width",
+      "percentile_min": 30,
+      "percentile_max": 90,
+      "lookback": 500,
+      "notes": "Avoid dead ranges and volatility blowouts."
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "allow_utc_hours": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    },
+    "entry_rules": {
+      "long": "Close < LowerBB(20,2.0) AND RSI(7) < 10 AND prior bar's close also below lower band OR touched it; enter on next bar open.",
+      "short": "Close > UpperBB(20,2.0) AND RSI(7) > 90; enter next bar open.",
+      "cooldown_bars": 4
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "Middle BB (SMA20) touch OR opposite band, whichever first",
+      "time_stop_bars": 24,
+      "trailing": "none"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.4,
+      "max_concurrent_positions": 1
+    },
+    "primitives_used": ["bollinger", "rsi", "atr", "bb_width", "session_mask"],
+    "falsifier": "If win rate <55% or trades <200 over 3yr, or PF<1.6, kill."
+  },
+  {
+    "name": "GER40_M15_DonchianTrendBreakout",
+    "family": "trend_breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "hypothesis": "GER40 M15 Donchian(20) breakouts filtered by ADX>22 (trending regime) during European/US cash sessions capture sustained directional moves, yielding PF>=2.0 and DD<15%.",
+    "regime_filter": {
+      "primitive": "adx",
+      "period": 14,
+      "min_value": 22,
+      "notes": "Only trade when ADX confirms trending regime."
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "allow_utc_hours": [7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+    },
+    "entry_rules": {
+      "long": "Close > Donchian(20).upper of prior bar AND EMA(50) > EMA(200) AND ADX(14) > 22",
+      "short": "Close < Donchian(20).lower of prior bar AND EMA(50) < EMA(200) AND ADX(14) > 22",
+      "cooldown_bars": 6
+    },
+    "exit_rules": {
+      "stop_loss": "2.0 * ATR(14) from entry",
+      "take_profit": "4.0 * ATR(14) (RR 2:1)",
+      "time_stop_bars": 48,
+      "trailing": "After +1.5 ATR, trail stop at Donchian(10) opposite extreme"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "primitives_used": ["donchian", "ema", "adx", "atr", "session_mask"],
+    "falsifier": "If <200 trades over 3yr or PF<1.5, kill branch. Also kill if DD>18%."
+  },
+  {
+    "name": "US500_M15_PullbackTrendContinuation",
+    "family": "trend_pullback",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "hypothesis": "US500 M15 pullbacks to EMA(20) within an established EMA(50)>EMA(200) uptrend (or inverse for downtrend) during US cash session, confirmed by RSI(14) crossing back from <40 (longs) or >60 (shorts), produce high-expectancy continuation trades.",
+    "regime_filter": {
+      "primitive": "classify",
+      "rules": "adx14>=18 AND ema50_slope_sign == ema200_slope_sign",
+      "notes": "Require mild trend confirmation; reject flat chop."
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "allow_utc_hours": [13, 14, 15, 16, 17, 18, 19, 20]
+    },
+    "entry_rules": {
+      "long": "EMA(50)>EMA(200) AND low of prior 2 bars touched/crossed below EMA(20) AND current bar closes above EMA(20) AND RSI(14) crosses above 40 from below",
+      "short": "EMA(50)<EMA(200) AND high of prior 2 bars touched/crossed above EMA(20) AND current bar closes below EMA(20) AND RSI(14) crosses below 60 from above",
+      "cooldown_bars": 4
+    },
+    "exit_rules": {
+      "stop_loss": "1.25 * ATR(14) below swing low (long) / above swing high (short)",
+      "take_profit": "2.5 * ATR(14) (RR 2:1)",
+      "time_stop_bars": 32,
+      "trailing": "Move to BE after +1.0 ATR; trail at EMA(20) after +1.8 ATR"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_per_trade_pct": 0.4,
+      "max_concurrent_positions": 1
+    },
+    "primitives_used": ["ema", "rsi", "atr", "adx", "classify", "session_mask"],
+    "falsifier": "If PF<1.6 or trades<200 over 3yr or DD>15%, kill branch."
+  }
+]

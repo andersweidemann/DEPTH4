@@ -1,0 +1,219 @@
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+def _lower_bb(data, period, stddev):
+    close = pd.Series(np.asarray(data.Close, dtype=float))
+    mid, upper, lower = signals.bollinger(close, period, stddev)
+    return np.asarray(lower, dtype=float)
+
+
+def _upper_bb(data, period, stddev):
+    close = pd.Series(np.asarray(data.Close, dtype=float))
+    mid, upper, lower = signals.bollinger(close, period, stddev)
+    return np.asarray(upper, dtype=float)
+
+
+def _mid_bb(data, period, stddev):
+    close = pd.Series(np.asarray(data.Close, dtype=float))
+    mid, upper, lower = signals.bollinger(close, period, stddev)
+    return np.asarray(mid, dtype=float)
+
+
+def _bb_width(data, period, stddev):
+    close = pd.Series(np.asarray(data.Close, dtype=float))
+    return np.asarray(signals.bb_width(close, period, stddev), dtype=float)
+
+
+def _rsi(data, period):
+    close = pd.Series(np.asarray(data.Close, dtype=float))
+    return np.asarray(signals.rsi(close, period), dtype=float)
+
+
+def _atr_pct(data, period, lookback):
+    return np.asarray(regime.atr_percentile(data.df if hasattr(data, "df") else None,
+                                            period=period, lookback=lookback),
+                      dtype=float)
+
+
+def _percentile_rank(arr: np.ndarray, lookback: int) -> np.ndarray:
+    s = pd.Series(arr)
+    return s.rolling(lookback, min_periods=max(20, lookback // 5)).apply(
+        lambda x: (x <= x[-1]).sum() / len(x) * 100.0, raw=True
+    ).to_numpy()
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    bb_period = 20
+    bb_stddev = 1.75
+    rsi_period = 7
+    rsi_long_threshold = 10
+    rsi_short_threshold = 90
+    atr_sl_mult = 1.5
+    time_stop_bars_p = 30
+    atr_period = 14
+    bbw_lookback = 500
+    atr_lookback = 500
+    cooldown_bars = 3
+    risk_pct = 0.5
+    session_start = 7
+    session_end = 20
+
+    def init(self):
+        try:
+            spec_file = Path(__file__).parent / self.spec_path
+            if spec_file.exists():
+                with open(spec_file, "r") as f:
+                    loaded = json.load(f)
+                if not self._spec:
+                    type(self)._spec = loaded
+        except Exception:
+            pass
+
+        super().init()
+
+        self._lower = self.I(_lower_bb, self.data, self.bb_period, self.bb_stddev)
+        self._upper = self.I(_upper_bb, self.data, self.bb_period, self.bb_stddev)
+        self._mid = self.I(_mid_bb, self.data, self.bb_period, self.bb_stddev)
+        self._bbw = self.I(_bb_width, self.data, self.bb_period, self.bb_stddev)
+        self._rsi_s = self.I(_rsi, self.data, self.rsi_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+
+        bbw_arr = np.asarray(self._bbw, dtype=float)
+        self._bbw_pct = self.I(lambda _: _percentile_rank(bbw_arr, self.bbw_lookback),
+                               self.data.Close)
+
+        df = self.data.df if hasattr(self.data, "df") else None
+        if df is not None:
+            atr_pct_arr = regime.atr_percentile(df, period=self.atr_period,
+                                                lookback=self.atr_lookback)
+            atr_pct_arr = np.asarray(atr_pct_arr, dtype=float)
+        else:
+            atr_pct_arr = np.full(len(self.data.Close), np.nan)
+        self._atr_pct = self.I(lambda _: atr_pct_arr, self.data.Close)
+
+        idx = self.data.df.index if hasattr(self.data, "df") else None
+        if idx is not None:
+            hours = np.asarray([pd.Timestamp(t).hour for t in idx])
+            sess = (hours >= self.session_start) & (hours < self.session_end)
+            self._session_mask_full = sess.astype(bool)
+        else:
+            self._session_mask_full = None
+
+        self._last_entry_bar = -10_000
+
+    def _regime_and_filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+
+        if self._session_mask_full is not None and bar_i < len(self._session_mask_full):
+            if not bool(self._session_mask_full[bar_i]):
+                return False
+
+        bbw_pct = float(self._bbw_pct[-1]) if not np.isnan(self._bbw_pct[-1]) else np.nan
+        if np.isnan(bbw_pct) or bbw_pct <= 30.0:
+            return False
+
+        atr_p = float(self._atr_pct[-1]) if not np.isnan(self._atr_pct[-1]) else np.nan
+        if np.isnan(atr_p) or atr_p < 20.0 or atr_p > 90.0:
+            return False
+
+        try:
+            now_date = pd.Timestamp(self.data.index[-1]).strftime("%Y-%m-%d")
+            dd_kill = self.spec.get("risk", {}).get(
+                "daily_dd_kill_pct",
+                config.load()["risk"]["daily_dd_kill_pct"])
+            if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, dd_kill):
+                return False
+        except Exception:
+            pass
+
+        return True
+
+    def next(self):
+        price = float(self.data.Close[-1])
+        atr_now = float(self._atr_series[-1]) if not np.isnan(self._atr_series[-1]) else np.nan
+
+        if self.position and self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self.time_stop_bars_p:
+                self.position.close()
+                return
+            entry = trade.entry_price
+            if not np.isnan(atr_now) and atr_now > 0:
+                r = self.atr_sl_mult * atr_now
+                if trade.is_long:
+                    if price - entry >= r:
+                        if trade.sl is None or trade.sl < entry:
+                            trade.sl = entry
+                else:
+                    if entry - price >= r:
+                        if trade.sl is None or trade.sl > entry:
+                            trade.sl = entry
+            return
+
+        if len(self.data) - self._last_entry_bar < self.cooldown_bars:
+            return
+
+        if not self._regime_and_filters_ok():
+            return
+
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        lower = float(self._lower[-1])
+        upper = float(self._upper[-1])
+        mid = float(self._mid[-1])
+        rsi_now = float(self._rsi_s[-1])
+        if np.isnan(lower) or np.isnan(upper) or np.isnan(rsi_now):
+            return
+
+        long_sig = price < lower and rsi_now < self.rsi_long_threshold
+        short_sig = price > upper and rsi_now > self.rsi_short_threshold
+
+        if not (long_sig or short_sig):
+            return
+
+        try:
+            pip_size = 0.01 if "XAU" in str(self._symbol).upper() else 0.0001
+            risk_pct_val = self.spec.get("sizing", {}).get("risk_pct", self.risk_pct)
+            if long_sig:
+                sl = price - self.atr_sl_mult * atr_now
+                tp = upper
+                sl_dist = price - sl
+                if sl_dist <= 0:
+                    return
+                size = risk.lots_by_risk_pct(self.equity, risk_pct_val, sl_dist, pip_size)
+                size = max(size, 0.0)
+                if size <= 0:
+                    return
+                self.sl_price = sl
+                self.tp_price = tp
+                self.buy(sl=sl, tp=tp, size=size if size < 1 else int(size))
+                self._last_entry_bar = len(self.data)
+            elif short_sig:
+                sl = price + self.atr_sl_mult * atr_now
+                tp = lower
+                sl_dist = sl - price
+                if sl_dist <= 0:
+                    return
+                size = risk.lots_by_risk_pct(self.equity, risk_pct_val, sl_dist, pip_size)
+                size = max(size, 0.0)
+                if size <= 0:
+                    return
+                self.sl_price = sl
+                self.tp_price = tp
+                self.sell(sl=sl, tp=tp, size=size if size < 1 else int(size))
+                self._last_entry_bar = len(self.data)
+        except Exception:
+            return

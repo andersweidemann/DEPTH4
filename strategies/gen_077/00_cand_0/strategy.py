@@ -1,0 +1,69 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("filters", {}).get("session_utc") or []
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, sessions), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self.bb_period = self.spec["regime_filter"]["params"]["bb_period"]
+        self.bb_deviation = self.spec["regime_filter"]["params"]["bb_deviation"]
+        self.rsi_period = self.spec["entry_rule"]["params"]["rsi_period"]
+        self.rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        self.sl_multiplier = self.spec["exit_rule"]["params"]["sl_multiplier"]
+        self.time_stop_bars = self.spec["exit_rule"]["params"]["time_stop_bars"]
+        self.fraction = self.spec["sizing_rule"]["params"]["fraction"]
+        self.I_bollinger = self.I(bollinger, self.data, self.bb_period, self.bb_deviation)
+        self.I_rsi = self.I(rsi, self.data, self.rsi_period)
+        self.I_bb_width = self.I(bb_width, self.data, self.bb_period, self.bb_deviation)
+
+    def _regime_ok(self):
+        bb_width_val = float(self.I_bb_width[-1])
+        percentile = self.spec["regime_filter"]["params"]["percentile"]
+        if bb_width_val < np.percentile(self.I_bb_width, percentile):
+            return True
+        return False
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            upper_band = self.I_bollinger['upper'][-1]
+            lower_band = self.I_bollinger['lower'][-1]
+            close_price = self.data.Close[-1]
+            rsi_val = self.I_rsi[-1]
+            if (close_price > upper_band and rsi_val > self.rsi_thresholds[1]) or (close_price < lower_band and rsi_val < self.rsi_thresholds[0]):
+                lots = lots_by_risk_pct(self._equity_start, self.spec.get("risk", {}), self.fraction)
+                if close_price > upper_band:
+                    self.position.open_short(lots)
+                else:
+                    self.position.open_long(lots)
+                self.sl_price = close_price * (1 - self.sl_multiplier * self.data.Atr[-1] / close_price) if close_price > upper_band else close_price * (1 + self.sl_multiplier * self.data.Atr[-1] / close_price)
+
+    def _manage_open(self):
+        if self.position:
+            if self.time_stop_bars is not None:
+                trade = self.trades[-1]
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= self.time_stop_bars:
+                    self.position.close()
+            else:
+                super()._manage_open()

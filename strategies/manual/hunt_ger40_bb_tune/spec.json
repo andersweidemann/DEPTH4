@@ -1,0 +1,31 @@
+{
+  "name": "hunt_ger40_bb_meanrev_tunable",
+  "hypothesis": "Tunable BB+RSI mean reversion on GER40 M15 for parameter search (see tune block).",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "trade_on_close": true,
+  "tune": {
+    "risk_pct": 2.0,
+    "sl_atr_mult": 1.8,
+    "time_stop_bars": 30,
+    "rsi_long_max": 15,
+    "rsi_short_min": 85,
+    "bbw_min": 30.0,
+    "bb_period": 20,
+    "bb_dev": 2.0,
+    "rsi_period": 7,
+    "atr_period": 14,
+    "bbw_lookback": 500,
+    "tp_r_mult": 0.0
+  },
+  "filters": {
+    "max_spread_points": 80
+  },
+  "risk": {
+    "daily_dd_kill_pct": 5.0
+  }
+}

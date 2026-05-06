@@ -1,0 +1,27 @@
+{
+  "candidate": "promoted_nowick_ger40_m30_pf154",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "trades": 224,
+      "metrics": {
+        "return_pct": 14.729858074641855,
+        "pf": 1.7347305476567005,
+        "sharpe": 0.687544025319197,
+        "sortino": 1.7289101562756426,
+        "max_dd_pct": 4.673802648365899,
+        "trades": 224.0,
+        "win_rate": 10.714285714285714,
+        "expectancy": 0.06479544720021786,
+        "avg_trade": 0.06261304133043932,
+        "exposure_pct": 4.265676408904624
+      }
+    }
+  ]
+}

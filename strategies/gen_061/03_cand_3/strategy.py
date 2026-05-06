@@ -1,0 +1,51 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        super().init()
+        self._adx_series = self.I(adx, self.data, n=14)
+        self._donchian_series = self.I(donchian, self.data, n=self.spec["entry_rule"]["params"]["donchian_period"])
+        self._atr_series = self.I(atr, self.data, n=14)
+
+    def _regime_ok(self):
+        adx_val = float(self._adx_series[-1])
+        return adx_val > self.spec["regime_filter"]["threshold"]
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        if self._regime_ok() and self._filters_ok():
+            donchian_breakout = self._donchian_series[-1]
+            breakout_threshold = self.spec["entry_rule"]["params"]["breakout_threshold"]
+            if donchian_breakout > breakout_threshold:
+                size = self.spec["sizing_rule"]["size"]
+                self.position.enter(size)
+                self.sl_price = self.data.Close[-1] - 2 * float(self._atr_series[-1])
+                self.tp_price = self.data.Close[-1] + 1000
+
+    def _manage_open(self):
+        exit_cfg = self.spec["exit_rule"]
+        time_stop = exit_cfg["time_stop"]
+        if self.position and time_stop:
+            bars_open = len(self.data) - self.position.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+        if self.position:
+            atr_now = float(self._atr_series[-1])
+            price = float(self.data.Close[-1])
+            if self.position.is_long and self.position.pl_pct > 0:
+                new_sl = price - 2 * atr_now
+                if self.position.sl is None or new_sl > self.position.sl:
+                    self.position.sl = new_sl
+            elif not self.position.is_long and self.position.pl_pct > 0:
+                new_sl = price + 2 * atr_now
+                if self.position.sl is None or new_sl < self.position.sl:
+                    self.position.sl = new_sl

@@ -1,0 +1,80 @@
+{
+  "name": "bb_rsi_mean_reversion_xauusd_m15",
+  "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands with extreme RSI(7) during active sessions and sufficient BB-width, price reverts to the middle band within 30 bars often enough to yield PF>=2.0.",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": {
+    "entry_long": "close < lower_bb(20, 1.8) AND rsi(7) < 12 AND bb_width > bb_width_percentile(200, 30)",
+    "entry_short": "close > upper_bb(20, 1.8) AND rsi(7) > 88 AND bb_width > bb_width_percentile(200, 30)",
+    "primitives_used": [
+      "bollinger",
+      "rsi",
+      "bb_width",
+      "session_mask"
+    ]
+  },
+  "regime_filter": {
+    "type": "volatility_gate",
+    "rules": [
+      "atr_percentile(14, 200) between 25 and 90",
+      "adx(14) < 28 (non-trending regime preferred)",
+      "session_mask: 07:00-20:00 broker time"
+    ]
+  },
+  "exits": {
+    "take_profit": "opposite bollinger band (mean reversion) OR middle band fallback",
+    "stop_loss": "1.8 * ATR(14) from entry",
+    "time_stop": "close after 30 M15 bars (~7.5h)",
+    "breakeven": "move SL to entry after +1.0*ATR favorable move"
+  },
+  "sizing": {
+    "type": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "cooldown_bars": 4
+  },
+  "params_to_optimize": {
+    "bb_period": [
+      18,
+      20,
+      24
+    ],
+    "bb_dev": [
+      1.6,
+      1.8,
+      2.0
+    ],
+    "rsi_len": [
+      5,
+      7,
+      9
+    ],
+    "rsi_long_thresh": [
+      8,
+      12,
+      15
+    ],
+    "rsi_short_thresh": [
+      85,
+      88,
+      92
+    ],
+    "atr_sl_mult": [
+      1.3,
+      1.5,
+      1.8
+    ],
+    "time_stop_bars": [
+      20,
+      30,
+      40
+    ]
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

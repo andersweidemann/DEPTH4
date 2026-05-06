@@ -1,0 +1,41 @@
+{
+  "name": "xau_m5_bb_rsi_mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M5, when price closes outside a 20-period Bollinger Band with RSI(7) at an extreme, price reverts to the middle band within ~2.5 hours, provided volatility regime is active (BB width above 30th percentile) and session is London/NY.",
+  "entry_rules": {
+    "long": "close < lower_bb(20, 1.75) AND rsi(7) < 15 AND bb_width > bb_width_pctile_30 AND session in [london, ny] AND bars_since_last_trade >= 3",
+    "short": "close > upper_bb(20, 1.75) AND rsi(7) > 85 AND bb_width > bb_width_pctile_30 AND session in [london, ny] AND bars_since_last_trade >= 3"
+  },
+  "exit_rules": {
+    "tp": "opposite bollinger band (middle BB as early exit option)",
+    "sl": "1.8 * ATR(14) from entry",
+    "time_stop": "close after 30 bars (~2.5h)"
+  },
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "rule": "atr_percentile(14, lookback=500) between 20 and 85; reject extreme-low vol (dead) and extreme-high vol (trend) regimes"
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "sl_basis": "atr",
+    "max_concurrent_positions": 1
+  },
+  "indicators": [
+    "bollinger(20,1.75)",
+    "rsi(7)",
+    "atr(14)",
+    "bb_width",
+    "session_mask"
+  ],
+  "instrumentation_required": [
+    "bars_received",
+    "indicator_ready_bar",
+    "signal_true_count",
+    "order_attempt_count",
+    "order_reject_reason"
+  ],
+  "diversity_tag": "mean_reversion_bb_rsi"
+}

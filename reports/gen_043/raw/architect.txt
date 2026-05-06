@@ -1,0 +1,187 @@
+[
+  {
+    "name": "bb_rsi_meanrev_xau_m15_v1",
+    "hypothesis": "On XAUUSD M15, price closing outside a 20-period 2.0-sigma Bollinger Band with an extreme RSI(2) reading reverts to the middle band within 20 bars, provided volatility (BB width) is above its 40th percentile and ADX<25 (non-trending).",
+    "family": "mean_reversion",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "stddev": 2.0, "condition": "close_below_lower"},
+          {"primitive": "rsi", "period": 2, "condition": "lt", "threshold": 5}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "stddev": 2.0, "condition": "close_above_upper"},
+          {"primitive": "rsi", "period": 2, "condition": "gt", "threshold": 95}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "adx", "period": 14, "condition": "lt", "threshold": 25},
+        {"primitive": "bb_width", "period": 20, "stddev": 2.0, "percentile_lookback": 200, "condition": "gt", "percentile": 40}
+      ]
+    },
+    "exits": {
+      "stop_loss": {"type": "atr_mult", "atr_period": 14, "multiplier": 1.8},
+      "take_profit": {"type": "bollinger_middle", "period": 20},
+      "time_stop": {"bars": 20}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "min_stop_points_buffer": 1.5
+    },
+    "session_filter": {"type": "none"},
+    "diagnostics": {
+      "log_gate_rejections": true,
+      "require_min_trades_per_year": 40
+    }
+  },
+  {
+    "name": "bb_rsi_meanrev_us500_m5_v1",
+    "hypothesis": "On US500 M5 during regular US cash hours, short-lived BB+RSI extremes revert to the band midline with an edge when ADX<22, offering high-frequency mean reversion trades.",
+    "family": "mean_reversion",
+    "symbols": ["US500"],
+    "timeframes": ["M5"],
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "stddev": 1.75, "condition": "close_below_lower"},
+          {"primitive": "rsi", "period": 7, "condition": "lt", "threshold": 10}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "bollinger", "period": 20, "stddev": 1.75, "condition": "close_above_upper"},
+          {"primitive": "rsi", "period": 7, "condition": "gt", "threshold": 90}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "adx", "period": 14, "condition": "lt", "threshold": 22},
+        {"primitive": "bb_width", "period": 20, "stddev": 1.75, "percentile_lookback": 300, "condition": "gt", "percentile": 30}
+      ]
+    },
+    "exits": {
+      "stop_loss": {"type": "atr_mult", "atr_period": 14, "multiplier": 1.5},
+      "take_profit": {"type": "bollinger_opposite", "period": 20, "stddev": 1.75},
+      "time_stop": {"bars": 30}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.4,
+      "min_stop_points_buffer": 1.0
+    },
+    "session_filter": {
+      "type": "session_mask",
+      "sessions_utc": [{"start": "13:30", "end": "20:00"}],
+      "cooldown_bars": 3
+    },
+    "diagnostics": {
+      "log_gate_rejections": true,
+      "require_min_trades_per_year": 120
+    }
+  },
+  {
+    "name": "asia_london_range_break_xau_m5_v1",
+    "hypothesis": "On XAUUSD M5, the Asia-session range (00:00-06:00 UTC) followed by a London-session breakout with a strong candle body captures directional expansion, provided the Asia range is within 0.5-2.0 ATR(14 D1-proxy via M5*48).",
+    "family": "breakout",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "donchian", "source": "asia_session", "session_start_utc": "00:00", "session_end_utc": "06:00", "condition": "close_breaks_high"},
+          {"primitive": "atr_breakout_levels", "atr_period": 14, "body_atr_min": 1.0, "distance_atr_min": 0.4}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "donchian", "source": "asia_session", "session_start_utc": "00:00", "session_end_utc": "06:00", "condition": "close_breaks_low"},
+          {"primitive": "atr_breakout_levels", "atr_period": 14, "body_atr_min": 1.0, "distance_atr_min": 0.4}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "atr_percentile", "atr_period": 14, "lookback": 500, "condition": "between", "low_percentile": 20, "high_percentile": 90},
+        {"primitive": "session_mask", "range_atr_min": 0.5, "range_atr_max": 2.0, "atr_period": 14}
+      ]
+    },
+    "session_filter": {
+      "type": "session_mask",
+      "sessions_utc": [{"start": "07:00", "end": "10:00"}],
+      "max_breakout_bars_from_window_start": 12,
+      "only_first_breakout_per_day": true
+    },
+    "exits": {
+      "stop_loss": {"type": "range_opposite_plus_atr", "atr_period": 14, "buffer_atr": 0.3},
+      "take_profit": {"type": "rr_multiple", "rr": 2.0},
+      "time_stop": {"bars": 24, "at_end_of_session_utc": "16:00"}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "min_stop_points_buffer": 2.0
+    },
+    "diagnostics": {
+      "log_gate_rejections": true,
+      "symbol_alias_probe": ["XAUUSD", "XAUUSD.pro", "XAUUSD.m", "GOLD"],
+      "require_min_trades_per_year": 60
+    }
+  },
+  {
+    "name": "donchian_trend_break_ger40_m15_v1",
+    "hypothesis": "On GER40 M15, Donchian(40) breakouts during European cash hours with ADX>22 and ATR percentile in mid-to-high band produce a persistent trend-following edge, filtered by an EMA(200) directional bias.",
+    "family": "breakout",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "signals": {
+      "entry_long": {
+        "all": [
+          {"primitive": "donchian", "period": 40, "condition": "close_breaks_high"},
+          {"primitive": "ema", "period": 200, "condition": "close_above"}
+        ]
+      },
+      "entry_short": {
+        "all": [
+          {"primitive": "donchian", "period": 40, "condition": "close_breaks_low"},
+          {"primitive": "ema", "period": 200, "condition": "close_below"}
+        ]
+      }
+    },
+    "regime_filter": {
+      "all": [
+        {"primitive": "adx", "period": 14, "condition": "gt", "threshold": 22},
+        {"primitive": "atr_percentile", "atr_period": 14, "lookback": 300, "condition": "between", "low_percentile": 30, "high_percentile": 95}
+      ]
+    },
+    "session_filter": {
+      "type": "session_mask",
+      "sessions_utc": [{"start": "07:00", "end": "15:30"}],
+      "cooldown_bars": 4
+    },
+    "exits": {
+      "stop_loss": {"type": "atr_mult", "atr_period": 14, "multiplier": 2.0},
+      "take_profit": {"type": "atr_mult", "atr_period": 14, "multiplier": 4.0},
+      "trailing_stop": {"type": "chandelier", "atr_period": 14, "multiplier": 3.0, "activate_after_rr": 1.0},
+      "time_stop": {"bars": 48}
+    },
+    "sizing": {
+      "type": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "min_stop_points_buffer": 3.0,
+      "contract_note": "GER40 index-point sizing; 1 lot = 1 EUR per index point (verify broker spec)"
+    },
+    "diagnostics": {
+      "log_gate_rejections": true,
+      "symbol_alias_probe": ["GER40", "DE40", "GER40.cash", "DAX40", "GER40.pro"],
+      "require_min_trades_per_year": 50
+    }
+  }
+]

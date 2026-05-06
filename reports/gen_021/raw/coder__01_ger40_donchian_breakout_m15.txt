@@ -1,0 +1,204 @@
+```python
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    donchian_period = 20
+    atr_period = 14
+    ema_period = 50
+    adx_period = 14
+    adx_min = 20
+    buffer_atr = 0.1
+    tp_atr_mult = 2.5
+    sl_atr_mult = 1.2
+    time_stop_bars = 24
+    trail_atr_mult = 2.5
+    risk_pct = 0.5
+    include_hours = (7, 8, 9, 10, 11, 12, 13, 14, 15)
+
+    def init(self):
+        spec_file = Path(__file__).parent / self.spec_path
+        if spec_file.exists():
+            try:
+                with open(spec_file, "r") as f:
+                    self._spec = json.load(f)
+            except Exception:
+                self._spec = {}
+
+        super().init()
+
+        high = self.data.High
+        low = self.data.Low
+        close = self.data.Close
+
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        dc = self.I(signals.donchian, self.data, self.donchian_period)
+        if isinstance(dc, tuple) or (hasattr(dc, "ndim") and getattr(dc, "ndim", 1) == 2):
+            self._dc_high = dc[0]
+            self._dc_low = dc[1]
+        else:
+            self._dc_high = dc
+            self._dc_low = self.I(lambda d, n: pd.Series(d.Low).rolling(n).min().values,
+                                   self.data, self.donchian_period)
+
+        self._ema_series = self.I(signals.ema, self.data, self.ema_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        sess = [{"start": f"{h:02d}:00", "end": f"{h:02d}:59"} for h in self.include_hours]
+        try:
+            self._session_mask_full = np.asarray(signals.session_mask(idx, sess), dtype=bool)
+        except Exception:
+            hours = pd.DatetimeIndex(idx).hour
+            self._session_mask_full = np.isin(hours, list(self.include_hours))
+
+        self._last_session_date = None
+        self._long_taken_session = False
+        self._short_taken_session = False
+        self._entry_bar_for_trade = {}
+
+    def _session_key(self):
+        ts = pd.Timestamp(self.data.index[-1])
+        return ts.strftime("%Y-%m-%d")
+
+    def _in_session(self) -> bool:
+        bar_i = len(self.data) - 1
+        m = self._session_mask_full
+        if m is None or bar_i >= len(m):
+            return False
+        return bool(m[bar_i])
+
+    def _regime_ok(self) -> bool:
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val):
+            return False
+        return adx_val >= self.adx_min
+
+    def _filters_ok(self) -> bool:
+        return self._in_session()
+
+    def next(self):
+        key = self._session_key()
+        if key != self._last_session_date:
+            self._last_session_date = key
+            self._long_taken_session = False
+            self._short_taken_session = False
+
+        self._manage_open_custom()
+
+        if self.position:
+            return
+
+        if not self._filters_ok():
+            return
+        if not self._regime_ok():
+            return
+
+        self._enter_if_signal()
+
+    def _enter_if_signal(self) -> None:
+        close = float(self.data.Close[-1])
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+        dc_high_prev = float(self._dc_high[-2]) if len(self._dc_high) >= 2 else np.nan
+        dc_low_prev = float(self._dc_low[-2]) if len(self._dc_low) >= 2 else np.nan
+        ema_now = float(self._ema_series[-1])
+        if np.isnan(dc_high_prev) or np.isnan(dc_low_prev) or np.isnan(ema_now):
+            return
+
+        buf = self.buffer_atr * atr_now
+
+        long_sig = (close > dc_high_prev + buf) and (close > ema_now) and (not self._long_taken_session)
+        short_sig = (close < dc_low_prev - buf) and (close < ema_now) and (not self._short_taken_session)
+
+        if long_sig:
+            sl = close - self.sl_atr_mult * atr_now
+            tp = close + self.tp_atr_mult * atr_now
+            self.sl_price = sl
+            self.tp_price = tp
+            size = self._compute_size(close, sl)
+            if size and size > 0:
+                self.buy(sl=sl, tp=tp, size=size)
+                self._long_taken_session = True
+        elif short_sig:
+            sl = close + self.sl_atr_mult * atr_now
+            tp = close - self.tp_atr_mult * atr_now
+            self.sl_price = sl
+            self.tp_price = tp
+            size = self._compute_size(close, sl)
+            if size and size > 0:
+                self.sell(sl=sl, tp=tp, size=size)
+                self._short_taken_session = True
+
+    def _compute_size(self, entry: float, sl: float) -> float:
+        try:
+            stop_dist = abs(entry - sl)
+            if stop_dist <= 0:
+                return 0.0
+            lots = risk.lots_by_risk_pct(
+                equity=float(self.equity),
+                risk_pct=self.risk_pct,
+                stop_distance=stop_dist,
+                price=entry,
+                symbol=self._symbol,
+            )
+            if lots is None or lots <= 0:
+                return 0.0
+            if isinstance(lots, float) and lots < 1:
+                return max(min(lots, 0.9999), 0.0001)
+            return float(lots)
+        except Exception:
+            risk_cash = float(self.equity) * (self.risk_pct / 100.0)
+            stop_dist = abs(entry - sl)
+            if stop_dist <= 0:
+                return 0.0
+            units = risk_cash / stop_dist
+            frac = units * entry / float(self.equity)
+            return max(min(frac, 0.9999), 0.0001)
+
+    def _manage_open_custom(self) -> None:
+        if not self.position or not self.trades:
+            return
+        atr_now = float(self._atr_series[-1])
+        price = float(self.data.Close[-1])
+        bar_i = len(self.data) - 1
+
+        for trade in list(self.trades):
+            bars_open = bar_i - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                trade.close()
+                continue
+
+            if np.isnan(atr_now):
+                continue
+
+            entry = float(trade.entry_price)
+            if trade.is_long:
+                r = self.sl_atr_mult * atr_now
+                if price - entry >= r:
+                    highest = float(pd.Series(self.data.High).iloc[trade.entry_bar:].max())
+                    new_sl = highest - self.trail_atr_mult * atr_now
+                    if trade.sl is None or new_sl > trade.sl:
+                        if new_sl < price:
+                            trade.sl = new_sl
+            else:
+                r = self.sl_atr_mult * atr_now
+                if entry - price >= r:
+                    lowest = float(pd.Series(self.data.Low).iloc[trade.entry_bar:].min())
+                    new_sl = lowest + self.trail_atr_mult * atr_now
+                    if trade.sl is None or new_sl < trade.sl:
+                        if new_sl > price:
+                            trade.sl = new_sl
+```

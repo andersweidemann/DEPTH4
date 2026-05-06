@@ -1,0 +1,36 @@
+{
+  "hypothesis": "RSI extremes with ATR-based stops are profitable on US500 M5",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rule": {
+    "type": "rsi_extreme",
+    "params": {
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "tp_pips": 200,
+      "sl": "atr",
+      "sl_atr_multiplier": 1.5,
+      "time_stop": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "name": "ger40_m5_open_range_fade",
+  "hypothesis": "On GER40 M5, the first 30-minute opening range (07:00-07:30 UTC) often overshoots; fading a 1.0x-ATR extension outside the opening range during low-ADX conditions reverts toward the range midpoint with positive expectancy.",
+  "family": "mean_reversion",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "open_range": {
+      "primitive": "donchian",
+      "lookback_session": "07:00-07:30 UTC"
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "rsi": {
+      "primitive": "rsi",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "trade_window": "07:30-11:00 UTC"
+    }
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "max": 22
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min_pct": 20,
+        "max_pct": 85
+      }
+    ]
+  },
+  "entry_rules": {
+    "short": "Price >= opening_range_high + 1.0*ATR AND RSI(14) > 70 AND bar closes bearish",
+    "long": "Price <= opening_range_low - 1.0*ATR AND RSI(14) < 30 AND bar closes bullish",
+    "max_trades_per_day": 2
+  },
+  "exit_rules": {
+    "take_profit": {
+      "type": "level",
+      "target": "opening_range_mid"
+    },
+    "stop_loss": {
+      "type": "atr",
+      "mult": 1.2,
+      "anchor": "entry"
+    },
+    "time_stop_bars": 24
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.4,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 1.5,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

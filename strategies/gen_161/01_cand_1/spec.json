@@ -1,0 +1,50 @@
+{
+  "hypothesis": "Breakouts occur on GER40 M15 after an Asia-London range expansion",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session_start": "07:00",
+      "session_end": "10:00"
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "range_atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0,
+      "breakout_atr_multiplier": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "multi_condition",
+    "params": {
+      "conditions": [
+        {
+          "type": "take_profit",
+          "params": {
+            "tp_price": "500_pips"
+          }
+        },
+        {
+          "type": "stop_loss",
+          "params": {
+            "sl_price": "100_pips"
+          }
+        },
+        {
+          "type": "time_stop",
+          "params": {
+            "time_stop_bar": 20
+          }
+        }
+      ]
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

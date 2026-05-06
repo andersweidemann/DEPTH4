@@ -1,0 +1,198 @@
+[
+  {
+    "name": "xauusd_london_range_breakout_m5",
+    "hypothesis": "XAUUSD exhibits volatility expansion during the London open following Asia-session accumulation; a breakout of the Asia range during 07:00-10:00 UTC with an ATR-normalized body produces positive expectancy when the range is neither too tight nor exhausted.",
+    "family": "session_breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "signals": [
+      {"type": "atr", "period": 14},
+      {"type": "donchian", "period": 72, "scope": "asia_session_00_06_utc"},
+      {"type": "session_mask", "windows": [{"start": "07:00", "end": "10:00", "tz": "UTC"}]}
+    ],
+    "regime_filter": {
+      "type": "atr_percentile",
+      "lookback": 200,
+      "min_percentile": 30,
+      "max_percentile": 95,
+      "description": "Only trade when current ATR is in mid-to-high volatility regime; avoid dead Asia sessions and post-news exhaustion."
+    },
+    "entry_rules": {
+      "long": "Price closes above Asia range high by >= 0.5*ATR(14) with candle body >= 1.2*ATR(14), within first 12 bars of London window, Asia range between 0.5*ATR and 2.0*ATR.",
+      "short": "Mirror of long on Asia range low.",
+      "max_signals_per_day": 1
+    },
+    "exit_rules": {
+      "stop_loss": "0.75 * ATR(14) from entry",
+      "take_profit": "2.25 * ATR(14) from entry (3R)",
+      "time_stop": "Close at 15:00 UTC if neither hit",
+      "trailing": "Move SL to breakeven after +1.0*ATR favorable"
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "parameters": {
+      "atr_period": 14,
+      "asia_start_utc": "00:00",
+      "asia_end_utc": "06:00",
+      "london_start_utc": "07:00",
+      "london_end_utc": "10:00",
+      "breakout_atr_mult": 0.5,
+      "body_atr_mult": 1.2,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0,
+      "max_breakout_bars": 12
+    }
+  },
+  {
+    "name": "ger40_asian_range_breakout_m15",
+    "hypothesis": "GER40 frequently consolidates overnight and breaks out during Frankfurt/London cash open (07:00-09:30 UTC); a Donchian breakout of the overnight range on M15 captures opening momentum when volatility regime is expansive.",
+    "family": "session_breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "signals": [
+      {"type": "donchian", "period": 32, "scope": "overnight_22_07_utc"},
+      {"type": "atr", "period": 14},
+      {"type": "session_mask", "windows": [{"start": "07:00", "end": "11:00", "tz": "UTC"}]}
+    ],
+    "regime_filter": {
+      "type": "adx",
+      "period": 14,
+      "min_value": 18,
+      "description": "Require directional structure on entry bar to avoid chop-fade breakouts."
+    },
+    "entry_rules": {
+      "long": "First M15 close above overnight Donchian high by >= 0.3*ATR(14) after 07:00 UTC and within 07:00-11:00 window; ADX(14) >= 18.",
+      "short": "Mirror on overnight Donchian low.",
+      "max_signals_per_day": 2,
+      "cooldown_bars": 4
+    },
+    "exit_rules": {
+      "stop_loss": "1.2 * ATR(14) from entry",
+      "take_profit": "2.4 * ATR(14) (2R)",
+      "time_stop": "Close at 15:30 UTC",
+      "trailing": "After +1R, trail at 1.0*ATR behind close"
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "parameters": {
+      "donchian_period": 32,
+      "atr_period": 14,
+      "breakout_atr_buffer": 0.3,
+      "adx_period": 14,
+      "adx_min": 18,
+      "window_start_utc": "07:00",
+      "window_end_utc": "11:00"
+    }
+  },
+  {
+    "name": "us500_ema_pullback_trend_m15",
+    "hypothesis": "US500 exhibits persistent intraday trends during US cash session; pullbacks to a fast EMA within an established trend (slow EMA slope + ADX) offer better risk/reward than breakout entries and avoid chop.",
+    "family": "trend_pullback",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "signals": [
+      {"type": "ema", "period": 20},
+      {"type": "ema", "period": 50},
+      {"type": "ema", "period": 200},
+      {"type": "atr", "period": 14},
+      {"type": "rsi", "period": 7},
+      {"type": "session_mask", "windows": [{"start": "13:30", "end": "20:00", "tz": "UTC"}]}
+    ],
+    "regime_filter": {
+      "type": "adx",
+      "period": 14,
+      "min_value": 20,
+      "description": "Only take pullbacks when trend strength is present; ADX<20 likely mean-revert or chop."
+    },
+    "entry_rules": {
+      "long": "EMA50 > EMA200 and EMA50 slope positive over last 10 bars; price pulls back to touch or cross below EMA20 then closes back above EMA20; RSI(7) crossed up from <40.",
+      "short": "Mirror: EMA50 < EMA200, negative slope, pullback above EMA20 then close back below, RSI(7) crossed down from >60.",
+      "max_signals_per_day": 3,
+      "cooldown_bars": 6
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) below entry (long) / above entry (short)",
+      "take_profit": "3.0 * ATR(14) (2R)",
+      "time_stop": "Close after 24 bars (6 hours) if neither hit",
+      "trailing": "After +1R, move SL to entry; after +1.5R, trail at EMA20"
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "parameters": {
+      "ema_fast": 20,
+      "ema_mid": 50,
+      "ema_slow": 200,
+      "atr_period": 14,
+      "rsi_period": 7,
+      "rsi_long_threshold": 40,
+      "rsi_short_threshold": 60,
+      "adx_period": 14,
+      "adx_min": 20
+    }
+  },
+  {
+    "name": "xauusd_trend_pullback_bb_m15",
+    "hypothesis": "Prior generation showed XAUUSD M15 is trend-persistent during LDN/NY overlap, defeating pure mean-reversion. Instead, use Bollinger Band middle-line pullbacks in a confirmed trend (EMA stack + ADX) to harvest trend continuation while entering at favorable pullback prices.",
+    "family": "trend_pullback",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "signals": [
+      {"type": "ema", "period": 50},
+      {"type": "ema", "period": 200},
+      {"type": "bollinger", "period": 20, "stddev": 2.0},
+      {"type": "atr", "period": 14},
+      {"type": "rsi", "period": 14},
+      {"type": "session_mask", "windows": [{"start": "12:00", "end": "20:00", "tz": "UTC"}]}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "rules": [
+        {"when": "adx_14 >= 22 AND atr_percentile_200 >= 40", "regime": "trend_active"},
+        {"default": "skip"}
+      ],
+      "trade_when": ["trend_active"],
+      "description": "Only engage when ADX confirms trend and ATR shows participative volatility."
+    },
+    "entry_rules": {
+      "long": "EMA50 > EMA200; price pulls back to touch BB middle (SMA20) or lower half but does NOT close below lower BB; next bar closes above BB middle; RSI(14) between 40 and 65 (not overbought).",
+      "short": "Mirror: EMA50 < EMA200; pullback to BB middle from below without closing above upper BB; next bar closes below BB middle; RSI(14) between 35 and 60.",
+      "max_signals_per_day": 2,
+      "cooldown_bars": 8
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "3.0 * ATR(14) (2R)",
+      "time_stop": "Close after 20 bars (5 hours) if neither hit",
+      "trailing": "After +1R favorable, move SL to breakeven + 0.1*ATR; after +1.5R, trail 1.2*ATR behind close"
+    },
+    "sizing": {
+      "type": "risk_percent",
+      "risk_per_trade_pct": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "parameters": {
+      "ema_fast": 50,
+      "ema_slow": 200,
+      "bb_period": 20,
+      "bb_stddev": 2.0,
+      "atr_period": 14,
+      "rsi_period": 14,
+      "rsi_long_min": 40,
+      "rsi_long_max": 65,
+      "rsi_short_min": 35,
+      "rsi_short_max": 60,
+      "adx_period": 14,
+      "adx_min": 22,
+      "atr_percentile_min": 40
+    }
+  }
+]

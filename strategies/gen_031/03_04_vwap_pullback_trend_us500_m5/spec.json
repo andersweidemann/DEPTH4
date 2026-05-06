@@ -1,0 +1,75 @@
+{
+  "name": "04_vwap_pullback_trend_us500_m5",
+  "hypothesis": "On US500 M5, during the NY cash session, pullbacks to EMA(20) within a higher-timeframe trend (EMA50>EMA200, ADX>20) and an RSI(14) dip-buy (or rip-sell) yield high-hit-rate continuation trades with PF>=2.0.",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "family": "trend_pullback",
+  "signals": [
+    {
+      "type": "ema",
+      "period": 20
+    },
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "ema",
+      "period": 200
+    },
+    {
+      "type": "rsi",
+      "period": 14
+    },
+    {
+      "type": "adx",
+      "period": 14
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "session_mask",
+      "sessions": [
+        "ny_1330_2000_utc"
+      ],
+      "tz": "UTC"
+    }
+  ],
+  "regime_filter": {
+    "type": "classify",
+    "require": {
+      "adx_gt": 20,
+      "atr_percentile_between": [
+        25,
+        90
+      ]
+    },
+    "reject_when_all_on": true
+  },
+  "entry_rules": {
+    "long": "ema50 > ema200 AND close pulls back to within 0.25*ATR of ema20 AND rsi(14) crosses up through 45 AND in_session",
+    "short": "ema50 < ema200 AND close pulls back to within 0.25*ATR of ema20 AND rsi(14) crosses down through 55 AND in_session",
+    "cooldown_bars": 8
+  },
+  "exit_rules": {
+    "take_profit": "2.0 * ATR(14) from entry",
+    "stop_loss": "1.2 * ATR(14) below swing low (long) / above swing high (short)",
+    "time_stop_bars": 40,
+    "trailing_stop": "ema20 cross-back",
+    "breakeven_at_r": 0.8
+  },
+  "sizing": {
+    "method": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1,
+    "max_spread_points": 15
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "ranking": [
+    {
+      "candidate": "01_cand_1",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FAIL \u2014 Zero Trades Across All Combos\n\nThe sole candidate (`01_cand_1`) produced **0 trades** across all four symbol/TF combos (XAUUSD M5/M15, GER40 M5/M15) over a 4.5-year IS window (2020-01-01 to 2024-06-30). All performance metrics are NaN/zero, indicating the strategy's entry logic never triggered \u2014 not a performance problem but a **signal-generation failure**.\n\n### Likely Root Causes\n1. **Entry conditions too restrictive** \u2014 compound filters (e.g. multi-indicator confluence with tight thresholds) producing empty intersection.\n2. **Session/time filters** misaligned with symbol trading hours (e.g. FX session filter applied to GER40 index).\n3. **Indicator warm-up / lookback bug** \u2014 signal arrays never populated, or shifted indexing always returning neutral.\n4. **Symbol point/digit mismatch** \u2014 thresholds expressed in pips/points evaluated against raw price, never crossed.\n5. **Broken data feed mapping** or wrong column (bid vs. mid) inside the backtest adapter.\n\n### Recommendation\nDo not tune parameters. Ship a **diagnostic pass** first: log signal counts, filter-stage attrition, and a single-combo sanity trace. If the family genuinely has no edge at reasonable permissiveness, **pivot the strategy family** rather than loosening thresholds until noise trades appear.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "01_cand_1 as specified \u2014 do not re-run with the same entry/filter stack before emitting a per-bar signal-count diagnostic and confirming indicator warm-up is complete.",
+    "Do not apply FX session filters (London/NY hours gating on tick volume) uniformly to index symbols like GER40 without a symbol-class switch \u2014 this is a common zero-trade cause.",
+    "Avoid hard-coded pip/point thresholds without Symbol.Point normalization across XAUUSD (digits=2) and GER40 (digits=1 or 2 broker-dependent)."
+  ]
+}

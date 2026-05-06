@@ -1,0 +1,11 @@
+{
+  "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with an RSI(7) extreme reading",
+  "regime_filter": "bb_width > 30th percentile",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "entry_rule": "Close < Lower BB(20, 1.75) AND RSI(7) < 10 OR Close > Upper BB(20, 1.75) AND RSI(7) > 90",
+  "sl": "1.5 * ATR(14)",
+  "tp": "Opposite Bollinger Band",
+  "time_stop": "30 bars",
+  "sizing": "Fixed fraction of equity"
+}

@@ -1,0 +1,71 @@
+{
+  "id": "gen51_cand_3",
+  "name": "GER40_Donchian_ATRBreak_M15",
+  "family": "trend_breakout",
+  "hypothesis": "On GER40 M15 during European cash hours (08:00-16:30 UTC), a 20-bar Donchian breakout confirmed by ATR expansion produces positive expectancy when ADX>20.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "type": "donchian",
+      "period": 20
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "atr_breakout_levels",
+      "period": 14,
+      "mult": 1.0
+    },
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "adx",
+      "period": 14
+    }
+  ],
+  "entry_rules": {
+    "long": "close > donchian_high_prev AND close > ema50 AND (close - open) > 0.6*ATR AND adx > 20",
+    "short": "close < donchian_low_prev AND close < ema50 AND (open - close) > 0.6*ATR AND adx > 20",
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "tp": "3.0 * ATR(14) from entry",
+    "sl": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 32,
+    "trailing": {
+      "type": "donchian",
+      "period": 10,
+      "activate_after_R": 1.0
+    }
+  },
+  "regime_filter": {
+    "type": "adx",
+    "period": 14,
+    "min": 20,
+    "rationale": "avoid chop; require trending regime"
+  },
+  "sizing": {
+    "mode": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "enabled": true,
+    "windows_utc": [
+      [
+        "08:00",
+        "16:30"
+      ]
+    ]
+  },
+  "diversification_notes": "Trend/breakout family, index-native (GER40)."
+}

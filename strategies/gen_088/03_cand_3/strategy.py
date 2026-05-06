@@ -1,0 +1,40 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import donchian, atr
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.donchian_channel = self.I(donchian, self.data, n=20)
+        self.atr = self.I(atr, self.data, n=14)
+        self.channel_width = self.donchian_channel['high'] - self.donchian_channel['low']
+
+    def _regime_ok(self):
+        donchian_channel_width = self.channel_width[-1]
+        return donchian_channel_width > 50
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            if self.data.Close[-1] > self.donchian_channel['high'][-1]:
+                self.position.enter_long(lots_by_risk_pct(self.spec, self.equity, self.data.Close[-1]))
+                self.sl_price = self.data.Close[-1] - self.atr[-1]
+                self.tp_price = self.data.Close[-1] + self.channel_width[-1]
+            elif self.data.Close[-1] < self.donchian_channel['low'][-1]:
+                self.position.enter_short(lots_by_risk_pct(self.spec, self.equity, self.data.Close[-1]))
+                self.sl_price = self.data.Close[-1] + self.atr[-1]
+                self.tp_price = self.data.Close[-1] - self.channel_width[-1]
+
+    def _manage_open(self):
+        time_stop = self.spec.get("exit", {}).get("time_stop")
+        if time_stop is not None:
+            trade = self.trades[-1] if self.trades else None
+            if trade is not None:
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= time_stop:
+                    self.position.close()

@@ -1,0 +1,99 @@
+{
+  "name": "donchian_trend_breakout_ger40_m15",
+  "hypothesis": "On GER40 M15, strong-trend regimes (ADX>22) produce persistent directional moves after fresh 40-bar Donchian breakouts during European cash hours.",
+  "family": "trend_breakout",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "period": 40,
+          "condition": "break_high"
+        },
+        {
+          "primitive": "ema",
+          "period": 50,
+          "condition": "close_above"
+        },
+        {
+          "primitive": "ema",
+          "fast": 20,
+          "slow": 50,
+          "condition": "fast_above_slow"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "period": 40,
+          "condition": "break_low"
+        },
+        {
+          "primitive": "ema",
+          "period": 50,
+          "condition": "close_below"
+        },
+        {
+          "primitive": "ema",
+          "fast": 20,
+          "slow": 50,
+          "condition": "fast_below_slow"
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 22
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min": 25,
+        "max": 95
+      },
+      {
+        "primitive": "session_mask",
+        "sessions_utc": [
+          "07:00-16:00"
+        ]
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "mult": 2.0
+    },
+    "take_profit": {
+      "type": "atr",
+      "period": 14,
+      "mult": 3.5
+    },
+    "trailing_stop": {
+      "type": "chandelier",
+      "period": 14,
+      "mult": 2.5,
+      "activate_after_atr": 1.0
+    },
+    "time_stop": {
+      "bars": 48
+    },
+    "cooldown_bars": 2
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "notes": "Trend-following family distinct from the other three mean-reversion/range ideas. Uses EMA trend filter + Donchian breakout, a robust pattern on DAX. ADX>22 is moderate (not 30) to keep enough trades."
+}

@@ -1,0 +1,137 @@
+[
+  {
+    "strategy_id": "gen12_xau_asia_london_breakout_m5",
+    "family": "breakout",
+    "hypothesis": "On XAUUSD M5, when the Asia session (00:00-06:00 UTC) range is between 0.5x and 2.0x ATR(14), a London-session (07:00-10:00 UTC) close beyond the range by >= 0.5x ATR with body >= 1.0x ATR leads to continuation that achieves >= 1.5R within 20 bars more often than random, yielding PF > 2.0.",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "signals": [
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"asia_start_utc": "00:00", "asia_end_utc": "06:00", "trade_start_utc": "07:00", "trade_end_utc": "10:00"}},
+      {"primitive": "atr_breakout_levels", "params": {"lookback_session": "asia", "min_range_atr": 0.5, "max_range_atr": 2.0, "breakout_atr_mult": 0.5, "body_atr_mult": 1.0}}
+    ],
+    "regime_filter": {
+      "primitives": [
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 200, "min_pct": 30, "max_pct": 95}},
+        {"primitive": "adx", "params": {"period": 14, "min": 18}}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "Within trade window, first close above Asia-range-high by >= 0.5*ATR14 with candle body >= 1.0*ATR14, and regime filter true; only first breakout per day.",
+      "short": "Mirror: first close below Asia-range-low by >= 0.5*ATR14 with body >= 1.0*ATR14."
+    },
+    "exit_rules": {
+      "stop_loss": "0.75 * ATR(14) from entry, placed on opposite side of breakout candle",
+      "take_profit": "2.0 * ATR(14) from entry (R:R ~2.67)",
+      "time_stop_bars": 20,
+      "breakeven_after": "1.0 * ATR(14) favorable excursion"
+    },
+    "sizing": {"method": "risk_pct_of_equity", "risk_pct": 0.5, "max_concurrent": 1},
+    "diversification_tag": "session_breakout_xau",
+    "notes": "Inspired by LVC scout card; strict single-entry-per-day to avoid chop."
+  },
+  {
+    "strategy_id": "gen12_xau_bb_rsi_mean_reversion_m15",
+    "family": "mean_reversion",
+    "hypothesis": "On XAUUSD M15, when BB width is above its 30th percentile and ADX < 22, a close outside BB(20, 2.0) with RSI(7) < 15 (long) or > 85 (short) reverts toward the middle band within 30 bars, yielding PF > 2.0 and Sharpe > 1.5.",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "dev": 2.0, "source": "close"}},
+      {"primitive": "bb_width", "params": {"period": 20, "dev": 2.0, "percentile_lookback": 500, "min_percentile": 30}},
+      {"primitive": "rsi", "params": {"period": 7, "oversold": 15, "overbought": 85}},
+      {"primitive": "atr", "params": {"period": 14}}
+    ],
+    "regime_filter": {
+      "primitives": [
+        {"primitive": "adx", "params": {"period": 14, "max": 22}},
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 300, "min_pct": 20, "max_pct": 85}},
+        {"primitive": "session_mask", "params": {"trade_start_utc": "07:00", "trade_end_utc": "20:00"}}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "Close < LowerBB AND RSI(7) < 15 AND bb_width above 30th pct AND ADX < 22 AND session active; 3-bar cooldown since last entry.",
+      "short": "Close > UpperBB AND RSI(7) > 85 (symmetric)."
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "take_profit": "Middle BB(20) OR opposite band, whichever hit first",
+      "time_stop_bars": 30,
+      "breakeven_after": "0.8 * ATR(14) favorable"
+    },
+    "sizing": {"method": "risk_pct_of_equity", "risk_pct": 0.5, "max_concurrent": 1},
+    "diversification_tag": "bb_rsi_mr_xau",
+    "notes": "Port-allowed MQL5 reference; tightened RSI thresholds to 15/85 for gold volatility."
+  },
+  {
+    "strategy_id": "gen12_ger40_donchian_trend_m15",
+    "family": "breakout",
+    "hypothesis": "On GER40 M15, a 20-bar Donchian breakout filtered by ADX > 22 and price above/below EMA(100) during European cash session produces trend trades with PF > 2.0 and max DD < 15%.",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "signals": [
+      {"primitive": "donchian", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 100}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"trade_start_utc": "07:00", "trade_end_utc": "15:30"}}
+    ],
+    "regime_filter": {
+      "primitives": [
+        {"primitive": "adx", "params": {"period": 14, "min": 22}},
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 300, "min_pct": 25, "max_pct": 95}}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "Close breaks above 20-bar Donchian upper AND close > EMA(100) AND ADX(14) > 22 AND session active.",
+      "short": "Close breaks below 20-bar Donchian lower AND close < EMA(100) AND ADX(14) > 22 AND session active."
+    },
+    "exit_rules": {
+      "stop_loss": "2.0 * ATR(14) from entry",
+      "take_profit": "4.0 * ATR(14) from entry (R:R 2.0)",
+      "time_stop_bars": 40,
+      "trailing_stop": "Chandelier: 3.0 * ATR(14) from highest high / lowest low since entry, activated after 1.5*ATR favorable"
+    },
+    "sizing": {"method": "risk_pct_of_equity", "risk_pct": 0.5, "max_concurrent": 1},
+    "diversification_tag": "donchian_trend_index",
+    "notes": "European cash-session only to avoid thin-book overnight gaps."
+  },
+  {
+    "strategy_id": "gen12_us500_vwap_pullback_ema_m5",
+    "family": "trend_pullback",
+    "hypothesis": "On US500 M5 during US cash session (13:30-20:00 UTC), when EMA(20) > EMA(50) > EMA(200) and ADX > 20, a pullback to EMA(20) with RSI(14) crossing back above 45 produces long continuation trades with PF > 2.0 (mirror for shorts).",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "signals": [
+      {"primitive": "ema", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "ema", "params": {"period": 200}},
+      {"primitive": "rsi", "params": {"period": 14}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"trade_start_utc": "13:30", "trade_end_utc": "20:00"}}
+    ],
+    "regime_filter": {
+      "primitives": [
+        {"primitive": "adx", "params": {"period": 14, "min": 20}},
+        {"primitive": "atr_percentile", "params": {"period": 14, "lookback": 300, "min_pct": 25, "max_pct": 90}}
+      ],
+      "combine": "AND"
+    },
+    "entry_rules": {
+      "long": "EMA20 > EMA50 > EMA200 AND prior bar low touched or pierced EMA20 AND current bar closes above EMA20 AND RSI(14) crosses up through 45 AND ADX > 20 AND session active.",
+      "short": "EMA20 < EMA50 < EMA200 AND prior bar high touched or pierced EMA20 AND current bar closes below EMA20 AND RSI(14) crosses down through 55."
+    },
+    "exit_rules": {
+      "stop_loss": "1.5 * ATR(14) from entry (below/above pullback swing)",
+      "take_profit": "2.5 * ATR(14) from entry (R:R ~1.67)",
+      "time_stop_bars": 24,
+      "breakeven_after": "1.0 * ATR(14) favorable",
+      "trailing_stop": "Trail at EMA(20) once 1.5*ATR in profit"
+    },
+    "sizing": {"method": "risk_pct_of_equity", "risk_pct": 0.5, "max_concurrent": 1},
+    "diversification_tag": "trend_pullback_us_equities",
+    "notes": "Distinct family from breakout/MR; uses stacked EMAs + RSI midline cross instead of band extremes."
+  }
+]

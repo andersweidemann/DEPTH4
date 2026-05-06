@@ -1,0 +1,13 @@
+{
+  "hypothesis": "Price touching the Bollinger Band with an RSI extreme reading leads to a mean reversion opportunity, which can be traded with a trailing stop loss.",
+  "regime_filter": "bb_width > 20th percentile",
+  "entry_rule": "Close > Upper BB(20, 2.0) AND RSI(7) > 80 OR Close < Lower BB(20, 2.0) AND RSI(7) < 20",
+  "exit_rule": {
+    "sl": "trailing stop loss of 100 pips",
+    "tp": "500 pips",
+    "time_stop": "20 bars"
+  },
+  "sizing_rule": "fixed fraction of equity",
+  "symbol": "BTCUSD",
+  "timeframe": "M5"
+}

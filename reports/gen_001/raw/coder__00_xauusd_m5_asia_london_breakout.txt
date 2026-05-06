@@ -1,0 +1,243 @@
+```python
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    def init(self):
+        super().init()
+
+        high = np.asarray(self.data.High, dtype=float)
+        low = np.asarray(self.data.Low, dtype=float)
+        close = np.asarray(self.data.Close, dtype=float)
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._idx = pd.DatetimeIndex(idx)
+
+        # ATR(14)
+        self._atr_series = self.I(signals.atr, high, low, close, 14)
+        # ATR percentile over 100 bars
+        self._atr_pct_series = self.I(regime.atr_percentile, self._atr_series, 100)
+
+        # Build per-bar Asia high/low (range from 00:00-06:00 UTC, forward-filled within the day)
+        asia_high, asia_low = self._build_asia_levels(high, low)
+        self._asia_high = self.I(lambda x: x, asia_high)
+        self._asia_low = self.I(lambda x: x, asia_low)
+
+        # Trade-window mask: 07:00-10:00 UTC
+        hours = self._idx.hour
+        self._trade_window = (hours >= 7) & (hours < 10)
+        self._asia_window = (hours >= 0) & (hours < 6)
+
+        # Day key for one-shot-per-day
+        self._day_key = self._idx.strftime("%Y-%m-%d").to_numpy()
+        self._last_trade_day: Optional[str] = None
+
+        # Track trailing activation per trade
+        self._trail_activated = False
+        self._entry_atr: Optional[float] = None
+
+    def _build_asia_levels(self, high: np.ndarray, low: np.ndarray):
+        n = len(high)
+        asia_high = np.full(n, np.nan)
+        asia_low = np.full(n, np.nan)
+
+        days = self._idx.strftime("%Y-%m-%d").to_numpy()
+        hours = self._idx.hour.to_numpy()
+
+        current_day = None
+        cur_hi = -np.inf
+        cur_lo = np.inf
+        day_hi = np.nan
+        day_lo = np.nan
+
+        for i in range(n):
+            d = days[i]
+            h = hours[i]
+            if d != current_day:
+                current_day = d
+                cur_hi = -np.inf
+                cur_lo = np.inf
+                day_hi = np.nan
+                day_lo = np.nan
+            if h < 6:  # Asia session still active
+                cur_hi = max(cur_hi, high[i])
+                cur_lo = min(cur_lo, low[i])
+                # Don't publish yet (could be used intrabar, but we delay until session closes)
+                asia_high[i] = np.nan
+                asia_low[i] = np.nan
+            else:
+                # Asia session complete; publish day's range
+                if np.isnan(day_hi) and cur_hi != -np.inf:
+                    day_hi = cur_hi
+                    day_lo = cur_lo
+                asia_high[i] = day_hi
+                asia_low[i] = day_lo
+        return asia_high, asia_low
+
+    def _regime_ok(self) -> bool:
+        i = len(self.data) - 1
+        atr_pct = float(self._atr_pct_series[-1])
+        if np.isnan(atr_pct):
+            return False
+        if atr_pct < 30 or atr_pct > 95:
+            return False
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return False
+
+        ah = float(self._asia_high[-1])
+        al = float(self._asia_low[-1])
+        if np.isnan(ah) or np.isnan(al):
+            return False
+
+        asia_range = ah - al
+        ratio = asia_range / atr_now
+        if ratio < 0.5 or ratio > 2.0:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        i = len(self.data) - 1
+        if not self._trade_window[i]:
+            return False
+        # Daily kill switch
+        now_date = pd.Timestamp(self._idx[i]).strftime("%Y-%m-%d")
+        dd_kill = self.spec.get("risk", {}).get(
+            "daily_dd_kill_pct",
+            config.load()["risk"]["daily_dd_kill_pct"])
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, dd_kill):
+            return False
+        return True
+
+    def next(self):
+        i = len(self.data) - 1
+        if i < 2:
+            return
+
+        self._manage_open()
+
+        if self.position:
+            return
+
+        if not self._regime_ok():
+            return
+        if not self._filters_ok():
+            return
+
+        today = self._day_key[i]
+        if self._last_trade_day == today:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        atr_prev = float(self._atr_series[-2])
+        if np.isnan(atr_now) or np.isnan(atr_prev) or atr_now <= 0:
+            return
+
+        ah = float(self._asia_high[-1])
+        al = float(self._asia_low[-1])
+        if np.isnan(ah) or np.isnan(al):
+            return
+
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        body = abs(close - open_)
+
+        long_trigger = ah + 0.5 * atr_now
+        short_trigger = al - 0.5 * atr_now
+        body_min = 1.2 * atr_prev
+
+        price = close
+        equity = float(self.equity)
+        risk_pct = float(self.spec.get("sizing", {}).get("risk_pct_per_trade", 0.5))
+
+        if close >= long_trigger and body >= body_min:
+            sl = price - 0.75 * atr_now
+            tp = price + 2.25 * atr_now
+            if sl >= price:
+                return
+            sl_dist = price - sl
+            size = risk.lots_by_risk_pct(equity, risk_pct, sl_dist, price)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+                self._last_trade_day = today
+                self._trail_activated = False
+                self._entry_atr = atr_now
+            except Exception:
+                pass
+
+        elif close <= short_trigger and body >= body_min:
+            sl = price + 0.75 * atr_now
+            tp = price - 2.25 * atr_now
+            if sl <= price:
+                return
+            sl_dist = sl - price
+            size = risk.lots_by_risk_pct(equity, risk_pct, sl_dist, price)
+            if size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+                self._last_trade_day = today
+                self._trail_activated = False
+                self._entry_atr = atr_now
+            except Exception:
+                pass
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+
+        time_stop = 36
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= time_stop:
+            self.position.close()
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        price = float(self.data.Close[-1])
+        entry_atr = self._entry_atr if self._entry_atr else atr_now
+
+        for tr in self.trades:
+            entry_price = tr.entry_price
+            if tr.is_long:
+                r = (price - entry_price) / (0.75 * entry_atr)
+                if r >= 1.0:
+                    # Chandelier trailing from recent high
+                    lookback = min(22, len(self.data))
+                    recent_high = float(np.max(np.asarray(self.data.High)[-lookback:]))
+                    new_sl = recent_high - 2.0 * atr_now
+                    if tr.sl is None or new_sl > tr.sl:
+                        if new_sl < price:
+                            tr.sl = new_sl
+            else:
+                r = (entry_price - price) / (0.75 * entry_atr)
+                if r >= 1.0:
+                    lookback = min(22, len(self.data))
+                    recent_low = float(np.min(np.asarray(self.data.Low)[-lookback:]))
+                    new_sl = recent_low + 2.0 * atr_now
+                    if tr.sl is None or new_sl < tr.sl:
+                        if new_sl > price:
+                            tr.sl = new_sl
+```

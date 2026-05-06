@@ -1,0 +1,66 @@
+{
+  "name": "donchian_trend_pullback_ger40_m15",
+  "family": "trend_pullback",
+  "hypothesis": "GER40 M15 during EU cash session trends persistently when ADX>22. Entering on a shallow EMA20 pullback inside an established Donchian(40) breakout direction captures the continuation leg with better R than chasing breakouts.",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile",
+      "session_mask",
+      "classify"
+    ],
+    "rules": [
+      {
+        "adx_14": {
+          "min": 22
+        }
+      },
+      {
+        "atr_percentile_14_200": {
+          "min": 0.35,
+          "max": 0.95
+        }
+      },
+      {
+        "session_utc": {
+          "entry_window": "07:00-15:30"
+        }
+      },
+      {
+        "regime_class": "trend"
+      }
+    ]
+  },
+  "entry": {
+    "primitives": [
+      "donchian",
+      "ema",
+      "atr",
+      "rsi"
+    ],
+    "rules": [
+      "trend_up = close made new Donchian(40) high within last 20 bars AND ema20 > ema50",
+      "trend_dn = mirror",
+      "LONG: trend_up AND price pulls back to within 0.3*ATR14 of ema20 AND RSI(14) between 40 and 60 AND bullish close (close > open, close > prior high)",
+      "SHORT: mirror (RSI 40-60, bearish close)",
+      "no entry within 2 bars of Donchian breakout bar (avoid chase)"
+    ]
+  },
+  "exit": {
+    "sl": "swing low/high of last 5 bars, minimum 1.0*ATR14 from entry",
+    "tp": "2.5R fixed; trail at 2*ATR14 after +1.5R",
+    "time_stop": "close after 30 M15 bars or at 20:00 UTC",
+    "breakeven": "at +1R"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.6,
+    "max_concurrent": 1
+  }
+}

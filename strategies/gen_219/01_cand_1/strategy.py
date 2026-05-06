@@ -1,0 +1,54 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("session")
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, [sessions]), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self.upper_range = self.I(donchian, self.data, n=14)[1]
+        self.lower_range = self.I(donchian, self.data, n=14)[0]
+        self.atr = self.I(atr, self.data, n=14)
+        self.breakout = self.data.Close[-1]
+
+    def _regime_ok(self):
+        return self._session_mask_full[-1] if self._session_mask_full is not None else True
+
+    def _filters_ok(self):
+        return self._regime_ok()
+
+    def _enter_if_signal(self):
+        long_condition = self.breakout > self.upper_range[-1] and abs(self.data.Close[-1] - self.data.Close[-2]) > 1.2 * self.atr[-1]
+        short_condition = self.breakout < self.lower_range[-1] and abs(self.data.Close[-1] - self.data.Close[-2]) > 1.2 * self.atr[-1]
+        if long_condition and not self.position:
+            self.position.enter_long()
+            self.sl_price = self.data.Close[-1] - self.spec["exit_rules"]["sl"]["params"]["pips"] * self.data.pip
+            self.tp_price = self.data.Close[-1] + self.spec["exit_rules"]["tp"]["params"]["pips"] * self.data.pip
+        elif short_condition and not self.position:
+            self.position.enter_short()
+            self.sl_price = self.data.Close[-1] + self.spec["exit_rules"]["sl"]["params"]["pips"] * self.data.pip
+            self.tp_price = self.data.Close[-1] - self.spec["exit_rules"]["tp"]["params"]["pips"] * self.data.pip
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rules"]["time_stop"]["params"]["bars"]
+        if self.position and time_stop is not None:
+            bars_open = len(self.data) - self.position.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()

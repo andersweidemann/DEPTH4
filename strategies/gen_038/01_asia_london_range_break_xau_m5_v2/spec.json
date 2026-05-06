@@ -1,0 +1,55 @@
+{
+  "name": "asia_london_range_break_xau_m5_v2",
+  "hypothesis": "After a compressed Asia range (measured 00:00-06:00 UTC), XAUUSD expands directionally in the London session; a breakout beyond the Asia extreme with ATR-normalized body confirmation yields a tradable edge. Previous-gen zero-trade defect is addressed by loosening range ATR bounds, widening London window, and removing first-breakout-only lock.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "session_breakout",
+  "signals": {
+    "entry_long": "bar_time in 07:00-12:00 UTC AND close > asia_high AND (close-asia_high) >= 0.3*atr(14) AND bar_body >= 0.8*atr(14)",
+    "entry_short": "bar_time in 07:00-12:00 UTC AND close < asia_low AND (asia_low-close) >= 0.3*atr(14) AND bar_body >= 0.8*atr(14)",
+    "primitives": [
+      "session_mask",
+      "atr(14)",
+      "atr_breakout_levels"
+    ]
+  },
+  "regime_filter": {
+    "type": "range_quality_and_session",
+    "rules": [
+      "asia_range_atr_ratio between 0.4 and 2.5 (was 0.5-2.0)",
+      "session_mask: entry only 07:00-12:00 UTC",
+      "breakout must occur within first 18 M5 bars of London window (was 9)",
+      "max 2 trades per day per direction"
+    ],
+    "skip_when": "range outside bounds OR outside London window OR daily trade cap hit"
+  },
+  "exits": {
+    "sl": "opposite side of asia range OR 1.2*atr(14), whichever is tighter",
+    "tp": "2.0 * asia_range_size (target symmetric expansion)",
+    "time_stop": "close at 16:00 UTC if still open",
+    "trailing": "move SL to breakeven after +1.0*atr profit; then trail at 2*atr"
+  },
+  "sizing": {
+    "model": "risk_pct_per_trade",
+    "risk_pct": 0.75,
+    "max_concurrent": 1,
+    "cooldown_bars": 12
+  },
+  "params": {
+    "asia_start_utc": "00:00",
+    "asia_end_utc": "06:00",
+    "london_window_start": "07:00",
+    "london_window_end": "12:00",
+    "min_range_atr": 0.4,
+    "max_range_atr": 2.5,
+    "breakout_body_atr": 0.8,
+    "breakout_distance_atr": 0.3,
+    "max_breakout_bars": 18
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

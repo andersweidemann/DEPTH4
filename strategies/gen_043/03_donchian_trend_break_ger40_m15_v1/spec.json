@@ -1,0 +1,107 @@
+{
+  "name": "donchian_trend_break_ger40_m15_v1",
+  "hypothesis": "On GER40 M15, Donchian(40) breakouts during European cash hours with ADX>22 and ATR percentile in mid-to-high band produce a persistent trend-following edge, filtered by an EMA(200) directional bias.",
+  "family": "breakout",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "period": 40,
+          "condition": "close_breaks_high"
+        },
+        {
+          "primitive": "ema",
+          "period": 200,
+          "condition": "close_above"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "period": 40,
+          "condition": "close_breaks_low"
+        },
+        {
+          "primitive": "ema",
+          "period": 200,
+          "condition": "close_below"
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "condition": "gt",
+        "threshold": 22
+      },
+      {
+        "primitive": "atr_percentile",
+        "atr_period": 14,
+        "lookback": 300,
+        "condition": "between",
+        "low_percentile": 30,
+        "high_percentile": 95
+      }
+    ]
+  },
+  "session_filter": {
+    "type": "session_mask",
+    "sessions_utc": [
+      {
+        "start": "07:00",
+        "end": "15:30"
+      }
+    ],
+    "cooldown_bars": 4
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "multiplier": 2.0
+    },
+    "take_profit": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "multiplier": 4.0
+    },
+    "trailing_stop": {
+      "type": "chandelier",
+      "atr_period": 14,
+      "multiplier": 3.0,
+      "activate_after_rr": 1.0
+    },
+    "time_stop": {
+      "bars": 48
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "min_stop_points_buffer": 3.0,
+    "contract_note": "GER40 index-point sizing; 1 lot = 1 EUR per index point (verify broker spec)"
+  },
+  "diagnostics": {
+    "log_gate_rejections": true,
+    "symbol_alias_probe": [
+      "GER40",
+      "DE40",
+      "GER40.cash",
+      "DAX40",
+      "GER40.pro"
+    ],
+    "require_min_trades_per_year": 50
+  }
+}

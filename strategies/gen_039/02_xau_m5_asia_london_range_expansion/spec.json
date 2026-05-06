@@ -1,0 +1,40 @@
+{
+  "name": "xau_m5_asia_london_range_expansion",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "session_breakout",
+  "hypothesis": "On XAUUSD M5, the Asia session (00:00-06:00 UTC) forms an accumulation range; the first ATR-qualified breakout during London window (07:00-10:00 UTC) captures the volatility expansion edge.",
+  "entry_rules": {
+    "long": "time in [07:00, 10:00 UTC] AND close > asia_high AND (close - asia_high) >= 0.5 * ATR(14) AND breakout_candle_body >= 1.0 * ATR(14) AND asia_range/ATR(14) between 0.5 and 2.0 AND no_prior_breakout_today",
+    "short": "time in [07:00, 10:00 UTC] AND close < asia_low AND (asia_low - close) >= 0.5 * ATR(14) AND breakout_candle_body >= 1.0 * ATR(14) AND asia_range/ATR(14) between 0.5 and 2.0 AND no_prior_breakout_today"
+  },
+  "exit_rules": {
+    "tp": "2.0 * asia_range (measured move)",
+    "sl": "opposite side of asia_range OR 1.5 * ATR(14), whichever is tighter",
+    "time_stop": "close at 15:00 UTC (end of London lunch) or after 36 bars"
+  },
+  "regime_filter": {
+    "primitive": "session_mask",
+    "rule": "strict session gating: range-build window 00:00-06:00 UTC, trade-only window 07:00-10:00 UTC, max 9 bars after London open"
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "sl_basis": "range_or_atr",
+    "max_concurrent_positions": 1
+  },
+  "indicators": [
+    "atr(14)",
+    "session_mask",
+    "donchian (for asia H/L tracking)"
+  ],
+  "instrumentation_required": [
+    "bars_received",
+    "indicator_ready_bar",
+    "asia_range_built_count",
+    "signal_true_count",
+    "order_attempt_count",
+    "order_reject_reason"
+  ],
+  "diversity_tag": "session_range_breakout"
+}

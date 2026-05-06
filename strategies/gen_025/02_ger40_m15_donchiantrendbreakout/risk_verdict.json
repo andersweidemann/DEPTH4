@@ -1,0 +1,8 @@
+{
+  "pass": true,
+  "failures": [],
+  "warnings": [
+    "no_spread_filter_reference",
+    "no_daily_kill_switch_reference"
+  ]
+}

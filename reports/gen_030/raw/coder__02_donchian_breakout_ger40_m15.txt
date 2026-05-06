@@ -1,0 +1,175 @@
+```python
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+
+        try:
+            spec_file = Path(__file__).parent / self.spec_path
+            if spec_file.exists():
+                with open(spec_file) as f:
+                    self.spec.update(json.load(f))
+        except Exception:
+            pass
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._ema50 = self.I(signals.ema, self.data.Close, 50)
+
+        dc = self.I(signals.donchian, self.data, 20)
+        if isinstance(dc, tuple) or (hasattr(dc, "ndim") and dc.ndim == 2):
+            self._dc_upper = dc[0]
+            self._dc_lower = dc[1]
+        else:
+            self._dc_upper = dc
+            self._dc_lower = self.I(signals.donchian, self.data, 20)
+
+        self._adx_series = self.I(regime.adx, self.data, 14)
+
+        self._last_exit_bar = -10_000
+        self._be_moved = {}
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 1:
+            return False
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val):
+            return False
+        return adx_val >= 18.0
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_exit_bar < 2:
+            return
+
+        if len(self._dc_upper) < 2 or len(self._dc_lower) < 2:
+            return
+
+        close = float(self.data.Close[-1])
+        atr_now = float(self._atr_series[-1])
+        ema_now = float(self._ema50[-1])
+        dc_up_prev = float(self._dc_upper[-2])
+        dc_dn_prev = float(self._dc_lower[-2])
+
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+        if np.isnan(ema_now) or np.isnan(dc_up_prev) or np.isnan(dc_dn_prev):
+            return
+
+        long_sig = close > dc_up_prev and close > ema_now
+        short_sig = close < dc_dn_prev and close < ema_now
+
+        if not (long_sig or short_sig):
+            return
+
+        sl_dist = 2.0 * atr_now
+        tp_dist = 3.0 * atr_now
+
+        pip_size = 1.0
+        lots = risk.lots_by_risk_pct(
+            equity=float(self.equity),
+            risk_pct=0.5,
+            stop_distance_points=sl_dist / pip_size,
+            point_value=pip_size,
+        )
+        if lots is None or lots <= 0:
+            return
+
+        size = max(1, int(round(lots)))
+
+        if long_sig:
+            sl = close - sl_dist
+            tp = close + tp_dist
+            self.sl_price = sl
+            self.tp_price = tp
+            self.buy(size=size, sl=sl, tp=tp)
+        elif short_sig:
+            sl = close + sl_dist
+            tp = close - tp_dist
+            self.sl_price = sl
+            self.tp_price = tp
+            self.sell(size=size, sl=sl, tp=tp)
+
+    def _manage_open(self) -> None:
+        exit_cfg = {"time_stop_bars": 48, "trail_atr_mult": 2.0}
+        self.spec.setdefault("exit", {}).update(exit_cfg)
+
+        if not self.position:
+            if hasattr(self, "_was_in_position") and self._was_in_position:
+                self._last_exit_bar = len(self.data) - 1
+            self._was_in_position = False
+            return
+
+        self._was_in_position = True
+
+        if not self.trades:
+            return
+
+        atr_now = float(self._atr_series[-1]) if len(self._atr_series) else np.nan
+        price = float(self.data.Close[-1])
+
+        time_stop = 48
+        for trade in list(self.trades):
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                trade.close()
+                continue
+
+            if np.isnan(atr_now) or atr_now <= 0:
+                continue
+
+            entry = trade.entry_price
+            tid = trade.entry_bar
+
+            if trade.is_long:
+                move = price - entry
+                if move >= 1.5 * 2.0 * atr_now / 2.0:
+                    pass
+                r_dist = 2.0 * atr_now
+                if move >= 1.5 * r_dist / 2.0 * (2.0 / 2.0):
+                    pass
+                if move >= 1.5 * (2.0 * atr_now) / 2.0:
+                    if not self._be_moved.get(tid, False):
+                        if trade.sl is None or trade.sl < entry:
+                            trade.sl = entry
+                        self._be_moved[tid] = True
+                if self._be_moved.get(tid, False):
+                    new_sl = price - 2.0 * atr_now
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                move = entry - price
+                if move >= 1.5 * (2.0 * atr_now) / 2.0:
+                    if not self._be_moved.get(tid, False):
+                        if trade.sl is None or trade.sl > entry:
+                            trade.sl = entry
+                        self._be_moved[tid] = True
+                if self._be_moved.get(tid, False):
+                    new_sl = price + 2.0 * atr_now
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

@@ -1,0 +1,180 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        spec_file = Path(__file__).parent / self.spec_path
+        if spec_file.exists():
+            try:
+                loaded = json.loads(spec_file.read_text())
+                if isinstance(loaded, dict) and not self._spec:
+                    type(self)._spec = loaded
+            except Exception:
+                pass
+
+        if not self.spec if hasattr(self, "spec") else True:
+            pass
+
+        self.spec = dict(self._spec) if self._spec else {}
+        self.spec.setdefault("filters", {})
+        self.spec["filters"].setdefault("session_utc", [["13:30", "20:00"]])
+        self.spec.setdefault("regime_filter", {"indicator": "adx", "min": 20})
+        self.spec.setdefault("exit", {
+            "time_stop_bars": 24,
+            "trail_atr_mult": 1.5,
+        })
+        self.spec.setdefault("risk", {})
+
+        super().init()
+
+        self._ema20 = self.I(signals.ema, self.data.Close, 20)
+        self._ema50 = self.I(signals.ema, self.data.Close, 50)
+        self._ema200 = self.I(signals.ema, self.data.Close, 200)
+        self._rsi = self.I(signals.rsi, self.data.Close, 14)
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+        self._atr_pct = self.I(regime.atr_percentile, self.data, 14, 300)
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 1:
+            return False
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val < 20:
+            return False
+        atr_pct = float(self._atr_pct[-1]) if len(self._atr_pct) else np.nan
+        if np.isnan(atr_pct):
+            return False
+        if atr_pct < 25 or atr_pct > 90:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.data) < 210:
+            return
+
+        e20 = float(self._ema20[-1])
+        e50 = float(self._ema50[-1])
+        e200 = float(self._ema200[-1])
+        rsi_now = float(self._rsi[-1])
+        rsi_prev = float(self._rsi[-2])
+        atr_now = float(self._atr_series[-1])
+        if any(np.isnan(x) for x in (e20, e50, e200, rsi_now, rsi_prev, atr_now)):
+            return
+        if atr_now <= 0:
+            return
+
+        price = float(self.data.Close[-1])
+        prev_low = float(self.data.Low[-2])
+        prev_high = float(self.data.High[-2])
+        prev_close = float(self.data.Close[-2])
+        cur_close = price
+
+        equity = float(self.equity)
+        risk_pct = float(self.spec.get("sizing", {}).get("risk_pct", 0.5))
+
+        long_ok = (
+            e20 > e50 > e200
+            and prev_low <= float(self._ema20[-2])
+            and cur_close > e20
+            and rsi_prev < 45 <= rsi_now
+        )
+        short_ok = (
+            e20 < e50 < e200
+            and prev_high >= float(self._ema20[-2])
+            and cur_close < e20
+            and rsi_prev > 55 >= rsi_now
+        )
+
+        if long_ok:
+            sl = price - 1.5 * atr_now
+            tp = price + 2.5 * atr_now
+            if sl >= price:
+                return
+            size = risk.lots_by_risk_pct(equity, risk_pct, price, sl, self._symbol)
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    pass
+        elif short_ok:
+            sl = price + 1.5 * atr_now
+            tp = price - 2.5 * atr_now
+            if sl <= price:
+                return
+            size = risk.lots_by_risk_pct(equity, risk_pct, price, sl, self._symbol)
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            super()._manage_open()
+            return
+
+        atr_now = float(self._atr_series[-1]) if len(self._atr_series) else np.nan
+        ema20_now = float(self._ema20[-1]) if len(self._ema20) else np.nan
+        price = float(self.data.Close[-1])
+
+        if not np.isnan(atr_now):
+            for trade in self.trades:
+                entry = float(trade.entry_price)
+                if trade.is_long:
+                    if price - entry >= 1.0 * atr_now:
+                        if trade.sl is None or trade.sl < entry:
+                            trade.sl = entry
+                    if price - entry >= 1.5 * atr_now and not np.isnan(ema20_now):
+                        if trade.sl is None or ema20_now > trade.sl:
+                            trade.sl = ema20_now
+                else:
+                    if entry - price >= 1.0 * atr_now:
+                        if trade.sl is None or trade.sl > entry:
+                            trade.sl = entry
+                    if entry - price >= 1.5 * atr_now and not np.isnan(ema20_now):
+                        if trade.sl is None or ema20_now < trade.sl:
+                            trade.sl = ema20_now
+
+        time_stop = self.spec.get("exit", {}).get("time_stop_bars")
+        if time_stop is not None and self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

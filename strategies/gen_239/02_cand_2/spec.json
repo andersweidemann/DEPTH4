@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Trend following works in US500 on M5 when price is above the 50-period SMA",
+  "regime_filter": {
+    "type": "sma",
+    "params": {
+      "period": 50
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > sma(50) && rsi(14) < 70"
+    },
+    "short": {
+      "condition": "close < sma(50) && rsi(14) > 30"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 2
+      }
+    },
+    "take_profit": {
+      "type": "fixed",
+      "params": {
+        "pips": 200
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.02
+    }
+  }
+}

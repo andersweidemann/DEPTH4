@@ -1,0 +1,62 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        adx_period = self.spec["regime_filter"]["params"]["adx_period"]
+        adx_threshold = self.spec["regime_filter"]["params"]["adx_threshold"]
+        self._adx_series = self.I(adx, self.data, adx_period)
+        ma_period = self.spec["entry_rule"]["params"]["ma_period"]
+        self._ma_series = self.I(sma, self.data.Close, ma_period)
+        std_deviation = self.spec["entry_rule"]["params"]["std_deviation"]
+        self._std_deviation_series = self.I(bb_width, self.data.Close, ma_period) * std_deviation
+        atr_period = self.spec["sl_rule"]["params"]["atr_period"]
+        atr_multiplier = self.spec["sl_rule"]["params"]["atr_multiplier"]
+        self._atr_series = self.I(atr, self.data, atr_period)
+        self._time_stop = self.spec["time_stop"]
+        self._sizing_rule = self.spec["sizing_rule"]
+        self._take_profit = self.spec["tp_rule"]["params"]["take_profit"]
+
+    def _regime_ok(self):
+        adx_val = float(self._adx_series[-1])
+        return adx_val > self.spec["regime_filter"]["params"]["adx_threshold"]
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        if not self._regime_ok():
+            return
+        if not self._filters_ok():
+            return
+        close_price = float(self.data.Close[-1])
+        ma_price = float(self._ma_series[-1])
+        std_deviation_price = float(self._std_deviation_series[-1])
+        if close_price < ma_price - std_deviation_price:
+            self.position = self.buy(lots_by_risk_pct(self._sizing_rule["params"]["lot_size"], self._equity_start, self.data))
+            self.sl_price = close_price - atr_multiplier * float(self._atr_series[-1])
+            self.tp_price = close_price + self._take_profit
+
+    def _manage_open(self):
+        if not self.position:
+            return
+        if self._time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self._time_stop:
+                self.position.close()
+                return
+        if self.position.is_long and float(self.data.Close[-1]) > self.tp_price:
+            self.position.close()
+        elif not self.position.is_long and float(self.data.Close[-1]) < self.tp_price:
+            self.position.close()
+```

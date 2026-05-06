@@ -1,0 +1,177 @@
+[
+  {
+    "name": "03_01_bb_rsi_mean_reversion_xauusd_m15",
+    "hypothesis": "On XAUUSD M15, when price closes outside Bollinger Bands with an extreme RSI(7) reading during active sessions and in sufficiently volatile regimes, price reverts toward the mean within 30 bars, producing a positive expectancy after 1.5xATR stops.",
+    "family": "mean_reversion",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "deviation": 1.8, "source": "close"}},
+      {"primitive": "rsi", "params": {"period": 7}},
+      {"primitive": "bb_width", "params": {"period": 20, "deviation": 1.8, "lookback": 200}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"start_utc": "07:00", "end_utc": "20:00"}}
+    ],
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi(7) < 12 AND bb_width_percentile(200) > 30 AND session_mask==1",
+      "short": "close > upper_bb AND rsi(7) > 88 AND bb_width_percentile(200) > 30 AND session_mask==1",
+      "cooldown_bars": 3
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"period": 14, "lookback": 200},
+      "rule": "atr_percentile between 25 and 90 (avoid dead and panic regimes)"
+    },
+    "exit_rules": {
+      "take_profit": "opposite Bollinger Band (middle-to-upper mean reversion target)",
+      "stop_loss": "1.5 * ATR(14) from entry",
+      "time_stop_bars": 30,
+      "breakeven": "move SL to entry after price reaches 1.0*ATR in favor"
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "max_spread_points": 40
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "sharpe_min": 1.5,
+      "max_dd_pct": 15.0,
+      "trades_min": 200
+    },
+    "diversification_tag": "mean_reversion_bb_rsi",
+    "notes": "Inspired by BB-RSI scalper cards (inspiration_only). Ported conceptually to gold M15."
+  },
+  {
+    "name": "03_02_bb_rsi_mean_reversion_us500_m5",
+    "hypothesis": "On US500 M5, short-horizon BB+RSI extremes during the 13:00-20:00 UTC US session revert within 24 bars, offering a positive-expectancy scalp when volatility is neither dead nor panicked.",
+    "family": "mean_reversion",
+    "symbols": ["US500"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "deviation": 2.0, "source": "close"}},
+      {"primitive": "rsi", "params": {"period": 7}},
+      {"primitive": "bb_width", "params": {"period": 20, "deviation": 2.0, "lookback": 300}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "session_mask", "params": {"start_utc": "13:00", "end_utc": "20:00"}}
+    ],
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi(7) < 15 AND bb_width_percentile(300) > 25 AND session_mask==1",
+      "short": "close > upper_bb AND rsi(7) > 85 AND bb_width_percentile(300) > 25 AND session_mask==1",
+      "cooldown_bars": 5
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "params": {"period": 14},
+      "rule": "adx < 28 (mean-reversion only outside strong trends)"
+    },
+    "exit_rules": {
+      "take_profit": "middle Bollinger Band (SMA20)",
+      "stop_loss": "1.8 * ATR(14) from entry",
+      "time_stop_bars": 24,
+      "breakeven": "move SL to entry after price reaches 0.8*ATR in favor"
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_pct": 0.4,
+      "max_concurrent_positions": 1,
+      "max_spread_points": 15
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "sharpe_min": 1.5,
+      "max_dd_pct": 15.0,
+      "trades_min": 200
+    },
+    "diversification_tag": "mean_reversion_bb_rsi",
+    "notes": "Same family as candidate 1 but different symbol/TF/session to test portability."
+  },
+  {
+    "name": "03_03_asia_london_range_breakout_xauusd_m5",
+    "hypothesis": "On XAUUSD M5, the Asia-session (00:00-06:00 UTC) high/low forms an accumulation range; a close beyond the range by >=0.5 ATR with a body >=1.0 ATR during the London window (07:00-10:00 UTC) continues in the breakout direction, yielding positive expectancy.",
+    "family": "session_breakout",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"primitive": "session_mask", "params": {"start_utc": "00:00", "end_utc": "06:00", "label": "asia"}},
+      {"primitive": "session_mask", "params": {"start_utc": "07:00", "end_utc": "10:00", "label": "london"}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "atr_breakout_levels", "params": {"session": "asia", "atr_period": 14}}
+    ],
+    "entry_rules": {
+      "long": "london_session==1 AND close > asia_high + 0.5*ATR(14) AND candle_body >= 1.0*ATR(14) AND (asia_range/ATR(14)) between 0.5 and 2.0 AND bars_since_london_open <= 9",
+      "short": "london_session==1 AND close < asia_low - 0.5*ATR(14) AND candle_body >= 1.0*ATR(14) AND (asia_range/ATR(14)) between 0.5 and 2.0 AND bars_since_london_open <= 9",
+      "max_trades_per_day": 1
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"period": 14, "lookback": 200},
+      "rule": "atr_percentile > 20 (skip dead volatility days)"
+    },
+    "exit_rules": {
+      "take_profit": "2.0 * ATR(14) from entry (R:R ~ 1.6)",
+      "stop_loss": "opposite side of asia range, capped at 1.5*ATR(14)",
+      "time_stop_bars": 36,
+      "trailing": "after 1.0*ATR profit, trail by 1.2*ATR"
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "max_spread_points": 40
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "sharpe_min": 1.5,
+      "max_dd_pct": 15.0,
+      "trades_min": 200
+    },
+    "diversification_tag": "session_range_breakout",
+    "notes": "Inspired by LVC EA scout card (inspiration_only). Distinct from prior Donchian dead-branch: session-anchored range, not rolling N-bar channel."
+  },
+  {
+    "name": "03_04_opening_range_breakout_ger40_m5",
+    "hypothesis": "On GER40 M5, the opening range of the first 30 minutes of the Frankfurt/London session (07:00-07:30 UTC) contains the day's initial liquidity; a breakout beyond that range with ATR-confirmed momentum during 07:30-11:00 UTC yields positive expectancy with trailing exits.",
+    "family": "session_breakout",
+    "symbols": ["GER40"],
+    "timeframes": ["M5"],
+    "signals": [
+      {"primitive": "session_mask", "params": {"start_utc": "07:00", "end_utc": "07:30", "label": "or"}},
+      {"primitive": "session_mask", "params": {"start_utc": "07:30", "end_utc": "11:00", "label": "trade"}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "atr_breakout_levels", "params": {"session": "or", "atr_period": 14}}
+    ],
+    "entry_rules": {
+      "long": "trade_session==1 AND close > or_high + 0.25*ATR(14) AND close > ema(50) AND bars_since_trade_open <= 24 AND (or_range/ATR(14)) >= 0.3",
+      "short": "trade_session==1 AND close < or_low - 0.25*ATR(14) AND close < ema(50) AND bars_since_trade_open <= 24 AND (or_range/ATR(14)) >= 0.3",
+      "max_trades_per_day": 1
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "params": {"period": 14},
+      "rule": "adx > 18 (require some directional pressure; avoid pure chop)"
+    },
+    "exit_rules": {
+      "take_profit": "2.5 * ATR(14) from entry",
+      "stop_loss": "opposite side of opening range, capped at 1.5*ATR(14)",
+      "time_stop_bars": 48,
+      "trailing": "after 1.0*ATR profit, trail by 1.0*ATR; force flat at 15:30 UTC"
+    },
+    "sizing": {
+      "method": "risk_pct_of_equity",
+      "risk_pct": 0.5,
+      "max_concurrent_positions": 1,
+      "max_spread_points": 30
+    },
+    "acceptance_targets": {
+      "pf_min": 2.0,
+      "sharpe_min": 1.5,
+      "max_dd_pct": 15.0,
+      "trades_min": 200
+    },
+    "diversification_tag": "opening_range_breakout",
+    "notes": "Opening range is session-anchored (not rolling Donchian) to avoid prior dead-branch failure mode. EMA(50) acts as light trend filter, not a strict HTF gate."
+  }
+]

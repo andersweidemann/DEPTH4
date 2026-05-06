@@ -1,0 +1,8 @@
+{
+  "pass": false,
+  "failures": [
+    "no_lots_by_risk_pct",
+    "literal_lot_size"
+  ],
+  "warnings": []
+}

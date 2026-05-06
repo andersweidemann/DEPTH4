@@ -1,0 +1,46 @@
+{
+  "hypothesis": "Breakouts occur after a period of consolidation, and can be traded using a volatility-based approach",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 14
+    }
+  },
+  "entry_rules": [
+    {
+      "type": "long",
+      "condition": "close > upper_bb && atr(14) > atr(14)[1]"
+    },
+    {
+      "type": "short",
+      "condition": "close < lower_bb && atr(14) > atr(14)[1]"
+    }
+  ],
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "distance": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "distance": 200
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 2
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percentage": 2
+    }
+  }
+}

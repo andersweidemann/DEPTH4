@@ -1,0 +1,74 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.high_asia = self.I(donchian, self.data, 20, 'high')
+        self.low_asia = self.I(donchian, self.data, 20, 'low')
+        self.upper_bb = self.I(bollinger, self.data, 20, 'upper')
+        self.lower_bb = self.I(bollinger, self.data, 20, 'lower')
+        self._atr_series = self.I(atr, self.data, 20)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("session")
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, [sessions]), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        if rf.get("type") == "session":
+            return bool(self._session_mask_full[-1]) if self._session_mask_full is not None else True
+        return super()._regime_ok()
+
+    def _filters_ok(self):
+        return super()._filters_ok()
+
+    def _enter_if_signal(self):
+        entry_rules = self.spec.get("entry_rules", [])
+        for rule in entry_rules:
+            condition = rule.get("condition")
+            if condition == "close > high_asia && close > upper_bb" and self.data.Close[-1] > self.high_asia[-1] and self.data.Close[-1] > self.upper_bb[-1]:
+                self.position.enter_long(lots_by_risk_pct(self.spec.get("sizing_rules", {}).get("params", {}).get("size"), self._equity_start, self.data))
+                self.sl_price = self.data.Close[-1] - self.spec.get("exit_rules", {}).get("sl", {}).get("params", {}).get("multiplier") * self._atr_series[-1]
+                self.tp_price = self.data.Close[-1] + self.spec.get("exit_rules", {}).get("tp", {}).get("params", {}).get("distance")
+            elif condition == "close < low_asia && close < lower_bb" and self.data.Close[-1] < self.low_asia[-1] and self.data.Close[-1] < self.lower_bb[-1]:
+                self.position.enter_short(lots_by_risk_pct(self.spec.get("sizing_rules", {}).get("params", {}).get("size"), self._equity_start, self.data))
+                self.sl_price = self.data.Close[-1] + self.spec.get("exit_rules", {}).get("sl", {}).get("params", {}).get("multiplier") * self._atr_series[-1]
+                self.tp_price = self.data.Close[-1] - self.spec.get("exit_rules", {}).get("tp", {}).get("params", {}).get("distance")
+
+    def _manage_open(self):
+        exit_cfg = self.spec.get("exit_rules", {})
+        time_stop = exit_cfg.get("time_stop", {}).get("params", {}).get("num_bars")
+        if not self.position:
+            return
+        if time_stop is not None:
+            trade = self.trades[-1] if self.trades else None
+            if trade is not None:
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= time_stop:
+                    self.position.close()
+                    return
+        atr_mult = exit_cfg.get("sl", {}).get("params", {}).get("multiplier")
+        if atr_mult and hasattr(self, "_atr_series") and self.trades:
+            atr_now = float(self._atr_series[-1])
+            if not np.isnan(atr_now):
+                price = float(self.data.Close[-1])
+                for trade in self.trades:
+                    if trade.is_long and trade.pl_pct > 0:
+                        new_sl = price - atr_mult * atr_now
+                        if trade.sl is None or new_sl > trade.sl:
+                            trade.sl = new_sl
+                    elif not trade.is_long and trade.pl_pct > 0:
+                        new_sl = price + atr_mult * atr_now
+                        if trade.sl is None or new_sl < trade.sl:
+                            trade.sl = new_sl

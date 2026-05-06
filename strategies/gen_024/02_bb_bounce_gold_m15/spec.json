@@ -1,0 +1,60 @@
+{
+  "name": "bb_bounce_gold_m15",
+  "family": "mean_reversion",
+  "hypothesis": "XAUUSD M15 three-bar Bollinger bounce (pierce-and-reclaim) is a high-R reversion pattern when volatility is elevated but not extreme. The reclaim bar confirms absorption of the sweep.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "primitives": [
+      "atr_percentile",
+      "adx",
+      "bb_width"
+    ],
+    "rules": [
+      {
+        "atr_percentile_14_200": {
+          "min": 0.25,
+          "max": 0.85
+        }
+      },
+      {
+        "adx_14": {
+          "max": 28
+        }
+      },
+      {
+        "bb_width_percentile_200": {
+          "min": 0.25
+        }
+      }
+    ]
+  },
+  "entry": {
+    "primitives": [
+      "bollinger",
+      "rsi",
+      "atr"
+    ],
+    "rules": [
+      "BB(20, 2.0) on close",
+      "LONG: bar[-2].close > lower_bb; bar[-1].low < lower_bb (pierce); bar[0].close > lower_bb (reclaim); RSI(14) < 40",
+      "SHORT: mirror on upper band; RSI(14) > 60",
+      "require bar[0] body >= 0.5 * ATR14"
+    ]
+  },
+  "exit": {
+    "sl": "bar[-1] extreme -/+ 0.2 * ATR14 (swept wick)",
+    "tp": "middle BB at 0.5R min, opposite BB at full target; partial 50% at middle",
+    "time_stop": "close after 32 M15 bars (~8h)",
+    "breakeven": "after +1R move stop to entry"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  }
+}

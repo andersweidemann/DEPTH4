@@ -1,0 +1,160 @@
+{
+  "name": "US500_PullbackEMA_Trend_M15",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "hypothesis": "US500 in a clear uptrend (price above EMA200, EMA20>EMA50) tends to resume after shallow pullbacks that tag EMA20 with RSI(14) in the 35-50 zone. Longs-only bias reflects the well-documented equity index drift; shorts only active when EMA stack is bearish AND VIX-proxy (ATR percentile > 70) is elevated.",
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "session_mask",
+        "hours_utc": [
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 18
+      },
+      {
+        "primitive": "classify",
+        "regime": "trending"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": {
+      "conditions": [
+        {
+          "primitive": "ema",
+          "period": 200,
+          "condition": "price_above"
+        },
+        {
+          "primitive": "ema",
+          "period": 20,
+          "compare": "above",
+          "to": {
+            "primitive": "ema",
+            "period": 50
+          }
+        },
+        {
+          "primitive": "ema",
+          "period": 20,
+          "condition": "price_touched_within_atr",
+          "atr_mult": 0.3
+        },
+        {
+          "primitive": "rsi",
+          "period": 14,
+          "min": 35,
+          "max": 52
+        }
+      ]
+    },
+    "short": {
+      "conditions": [
+        {
+          "primitive": "ema",
+          "period": 200,
+          "condition": "price_below"
+        },
+        {
+          "primitive": "ema",
+          "period": 20,
+          "compare": "below",
+          "to": {
+            "primitive": "ema",
+            "period": 50
+          }
+        },
+        {
+          "primitive": "ema",
+          "period": 20,
+          "condition": "price_touched_within_atr",
+          "atr_mult": 0.3
+        },
+        {
+          "primitive": "rsi",
+          "period": 14,
+          "min": 48,
+          "max": 65
+        },
+        {
+          "primitive": "atr_percentile",
+          "period": 14,
+          "lookback": 200,
+          "min_pct": 70
+        }
+      ]
+    },
+    "cooldown_bars": 8,
+    "max_trades_per_day": 2
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 1.25
+    },
+    "take_profit": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 2.5
+    },
+    "time_stop_bars": 40,
+    "trailing": {
+      "type": "ema",
+      "period": 20,
+      "activate_after_r": 1.2
+    },
+    "breakeven_after_r": 1.0
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.6,
+    "max_concurrent_positions": 1
+  },
+  "params_to_optimize": {
+    "ema_fast": [
+      15,
+      20,
+      30
+    ],
+    "ema_slow": [
+      40,
+      50,
+      80
+    ],
+    "rsi_long_min": [
+      32,
+      35,
+      40
+    ],
+    "rsi_long_max": [
+      48,
+      52,
+      58
+    ],
+    "sl_atr_mult": [
+      1.0,
+      1.25,
+      1.5
+    ],
+    "tp_atr_mult": [
+      2.0,
+      2.5,
+      3.0
+    ]
+  }
+}

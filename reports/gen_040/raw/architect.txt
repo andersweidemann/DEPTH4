@@ -1,0 +1,183 @@
+[
+  {
+    "id": "gen40_01_xau_m15_bb_meanrev_simple",
+    "hypothesis": "On XAUUSD M15, a single-bar close outside Bollinger Bands (20, 2.0) with RSI(7) extreme reverts to the middle band within 30 bars, producing positive expectancy when BB width is above its 30th percentile.",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "dev": 2.0, "source": "close"}},
+      {"primitive": "rsi", "params": {"period": 7}},
+      {"primitive": "bb_width", "params": {"period": 20, "dev": 2.0, "percentile_lookback": 500}},
+      {"primitive": "atr", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi_7 < 15",
+      "short": "close > upper_bb AND rsi_7 > 85",
+      "note": "Single-bar trigger only. No multi-bar confirmation. Act on bar close, enter next bar open."
+    },
+    "regime_filter": {
+      "primitive": "bb_width_percentile",
+      "condition": "bb_width_pct >= 30",
+      "comment": "Avoid dead-range chop; do NOT gate on ADX as well (too conjunctive)."
+    },
+    "exit_rules": {
+      "tp": "opposite Bollinger Band OR middle BB touch (whichever first)",
+      "sl": "1.8 * ATR(14) from entry",
+      "time_stop": "30 bars (~7.5h on M15)",
+      "trailing": "none"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session_filter": {
+      "enabled": false,
+      "comment": "Gold trades 23h; keep session filter OFF initially to guarantee signal flow. Add later if noise too high."
+    },
+    "diagnostics": {
+      "dry_run_required": true,
+      "log_raw_signals": true,
+      "min_expected_signals_per_year": 80
+    },
+    "diversity_tag": "mean_reversion_bb_rsi"
+  },
+  {
+    "id": "gen40_02_ger40_m5_asia_range_breakout",
+    "hypothesis": "On GER40 M5, a clean breakout of the Asia-session range (00:00-06:00 UTC) during the London window (07:00-10:00 UTC), with breakout distance >= 0.5 ATR, continues for at least 1.5R before failing, when the Asia range is between 0.5 and 2.0 ATR.",
+    "family": "session_breakout",
+    "symbol": "GER40",
+    "timeframe": "M5",
+    "signals": [
+      {"primitive": "donchian", "params": {"period": 72, "session": "asia_00_06_utc"}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "atr_breakout_levels", "params": {"atr_period": 14, "mult_entry": 0.5}},
+      {"primitive": "session_mask", "params": {"window_utc": "07:00-10:00"}}
+    ],
+    "entry_rules": {
+      "long": "during 07:00-10:00 UTC AND close > asia_high + 0.5*ATR14 AND candle_body >= 1.0*ATR14",
+      "short": "during 07:00-10:00 UTC AND close < asia_low  - 0.5*ATR14 AND candle_body >= 1.0*ATR14",
+      "one_shot": "Only first qualifying breakout per day; cooldown = rest of session after entry."
+    },
+    "regime_filter": {
+      "primitive": "range_size",
+      "condition": "0.5 <= (asia_high - asia_low)/ATR14 <= 2.0",
+      "comment": "Skip days with pre-expanded or dead Asia ranges."
+    },
+    "exit_rules": {
+      "tp": "2.0 * ATR14 from entry (scale-free R target ~2R)",
+      "sl": "opposite side of Asia range (i.e. for long: asia_low - 0.1*ATR)",
+      "time_stop": "close at 15:00 UTC regardless",
+      "trailing": "after +1R, trail by 1.5*ATR14"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.75,
+      "max_concurrent_positions": 1
+    },
+    "session_filter": {
+      "enabled": true,
+      "window_utc": "07:00-10:00",
+      "timezone_sanity_check": true
+    },
+    "diagnostics": {
+      "dry_run_required": true,
+      "log_raw_signals": true,
+      "min_expected_signals_per_year": 120
+    },
+    "diversity_tag": "session_breakout_asia_london"
+  },
+  {
+    "id": "gen40_03_us500_m15_donchian_trend_breakout",
+    "hypothesis": "On US500 M15, a 40-bar Donchian breakout with ADX(14) > 20 captures index momentum bursts with positive expectancy at 2.5R; trend regime filter prevents whipsaw in chop.",
+    "family": "trend_breakout",
+    "symbol": "US500",
+    "timeframe": "M15",
+    "signals": [
+      {"primitive": "donchian", "params": {"period": 40}},
+      {"primitive": "adx", "params": {"period": 14}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "ema", "params": {"period": 100}}
+    ],
+    "entry_rules": {
+      "long": "close > donchian_high_40[1] AND adx_14 > 20 AND close > ema_100",
+      "short": "close < donchian_low_40[1]  AND adx_14 > 20 AND close < ema_100",
+      "note": "Use prior-bar Donchian to avoid repaint. Single-bar trigger, no multi-bar confirm."
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "condition": "adx_14 > 20",
+      "comment": "Trend gate only. Do NOT also require ATR percentile -- too conjunctive in prior gen."
+    },
+    "exit_rules": {
+      "tp": "2.5 * ATR14 from entry",
+      "sl": "1.5 * ATR14 from entry",
+      "time_stop": "48 bars (~12h M15)",
+      "trailing": "after +1.5R, trail by 2.0*ATR14"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session_filter": {
+      "enabled": true,
+      "window_utc": "13:30-20:00",
+      "comment": "US cash session only; US500 overnight is thin."
+    },
+    "diagnostics": {
+      "dry_run_required": true,
+      "log_raw_signals": true,
+      "min_expected_signals_per_year": 60,
+      "data_plumbing_check": "CONFIRM US500 bars actually load; prior gen produced 0 trades suggesting missing symbol feed."
+    },
+    "diversity_tag": "trend_breakout_donchian"
+  },
+  {
+    "id": "gen40_04_xau_m5_atr_momentum_pullback",
+    "hypothesis": "On XAUUSD M5, after a strong ATR-scaled momentum impulse (1.5*ATR move in 5 bars), a shallow pullback to EMA(20) resumes the trend; EMA50>EMA200 (or inverse) gates direction.",
+    "family": "trend_pullback",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "signals": [
+      {"primitive": "ema", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "ema", "params": {"period": 200}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "adx", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "ema_50 > ema_200 AND (high[5] - low[5..1].min) impulse >= 1.5*ATR14 AND close crosses back above ema_20 from below within 10 bars of impulse",
+      "short": "ema_50 < ema_200 AND inverse impulse AND close crosses below ema_20 from above within 10 bars",
+      "simplified_alt": "If 'crosses back' plumbing is fragile: use close > ema_20 AND low[1] <= ema_20[1] (touch-and-hold) as entry trigger."
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "condition": "adx_14 > 18",
+      "comment": "Mild trend filter; not stacked with ATR percentile."
+    },
+    "exit_rules": {
+      "tp": "2.0 * ATR14",
+      "sl": "1.2 * ATR14 (below/above ema_20 touch extreme)",
+      "time_stop": "60 bars (~5h M5)",
+      "trailing": "after +1R, trail by 1.5*ATR14"
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_concurrent_positions": 1
+    },
+    "session_filter": {
+      "enabled": true,
+      "window_utc": "07:00-20:00",
+      "comment": "London + NY overlap where gold M5 momentum is cleanest."
+    },
+    "diagnostics": {
+      "dry_run_required": true,
+      "log_raw_signals": true,
+      "min_expected_signals_per_year": 150
+    },
+    "diversity_tag": "trend_pullback_ema"
+  }
+]

@@ -1,0 +1,8 @@
+```json
+{
+  "ranking": [],
+  "summary_markdown": "No candidates provided for evaluation.",
+  "per_survivor_notes": {},
+  "dead_branches": ["Insufficient data to evaluate candidates. Consider providing more candidate metrics or revising acceptance thresholds."]
+}
+```

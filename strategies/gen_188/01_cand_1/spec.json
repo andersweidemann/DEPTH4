@@ -1,0 +1,33 @@
+{
+  "hypothesis": "Breakout of Asia range on GER40 M15 leads to profitable trades during London session",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rule": {
+    "type": "asia_london_breakout",
+    "params": {
+      "asia_range_atr_min": 0.5,
+      "asia_range_atr_max": 2.0,
+      "breakout_atr_multiple": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "tp_pips": 500,
+      "sl": "fixed_pips",
+      "sl_pips": 100,
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

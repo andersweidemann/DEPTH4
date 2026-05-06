@@ -1,0 +1,132 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    fast_period: int = 20
+    slow_period: int = 50
+    atr_period: int = 14
+    atr_pct_window: int = 200
+    atr_pct_min: float = 10.0
+    sl_atr_mult: float = 2.0
+    tp_atr_mult: float = 3.0
+    time_stop_bars: int = 48
+    risk_per_trade_pct: float = 0.5
+
+    def init(self):
+        super().init()
+        close = self.data.Close
+        self._sma_fast = self.I(signals.sma, close, self.fast_period)
+        self._sma_slow = self.I(signals.sma, close, self.slow_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._atr_pct_series = self.I(
+            regime.atr_percentile, self.data, self.atr_period, self.atr_pct_window
+        )
+
+    def _regime_ok(self) -> bool:
+        if len(self._atr_pct_series) == 0:
+            return False
+        pct = float(self._atr_pct_series[-1])
+        if np.isnan(pct):
+            return False
+        return pct > self.atr_pct_min
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self._sma_fast) < 2 or len(self._sma_slow) < 2:
+            return
+
+        fast_now = float(self._sma_fast[-1])
+        fast_prev = float(self._sma_fast[-2])
+        slow_now = float(self._sma_slow[-1])
+        slow_prev = float(self._sma_slow[-2])
+
+        if any(np.isnan(v) for v in (fast_now, fast_prev, slow_now, slow_prev)):
+            return
+
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        price = float(self.data.Close[-1])
+        cross_up = fast_prev <= slow_prev and fast_now > slow_now
+        cross_down = fast_prev >= slow_prev and fast_now < slow_now
+
+        if not (cross_up or cross_down):
+            return
+
+        if cross_up:
+            sl = price - self.sl_atr_mult * atr_now
+            tp = price + self.tp_atr_mult * atr_now
+            direction = "long"
+        else:
+            sl = price + self.sl_atr_mult * atr_now
+            tp = price - self.tp_atr_mult * atr_now
+            direction = "short"
+
+        sl_distance = abs(price - sl)
+        if sl_distance <= 0:
+            return
+
+        try:
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_per_trade_pct,
+                sl_distance=sl_distance,
+                price=price,
+                symbol=self._symbol,
+            )
+        except TypeError:
+            size = risk.lots_by_risk_pct(
+                self.equity, self.risk_per_trade_pct, sl_distance, price, self._symbol
+            )
+
+        if size is None or size <= 0:
+            return
+
+        if isinstance(size, float) and 0 < size < 1:
+            size_arg = size
+        else:
+            size_arg = max(1, int(size))
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        if direction == "long":
+            self.buy(size=size_arg, sl=sl, tp=tp)
+        else:
+            self.sell(size=size_arg, sl=sl, tp=tp)
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        if self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                self.position.close()
+                return
+
+    def next(self):
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._manage_open()
+        if self.position:
+            return
+        self._enter_if_signal()

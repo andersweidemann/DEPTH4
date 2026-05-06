@@ -1,0 +1,33 @@
+{
+  "hypothesis": "RSI extremes lead to mean reversion",
+  "regime_filter": {
+    "type": "session",
+    "start_hour": 9,
+    "end_hour": 16
+  },
+  "entry_rule": {
+    "type": "rsi_extremes",
+    "rsi_period": 14,
+    "rsi_thresholds": [
+      30,
+      70
+    ]
+  },
+  "exit_rule": {
+    "type": "take_profit",
+    "target": "fixed_pips",
+    "pips": 75
+  },
+  "stop_loss": {
+    "type": "fixed",
+    "distance": "1.5 * atr(14)"
+  },
+  "time_stop": {
+    "type": "fixed",
+    "bars": 30
+  },
+  "sizing": {
+    "type": "fixed",
+    "size": 0.01
+  }
+}

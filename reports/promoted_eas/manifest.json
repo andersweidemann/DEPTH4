@@ -1,0 +1,54 @@
+{
+  "note": "Metrics are in-sample (config windows is_start/is_end). Past performance does not guarantee live results.",
+  "window": ["2020-01-01", "2024-06-30"],
+  "promoted": [
+    {
+      "name": "promoted_bb_meanrev_ger40_m15_gen040",
+      "manual_dir": "strategies/manual/promoted_bb_meanrev_ger40_m15_gen040",
+      "source_dir": "strategies/gen_040/00_cand_0",
+      "ea_mql5": "strategies/manual/promoted_bb_meanrev_ger40_m15_gen040/EA.mq5",
+      "parity_mql5": "strategies/manual/promoted_bb_meanrev_ger40_m15_gen040/EA_parity_check.mq5",
+      "primary_instrument": "GER40 M15",
+      "is_metrics": {
+        "return_pct": 10.374145364569454,
+        "pf": 1.057928985368791,
+        "trades": 1611,
+        "sharpe": 0.2791281136100474,
+        "max_dd_pct": 11.934740771526153
+      },
+      "evidence_report": "reports/gen_040/00_cand_0/is_summary.json"
+    },
+    {
+      "name": "promoted_bb_meanrev_xau_m5_gen002",
+      "manual_dir": "strategies/manual/promoted_bb_meanrev_xau_m5_gen002",
+      "source_dir": "strategies/gen_002/00_cand_0",
+      "ea_mql5": "strategies/manual/promoted_bb_meanrev_xau_m5_gen002/EA.mq5",
+      "parity_mql5": "strategies/manual/promoted_bb_meanrev_xau_m5_gen002/EA_parity_check.mq5",
+      "primary_instrument": "XAUUSD M5",
+      "is_metrics": {
+        "return_pct": 0.06829897300228477,
+        "pf": 1.1305864543921957,
+        "trades": 329,
+        "sharpe": 0.3831886173701903,
+        "max_dd_pct": 0.06360532036067124
+      },
+      "evidence_report": "reports/gen_002/00_cand_0/is_summary.json"
+    },
+    {
+      "name": "promoted_bb_meanrev_xau_m5_gen023",
+      "manual_dir": "strategies/manual/promoted_bb_meanrev_xau_m5_gen023",
+      "source_dir": "strategies/gen_023/02_cand_2",
+      "ea_mql5": "strategies/manual/promoted_bb_meanrev_xau_m5_gen023/EA.mq5",
+      "parity_mql5": "strategies/manual/promoted_bb_meanrev_xau_m5_gen023/EA_parity_check.mq5",
+      "primary_instrument": "XAUUSD M5 (other matrix legs negative on IS)",
+      "is_metrics": {
+        "return_pct": 0.11265319244001294,
+        "pf": 1.0581696819365998,
+        "trades": 1101,
+        "sharpe": 0.2690601249816475,
+        "max_dd_pct": 0.15507956832181424
+      },
+      "evidence_report": "reports/gen_023/02_cand_2/is_summary.json"
+    }
+  ]
+}

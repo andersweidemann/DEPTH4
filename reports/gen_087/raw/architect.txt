@@ -1,0 +1,171 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 1.75,
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl_rule": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_rr",
+      "params": {
+        "rr": 1.5
+      }
+    },
+    "time_stop": 30,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts from Asia range to London session are profitable",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "asia_range_atr_min": 0.5,
+        "asia_range_atr_max": 2.0,
+        "london_breakout_atr": 1.2
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "trailing_stop_atr": 1.0
+      }
+    },
+    "sl_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop": 60,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal is profitable",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "min_width": 0.5,
+        "max_width": 2.0
+      }
+    },
+    "entry_rule": {
+      "type": "bb_touch",
+      "params": {
+        "bb_period": 20,
+        "bb_deviation": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl_rule": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.2
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_rr",
+      "params": {
+        "rr": 2.0
+      }
+    },
+    "time_stop": 30,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.015
+      }
+    }
+  },
+  {
+    "hypothesis": "Mean reversion occurs when RSI is oversold or overbought",
+    "regime_filter": {
+      "type": "rsi",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [20, 80]
+      }
+    },
+    "entry_rule": {
+      "type": "rsi_extremes",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "middle_bb",
+      "params": {}
+    },
+    "sl_rule": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp_rule": {
+      "type": "fixed_rr",
+      "params": {
+        "rr": 1.2
+      }
+    },
+    "time_stop": 30,
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  }
+]
+```

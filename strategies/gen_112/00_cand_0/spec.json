@@ -1,0 +1,43 @@
+{
+  "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "percentile": 30,
+      "lookback": 20
+    }
+  },
+  "entry_rules": [
+    {
+      "type": "long",
+      "condition": "close < lower_bb && rsi(7) < 10"
+    },
+    {
+      "type": "short",
+      "condition": "close > upper_bb && rsi(7) > 90"
+    }
+  ],
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

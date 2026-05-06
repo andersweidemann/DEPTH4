@@ -1,0 +1,40 @@
+{
+  "strategy_id": "smoke_ma_cross_v1",
+  "family": "trend_following",
+  "hypothesis": "A simple fast/slow SMA crossover on M15 will produce a steady stream of trades across XAUUSD, GER40, and US500, proving the scaffold can generate signals and fills end-to-end. This is a diagnostic baseline \u2014 if this does not trade, the issue is infrastructure, not strategy.",
+  "symbols": [
+    "XAUUSD",
+    "GER40",
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "sma(close, 20) crosses above sma(close, 50)",
+    "entry_short": "sma(close, 20) crosses below sma(close, 50)",
+    "primitives": [
+      "sma"
+    ]
+  },
+  "regime_filter": {
+    "type": "atr_percentile",
+    "rule": "atr(14) percentile over 200 bars > 10",
+    "purpose": "Only skip the bottom 10% deadest-of-dead volatility bars. Kept intentionally loose to validate trade flow."
+  },
+  "exits": {
+    "stop_loss": "2.0 * atr(14) from entry",
+    "take_profit": "3.0 * atr(14) from entry (1.5R)",
+    "time_stop": "48 bars (12 hours on M15)",
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": "none (24h)",
+  "diagnostic_intent": "Baseline smoke test \u2014 must produce >=200 trades per symbol/TF over 4.5y IS window. If it does not, halt and debug scaffold before other candidates are meaningful.",
+  "expected_trade_count_per_year": 80,
+  "family_tag": "trend_baseline"
+}

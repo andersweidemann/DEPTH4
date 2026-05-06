@@ -1,0 +1,50 @@
+{
+  "name": "US500_M15_PullbackTrendContinuation",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "hypothesis": "US500 M15 pullbacks to EMA(20) within an established EMA(50)>EMA(200) uptrend (or inverse for downtrend) during US cash session, confirmed by RSI(14) crossing back from <40 (longs) or >60 (shorts), produce high-expectancy continuation trades.",
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": "adx14>=18 AND ema50_slope_sign == ema200_slope_sign",
+    "notes": "Require mild trend confirmation; reject flat chop."
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "allow_utc_hours": [
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ]
+  },
+  "entry_rules": {
+    "long": "EMA(50)>EMA(200) AND low of prior 2 bars touched/crossed below EMA(20) AND current bar closes above EMA(20) AND RSI(14) crosses above 40 from below",
+    "short": "EMA(50)<EMA(200) AND high of prior 2 bars touched/crossed above EMA(20) AND current bar closes below EMA(20) AND RSI(14) crosses below 60 from above",
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "stop_loss": "1.25 * ATR(14) below swing low (long) / above swing high (short)",
+    "take_profit": "2.5 * ATR(14) (RR 2:1)",
+    "time_stop_bars": 32,
+    "trailing": "Move to BE after +1.0 ATR; trail at EMA(20) after +1.8 ATR"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.4,
+    "max_concurrent_positions": 1
+  },
+  "primitives_used": [
+    "ema",
+    "rsi",
+    "atr",
+    "adx",
+    "classify",
+    "session_mask"
+  ],
+  "falsifier": "If PF<1.6 or trades<200 over 3yr or DD>15%, kill branch."
+}

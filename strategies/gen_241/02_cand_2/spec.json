@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Asia-London range expansion on XAUUSD M5 can be traded with a Bollinger Band-based strategy",
+  "regime_filter": {
+    "type": "session_mask",
+    "params": {
+      "session": "asia_london"
+    }
+  },
+  "entry_rule": {
+    "type": "bb_range_expansion",
+    "params": {
+      "bb_period": 20,
+      "bb_dev": 1.75
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

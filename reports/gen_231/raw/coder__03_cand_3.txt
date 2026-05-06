@@ -1,0 +1,45 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_width = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["lookback"])
+        self._volatility = self.I(atr, self.data, self.spec["entry_rule"]["params"]["volatility_period"])
+        self._sizing_rule = self.spec["sizing_rule"]
+        self._sl_rule = self.spec["sl_rule"]
+        self._tp_rule = self.spec["tp_rule"]
+        self._time_stop = self.spec["time_stop"]
+        self._exit_rule = self.spec["exit_rule"]
+
+    def _regime_ok(self):
+        rf = self.spec["regime_filter"]
+        bb_width_percentile = np.percentile(self._bb_width, rf["params"]["percentile"])
+        return self._bb_width[-1] < bb_width_percentile
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        volatility_breakout = self._volatility[-1] > self._volatility[-self.spec["entry_rule"]["params"]["volatility_period"]] * self.spec["entry_rule"]["params"]["breakout_threshold"]
+        if volatility_breakout:
+            size = lots_by_risk_pct(self._sizing_rule["params"]["risk_percentage"], self.equity, self.data.Close[-1])
+            self.position.enter(size)
+            self.sl_price = self.data.Close[-1] - self._sl_rule["params"]["stop_loss"]
+            self.tp_price = self.data.Close[-1] + self._tp_rule["params"]["take_profit"]
+
+    def _manage_open(self):
+        if self.position:
+            if self._time_stop is not None and len(self.data) - self.position.entry_bar >= self._time_stop:
+                self.position.close()
+            elif self._exit_rule["type"] == "opposite_bb":
+                bb_width = self._bb_width[-1]
+                if bb_width > np.percentile(self._bb_width, 100 - self.spec["regime_filter"]["params"]["percentile"]):
+                    self.position.close()
+```

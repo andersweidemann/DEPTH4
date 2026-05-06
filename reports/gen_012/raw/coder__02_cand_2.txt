@@ -1,0 +1,259 @@
+```python
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    donchian_period: int = 20
+    ema_period: int = 100
+    atr_period: int = 14
+    adx_period: int = 14
+    adx_min: float = 22.0
+    atr_pct_lookback: int = 300
+    atr_pct_min: float = 25.0
+    atr_pct_max: float = 95.0
+    sl_atr_mult: float = 2.0
+    tp_atr_mult: float = 4.0
+    time_stop_bars: int = 40
+    trail_atr_mult: float = 3.0
+    trail_activate_atr: float = 1.5
+    risk_pct: float = 0.5
+    session_start: str = "07:00"
+    session_end: str = "15:30"
+
+    def init(self):
+        try:
+            spec_file = Path(__file__).parent / self.spec_path
+            if spec_file.exists():
+                self._spec = json.loads(spec_file.read_text())
+        except Exception:
+            pass
+
+        super().init()
+
+        def _donchian_upper(data, n):
+            arr = signals.donchian(data, n)
+            if isinstance(arr, tuple):
+                return np.asarray(arr[0], dtype=float)
+            a = np.asarray(arr, dtype=float)
+            if a.ndim == 2:
+                return a[0]
+            return a
+
+        def _donchian_lower(data, n):
+            arr = signals.donchian(data, n)
+            if isinstance(arr, tuple):
+                return np.asarray(arr[1], dtype=float)
+            a = np.asarray(arr, dtype=float)
+            if a.ndim == 2:
+                return a[1]
+            return a
+
+        self._donchian_upper = self.I(_donchian_upper, self.data, self.donchian_period)
+        self._donchian_lower = self.I(_donchian_lower, self.data, self.donchian_period)
+        self._ema_series = self.I(signals.ema, self.data.Close, self.ema_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+        self._atr_pct_series = self.I(
+            regime.atr_percentile, self.data, self.atr_period, self.atr_pct_lookback
+        )
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        sessions = [{"start": self.session_start, "end": self.session_end}]
+        try:
+            self._session_mask_full = np.asarray(
+                signals.session_mask(idx, sessions), dtype=bool
+            )
+        except Exception:
+            hours = pd.DatetimeIndex(idx).tz_localize(None).hour
+            minutes = pd.DatetimeIndex(idx).tz_localize(None).minute
+            mins = hours * 60 + minutes
+            start_m = int(self.session_start[:2]) * 60 + int(self.session_start[3:])
+            end_m = int(self.session_end[:2]) * 60 + int(self.session_end[3:])
+            self._session_mask_full = (mins >= start_m) & (mins <= end_m)
+
+        self._entry_bar_idx: Optional[int] = None
+        self._entry_price: Optional[float] = None
+        self._entry_atr: Optional[float] = None
+        self._highest_since_entry: Optional[float] = None
+        self._lowest_since_entry: Optional[float] = None
+        self._trail_active: bool = False
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 1:
+            return False
+        adx_v = float(self._adx_series[-1])
+        if np.isnan(adx_v) or adx_v < self.adx_min:
+            return False
+        atr_pct = float(self._atr_pct_series[-1])
+        if np.isnan(atr_pct):
+            return False
+        if atr_pct < self.atr_pct_min or atr_pct > self.atr_pct_max:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        try:
+            kill_pct = self.spec.get("risk", {}).get(
+                "daily_dd_kill_pct", config.load()["risk"]["daily_dd_kill_pct"]
+            )
+        except Exception:
+            kill_pct = 0.05
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, kill_pct):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.data) < max(self.donchian_period, self.ema_period, self.atr_pct_lookback) + 2:
+            return
+
+        close = float(self.data.Close[-1])
+        prev_close = float(self.data.Close[-2])
+        up_prev = float(self._donchian_upper[-2])
+        lo_prev = float(self._donchian_lower[-2])
+        ema_v = float(self._ema_series[-1])
+        atr_v = float(self._atr_series[-1])
+
+        if np.isnan(up_prev) or np.isnan(lo_prev) or np.isnan(ema_v) or np.isnan(atr_v) or atr_v <= 0:
+            return
+
+        long_sig = close > up_prev and prev_close <= up_prev and close > ema_v
+        short_sig = close < lo_prev and prev_close >= lo_prev and close < ema_v
+
+        if not (long_sig or short_sig):
+            return
+
+        if long_sig:
+            sl = close - self.sl_atr_mult * atr_v
+            tp = close + self.tp_atr_mult * atr_v
+        else:
+            sl = close + self.sl_atr_mult * atr_v
+            tp = close - self.tp_atr_mult * atr_v
+
+        stop_dist = abs(close - sl)
+        if stop_dist <= 0:
+            return
+
+        try:
+            size = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                stop_distance=stop_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+        except TypeError:
+            try:
+                size = risk.lots_by_risk_pct(
+                    self.equity, self.risk_pct, stop_dist, close, self._symbol
+                )
+            except Exception:
+                size = 0.0
+
+        if size is None or size <= 0:
+            frac = (self.risk_pct / 100.0) * self.equity / (stop_dist * max(close, 1.0))
+            size = max(min(frac, 0.99), 0.0)
+            if size <= 0:
+                return
+
+        if isinstance(size, float) and 0 < size < 1:
+            order_size = size
+        else:
+            order_size = max(int(size), 1)
+
+        self.sl_price = sl
+        self.tp_price = tp
+
+        if long_sig:
+            self.buy(size=order_size, sl=sl, tp=tp)
+        else:
+            self.sell(size=order_size, sl=sl, tp=tp)
+
+        self._entry_bar_idx = len(self.data) - 1
+        self._entry_price = close
+        self._entry_atr = atr_v
+        self._highest_since_entry = float(self.data.High[-1])
+        self._lowest_since_entry = float(self.data.Low[-1])
+        self._trail_active = False
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            self._entry_bar_idx = None
+            self._entry_price = None
+            self._entry_atr = None
+            self._trail_active = False
+            return
+
+        if not self.trades:
+            return
+
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if self.time_stop_bars is not None and bars_open >= self.time_stop_bars:
+            self.position.close()
+            return
+
+        high = float(self.data.High[-1])
+        low = float(self.data.Low[-1])
+        if self._highest_since_entry is None:
+            self._highest_since_entry = high
+        else:
+            self._highest_since_entry = max(self._highest_since_entry, high)
+        if self._lowest_since_entry is None:
+            self._lowest_since_entry = low
+        else:
+            self._lowest_since_entry = min(self._lowest_since_entry, low)
+
+        atr_v = float(self._atr_series[-1])
+        if np.isnan(atr_v) or atr_v <= 0:
+            return
+
+        entry_atr = self._entry_atr or atr_v
+        entry_price = self._entry_price or float(trade.entry_price)
+
+        for tr in self.trades:
+            if tr.is_long:
+                favorable = self._highest_since_entry - entry_price
+                if not self._trail_active and favorable >= self.trail_activate_atr * entry_atr:
+                    self._trail_active = True
+                if self._trail_active:
+                    new_sl = self._highest_since_entry - self.trail_atr_mult * atr_v
+                    if tr.sl is None or new_sl > tr.sl:
+                        if new_sl < float(self.data.Close[-1]):
+                            tr.sl = new_sl
+            else:
+                favorable = entry_price - self._lowest_since_entry
+                if not self._trail_active and favorable >= self.trail_activate_atr * entry_atr:
+                    self._trail_active = True
+                if self._trail_active:
+                    new_sl = self._lowest_since_entry + self.trail_atr_mult * atr_v
+                    if tr.sl is None or new_sl < tr.sl:
+                        if new_sl > float(self.data.Close[-1]):
+                            tr.sl = new_sl
+
+    def next(self):
+        self._manage_open()
+        if not self._filters_ok():
+            return
+        if not self._regime_ok():
+            return
+        self._enter_if_signal()
+```

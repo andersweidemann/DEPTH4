@@ -1,0 +1,82 @@
+{
+  "id": "00_xauusd_bb_rsi_mean_reversion_m15",
+  "hypothesis": "On XAUUSD M15, when price closes outside a Bollinger Band with an extreme RSI(7) reading during active London/NY sessions and sufficient volatility (BB width above 40th percentile), price mean-reverts toward the middle band within 30 bars. This is a fade, not a breakout.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "family": "mean_reversion",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "percentile_lookback": 200
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "sessions": [
+          "london",
+          "ny"
+        ],
+        "start_utc": "07:00",
+        "end_utc": "20:00"
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close < lower_bb AND rsi7 < 12 AND bb_width_pctile > 40 AND session_mask == 1",
+    "short": "close > upper_bb AND rsi7 > 88 AND bb_width_pctile > 40 AND session_mask == 1",
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "take_profit": "middle_bb (SMA20) touch",
+    "stop_loss": "1.6 * ATR(14) from entry",
+    "time_stop_bars": 30,
+    "breakeven_after_R": 0.6,
+    "early_exit": "opposite_bb_touch"
+  },
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile",
+      "bb_width"
+    ],
+    "rule": "adx(14) < 28 AND atr_percentile(14, 200) between 25 and 90",
+    "rationale": "Avoid strong trend (fade would get run over) and dead-range tape."
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "sl_basis": "atr",
+    "max_concurrent_positions": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "trades_min": 250,
+    "max_dd_pct": 15.0
+  },
+  "notes": "Replaces dead Donchian-breakout branch. Inspired by port_allowed mean-reversion-scalper-mql5 card. Fade logic, not trend."
+}

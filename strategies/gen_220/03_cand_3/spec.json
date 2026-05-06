@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Range expansion occurs when price closes outside the Bollinger Bands with increasing volatility",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "period": 20,
+      "deviation": 1.75
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > upper_bb && bb_width(20) > bb_width(10)"
+    },
+    "short": {
+      "condition": "close < lower_bb && bb_width(20) > bb_width(10)"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "tp": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 1
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 1
+    }
+  }
+}

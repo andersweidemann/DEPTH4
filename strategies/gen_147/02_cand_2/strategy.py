@@ -1,0 +1,56 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, rsi, atr
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_period = self.spec["entry_rule"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["entry_rule"]["params"]["bb_deviation"]
+        self._rsi_period = self.spec["entry_rule"]["params"]["rsi_period"]
+        self._rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        self._atr_period = self.spec["stop_loss"]["params"]["atr_period"]
+        self._atr_multiplier = self.spec["stop_loss"]["params"]["atr_multiplier"]
+        self._bollinger = self.I(bollinger, self.data, self._bb_period, self._bb_deviation)
+        self._rsi = self.I(rsi, self.data, self._rsi_period)
+        self._atr = self.I(atr, self.data, self._atr_period)
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        start_hour = rf["params"]["start_hour"]
+        end_hour = rf["params"]["end_hour"]
+        current_hour = pd.Timestamp(self.data.index[-1]).hour
+        return start_hour <= current_hour <= end_hour
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            lower_bb = self._bollinger[-1, 0]
+            upper_bb = self._bollinger[-1, 1]
+            close = self.data.Close[-1]
+            rsi = self._rsi[-1]
+            if (close < lower_bb and rsi < self._rsi_thresholds[0]) or (close > upper_bb and rsi > self._rsi_thresholds[1]):
+                lots = lots_by_risk_pct(self.spec, self._equity_start, self.data)
+                self.position.enter(lots)
+                self.sl_price = close - self._atr_multiplier * self._atr[-1] if close > lower_bb else close + self._atr_multiplier * self._atr[-1]
+                self.tp_price = close + 50 * (1 if close > lower_bb else -1)
+
+    def _manage_open(self):
+        if self.position:
+            middle_bb = self._bollinger[-1, 2]
+            close = self.data.Close[-1]
+            if (self.position.is_long and close < middle_bb) or (not self.position.is_long and close > middle_bb):
+                self.position.close()
+            time_stop = self.spec.get("time_stop", {}).get("bars")
+            if time_stop is not None:
+                trade = self.trades[-1]
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= time_stop:
+                    self.position.close()

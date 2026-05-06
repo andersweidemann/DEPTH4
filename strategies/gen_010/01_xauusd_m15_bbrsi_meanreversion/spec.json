@@ -1,0 +1,56 @@
+{
+  "name": "XAUUSD_M15_BBRSI_MeanReversion",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "On XAUUSD M15, closes outside BB(20,2.0) coincident with RSI(7) extremes revert to the middle band when BB-width is in the 30-90th percentile (active but not climactic), yielding Sharpe>=1.5 and PF>=2.0.",
+  "regime_filter": {
+    "primitive": "bb_width",
+    "percentile_min": 30,
+    "percentile_max": 90,
+    "lookback": 500,
+    "notes": "Avoid dead ranges and volatility blowouts."
+  },
+  "session_filter": {
+    "primitive": "session_mask",
+    "allow_utc_hours": [
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "entry_rules": {
+    "long": "Close < LowerBB(20,2.0) AND RSI(7) < 10 AND prior bar's close also below lower band OR touched it; enter on next bar open.",
+    "short": "Close > UpperBB(20,2.0) AND RSI(7) > 90; enter next bar open.",
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "take_profit": "Middle BB (SMA20) touch OR opposite band, whichever first",
+    "time_stop_bars": 24,
+    "trailing": "none"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_per_trade_pct": 0.4,
+    "max_concurrent_positions": 1
+  },
+  "primitives_used": [
+    "bollinger",
+    "rsi",
+    "atr",
+    "bb_width",
+    "session_mask"
+  ],
+  "falsifier": "If win rate <55% or trades <200 over 3yr, or PF<1.6, kill."
+}

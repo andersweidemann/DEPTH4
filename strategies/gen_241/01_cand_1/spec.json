@@ -1,0 +1,30 @@
+{
+  "hypothesis": "London session breakouts on GER40 M15 can be profitable with a volatility-based filter",
+  "regime_filter": {
+    "type": "atr_breakout",
+    "params": {
+      "atr_period": 14,
+      "breakout_threshold": 1.2
+    }
+  },
+  "entry_rule": {
+    "type": "london_breakout",
+    "params": {
+      "breakout_window": 9
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "sl": "fixed_pips",
+      "time_stop": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "gen": 40,
+  "candidates": [
+    {
+      "name": "00_cand_0",
+      "path": "/Users/User/Library/CloudStorage/OneDrive-Personal/Dokument/TRADING/strategies/gen_040/00_cand_0",
+      "strict_is_pass": false,
+      "strict_failures": [
+        "XAUUSD_M5",
+        "XAUUSD_M15",
+        "GER40_M5",
+        "GER40_M15",
+        "not_all_combos_positive"
+      ],
+      "hunt_profitable": false,
+      "hunt_reason": "XAUUSD_M5:return<=0",
+      "combos": [
+        {
+          "symbol": "XAUUSD",
+          "timeframe": "M5",
+          "trades": 3974,
+          "metrics": {
+            "return_pct": -14.115226177959213,
+            "pf": 0.9379690501754437,
+            "sharpe": -0.6218056627864781,
+            "sortino": -0.7663421923753243,
+            "max_dd_pct": 24.279091768825335,
+            "trades": 3974.0,
+            "win_rate": 49.446401610468044,
+            "expectancy": -0.003698525198887039,
+            "avg_trade": -0.003832613856369349,
+            "exposure_pct": 6.6560010038270905
+          }
+        },
+        {
+          "symbol": "XAUUSD",
+          "timeframe": "M15",
+          "trades": 1532,
+          "metrics": {
+            "return_pct": -3.146523300348781,
+            "pf": 0.9837722023042248,
+            "sharpe": -0.12678249789946047,
+            "sortino": -0.16701973473512252,
+            "max_dd_pct": 8.406729435900406,
+            "trades": 1532.0,
+            "win_rate": 50.13054830287206,
+            "expectancy": -0.001677023603638192,
+            "avg_trade": -0.0020867671752022865,
+            "exposure_pct": 7.759123675443715
+          }
+        },
+        {
+          "symbol": "GER40",
+          "timeframe": "M5",
+          "trades": 4059,
+          "metrics": {
+            "return_pct": -10.090244631361903,
+            "pf": 0.9647305581948216,
+            "sharpe": -0.33507362629072107,
+            "sortino": -0.4444051565575951,
+            "max_dd_pct": 20.643983004617173,
+            "trades": 4059.0,
+            "win_rate": 47.94284306479428,
+            "expectancy": -0.0024096616843627314,
+            "avg_trade": -0.0026378144553196314,
+            "exposure_pct": 7.006920976331169
+          }
+        },
+        {
+          "symbol": "GER40",
+          "timeframe": "M15",
+          "trades": 1611,
+          "metrics": {
+            "return_pct": 10.374145364569454,
+            "pf": 1.057928985368791,
+            "sharpe": 0.2791281136100474,
+            "sortino": 0.3947289870712052,
+            "max_dd_pct": 11.934740771526153,
+            "trades": 1611.0,
+            "win_rate": 49.162011173184354,
+            "expectancy": 0.00682394397248328,
+            "avg_trade": 0.0061374348085729835,
+            "exposure_pct": 8.200209888059701
+          }
+        }
+      ]
+    }
+  ]
+}

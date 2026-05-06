@@ -1,0 +1,39 @@
+# Promotion phase: same matrix as discovery (GER40 M15 only) with production acceptance.
+# Run after survivors look sane on discovery: same --config path family, stricter gate.
+
+timeframes: [M15]
+
+factory_backtest_symbols: [GER40]
+
+acceptance:
+  pf_min: 1.999
+  return_cagr_pct_min: 5.0
+  max_dd_pct: 25.0
+  sharpe_min: 0.2
+  trades_min: 100
+  require_all_combos_positive: true
+  max_local_vs_mt5_divergence_pct: 20.0
+
+loop:
+  candidates_per_gen: 4
+  survivors: 2
+  scout_every_n_gens: 4
+
+llm:
+  temperature: 0.35
+
+scout:
+  max_results_per_query: 30
+  default_queries:
+    - "GER40 M15 systematic trading MQL5 risk management"
+    - "DAX CFD walk forward optimization 15 minute"
+    - "MT5 Expert Advisor trend filter ADX GER40"
+
+campaign:
+  name: ger40_m15_strict
+  architect_brief: |
+    CAMPAIGN (strict / promotion): GER40 on M15 ONLY.
+    Every spec MUST set "symbols": ["GER40"] and "timeframes": ["M15"].
+    Favor simpler, testable logic with conservative session and spread assumptions.
+    regime_filter must be a JSON object, never a string. Explicit risk: SL, TP, time_stop, sizing.
+    At least two distinct families per batch. No extra symbols.

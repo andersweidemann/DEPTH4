@@ -1,0 +1,88 @@
+{
+  "name": "US500_EMA_Pullback_Trend_M15",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "hypothesis": "On US500 M15, during the NY session in an established trend (EMA20>EMA50>EMA200 or inverse) with ADX>=20, pullbacks that tag EMA20 and close back in the trend direction with RSI(14) crossing 50 continue for at least 1.5R before failure.",
+  "regime_filter": {
+    "primitives": [
+      "ema",
+      "adx",
+      "session_mask"
+    ],
+    "rules": [
+      {
+        "type": "session_mask",
+        "window_utc": "13:30-20:00"
+      },
+      {
+        "type": "adx",
+        "period": 14,
+        "min": 20
+      },
+      {
+        "type": "ema_stack",
+        "periods": [
+          20,
+          50,
+          200
+        ],
+        "require_aligned": true
+      }
+    ]
+  },
+  "entry": {
+    "signal_primitives": [
+      "ema",
+      "rsi",
+      "atr"
+    ],
+    "rules": [
+      "LONG: EMA20>EMA50>EMA200; prior bar low <= EMA20; current bar closes > EMA20 AND RSI(14) crosses above 50.",
+      "SHORT: mirror with EMA20<EMA50<EMA200; RSI crosses below 50.",
+      "Skip if distance (close - EMA50) > 2.5*ATR14 (overextended).",
+      "One entry per pullback leg (require RSI to have touched 40/60 before re-arming)."
+    ]
+  },
+  "exit": {
+    "sl": {
+      "type": "swing",
+      "lookback": 5,
+      "buffer_atr": 0.25,
+      "period": 14
+    },
+    "tp": {
+      "type": "r_multiple",
+      "r": 2.0
+    },
+    "time_stop": {
+      "bars": 32,
+      "action": "close_at_market"
+    },
+    "trailing": {
+      "type": "ema",
+      "ema_period": 20,
+      "activate_at_r": 1.0
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.4,
+    "max_concurrent_positions": 1
+  },
+  "params": {
+    "ema_fast": 20,
+    "ema_mid": 50,
+    "ema_slow": 200,
+    "rsi_period": 14,
+    "rsi_trigger": 50,
+    "atr_period": 14,
+    "adx_min": 20
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  }
+}

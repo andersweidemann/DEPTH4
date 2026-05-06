@@ -1,0 +1,66 @@
+{
+  "id": "gen40_03_us500_m15_donchian_trend_breakout",
+  "hypothesis": "On US500 M15, a 40-bar Donchian breakout with ADX(14) > 20 captures index momentum bursts with positive expectancy at 2.5R; trend regime filter prevents whipsaw in chop.",
+  "family": "trend_breakout",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "donchian",
+      "params": {
+        "period": 40
+      }
+    },
+    {
+      "primitive": "adx",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 100
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "close > donchian_high_40[1] AND adx_14 > 20 AND close > ema_100",
+    "short": "close < donchian_low_40[1]  AND adx_14 > 20 AND close < ema_100",
+    "note": "Use prior-bar Donchian to avoid repaint. Single-bar trigger, no multi-bar confirm."
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "condition": "adx_14 > 20",
+    "comment": "Trend gate only. Do NOT also require ATR percentile -- too conjunctive in prior gen."
+  },
+  "exit_rules": {
+    "tp": "2.5 * ATR14 from entry",
+    "sl": "1.5 * ATR14 from entry",
+    "time_stop": "48 bars (~12h M15)",
+    "trailing": "after +1.5R, trail by 2.0*ATR14"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": {
+    "enabled": true,
+    "window_utc": "13:30-20:00",
+    "comment": "US cash session only; US500 overnight is thin."
+  },
+  "diagnostics": {
+    "dry_run_required": true,
+    "log_raw_signals": true,
+    "min_expected_signals_per_year": 60,
+    "data_plumbing_check": "CONFIRM US500 bars actually load; prior gen produced 0 trades suggesting missing symbol feed."
+  },
+  "diversity_tag": "trend_breakout_donchian"
+}

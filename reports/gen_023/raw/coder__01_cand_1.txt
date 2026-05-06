@@ -1,0 +1,220 @@
+```python
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+def _highest(arr, n):
+    s = pd.Series(arr)
+    return s.rolling(n).max().values
+
+
+def _lowest(arr, n):
+    s = pd.Series(arr)
+    return s.rolling(n).min().values
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    _spec: Dict[str, Any] = {
+        "strategy_id": "donchian_breakout_atr_v1",
+        "family": "breakout",
+        "regime_filter": {"indicator": "adx", "min": 20.0},
+        "filters": {
+            "session_utc": [["07:00", "20:00"]],
+        },
+        "risk": {
+            "risk_per_trade_pct": 0.75,
+            "max_concurrent_positions": 1,
+        },
+        "exit": {
+            "sl_atr_mult": 1.5,
+            "tp_atr_mult": 4.0,
+            "time_stop_bars": 32,
+            "trail_atr_mult": 3.0,
+            "trail_activate_r": 1.5,
+        },
+        "params": {
+            "donchian_n": 20,
+            "ema_n": 50,
+            "atr_n": 14,
+            "adx_n": 14,
+        },
+    }
+
+    def init(self):
+        try:
+            p = Path(__file__).parent / self.spec_path
+            if p.exists():
+                with open(p, "r") as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    merged = dict(self._spec)
+                    merged.update(loaded)
+                    type(self)._spec = merged
+        except Exception:
+            pass
+
+        super().init()
+
+        params = self.spec.get("params", {})
+        self._don_n = int(params.get("donchian_n", 20))
+        self._ema_n = int(params.get("ema_n", 50))
+        self._atr_n = int(params.get("atr_n", 14))
+        self._adx_n = int(params.get("adx_n", 14))
+
+        self._ema_series = self.I(signals.ema, self.data.Close, self._ema_n)
+        self._atr_series = self.I(signals.atr, self.data, self._atr_n)
+        self._adx_series = self.I(regime.adx, self.data, self._adx_n)
+
+        self._don_upper = self.I(_highest, self.data.High, self._don_n)
+        self._don_lower = self.I(_lowest, self.data.Low, self._don_n)
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.data) < max(self._don_n + 2, self._ema_n + 2, self._atr_n + 2):
+            return
+
+        close = float(self.data.Close[-1])
+        ema_v = float(self._ema_series[-1])
+        atr_v = float(self._atr_series[-1])
+        upper_prev = float(self._don_upper[-2])
+        lower_prev = float(self._don_lower[-2])
+
+        if np.isnan(ema_v) or np.isnan(atr_v) or np.isnan(upper_prev) or np.isnan(lower_prev):
+            return
+        if atr_v <= 0:
+            return
+
+        exit_cfg = self.spec.get("exit", {})
+        sl_mult = float(exit_cfg.get("sl_atr_mult", 1.5))
+        tp_mult = float(exit_cfg.get("tp_atr_mult", 4.0))
+
+        risk_cfg = self.spec.get("risk", {})
+        risk_pct = float(risk_cfg.get("risk_per_trade_pct", 0.75))
+
+        long_sig = close > upper_prev and close > ema_v
+        short_sig = close < lower_prev and close < ema_v
+
+        if long_sig:
+            sl = close - sl_mult * atr_v
+            tp = close + tp_mult * atr_v
+            if sl >= close:
+                return
+            stop_dist = close - sl
+            size = risk.lots_by_risk_pct(
+                equity=float(self.equity),
+                risk_pct=risk_pct,
+                stop_distance=stop_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    pass
+        elif short_sig:
+            sl = close + sl_mult * atr_v
+            tp = close - tp_mult * atr_v
+            if sl <= close:
+                return
+            stop_dist = sl - close
+            size = risk.lots_by_risk_pct(
+                equity=float(self.equity),
+                risk_pct=risk_pct,
+                stop_distance=stop_dist,
+                price=close,
+                symbol=self._symbol,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        exit_cfg = self.spec.get("exit", {})
+        time_stop = exit_cfg.get("time_stop_bars")
+        if not self.position:
+            return
+
+        if time_stop is not None and self.trades:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= int(time_stop):
+                self.position.close()
+                return
+
+        trail_mult = exit_cfg.get("trail_atr_mult")
+        activate_r = float(exit_cfg.get("trail_activate_r", 0.0))
+        if not trail_mult or not self.trades:
+            return
+        if not hasattr(self, "_atr_series"):
+            return
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+        price = float(self.data.Close[-1])
+
+        for trade in self.trades:
+            entry = float(trade.entry_price)
+            if trade.is_long:
+                init_risk = entry - (trade.sl if trade.sl is not None else entry - atr_now)
+                if init_risk <= 0:
+                    continue
+                r_mult = (price - entry) / init_risk
+                if r_mult < activate_r:
+                    continue
+                new_sl = price - float(trail_mult) * atr_now
+                if trade.sl is None or new_sl > trade.sl:
+                    try:
+                        trade.sl = new_sl
+                    except Exception:
+                        pass
+            else:
+                init_risk = (trade.sl if trade.sl is not None else entry + atr_now) - entry
+                if init_risk <= 0:
+                    continue
+                r_mult = (entry - price) / init_risk
+                if r_mult < activate_r:
+                    continue
+                new_sl = price + float(trail_mult) * atr_now
+                if trade.sl is None or new_sl < trade.sl:
+                    try:
+                        trade.sl = new_sl
+                    except Exception:
+                        pass
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()
+```

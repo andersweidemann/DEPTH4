@@ -1,0 +1,24 @@
+{
+  "name": "London Breakout",
+  "hypothesis": "London open range expansion",
+  "regime_filter": "atr_percentile > 50",
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "entry_rules": {
+    "long": "close > upper_bollinger_band(20, 2.0) AND rsi(7) < 30",
+    "short": "close < lower_bollinger_band(20, 2.0) AND rsi(7) > 70"
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * atr(14)",
+    "take_profit": "2 * atr(14)",
+    "time_stop": "30 bars"
+  },
+  "sizing": {
+    "type": "fixed",
+    "value": 0.1
+  }
+}

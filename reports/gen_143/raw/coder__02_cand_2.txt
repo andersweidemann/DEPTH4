@@ -1,0 +1,41 @@
+```python
+from agents.backtester import RegimeStrategy
+from agents.signals import bollinger, bb_width, atr
+from agents.regime import adx
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.bb_width = self.I(bb_width, self.data, 20)
+        self.bollinger = self.I(bollinger, self.data, 20, 2.0)
+        self.atr = self.I(atr, self.data, 14)
+
+    def _regime_ok(self):
+        min_width = self.spec["regime_filter"]["params"]["min_width"]
+        if self.bb_width[-1] < min_width:
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        if self.bollinger['lower'][-1] <= self.data.Close[-1] <= self.bollinger['upper'][-1]:
+            size = lots_by_risk_pct(self.equity, self.spec["sizing_rule"]["params"]["fraction"], self.data)
+            self.position.enter(size)
+            self.sl_price = self.data.Close[-1] - 1.5 * self.atr[-1] if self.position.is_long else self.data.Close[-1] + 1.5 * self.atr[-1]
+            self.tp_price = self.bollinger['upper'][-1] if self.position.is_long else self.bollinger['lower'][-1]
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        if self.position and len(self.data) - self.position.entry_bar >= time_stop:
+            self.position.close()
+        elif self.position:
+            if self.position.is_long and self.data.Close[-1] >= self.tp_price:
+                self.position.close()
+            elif not self.position.is_long and self.data.Close[-1] <= self.tp_price:
+                self.position.close()
+            elif self.position.is_long and self.data.Close[-1] <= self.sl_price:
+                self.position.close()
+            elif not self.position.is_long and self.data.Close[-1] >= self.sl_price:
+                self.position.close()
+```

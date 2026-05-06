@@ -1,0 +1,77 @@
+{
+  "name": "xauusd_m15_bb_rsi_mean_reversion",
+  "hypothesis": "On XAUUSD M15, simultaneous BB(20,2.0) extreme excursions with RSI(7) extremes revert to the BB midline with positive expectancy when BB-width is above the 30th percentile (avoiding dead ranges) and during liquid sessions.",
+  "family": "mean_reversion",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "bb": {
+      "primitive": "bollinger",
+      "period": 20,
+      "dev": 2.0
+    },
+    "bb_width": {
+      "primitive": "bb_width",
+      "period": 20
+    },
+    "rsi": {
+      "primitive": "rsi",
+      "period": 7
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "trade_window": "07:00-20:00 UTC"
+    }
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "max": 25
+      },
+      {
+        "bb_width_percentile": {
+          "period": 200,
+          "min_pct": 30
+        }
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "Close < lower_BB AND RSI(7) < 10",
+    "short": "Close > upper_BB AND RSI(7) > 90",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "take_profit": {
+      "type": "bb_midline"
+    },
+    "stop_loss": {
+      "type": "atr",
+      "mult": 1.5,
+      "anchor": "entry"
+    },
+    "time_stop_bars": 30
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_pct_per_trade": 0.5,
+    "max_concurrent": 1
+  },
+  "acceptance_targets": {
+    "pf_min": 1.5,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  }
+}

@@ -1,0 +1,165 @@
+```python
+from __future__ import annotations
+
+import json
+import os
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+def _bb_lower(data, n=20, k=2.0):
+    mid, upper, lower = signals.bollinger(data.Close, n, k)
+    return lower
+
+
+def _bb_upper(data, n=20, k=2.0):
+    mid, upper, lower = signals.bollinger(data.Close, n, k)
+    return upper
+
+
+def _bb_mid(data, n=20, k=2.0):
+    mid, upper, lower = signals.bollinger(data.Close, n, k)
+    return mid
+
+
+def _bb_width(data, n=20, k=2.0):
+    return signals.bb_width(data.Close, n, k)
+
+
+def _bb_width_pct_rank(data, n=20, k=2.0, lookback=200):
+    w = signals.bb_width(data.Close, n, k)
+    w = pd.Series(np.asarray(w))
+    return w.rolling(lookback, min_periods=max(20, lookback // 4)).apply(
+        lambda x: (x[-1] > x[:-1]).mean() if len(x) > 1 else np.nan, raw=True
+    ).values
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        spec_file = os.path.join(os.path.dirname(__file__), self.spec_path)
+        try:
+            with open(spec_file, "r") as f:
+                self._spec = json.load(f)
+        except Exception:
+            self._spec = {
+                "filters": {"session_utc": [["07:00", "20:00"]]},
+                "risk": {"risk_per_trade_pct": 0.5, "max_concurrent_positions": 1},
+                "exit": {"time_stop_bars": 30, "sl_atr_mult": 1.5},
+            }
+
+        super().init()
+
+        self._bb_lower = self.I(_bb_lower, self.data, 20, 2.0)
+        self._bb_upper = self.I(_bb_upper, self.data, 20, 2.0)
+        self._bb_mid = self.I(_bb_mid, self.data, 20, 2.0)
+        self._bb_width_series = self.I(_bb_width, self.data, 20, 2.0)
+        self._bb_width_rank = self.I(_bb_width_pct_rank, self.data, 20, 2.0, 200)
+        self._rsi = self.I(signals.rsi, self.data.Close, 7)
+        self._atr_series = self.I(signals.atr, self.data, 14)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+
+    def _regime_ok(self) -> bool:
+        if len(self.data) < 50:
+            return False
+        wr = float(self._bb_width_rank[-1]) if not np.isnan(self._bb_width_rank[-1]) else np.nan
+        if np.isnan(wr) or wr < 0.30:
+            return False
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val >= 25:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if not self._regime_ok():
+            return
+        if not self._filters_ok():
+            return
+
+        price = float(self.data.Close[-1])
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return
+
+        rsi_val = float(self._rsi[-1])
+        lower = float(self._bb_lower[-1])
+        upper = float(self._bb_upper[-1])
+        mid = float(self._bb_mid[-1])
+        if np.isnan(rsi_val) or np.isnan(lower) or np.isnan(upper):
+            return
+
+        risk_cfg = self._spec.get("risk", {}) or {}
+        risk_pct = float(risk_cfg.get("risk_per_trade_pct", 0.5))
+        sl_mult = float(self._spec.get("exit", {}).get("sl_atr_mult", 1.5))
+
+        long_sig = price < lower and rsi_val < 15
+        short_sig = price > upper and rsi_val > 85
+
+        if long_sig:
+            sl = price - sl_mult * atr_now
+            tp = upper
+            if sl >= price:
+                return
+            stop_dist = price - sl
+            try:
+                size = risk.lots_by_risk_pct(
+                    equity=float(self.equity),
+                    risk_pct=risk_pct,
+                    stop_distance=stop_dist,
+                    price=price,
+                    symbol=self._symbol,
+                )
+            except Exception:
+                size = None
+            if size is None or size <= 0:
+                size = 0.02
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    pass
+
+        elif short_sig:
+            sl = price + sl_mult * atr_now
+            tp = lower
+            if sl <= price:
+                return
+            stop_dist = sl - price
+            try:
+                size = risk.lots_by_risk_pct(
+                    equity=float(self.equity),
+                    risk_pct=risk_pct,
+                    stop_distance=stop_dist,
+                    price=price,
+                    symbol=self._symbol,
+                )
+            except Exception:
+                size = None
+            if size is None or size <= 0:
+                size = 0.02
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    pass
+
+    def next(self):
+        self._enter_if_signal()
+        self._manage_open()
+```

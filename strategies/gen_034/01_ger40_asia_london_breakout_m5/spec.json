@@ -1,0 +1,39 @@
+{
+  "name": "ger40_asia_london_breakout_m5",
+  "family": "breakout",
+  "symbol": "GER40",
+  "timeframe": "M5",
+  "hypothesis": "GER40 M5 exhibits directional continuation when London session (07:00-10:00 UTC) breaks the Asia-session (00:00-06:00 UTC) range by >= 0.5 ATR with a strong body candle. Expectation: PF >= 1.5 with >= 200 trades over 4.5y. Falsified if breakout-only variant produces PF < 1.2.",
+  "regime_filter": {
+    "primitive": "atr_percentile",
+    "rule": "asia_range / ATR(14,D1) between 0.4 and 2.5",
+    "description": "Only trade when Asia range is neither dead (too tight) nor already exploded (too wide). Excludes ~40% of days."
+  },
+  "signals": {
+    "entry_long": "price closes >= asia_high + 0.5*ATR(14,M5) AND candle_body >= 1.0*ATR(14,M5), within first 9 bars of 07:00-10:00 UTC window",
+    "entry_short": "mirror on asia_low",
+    "session_mask": "entries only 07:00-10:00 UTC; no new entries after 10:00",
+    "one_shot_per_day": true
+  },
+  "exits": {
+    "tp": "2.0 * (asia_range) projected from breakout level",
+    "sl": "opposite side of asia range or 1.5*ATR(14) whichever closer",
+    "time_stop": "close at 16:00 UTC same day",
+    "trailing": "activate after +1R, trail at 1.0*ATR(14)"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent": 1
+  },
+  "diagnostics": {
+    "log_rejections": true,
+    "counters": [
+      "days_with_valid_asia_range",
+      "breakouts_detected",
+      "orders_attempted",
+      "orders_filled"
+    ]
+  },
+  "notes": "Explicit broker-TZ handling required: convert session windows to broker server time. Log detected asia_high/low per day to confirm session mask is not empty."
+}

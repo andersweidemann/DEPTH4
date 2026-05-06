@@ -1,0 +1,44 @@
+{
+  "name": "XAUUSD_M15_BBRsiMeanReversion_v1",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, simultaneous Bollinger Band penetration and RSI extreme reading, gated by a BB-width volatility regime filter, produces profitable mean-reversion trades to the middle/opposite band with >2.0 PF over 200+ trades.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "close < lower_bb(20, 1.75) AND rsi(7) < 10",
+    "entry_short": "close > upper_bb(20, 1.75) AND rsi(7) > 90",
+    "primitives_used": [
+      "bollinger",
+      "rsi",
+      "bb_width",
+      "atr",
+      "session_mask"
+    ]
+  },
+  "regime_filter": {
+    "type": "volatility_gate",
+    "rules": [
+      "bb_width(20) percentile(500) >= 30",
+      "atr_percentile(200) between 25 and 85",
+      "session_mask: 07:00-20:00 UTC",
+      "adx(14) < 30 (avoid strong trends)"
+    ]
+  },
+  "exits": {
+    "stop_loss": "1.5*ATR(14) from entry",
+    "take_profit": "opposite Bollinger Band (middle_bb as fallback if touched within 3 bars)",
+    "time_stop": "close after 20 M15 bars (~5h) if neither hit",
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "cooldown_bars": 3
+  },
+  "diversity_tag": "mean_reversion_bb"
+}

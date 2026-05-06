@@ -1,0 +1,81 @@
+import numpy as np
+import pandas as pd
+from dataclasses import dataclass
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "XAUUSD"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("filters", {}).get("session_utc") or []
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, sessions), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self._atr_series = self.I(atr, self.data, n=20)
+        self._bb_series = self.I(bollinger, self.data, n=20, dev=1.75)
+        self._rsi_series = self.I(rsi, self.data, n=7)
+
+    def _regime_ok(self) -> bool:
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        if rf.get("type") == "atr_percentile":
+            atr_percentile_val = float(self.I(atr_percentile, self.data, n=20, percentile=rf.get("threshold"))[-1])
+            if np.isnan(atr_percentile_val):
+                return False
+            return True
+        return True
+
+    def _filters_ok(self) -> bool:
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.1)):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        entry_rule = self.spec.get("entry_rule")
+        if entry_rule.get("type") == "mean_reversion":
+            bb_deviation = entry_rule.get("bb_deviation")
+            rsi_thresholds = entry_rule.get("rsi_thresholds")
+            bb_series = self._bb_series
+            rsi_series = self._rsi_series
+            if bb_series and rsi_series:
+                bb_val = float(bb_series[-1])
+                rsi_val = float(rsi_series[-1])
+                if (bb_val < -bb_deviation and rsi_val < rsi_thresholds[0]) or (bb_val > bb_deviation and rsi_val > rsi_thresholds[1]):
+                    size = self.spec.get("sizing_rule", {}).get("size", 0.05)
+                    self.position.enter(size=size)
+
+    def _manage_open(self) -> None:
+        exit_rule = self.spec.get("exit_rule")
+        if exit_rule.get("type") == "tp_sl":
+            tp = exit_rule.get("tp")
+            sl = exit_rule.get("sl")
+            if self.position:
+                self.sl_price = self.position.entry_price - sl if self.position.is_long else self.position.entry_price + sl
+                self.tp_price = self.position.entry_price + tp if self.position.is_long else self.position.entry_price - tp

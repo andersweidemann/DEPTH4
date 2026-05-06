@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Trend following works when price closes above/below a moving average with sufficient momentum",
+  "regime_filter": {
+    "type": "adx",
+    "params": {
+      "threshold": 20
+    }
+  },
+  "entry_rule": {
+    "type": "trend_following",
+    "params": {
+      "ma_period": 50,
+      "rsi_period": 14,
+      "rsi_thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "trailing_stop",
+      "sl": "fixed_pips",
+      "time_stop": 40
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

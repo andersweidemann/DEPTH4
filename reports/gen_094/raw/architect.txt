@@ -1,0 +1,170 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with an extreme RSI reading",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts from the Asia range occur during the London session",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > asia_range_high"
+      },
+      "short": {
+        "condition": "close < asia_range_low"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 2
+      }
+    }
+  },
+  {
+    "hypothesis": "Price reverts to the mean after a strong trend",
+    "regime_filter": {
+      "type": "adx",
+      "params": {
+        "threshold": 25
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && adx(14) > 25"
+      },
+      "short": {
+        "condition": "close > upper_bb && adx(14) > 25"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 2
+        }
+      },
+      "tp": {
+        "type": "middle_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "Volatility contraction precedes a breakout",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "threshold": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close > upper_bb && bb_width(20) < 10"
+      },
+      "short": {
+        "condition": "close < lower_bb && bb_width(20) < 10"
+      }
+    },
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "pips": 200
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 1
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percent": 1
+      }
+    }
+  }
+]

@@ -1,0 +1,50 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._bb_period = self.spec["regime_filter"]["params"]["bb_period"]
+        self._bb_deviation = self.spec["regime_filter"]["params"]["bb_deviation"]
+        self._rsi_period = self.spec["entry_rule"]["params"]["rsi_period"]
+        self._rsi_thresholds = self.spec["entry_rule"]["params"]["rsi_thresholds"]
+        self._tp = self.spec["exit_rule"]["params"]["tp"]
+        self._sl = self.spec["exit_rule"]["params"]["sl"]
+        self._time_stop = self.spec["exit_rule"]["params"]["time_stop"]
+        self._fraction = self.spec["sizing_rule"]["params"]["fraction"]
+        self._bollinger = self.I(bollinger, self.data, self._bb_period, self._bb_deviation)
+        self._rsi = self.I(rsi, self.data, self._rsi_period)
+        self._atr = self.I(atr, self.data, 14)
+
+    def _regime_ok(self):
+        bb_width_percentile = self.spec["regime_filter"]["params"]["percentile"]
+        bb_width = self.I(bb_width, self.data, self._bb_period)
+        bb_width_percentile_value = np.percentile(bb_width, bb_width_percentile)
+        return bb_width[-1] > bb_width_percentile_value
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self._regime_ok() and self._filters_ok():
+            if self._rsi[-1] < self._rsi_thresholds[0] and self.data.Close[-1] < self._bollinger[0][-1]:
+                self.position.enter_long(lots_by_risk_pct(self._fraction, self._equity_start, self.data.Close[-1]))
+                self.sl_price = self.data.Close[-1] - 1.5 * self._atr[-1]
+                self.tp_price = self._bollinger[1][-1]
+            elif self._rsi[-1] > self._rsi_thresholds[1] and self.data.Close[-1] > self._bollinger[1][-1]:
+                self.position.enter_short(lots_by_risk_pct(self._fraction, self._equity_start, self.data.Close[-1]))
+                self.sl_price = self.data.Close[-1] + 1.5 * self._atr[-1]
+                self.tp_price = self._bollinger[0][-1]
+
+    def _manage_open(self):
+        if self.position.is_long and self.data.Close[-1] > self.tp_price:
+            self.position.close()
+        elif self.position.is_short and self.data.Close[-1] < self.tp_price:
+            self.position.close()
+        elif self._time_stop is not None and len(self.data) - self.position.entry_bar >= self._time_stop:
+            self.position.close()

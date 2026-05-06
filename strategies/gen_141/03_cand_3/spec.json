@@ -1,0 +1,42 @@
+{
+  "hypothesis": "Price breaks out of the Donchian channel during high volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 70,
+      "lookback": 20
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_breakout",
+    "params": {
+      "donchian_period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.5
+    }
+  },
+  "sl_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 150
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 300
+    }
+  },
+  "time_stop": 90,
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

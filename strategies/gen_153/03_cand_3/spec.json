@@ -1,0 +1,45 @@
+{
+  "hypothesis": "Donchian channel breakouts occur on BTCUSD M15 with low ADX",
+  "regime_filter": {
+    "type": "adx_threshold",
+    "params": {
+      "period": 14,
+      "threshold": 20
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_breakout",
+    "params": {
+      "period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "multi_exit",
+    "params": {
+      "take_profit": {
+        "type": "fixed_pips",
+        "params": {
+          "pips": 200
+        }
+      },
+      "stop_loss": {
+        "type": "fixed_pips",
+        "params": {
+          "pips": 100
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

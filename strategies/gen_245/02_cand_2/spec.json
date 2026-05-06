@@ -1,0 +1,40 @@
+{
+  "hypothesis": "Price reverts to the mean after extreme RSI readings and BB touches",
+  "regime_filter": {
+    "type": "bb_touch",
+    "params": {
+      "threshold": 0.2
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "rsi(7) < 10 && close < lower_bb"
+    },
+    "short": {
+      "condition": "rsi(7) > 90 && close > upper_bb"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "params": {
+        "multiplier": 1.5
+      }
+    },
+    "take_profit": {
+      "type": "middle_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

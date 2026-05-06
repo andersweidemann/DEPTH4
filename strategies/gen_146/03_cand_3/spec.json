@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Breakouts from the Donchian channel occur during high volatility on BTCUSD M5",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "period": 14,
+      "percentile": 70
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "high > donchian_high && close > upper_dc"
+    },
+    "short": {
+      "condition": "low < donchian_low && close < lower_dc"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 2
+    }
+  }
+}

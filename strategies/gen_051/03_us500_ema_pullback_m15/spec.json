@@ -1,0 +1,67 @@
+{
+  "id": "gen51_cand_4",
+  "name": "US500_EMA_Pullback_M15",
+  "family": "trend_pullback",
+  "hypothesis": "On US500 M15, pullbacks to EMA(20) within an EMA(20)>EMA(50) uptrend (or mirrored downtrend) during US cash hours produce mean-reverting-to-trend entries with favorable RR when ATR percentile is moderate.",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "type": "ema",
+      "period": 20
+    },
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "rsi",
+      "period": 14
+    },
+    {
+      "type": "atr",
+      "period": 14
+    }
+  ],
+  "entry_rules": {
+    "long": "ema20 > ema50 AND low <= ema20 AND close > ema20 AND rsi14 between 40 and 65",
+    "short": "ema20 < ema50 AND high >= ema20 AND close < ema20 AND rsi14 between 35 and 60",
+    "cooldown_bars": 3
+  },
+  "exit_rules": {
+    "tp": "2.0 * ATR(14) from entry",
+    "sl": "1.2 * ATR(14) from entry (below/above pullback swing)",
+    "time_stop_bars": 24,
+    "trailing": {
+      "type": "ema",
+      "period": 20,
+      "activate_after_R": 1.0
+    }
+  },
+  "regime_filter": {
+    "type": "atr_percentile",
+    "period": 14,
+    "min_percentile": 25,
+    "max_percentile": 90,
+    "rationale": "skip ultra-quiet and crisis regimes"
+  },
+  "sizing": {
+    "mode": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "enabled": true,
+    "windows_utc": [
+      [
+        "13:30",
+        "20:00"
+      ]
+    ]
+  },
+  "diversification_notes": "Trend-pullback family on US500; distinct from breakout and mean-reversion candidates."
+}

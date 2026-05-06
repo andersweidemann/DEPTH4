@@ -1,0 +1,74 @@
+{
+  "name": "XAUUSD_M5_AsiaLondonBreakout_ATR",
+  "hypothesis": "On XAUUSD M5, when the Asia session (00:00-06:00 UTC) builds a compressed range (0.5-2.0 ATR) and London session (07:00-10:00 UTC) breaks out with a strong body, directional follow-through persists long enough to yield >1.5R before mean reversion.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "family": "breakout",
+  "regime_filter": {
+    "type": "composite",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "op": ">=",
+        "value": 18
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "op": ">=",
+        "value": 40
+      },
+      {
+        "primitive": "session_mask",
+        "sessions": [
+          "london_open"
+        ],
+        "window_utc": "07:00-10:00"
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": [
+      "build asia_range from 00:00-06:00 UTC high/low",
+      "asia_range_size between 0.5*ATR(14) and 2.0*ATR(14)",
+      "close > asia_high + 0.5*ATR(14)",
+      "breakout candle body >= 1.2*ATR(14)",
+      "breakout occurs within first 9 M5 bars of 07:00 UTC",
+      "only first breakout of the day"
+    ],
+    "short": [
+      "build asia_range from 00:00-06:00 UTC high/low",
+      "asia_range_size between 0.5*ATR(14) and 2.0*ATR(14)",
+      "close < asia_low - 0.5*ATR(14)",
+      "breakout candle body >= 1.2*ATR(14)",
+      "breakout occurs within first 9 M5 bars of 07:00 UTC",
+      "only first breakout of the day"
+    ]
+  },
+  "exit_rules": {
+    "stop_loss": "1.3 * ATR(14) from entry (opposite side of asia_range edge)",
+    "take_profit": "2.6 * ATR(14) (R:R ~2.0)",
+    "time_stop": "close at 15:00 UTC or after 36 M5 bars, whichever first",
+    "trailing": "after +1.0R, trail by 1.0*ATR(14)"
+  },
+  "sizing": {
+    "method": "risk_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent": 1,
+    "cooldown_bars": 12
+  },
+  "params": {
+    "atr_period": 14,
+    "asia_start_utc": "00:00",
+    "asia_end_utc": "06:00",
+    "london_start_utc": "07:00",
+    "london_end_utc": "10:00",
+    "min_range_atr": 0.5,
+    "max_range_atr": 2.0,
+    "breakout_dist_atr": 0.5,
+    "breakout_body_atr": 1.2,
+    "max_breakout_bars": 9
+  },
+  "falsification": "Reject if PF<2.0 or trades<200 over 2y backtest, or if >60% of signals occur outside first 9 bars (structural invalidation)."
+}

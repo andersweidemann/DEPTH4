@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Range expansion occurs on US500 M15 when price breaks out of consolidation range with increased volatility",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > consolidation_range_high && atr(14) > atr(14)[1]"
+    },
+    "short": {
+      "condition": "close < consolidation_range_low && atr(14) > atr(14)[1]"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 500
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "hours": 2
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 2
+    }
+  }
+}

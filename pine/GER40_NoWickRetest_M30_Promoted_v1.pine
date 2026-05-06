@@ -1,0 +1,323 @@
+//@version=5
+// Paste this entire file from line 1 — do not prepend lines from elsewhere.
+//
+// Mirrors `strategies/manual/promoted_nowick_ger40_m30_pf154` near
+// `reports/promoted_nowick_ger40_m30_tp34/is_summary.json`:
+// ~20.21% return, PF ~1.9797, 222 trades (Python IS, GER40 M30).
+//
+// Default `sl_buffer_points = 2.5` matches that snapshot (before the 3.0 tweak).
+// Chart: **M30**. Symbol: map GER40 / DE40 to your feed.
+//
+// TV ≠ Python: fills, same-bar SL/TP, `ta.percentrank` vs rolling ATR %, H1 security gaps.
+strategy(
+     "GER40 No-wick retest M30 (promoted PF~1.98)",
+     overlay = true,
+     pyramiding = 0,
+     calc_on_order_fills = false,
+     process_orders_on_close = true,
+     initial_capital = 10000,
+     commission_type = strategy.commission.percent,
+     commission_value = 0.0,
+     slippage = 0
+ )
+
+// --- Inputs (promoted spec @ PF ~1.98) ---
+grpSig = "Signal"
+maxWaitBars = input.int(48, "max_wait_bars", minval = 1, maxval = 200, group = grpSig)
+wickStrict = input.bool(true, "wick_strict_zero", group = grpSig)
+wickEpsMult = input.float(0.55, "wick_epsilon_mult (if not strict)", group = grpSig)
+wickAtolMult = input.float(1e-9, "wick_zero_atol_mult", group = grpSig)
+trendFast = input.int(50, "trend_ema_fast", group = grpSig)
+trendSlow = input.int(200, "trend_ema_slow", group = grpSig)
+useH1Trend = input.bool(true, "trend_source == H1", group = grpSig)
+tpRMult = input.float(3.4, "tp_r_mult", step = 0.05, group = grpSig)
+slBufPts = input.float(2.5, "sl_buffer_points (PF~1.98 snapshot)", step = 0.1, group = grpSig)
+slBufAtr = input.float(0.0, "sl_buffer_atr_mult", group = grpSig)
+minPbAtr = input.float(0.35, "min_pullback_atr_mult", group = grpSig)
+atrLen = input.int(14, "atr_period", group = grpSig)
+confirmBeyond = input.bool(false, "confirm_close_beyond_level", group = grpSig)
+
+grpVol = "Vol filter"
+volOn = input.bool(true, "vol_filter_enabled", group = grpVol)
+atrPercLo = input.float(5.0, "atr_percentile_min", group = grpVol)
+atrPercHi = input.float(92.0, "atr_percentile_max", group = grpVol)
+atrPercLb = input.int(500, "atr_percentile_lookback", minval = 20, group = grpVol)
+
+grpFil = "Session / filters"
+sessTz = input.string("Europe/Berlin", "session timezone", group = grpFil)
+sessStart = input.session("0930-1800", "session_local (Berlin)", group = grpFil)
+blockH0 = input.bool(true, "block hour 0 local", group = grpFil)
+blockH1 = input.bool(true, "block hour 1 local", group = grpFil)
+blockH6 = input.bool(true, "block hour 6 local", group = grpFil)
+
+grpRisk = "Risk / exits"
+riskPct = input.float(2.2, "risk_pct (% equity / SL distance)", step = 0.1, group = grpRisk)
+timeStopBars = input.int(130, "time_stop_bars", minval = 1, group = grpRisk)
+maxTrPerDay = input.int(6, "max_trades_per_day", minval = 0, group = grpRisk)
+coolLoss = input.int(4, "cooldown_bars_after_loss", minval = 0, group = grpRisk)
+
+grpBE = "Break-even"
+beOn = input.bool(true, "break_even_enabled", group = grpBE)
+beTrigR = input.float(0.35, "break_even_trigger_r (close vs R)", step = 0.01, group = grpBE)
+beMfeR = input.float(0.28, "break_even_mfe_r", step = 0.01, group = grpBE)
+
+ptSize = input.float(0.1, "point_size (Python GER40 default)", step = 0.01, group = grpSig)
+
+// --- Core series ---
+atr = ta.atr(atrLen)
+// Pine v5: `ta.percentrank(source, length)` only — no third arg. ~0–100 rank.
+atrPerc = ta.percentrank(atr, atrPercLb)
+volOk = not volOn or (atrPerc >= atrPercLo and atrPerc <= atrPercHi)
+
+emaF_m30 = ta.ema(close, trendFast)
+emaS_m30 = ta.ema(close, trendSlow)
+trendLong_m30 = emaF_m30 > emaS_m30 and close > emaS_m30
+trendShort_m30 = emaF_m30 < emaS_m30 and close < emaS_m30
+
+emaF_h1 = request.security(syminfo.tickerid, "60", ta.ema(close, trendFast), lookahead = barmerge.lookahead_off)
+emaS_h1 = request.security(syminfo.tickerid, "60", ta.ema(close, trendSlow), lookahead = barmerge.lookahead_off)
+cls_h1 = request.security(syminfo.tickerid, "60", close, lookahead = barmerge.lookahead_off)
+trendLong_h1 = emaF_h1 > emaS_h1 and cls_h1 > emaS_h1
+trendShort_h1 = emaF_h1 < emaS_h1 and cls_h1 < emaS_h1
+
+trendLong = useH1Trend ? trendLong_h1 : trendLong_m30
+trendShort = useH1Trend ? trendShort_h1 : trendShort_m30
+
+// `time()` first arg must be a timeframe string, not `time_close`.
+inSession = not na(time(timeframe.period, sessStart, sessTz))
+hLocal = hour(time_close, sessTz)
+blockedHour = (blockH0 and hLocal == 0) or (blockH1 and hLocal == 1) or (blockH6 and hLocal == 6)
+
+wickTol() =>
+    math.max(syminfo.mintick * wickAtolMult, 1e-15)
+
+wickBull(offs) =>
+    wickStrict ? math.abs(open[offs] - low[offs]) <= wickTol() and close[offs] > open[offs] : math.abs(open[offs] - low[offs]) <= syminfo.mintick * wickEpsMult and close[offs] > open[offs]
+
+wickBear(offs) =>
+    wickStrict ? math.abs(open[offs] - high[offs]) <= wickTol() and close[offs] < open[offs] : math.abs(open[offs] - high[offs]) <= syminfo.mintick * wickEpsMult and close[offs] < open[offs]
+
+pulledBackLong(age, hi, atr_i) =>
+    float thr = hi - minPbAtr * atr_i
+    bool ok = false
+    for k = age - 1 to 1
+        if low[k] < thr
+            ok := true
+            break
+    ok
+
+pulledBackShort(age, lo, atr_i) =>
+    float thr = lo + minPbAtr * atr_i
+    bool ok = false
+    for k = age - 1 to 1
+        if high[k] > thr
+            ok := true
+            break
+    ok
+
+touchLong(hi) =>
+    bool t = low <= hi and high >= hi
+    confirmBeyond ? t and close >= hi : t
+
+touchShort(lo) =>
+    bool t = low <= lo and high >= lo
+    confirmBeyond ? t and close <= lo : t
+
+// --- Pattern at bar close (trade_on_close) ---
+longSignal = false
+float longLmt = na
+float longSL = na
+float longTP = na
+
+if inSession and not blockedHour and bar_index > maxWaitBars + 2
+    for age = 1 to maxWaitBars
+        if not wickBull(age)
+            continue
+        float hi = high[age]
+        if hi <= low[age]
+            continue
+        float atr_i = atr[age]
+        if not pulledBackLong(age, hi, atr_i)
+            continue
+        if not touchLong(hi)
+            continue
+        if not volOk
+            continue
+        if not trendLong
+            continue
+        float buf = slBufPts * ptSize + (slBufAtr > 0 ? slBufAtr * atr_i : 0.0)
+        float segLo = low[0]
+        for kk = 1 to age
+            segLo := math.min(segLo, low[kk])
+        float slPx = segLo - buf
+        if slPx >= hi - syminfo.mintick
+            continue
+        float oneR = hi - slPx
+        if oneR <= syminfo.mintick
+            continue
+        longSignal := true
+        longLmt := hi
+        longSL := slPx
+        longTP := hi + tpRMult * oneR
+        break
+
+shortSignal = false
+float shortLmt = na
+float shortSL = na
+float shortTP = na
+
+if inSession and not blockedHour and bar_index > maxWaitBars + 2
+    for age = 1 to maxWaitBars
+        if not wickBear(age)
+            continue
+        float lo = low[age]
+        if high[age] <= lo
+            continue
+        float atr_i = atr[age]
+        if not pulledBackShort(age, lo, atr_i)
+            continue
+        if not touchShort(lo)
+            continue
+        if not volOk
+            continue
+        if not trendShort
+            continue
+        float buf = slBufPts * ptSize + (slBufAtr > 0 ? slBufAtr * atr_i : 0.0)
+        float segHi = high[0]
+        for kk = 1 to age
+            segHi := math.max(segHi, high[kk])
+        float slPx = segHi + buf
+        if slPx <= lo + syminfo.mintick
+            continue
+        float oneR = slPx - lo
+        if oneR <= syminfo.mintick
+            continue
+        shortSignal := true
+        shortLmt := lo
+        shortSL := slPx
+        shortTP := lo - tpRMult * oneR
+        break
+
+// --- Daily cap & cooldown ---
+var int tradesToday = 0
+
+newDay = ta.change(time("D", sessTz)) != 0
+if newDay
+    tradesToday := 0
+
+var int coolUntilBar = -1
+if strategy.closedtrades > 0
+    lix = strategy.closedtrades - 1
+    if strategy.closedtrades.exit_bar_index(lix) == bar_index and strategy.closedtrades.profit(lix) < 0 and coolLoss > 0
+        coolUntilBar := bar_index + coolLoss
+
+coolOk = bar_index >= coolUntilBar
+capOk = maxTrPerDay == 0 or tradesToday < maxTrPerDay
+flat = strategy.position_size == 0
+
+qtyRisk(entry, sl) =>
+    float d = math.abs(entry - sl)
+    d < syminfo.mintick ? na : (strategy.equity * riskPct / 100.0) / d
+
+// --- Active trade brackets + BE + time stop ---
+var float actSL = na
+var float actTP = na
+var int actEntryBar = na
+var float pendL_sl = na
+var float pendL_tp = na
+var float pendS_sl = na
+var float pendS_tp = na
+// Running MFE extremes (updated every bar — avoids `ta.highest`/`ta.lowest` in `if`).
+var float runHigh = na
+var float runLow = na
+
+if flat
+    actSL := na
+    actTP := na
+    actEntryBar := na
+    runHigh := na
+    runLow := na
+
+bool justLong = strategy.position_size > 0 and strategy.position_size[1] == 0
+bool justShort = strategy.position_size < 0 and strategy.position_size[1] == 0
+
+if justLong
+    actEntryBar := bar_index
+    actSL := pendL_sl
+    actTP := pendL_tp
+    pendL_sl := na
+    pendL_tp := na
+    pendS_sl := na
+    pendS_tp := na
+    tradesToday += 1
+    runHigh := high
+
+if justShort
+    actEntryBar := bar_index
+    actSL := pendS_sl
+    actTP := pendS_tp
+    pendS_sl := na
+    pendS_tp := na
+    pendL_sl := na
+    pendL_tp := na
+    tradesToday += 1
+    runLow := low
+
+if strategy.position_size > 0
+    runHigh := math.max(nz(runHigh, high), high)
+
+if strategy.position_size < 0
+    runLow := math.min(nz(runLow, low), low)
+
+float ep = strategy.position_avg_price
+float rGeo = na
+if strategy.position_size > 0 and not na(actSL)
+    rGeo := ep - actSL
+else if strategy.position_size < 0 and not na(actSL)
+    rGeo := actSL - ep
+
+float mfeR = na
+if strategy.position_size > 0 and not na(rGeo) and rGeo > 0 and not na(runHigh)
+    mfeR := (runHigh - ep) / rGeo
+else if strategy.position_size < 0 and not na(rGeo) and rGeo > 0 and not na(runLow)
+    mfeR := (ep - runLow) / rGeo
+
+if strategy.position_size > 0 and beOn and not na(rGeo) and rGeo > 0
+    bool hitC = (close - ep) / rGeo >= beTrigR
+    bool hitM = beMfeR > 0 and not na(mfeR) and mfeR >= beMfeR
+    if hitC or hitM
+        actSL := math.max(actSL, ep)
+
+if strategy.position_size < 0 and beOn and not na(rGeo) and rGeo > 0
+    bool hitC = (ep - close) / rGeo >= beTrigR
+    bool hitM = beMfeR > 0 and not na(mfeR) and mfeR >= beMfeR
+    if hitC or hitM
+        actSL := math.min(actSL, ep)
+
+bool timeStop = strategy.position_size != 0 and not na(actEntryBar) and (bar_index - actEntryBar >= timeStopBars)
+if timeStop
+    strategy.close_all(comment = "time_stop")
+
+// Entries: long preferred if both (matches Python `if long elif short`)
+if longSignal and flat and coolOk and capOk and inSession
+    float qL = qtyRisk(longLmt, longSL)
+    if not na(qL) and qL > 0
+        pendL_sl := longSL
+        pendL_tp := longTP
+        strategy.entry("L", strategy.long, qty = qL, limit = longLmt, comment = "NW long")
+
+if shortSignal and flat and not longSignal and coolOk and capOk and inSession
+    float qS = qtyRisk(shortLmt, shortSL)
+    if not na(qS) and qS > 0
+        pendS_sl := shortSL
+        pendS_tp := shortTP
+        strategy.entry("S", strategy.short, qty = qS, limit = shortLmt, comment = "NW short")
+
+if strategy.position_size > 0 and not na(actSL) and not na(actTP)
+    strategy.exit("LX", from_entry = "L", stop = actSL, limit = actTP)
+
+if strategy.position_size < 0 and not na(actSL) and not na(actTP)
+    strategy.exit("SX", from_entry = "S", stop = actSL, limit = actTP)
+
+plotshape(longSignal and flat and coolOk and capOk, "Long sig", shape.triangleup, location.belowbar, size = size.tiny, color = color.new(color.teal, 50))
+plotshape(shortSignal and flat and coolOk and capOk and not longSignal, "Short sig", shape.triangledown, location.abovebar, size = size.tiny, color = color.new(color.orange, 50))

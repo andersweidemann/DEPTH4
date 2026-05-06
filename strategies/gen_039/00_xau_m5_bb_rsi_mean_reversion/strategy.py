@@ -1,0 +1,201 @@
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    bb_period = 20
+    bb_std = 1.75
+    rsi_period = 7
+    rsi_low = 15.0
+    rsi_high = 85.0
+    atr_period = 14
+    atr_lookback = 500
+    atr_pctile_min = 20.0
+    atr_pctile_max = 85.0
+    bbw_pctile_min = 30.0
+    time_stop_bars = 30
+    sl_atr_mult = 1.8
+    risk_pct = 0.5
+    min_bars_between = 3
+
+    def init(self):
+        super().init()
+
+        close = self.data.Close
+
+        def _mid(c):
+            m, _, _ = signals.bollinger(c, self.bb_period, self.bb_std)
+            return m
+
+        def _upper(c):
+            _, u, _ = signals.bollinger(c, self.bb_period, self.bb_std)
+            return u
+
+        def _lower(c):
+            _, _, l = signals.bollinger(c, self.bb_period, self.bb_std)
+            return l
+
+        self._bb_mid = self.I(_mid, close)
+        self._bb_upper = self.I(_upper, close)
+        self._bb_lower = self.I(_lower, close)
+
+        self._rsi_series = self.I(signals.rsi, close, self.rsi_period)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._bbw_series = self.I(signals.bb_width, close, self.bb_period, self.bb_std)
+
+        self._atr_pctile = self.I(
+            regime.atr_percentile, self.data, self.atr_period, self.atr_lookback
+        )
+
+        def _bbw_pct(c, n, s, lookback=self.atr_lookback):
+            bbw, _, _ = None, None, None
+            bbw_arr = np.asarray(signals.bb_width(c, n, s), dtype=float)
+            out = np.full_like(bbw_arr, np.nan, dtype=float)
+            for i in range(len(bbw_arr)):
+                start = max(0, i - lookback + 1)
+                window = bbw_arr[start : i + 1]
+                window = window[~np.isnan(window)]
+                if len(window) >= 20:
+                    out[i] = (window < bbw_arr[i]).sum() / len(window) * 100.0
+            return out
+
+        self._bbw_pctile = self.I(_bbw_pct, close, self.bb_period, self.bb_std)
+
+        sessions = ["london", "ny"]
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(
+            signals.session_mask(full_idx, sessions), dtype=bool
+        )
+
+        self._last_entry_bar = -10_000
+
+    def _regime_ok(self) -> bool:
+        if len(self._atr_pctile) == 0:
+            return False
+        val = float(self._atr_pctile[-1])
+        if np.isnan(val):
+            return False
+        return self.atr_pctile_min <= val <= self.atr_pctile_max
+
+    def _filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        idx = self.data.index
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        dd_kill = self.spec.get("risk", {}).get(
+            "daily_dd_kill_pct", config.load()["risk"]["daily_dd_kill_pct"]
+        )
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, dd_kill):
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.trades) > 0:
+            pass
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < self.min_bars_between:
+            return
+
+        price = float(self.data.Close[-1])
+        lower = float(self._bb_lower[-1])
+        upper = float(self._bb_upper[-1])
+        rsi_v = float(self._rsi_series[-1])
+        atr_v = float(self._atr_series[-1])
+        bbw_pct = float(self._bbw_pctile[-1])
+        mid = float(self._bb_mid[-1])
+
+        if any(np.isnan(x) for x in (lower, upper, rsi_v, atr_v, bbw_pct, mid)):
+            return
+        if atr_v <= 0:
+            return
+        if bbw_pct < self.bbw_pctile_min:
+            return
+
+        go_long = price < lower and rsi_v < self.rsi_low
+        go_short = price > upper and rsi_v > self.rsi_high
+
+        if not (go_long or go_short):
+            return
+
+        if go_long:
+            sl = price - self.sl_atr_mult * atr_v
+            tp = upper
+            if sl >= price:
+                return
+            sl_points = price - sl
+            units = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                sl_points=sl_points,
+                symbol=self._symbol,
+                price=price,
+            )
+            if units <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            self.buy(size=units, sl=sl, tp=tp)
+            self._last_entry_bar = bar_i
+        else:
+            sl = price + self.sl_atr_mult * atr_v
+            tp = lower
+            if sl <= price:
+                return
+            sl_points = sl - price
+            units = risk.lots_by_risk_pct(
+                equity=self.equity,
+                risk_pct=self.risk_pct,
+                sl_points=sl_points,
+                symbol=self._symbol,
+                price=price,
+            )
+            if units <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            self.sell(size=units, sl=sl, tp=tp)
+            self._last_entry_bar = bar_i
+
+    def _manage_open(self) -> None:
+        if not self.position:
+            return
+        trade = self.trades[-1] if self.trades else None
+        if trade is not None:
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                self.position.close()
+                return
+            mid = float(self._bb_mid[-1])
+            if not np.isnan(mid):
+                price = float(self.data.Close[-1])
+                if trade.is_long and price >= mid:
+                    self.position.close()
+                    return
+                if (not trade.is_long) and price <= mid:
+                    self.position.close()
+                    return
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

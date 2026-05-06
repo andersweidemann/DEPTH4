@@ -1,0 +1,98 @@
+{
+  "name": "XAU_AsiaLondon_RangeBreakout_M5",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "hypothesis": "After a contained Asian session range (0.5-2.0x ATR), XAUUSD breaks out during London open (07:00-10:00 UTC) with follow-through exceeding 1x ATR within 3 hours. A volatility-normalized range filter avoids both chop and exhausted ranges.",
+  "regime_filter": {
+    "type": "composite",
+    "conditions": [
+      {
+        "primitive": "session_mask",
+        "sessions": [
+          "london_open"
+        ],
+        "hours_utc": [
+          7,
+          8,
+          9,
+          10
+        ]
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 100,
+        "min_pct": 30,
+        "max_pct": 90
+      },
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 18
+      }
+    ]
+  },
+  "entry_rules": {
+    "asia_range_window_utc": [
+      0,
+      6
+    ],
+    "london_window_utc": [
+      7,
+      10
+    ],
+    "range_atr_min": 0.5,
+    "range_atr_max": 2.0,
+    "breakout_close_beyond_atr": 0.5,
+    "breakout_body_atr_min": 1.0,
+    "max_breakouts_per_day": 1,
+    "direction": "long_or_short"
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 0.75
+    },
+    "take_profit": {
+      "type": "atr",
+      "atr_period": 14,
+      "atr_mult": 1.75
+    },
+    "time_stop_bars": 36,
+    "trailing": {
+      "type": "atr_chandelier",
+      "atr_mult": 2.0,
+      "activate_after_r": 1.0
+    },
+    "breakeven_after_r": 0.7
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "params_to_optimize": {
+    "range_atr_min": [
+      0.4,
+      0.6,
+      0.8
+    ],
+    "breakout_close_beyond_atr": [
+      0.3,
+      0.5,
+      0.7
+    ],
+    "sl_atr_mult": [
+      0.6,
+      0.75,
+      1.0
+    ],
+    "tp_atr_mult": [
+      1.5,
+      1.75,
+      2.25
+    ]
+  }
+}

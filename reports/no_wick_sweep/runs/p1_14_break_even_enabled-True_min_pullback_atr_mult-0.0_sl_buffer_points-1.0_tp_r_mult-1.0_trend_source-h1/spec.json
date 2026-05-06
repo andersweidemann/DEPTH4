@@ -1,0 +1,53 @@
+{
+  "name": "No-wick candle retest \u2014 GER40 M30 (DAX)",
+  "trade_on_close": true,
+  "symbols": [
+    "GER40"
+  ],
+  "timeframes": [
+    "M30"
+  ],
+  "sizing": {
+    "risk_pct": 0.5
+  },
+  "risk": {
+    "daily_dd_kill_pct": 5.0
+  },
+  "filters": {
+    "session_local": {
+      "timezone": "Europe/Berlin",
+      "start": "09:30",
+      "end": "18:00"
+    },
+    "max_spread_points": 40
+  },
+  "regime_filter": null,
+  "exit": {
+    "time_stop_bars": 80
+  },
+  "signal": {
+    "max_wait_bars": 48,
+    "wick_strict_zero": true,
+    "wick_epsilon_mult": 0.55,
+    "wick_zero_atol_mult": 1e-09,
+    "trend_ema_fast": 50,
+    "trend_ema_slow": 200,
+    "trend_source": "h1",
+    "tp_r_mult": 1.0,
+    "sl_buffer_points": 1.0,
+    "sl_buffer_atr_mult": 0.0,
+    "break_even_enabled": true,
+    "break_even_trigger_r": 0.5,
+    "min_body_frac_of_range": 0.0,
+    "close_near_extreme_frac": 0.0,
+    "min_pullback_atr_mult": 0.0,
+    "atr_period": 14,
+    "confirm_close_beyond_level": false,
+    "vol_filter_enabled": false,
+    "atr_percentile_min": 10.0,
+    "atr_percentile_max": 95.0,
+    "atr_percentile_lookback": 500,
+    "max_trades_per_day": 0,
+    "cooldown_bars_after_loss": 0
+  }
+}

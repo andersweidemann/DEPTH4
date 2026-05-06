@@ -1,0 +1,169 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price closes outside Bollinger Bands with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur during the London session after an Asia range consolidation",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > upper_range && time >= 07:00 && time < 10:00"
+      },
+      "short": {
+        "condition": "breakout < lower_range && time >= 07:00 && time < 10:00"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 100
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 500
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Bollinger Band touch-and-bounce reversal occurs during high volatility",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "threshold": 2.0
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      "short": {
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "take_profit": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR-based breakout occurs during low volatility",
+    "regime_filter": {
+      "type": "atr",
+      "params": {
+        "threshold": 10
+      }
+    },
+    "entry_rules": {
+      "long": {
+        "condition": "breakout > upper_atr && time >= 09:00 && time < 12:00"
+      },
+      "short": {
+        "condition": "breakout < lower_atr && time >= 09:00 && time < 12:00"
+      }
+    },
+    "exit_rules": {
+      "stop_loss": {
+        "type": "fixed",
+        "params": {
+          "pips": 50
+        }
+      },
+      "take_profit": {
+        "type": "fixed",
+        "params": {
+          "pips": 200
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 1
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  }
+]

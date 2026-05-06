@@ -1,0 +1,240 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+def _asia_high(df_like, period: int = 72):
+    # Wrapper: compute rolling high over last `period` bars but only
+    # considering bars within Asia window 00:00-06:00 UTC. The donchian
+    # primitive is generic; we use it here for continuity then mask.
+    return signals.donchian(df_like, period)[0]
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        try:
+            p = Path(__file__).parent / self.spec_path
+            if p.exists():
+                self._spec = json.loads(p.read_text())
+        except Exception:
+            pass
+        super().init()
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        ts = pd.DatetimeIndex(idx)
+        if ts.tz is None:
+            ts_utc = ts.tz_localize("UTC")
+        else:
+            ts_utc = ts.tz_convert("UTC")
+
+        hours = ts_utc.hour.values
+        minutes = ts_utc.minute.values
+        dates = ts_utc.strftime("%Y-%m-%d").values
+
+        # Asia session mask: 00:00-06:00 UTC
+        asia_mask = (hours >= 0) & (hours < 6)
+        # London mask: 07:00-11:00 UTC for execution
+        london_mask = (hours >= 7) & (hours < 11)
+
+        highs = np.asarray(self.data.High, dtype=float)
+        lows = np.asarray(self.data.Low, dtype=float)
+
+        n = len(highs)
+        asia_high = np.full(n, np.nan)
+        asia_low = np.full(n, np.nan)
+
+        # Per-day rolling Asia high/low, carried forward after 06:00
+        cur_date = None
+        day_high = -np.inf
+        day_low = np.inf
+        last_high = np.nan
+        last_low = np.nan
+
+        day_start_bar = np.full(n, -1, dtype=int)
+        london_start_bar_of_day = {}
+
+        for i in range(n):
+            d = dates[i]
+            if d != cur_date:
+                cur_date = d
+                day_high = -np.inf
+                day_low = np.inf
+                last_high = np.nan
+                last_low = np.nan
+            if asia_mask[i]:
+                if highs[i] > day_high:
+                    day_high = highs[i]
+                if lows[i] < day_low:
+                    day_low = lows[i]
+                # Don't expose until Asia done
+                asia_high[i] = np.nan
+                asia_low[i] = np.nan
+            else:
+                if day_high != -np.inf:
+                    last_high = day_high
+                    last_low = day_low
+                asia_high[i] = last_high
+                asia_low[i] = last_low
+
+            if london_mask[i] and d not in london_start_bar_of_day:
+                london_start_bar_of_day[d] = i
+            day_start_bar[i] = london_start_bar_of_day.get(d, -1)
+
+        self._asia_high = self.I(lambda: asia_high)
+        self._asia_low = self.I(lambda: asia_low)
+        self._london_mask = london_mask
+        self._asia_mask = asia_mask
+        self._dates = dates
+        self._day_london_start = day_start_bar
+
+        # ATR percentile
+        atr_arr = np.asarray(self._atr_series, dtype=float)
+        atr_pct = np.full(n, np.nan)
+        lookback = 500
+        for i in range(n):
+            start = max(0, i - lookback + 1)
+            window = atr_arr[start:i + 1]
+            window = window[~np.isnan(window)]
+            if len(window) >= 20 and not np.isnan(atr_arr[i]):
+                atr_pct[i] = (window < atr_arr[i]).sum() / len(window) * 100.0
+        self._atr_pct = self.I(lambda: atr_pct)
+
+        self._traded_days = set()
+        self._prev_close = np.concatenate([[np.nan], np.asarray(self.data.Close, dtype=float)[:-1]])
+
+    def _regime_ok(self) -> bool:
+        i = len(self.data) - 1
+        ap = float(self._atr_pct[-1])
+        if np.isnan(ap):
+            return False
+        if ap < 30 or ap > 95:
+            return False
+        atr_now = float(self._atr_series[-1])
+        ah = float(self._asia_high[-1])
+        al = float(self._asia_low[-1])
+        if np.isnan(atr_now) or np.isnan(ah) or np.isnan(al) or atr_now <= 0:
+            return False
+        rng = (ah - al) / atr_now
+        if rng < 0.5 or rng > 2.5:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        i = len(self.data) - 1
+        if not self._london_mask[i]:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        i = len(self.data) - 1
+        d = self._dates[i]
+        if d in self._traded_days:
+            return
+
+        london_start = self._day_london_start[i]
+        if london_start < 0:
+            return
+        if i - london_start > 12:
+            return
+
+        atr_now = float(self._atr_series[-1])
+        ah = float(self._asia_high[-1])
+        al = float(self._asia_low[-1])
+        if np.isnan(atr_now) or np.isnan(ah) or np.isnan(al):
+            return
+
+        close = float(self.data.Close[-1])
+        high = float(self.data.High[-1])
+        low = float(self.data.Low[-1])
+
+        dist = 0.3 * atr_now
+        long_trigger = ah + dist
+        short_trigger = al - dist
+
+        go_long = high >= long_trigger and close > ah
+        go_short = low <= short_trigger and close < al
+
+        if not (go_long or go_short):
+            return
+
+        equity = float(self.equity)
+        risk_pct = 0.5
+
+        if go_long:
+            sl = al - 0.2 * atr_now
+            tp = close + 2.0 * atr_now
+            sl_dist = close - sl
+            if sl_dist <= 0:
+                return
+            units = risk.lots_by_risk_pct(equity, risk_pct, sl_dist, self._symbol)
+            size = max(1, int(units)) if units >= 1 else None
+            if size is None:
+                frac = max(0.001, min(0.99, (equity * risk_pct / 100.0) / (sl_dist * close) if sl_dist * close > 0 else 0.01))
+                size = frac
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(sl=sl, tp=tp, size=size)
+                self._traded_days.add(d)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                    self._traded_days.add(d)
+                except Exception:
+                    pass
+
+        elif go_short:
+            sl = ah + 0.2 * atr_now
+            tp = close - 2.0 * atr_now
+            sl_dist = sl - close
+            if sl_dist <= 0:
+                return
+            units = risk.lots_by_risk_pct(equity, risk_pct, sl_dist, self._symbol)
+            size = max(1, int(units)) if units >= 1 else None
+            if size is None:
+                frac = max(0.001, min(0.99, (equity * risk_pct / 100.0) / (sl_dist * close) if sl_dist * close > 0 else 0.01))
+                size = frac
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(sl=sl, tp=tp, size=size)
+                self._traded_days.add(d)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                    self._traded_days.add(d)
+                except Exception:
+                    pass
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            return
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= 36:
+            self.position.close()
+            return
+
+    def next(self):
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

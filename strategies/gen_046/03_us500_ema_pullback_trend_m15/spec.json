@@ -1,0 +1,122 @@
+{
+  "name": "us500_ema_pullback_trend_m15",
+  "family": "trend_following",
+  "hypothesis": "On US500 M15, during trending regimes (ADX>=22), pullbacks to the EMA(50) within a uptrend (close>EMA200) that hold and resume via a bullish close back above EMA(20) continue in the trend direction often enough to yield PF>=2.0 with a 2.5R target.",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14,
+      "min_value": 22
+    }
+  },
+  "entry": {
+    "long": {
+      "type": "pullback",
+      "rules": [
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 200
+          },
+          "condition": "close > ema200"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 50
+          },
+          "condition": "low[1] <= ema50 AND close > ema50"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 20
+          },
+          "condition": "close > ema20 AND close[1] <= ema20"
+        },
+        {
+          "primitive": "session_mask",
+          "params": {
+            "sessions": [
+              "ny"
+            ],
+            "tz": "UTC",
+            "window": {
+              "start": "13:30",
+              "end": "20:00"
+            }
+          },
+          "condition": "in_session"
+        }
+      ]
+    },
+    "short": {
+      "type": "pullback",
+      "rules": [
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 200
+          },
+          "condition": "close < ema200"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 50
+          },
+          "condition": "high[1] >= ema50 AND close < ema50"
+        },
+        {
+          "primitive": "ema",
+          "params": {
+            "period": 20
+          },
+          "condition": "close < ema20 AND close[1] >= ema20"
+        },
+        {
+          "primitive": "session_mask",
+          "params": {
+            "sessions": [
+              "ny"
+            ],
+            "tz": "UTC",
+            "window": {
+              "start": "13:30",
+              "end": "20:00"
+            }
+          },
+          "condition": "in_session"
+        }
+      ]
+    }
+  },
+  "exit": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "multiplier": 2.0
+      }
+    },
+    "tp": {
+      "type": "r_multiple",
+      "params": {
+        "r": 2.5
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "value": 40
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.75,
+    "cooldown_bars": 5,
+    "max_positions": 1
+  },
+  "notes": "Classic trend-pullback archetype. US500 NY session focus. ADX regime filter ensures we only trade when a trend is established, avoiding the mean-reversion chop that kills pullback systems. Verify US500 alias (SPX500/US500.cash)."
+}

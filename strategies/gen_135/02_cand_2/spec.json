@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Asia-London range expansion occurs with high probability",
+  "regime_filter": {
+    "type": "asia_session",
+    "params": {
+      "start_hour": 0,
+      "end_hour": 6
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > high_asia && rsi(7) < 30"
+    },
+    "short": {
+      "condition": "close < low_asia && rsi(7) > 70"
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 2
+      }
+    },
+    "tp": {
+      "type": "opposite_bb"
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.2
+    }
+  }
+}

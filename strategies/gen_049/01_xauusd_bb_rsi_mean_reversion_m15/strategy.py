@@ -1,0 +1,158 @@
+import json
+import os
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    _spec: Dict[str, Any] = {
+        "risk": {"risk_pct": 0.5, "daily_dd_kill_pct": 3.0},
+        "filters": {"session_utc": [("07:00", "20:00")]},
+        "exit": {"time_stop_bars": 24},
+    }
+
+    def init(self):
+        super().init()
+        close = self.data.Close
+
+        self._rsi = self.I(signals.rsi, close, 7)
+
+        def _bb_upper(c, n, d):
+            mid, up, lo = signals.bollinger(pd.Series(c), n, d)
+            return np.asarray(up, dtype=float)
+
+        def _bb_mid(c, n, d):
+            mid, up, lo = signals.bollinger(pd.Series(c), n, d)
+            return np.asarray(mid, dtype=float)
+
+        def _bb_lower(c, n, d):
+            mid, up, lo = signals.bollinger(pd.Series(c), n, d)
+            return np.asarray(lo, dtype=float)
+
+        self._bb_up = self.I(_bb_upper, close, 20, 2.0)
+        self._bb_mid = self.I(_bb_mid, close, 20, 2.0)
+        self._bb_lo = self.I(_bb_lower, close, 20, 2.0)
+
+        def _bbw(c, n, d):
+            return np.asarray(signals.bb_width(pd.Series(c), n, d), dtype=float)
+
+        self._bbw = self.I(_bbw, close, 20, 2.0)
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+
+        def _adx_fn(data, n):
+            return np.asarray(
+                regime.adx(
+                    pd.Series(np.asarray(data.High)),
+                    pd.Series(np.asarray(data.Low)),
+                    pd.Series(np.asarray(data.Close)),
+                    n,
+                ),
+                dtype=float,
+            )
+
+        self._adx_series = self.I(_adx_fn, self.data, 14)
+
+        self._last_entry_bar = -10_000
+        self._trade_date = None
+        self._trades_today = 0
+
+    def _regime_ok(self) -> bool:
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val > 28:
+            return False
+
+        bbw_now = float(self._bbw[-1])
+        if np.isnan(bbw_now):
+            return False
+        lookback = 400
+        start = max(0, len(self._bbw) - lookback)
+        window = np.asarray(self._bbw[start:], dtype=float)
+        window = window[~np.isnan(window)]
+        if len(window) < 40:
+            return False
+        pct = (window < bbw_now).sum() / len(window) * 100.0
+        if pct < 40.0:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        ok = super()._filters_ok()
+        if not ok:
+            return False
+        cur_date = pd.Timestamp(self.data.index[-1]).strftime("%Y-%m-%d")
+        if cur_date != self._trade_date:
+            self._trade_date = cur_date
+            self._trades_today = 0
+        if self._trades_today >= 3:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if not self._regime_ok():
+            return
+        if not self._filters_ok():
+            return
+
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_entry_bar < 6:
+            return
+
+        close = float(self.data.Close[-1])
+        rsi_v = float(self._rsi[-1])
+        bb_up = float(self._bb_up[-1])
+        bb_lo = float(self._bb_lo[-1])
+        bb_mid = float(self._bb_mid[-1])
+        atr_v = float(self._atr_series[-1])
+
+        if np.isnan(rsi_v) or np.isnan(bb_up) or np.isnan(atr_v):
+            return
+
+        risk_pct = float(self._spec.get("risk", {}).get("risk_pct", 0.5))
+
+        if close < bb_lo and rsi_v < 15:
+            sl = close - 1.5 * atr_v
+            tp = bb_mid
+            if sl >= close or tp <= close:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            size = risk.lots_by_risk_pct(self.equity, risk_pct, close, sl, self._symbol)
+            try:
+                size = max(1, int(size))
+            except Exception:
+                size = 1
+            self.buy(size=size, sl=sl, tp=tp)
+            self._last_entry_bar = bar_i
+            self._trades_today += 1
+            return
+
+        if close > bb_up and rsi_v > 85:
+            sl = close + 1.5 * atr_v
+            tp = bb_mid
+            if sl <= close or tp >= close:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            size = risk.lots_by_risk_pct(self.equity, risk_pct, close, sl, self._symbol)
+            try:
+                size = max(1, int(size))
+            except Exception:
+                size = 1
+            self.sell(size=size, sl=sl, tp=tp)
+            self._last_entry_bar = bar_i
+            self._trades_today += 1
+
+    def next(self):
+        self._enter_if_signal()
+        self._manage_open()

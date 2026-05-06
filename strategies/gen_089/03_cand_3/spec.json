@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Volatility contraction precedes a breakout",
+  "regime_filter": {
+    "type": "bb_width_decrease",
+    "params": {
+      "period": 20,
+      "threshold": 0.5
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > upper_bb && bb_width < threshold"
+    },
+    "short": {
+      "condition": "close < lower_bb && bb_width < threshold"
+    }
+  },
+  "exit_rules": {
+    "stop_loss": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 150
+      }
+    },
+    "take_profit": {
+      "type": "fixed_pips",
+      "params": {
+        "pips": 600
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed_size",
+    "params": {
+      "size": 0.2
+    }
+  }
+}

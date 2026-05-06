@@ -1,0 +1,181 @@
+[
+  {
+    "id": "g26_xauusd_m15_bb_rsi_meanrev",
+    "name": "XAUUSD M15 BB+RSI Mean Reversion",
+    "family": "mean_reversion",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "hypothesis": "On XAUUSD M15, when price closes outside a 20-period Bollinger Band (2.0 dev) with RSI(7) at an extreme, and BB width is in the upper 60% of its 200-bar history (not dead range), price reverts to the middle band within 30 bars with expectancy > spread+slippage. Falsified if PF<1.5 or trades<200 over a 2-year sample.",
+    "signals": [
+      {"primitive": "bollinger", "params": {"period": 20, "dev": 2.0, "source": "close"}},
+      {"primitive": "rsi", "params": {"period": 7}},
+      {"primitive": "bb_width", "params": {"period": 20, "dev": 2.0, "lookback": 200}},
+      {"primitive": "atr", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi7 < 15 AND bb_width_percentile > 30 AND prev_close >= prev_lower_bb",
+      "short": "close > upper_bb AND rsi7 > 85 AND bb_width_percentile > 30 AND prev_close <= prev_upper_bb",
+      "cooldown_bars": 3,
+      "max_concurrent": 1
+    },
+    "regime_filter": {
+      "primitive": "atr_percentile",
+      "params": {"period": 14, "lookback": 300},
+      "allow_when": "atr_pct >= 20 AND atr_pct <= 90",
+      "rationale": "Avoid dead vol (no range to revert from) and avoid crisis vol (reversion fails in trend blowouts)."
+    },
+    "exits": {
+      "stop_loss": {"type": "atr", "atr_period": 14, "atr_mult": 1.5},
+      "take_profit": {"type": "indicator_target", "target": "middle_bb"},
+      "time_stop": {"bars": 30},
+      "breakeven": {"trigger_atr_mult": 1.0, "offset_atr_mult": 0.1}
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_daily_loss_pct": 3.0,
+      "max_positions": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "windows_utc": [["07:00", "20:00"]]
+    },
+    "min_trades_expected": 250,
+    "notes": "Inspired by mean-reversion-scalper-v3 (inspiration only). Adapted to XAUUSD M15."
+  },
+  {
+    "id": "g26_xauusd_m5_asia_london_breakout",
+    "name": "XAUUSD M5 Asia-London Range Breakout",
+    "family": "breakout",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "hypothesis": "The Asia session (00:00-06:00 UTC) high/low forms an accumulation range. A true breakout during London (07:00-10:00 UTC) with breakout distance >= 0.5 ATR and body >= 1.0 ATR, when range size is 0.5-2.0 ATR, captures directional expansion with PF >= 2.0.",
+    "signals": [
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "donchian", "params": {"period_bars": 72, "label": "asia_range_00_06_utc"}},
+      {"primitive": "atr_breakout_levels", "params": {"atr_period": 14, "distance_atr_mult": 0.5}}
+    ],
+    "entry_rules": {
+      "long": "current_utc_hour in [7,8,9,10] AND close > asia_high + 0.5*atr14 AND (close-open) >= 1.0*atr14 AND (asia_high-asia_low)/atr14 between 0.5 and 2.0 AND bars_since_london_open <= 9",
+      "short": "current_utc_hour in [7,8,9,10] AND close < asia_low - 0.5*atr14 AND (open-close) >= 1.0*atr14 AND (asia_high-asia_low)/atr14 between 0.5 and 2.0 AND bars_since_london_open <= 9",
+      "only_first_breakout_per_day": true,
+      "cooldown_bars": 12
+    },
+    "regime_filter": {
+      "primitive": "adx",
+      "params": {"period": 14},
+      "allow_when": "adx >= 15",
+      "rationale": "Require minimum trendiness to avoid fakeouts in total chop."
+    },
+    "exits": {
+      "stop_loss": {"type": "structural", "level": "opposite_side_of_asia_range", "max_atr_mult": 2.5},
+      "take_profit": {"type": "atr_rr", "rr": 2.0},
+      "time_stop": {"bars": 48, "close_at_utc": "16:00"},
+      "trailing": {"type": "atr", "atr_period": 14, "atr_mult": 2.0, "activate_at_rr": 1.0}
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.75,
+      "max_daily_loss_pct": 3.0,
+      "max_positions": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "windows_utc": [["07:00", "10:00"]]
+    },
+    "min_trades_expected": 220,
+    "notes": "Inspired by asia-london-range-expansion LVC EA (inspiration only). Ensure server TZ mapped to UTC; log signal counts pre-filter."
+  },
+  {
+    "id": "g26_ger40_m15_donchian_trend_breakout",
+    "name": "GER40 M15 Donchian Trend Breakout",
+    "family": "breakout",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "hypothesis": "GER40 M15 trends intraday during European cash session. A 20-bar Donchian breakout filtered by EMA50>EMA200 trend alignment and ADX>=20 regime captures directional continuation with edge above costs. Falsified if PF<1.7 or trade count<200 over 2 years.",
+    "signals": [
+      {"primitive": "donchian", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "ema", "params": {"period": 200}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "adx", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "close > donchian_high_20_prev AND ema50 > ema200 AND adx14 >= 20",
+      "short": "close < donchian_low_20_prev AND ema50 < ema200 AND adx14 >= 20",
+      "cooldown_bars": 6,
+      "max_concurrent": 1
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {"adx_period": 14, "atr_period": 14, "atr_lookback": 200},
+      "allow_when": "regime == 'trend' AND atr_pct >= 25 AND atr_pct <= 95",
+      "rationale": "Donchian breakouts require trending regime; filter both dead and parabolic vol."
+    },
+    "exits": {
+      "stop_loss": {"type": "atr", "atr_period": 14, "atr_mult": 2.0},
+      "take_profit": {"type": "atr_rr", "rr": 2.5},
+      "time_stop": {"bars": 40},
+      "trailing": {"type": "donchian", "period": 10, "activate_at_rr": 1.0}
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.75,
+      "max_daily_loss_pct": 3.0,
+      "max_positions": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "windows_utc": [["07:00", "19:00"]]
+    },
+    "min_trades_expected": 230,
+    "notes": "Inspired by DAX10 Market Mafia pine (inspiration only). Uses trend+vol regime gate; no pyramiding in v1."
+  },
+  {
+    "id": "g26_us500_m5_ema_pullback_trend",
+    "name": "US500 M5 EMA Pullback Trend Continuation",
+    "family": "trend_pullback",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "hypothesis": "US500 M5 during US cash session (13:30-20:00 UTC) exhibits trend-pullback continuation: in an EMA20>EMA50>EMA200 stack with ADX>=18, a shallow pullback where low touches EMA20 and RSI(14) dips to 40-55 then reclaims, produces a trend-continuation entry with PF>=2.0.",
+    "signals": [
+      {"primitive": "ema", "params": {"period": 20}},
+      {"primitive": "ema", "params": {"period": 50}},
+      {"primitive": "ema", "params": {"period": 200}},
+      {"primitive": "rsi", "params": {"period": 14}},
+      {"primitive": "atr", "params": {"period": 14}},
+      {"primitive": "adx", "params": {"period": 14}}
+    ],
+    "entry_rules": {
+      "long": "ema20>ema50 AND ema50>ema200 AND adx14>=18 AND low_prev <= ema20_prev AND close > ema20 AND rsi14 between 40 and 60 AND close > open",
+      "short": "ema20<ema50 AND ema50<ema200 AND adx14>=18 AND high_prev >= ema20_prev AND close < ema20 AND rsi14 between 40 and 60 AND close < open",
+      "cooldown_bars": 6,
+      "max_concurrent": 1
+    },
+    "regime_filter": {
+      "primitive": "classify",
+      "params": {"adx_period": 14, "atr_period": 14, "atr_lookback": 300},
+      "allow_when": "regime == 'trend' AND atr_pct >= 20",
+      "rationale": "Pullback continuation requires an underlying trend and non-dead vol; pure range kills win rate."
+    },
+    "exits": {
+      "stop_loss": {"type": "atr", "atr_period": 14, "atr_mult": 1.5},
+      "take_profit": {"type": "atr_rr", "rr": 2.0},
+      "time_stop": {"bars": 36, "close_at_utc": "20:30"},
+      "breakeven": {"trigger_atr_mult": 1.0, "offset_atr_mult": 0.1},
+      "trailing": {"type": "ema", "period": 20, "activate_at_rr": 1.0}
+    },
+    "sizing": {
+      "mode": "risk_pct",
+      "risk_pct_per_trade": 0.5,
+      "max_daily_loss_pct": 2.5,
+      "max_positions": 1
+    },
+    "session_filter": {
+      "primitive": "session_mask",
+      "windows_utc": [["13:30", "20:00"]]
+    },
+    "min_trades_expected": 260,
+    "notes": "Explicitly targets US500 (prior gen ran this candidate on wrong symbols). Verify symbol mapping to broker (US500, SPX500, US500.cash)."
+  }
+]

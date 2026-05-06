@@ -1,0 +1,95 @@
+{
+  "name": "donchian_trend_pullback_ger40_m15",
+  "family": "trend_pullback",
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "hypothesis": "GER40 exhibits persistent intraday momentum during European cash hours. When a Donchian(20) breakout confirms trend and price pulls back to EMA(20) without losing the breakout level, re-entry in the trend direction captures continuation with superior R:R versus chasing the breakout itself. ADX filter ensures we only trade when trend is real.",
+  "signals": {
+    "primary": {
+      "type": "donchian",
+      "period": 20
+    },
+    "confirm": {
+      "type": "ema",
+      "period": 20,
+      "pullback_tolerance_atr": 0.5
+    },
+    "entry_rules": {
+      "long": "donchian_upper_broken_within(10) AND close > ema20 AND low <= ema20 + 0.5*ATR14 AND close > open",
+      "short": "donchian_lower_broken_within(10) AND close < ema20 AND high >= ema20 - 0.5*ATR14 AND close < open",
+      "cooldown_bars": 4
+    }
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "operator": ">",
+        "value": 22,
+        "reason": "require real trend for pullback to continue"
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "operator": ">",
+        "value": 30,
+        "reason": "avoid dead tape"
+      },
+      {
+        "indicator": "session_mask",
+        "sessions": [
+          "Frankfurt",
+          "London"
+        ],
+        "start": "07:00",
+        "end": "16:30",
+        "tz": "UTC",
+        "reason": "DAX liquidity window"
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "multiplier": 1.5,
+      "anchor": "swing_or_entry"
+    },
+    "take_profit": {
+      "type": "rr",
+      "rr": 2.2
+    },
+    "time_stop": {
+      "type": "bars",
+      "value": 24
+    },
+    "trailing": {
+      "type": "atr",
+      "period": 14,
+      "multiplier": 2.5,
+      "activate_at_rr": 1.2
+    },
+    "breakeven": {
+      "after_rr": 0.9,
+      "lock_pips": 0
+    }
+  },
+  "sizing": {
+    "mode": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1,
+    "max_daily_trades": 4
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  },
+  "inspiration": [
+    "dax10_strategy_fixed_BEST copy.txt"
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "name": "ema_pullback_trend_indices_v1",
+  "hypothesis": "On GER40 and US500 M15, a simple EMA(20)/EMA(50) trend alignment plus RSI(14) pullback to 40 (longs) or 60 (shorts) captures continuation moves. Using a single momentum filter (ADX>=18) avoids chop without over-constraining. Expected >=200 trades per combo.",
+  "family": "trend_pullback",
+  "symbols": [
+    "GER40",
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": [
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 20
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "entry_rules": {
+    "long": "ema20 > ema50 AND close > ema50 AND rsi(14) crosses up through 45 from below 45",
+    "short": "ema20 < ema50 AND close < ema50 AND rsi(14) crosses down through 55 from above 55"
+  },
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14,
+      "min": 18,
+      "max": 60
+    },
+    "description": "Single ADX band filter; no additional confluence to avoid the zero-trade trap from prior generation."
+  },
+  "exit_rules": {
+    "stop_loss": "2.0 * ATR(14) from entry",
+    "take_profit": "3.0 * ATR(14) from entry (1.5R)",
+    "time_stop": "32 bars (8h on M15)",
+    "trailing": "after +1.5 ATR, trail by 1.5 ATR"
+  },
+  "sizing": {
+    "method": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "session_filter": "07:00-21:00 UTC (cash session coverage for both indices)",
+  "max_spread_points": {
+    "GER40": 200,
+    "US500": 150
+  },
+  "instrumentation_required": [
+    "bars_loaded",
+    "signals_generated",
+    "signals_filtered",
+    "orders_attempted",
+    "orders_rejected_reason"
+  ],
+  "diversity_tag": "trend_pullback"
+}

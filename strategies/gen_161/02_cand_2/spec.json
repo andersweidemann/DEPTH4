@@ -1,0 +1,54 @@
+{
+  "hypothesis": "Mean reversion occurs on XAUUSD M5 when price closes outside the Bollinger Bands with an extreme RSI(7) reading",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        20,
+        80
+      ]
+    }
+  },
+  "exit_rule": {
+    "type": "multi_condition",
+    "params": {
+      "conditions": [
+        {
+          "type": "take_profit",
+          "params": {
+            "tp_price": "middle_bb"
+          }
+        },
+        {
+          "type": "stop_loss",
+          "params": {
+            "sl_price": "2_atr"
+          }
+        },
+        {
+          "type": "time_stop",
+          "params": {
+            "time_stop_bar": 40
+          }
+        }
+      ]
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.015
+    }
+  }
+}

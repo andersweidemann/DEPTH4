@@ -1,0 +1,77 @@
+{
+  "id": "gen51_cand_2",
+  "name": "XAU_AsiaLondon_RangeBreak_M5",
+  "family": "session_breakout",
+  "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) frequently expands the Asia-session (00:00-06:00 UTC) range; a displacement breakout of that range yields a trend day.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": [
+    {
+      "type": "session_mask",
+      "name": "asia",
+      "window_utc": [
+        "00:00",
+        "06:00"
+      ]
+    },
+    {
+      "type": "session_mask",
+      "name": "london",
+      "window_utc": [
+        "07:00",
+        "12:00"
+      ]
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "donchian",
+      "period": 72,
+      "source": "asia_session"
+    }
+  ],
+  "entry_rules": {
+    "long": "during london session AND first breakout of day AND close > asia_high + 0.5*ATR AND candle_body >= 1.2*ATR",
+    "short": "during london session AND first breakout of day AND close < asia_low - 0.5*ATR AND candle_body >= 1.2*ATR",
+    "asia_range_gate": "0.5*ATR <= (asia_high - asia_low) <= 2.0*ATR",
+    "max_breakout_bars_from_london_open": 9,
+    "one_trade_per_day": true
+  },
+  "exit_rules": {
+    "tp": "2.5 * ATR(14) from entry",
+    "sl": "1.2 * ATR(14) from entry (beyond opposite side of asia range)",
+    "time_stop_bars": 48,
+    "trailing": {
+      "type": "atr",
+      "mult": 2.0,
+      "activate_after_R": 1.0
+    }
+  },
+  "regime_filter": {
+    "type": "adx",
+    "period": 14,
+    "min": 15,
+    "rationale": "require at least weak directional tendency"
+  },
+  "sizing": {
+    "mode": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "session_filter": {
+    "enabled": true,
+    "windows_utc": [
+      [
+        "07:00",
+        "12:00"
+      ]
+    ]
+  },
+  "diversification_notes": "Breakout family, inspired by LVC scout card."
+}

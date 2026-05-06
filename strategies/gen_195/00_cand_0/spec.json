@@ -1,0 +1,48 @@
+{
+  "hypothesis": "Mean reversion occurs in XAUUSD on M5 when price touches the upper or lower Bollinger Band with RSI(7) in overbought/oversold territory, and volatility is above the 30th percentile.",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "period": 20,
+      "percentile": 30
+    }
+  },
+  "entry_rule": {
+    "type": "bb_rsi_mean_reversion",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "rsi_period": 7,
+      "rsi_thresholds": [
+        10,
+        90
+      ]
+    }
+  },
+  "sl_rule": {
+    "type": "atr_stop",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.5
+    }
+  },
+  "tp_rule": {
+    "type": "opposite_bb",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75
+    }
+  },
+  "time_stop_rule": {
+    "type": "timeout",
+    "params": {
+      "bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

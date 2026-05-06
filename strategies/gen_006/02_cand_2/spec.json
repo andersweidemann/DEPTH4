@@ -1,0 +1,47 @@
+{
+  "id": "03_us500_ema_pullback_trend_m15",
+  "hypothesis": "On US500 M15, in a trending regime (ADX>22 and price above/below EMA50 slope-aligned), pullbacks to EMA20 that hold with RSI(14) crossing back through 50 resume the trend with >55% hit rate on a 1.5R target.",
+  "family": "trend_pullback",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "entry_long": "ema(20) > ema(50) AND ema(50)_slope_5bars > 0 AND low <= ema(20) within last 3 bars AND close > ema(20) AND rsi(14) crosses_above 50",
+    "entry_short": "ema(20) < ema(50) AND ema(50)_slope_5bars < 0 AND high >= ema(20) within last 3 bars AND close < ema(20) AND rsi(14) crosses_below 50",
+    "exit_long": "close < ema(50) OR tp_hit OR sl_hit",
+    "exit_short": "close > ema(50) OR tp_hit OR sl_hit"
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      "adx(14) > 22",
+      "atr_percentile(14, 200) between 25 and 90",
+      "session_mask(13:30-20:00 UTC)"
+    ],
+    "action_when_false": "no_new_entries"
+  },
+  "risk": {
+    "sl": "1.2 * atr(14) below swing_low (long) / above swing_high (short)",
+    "tp": "1.5 * initial_risk",
+    "trailing": "ema(50) after 1R in profit",
+    "time_stop_bars": 32,
+    "sizing": "risk_per_trade_pct = 0.5, max_concurrent = 1, cooldown_bars = 4"
+  },
+  "params": {
+    "ema_fast": 20,
+    "ema_slow": 50,
+    "slope_lookback": 5,
+    "pullback_lookback": 3,
+    "rsi_period": 14,
+    "rsi_mid": 50,
+    "adx_min": 22,
+    "atr_period": 14,
+    "sl_atr_mult": 1.2,
+    "rr_target": 1.5
+  },
+  "falsification": "If ADX>22 regime has <300 eligible bars per year, drop to ADX>18. If win rate < 45% with 1.5R, reject \u2014 edge missing.",
+  "diversity_tag": "trend_pullback_ema"
+}

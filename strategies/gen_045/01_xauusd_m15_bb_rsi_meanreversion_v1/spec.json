@@ -1,0 +1,70 @@
+{
+  "name": "XAUUSD_M15_BB_RSI_MeanReversion_v1",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, simultaneous BB(20,2.0) breach and extreme RSI(7) in an active-but-not-trending regime reverts to the BB mid within 30 bars.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "lookback": 200
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    },
+    {
+      "primitive": "session_mask",
+      "params": {
+        "trade_window": "07:00-20:00",
+        "tz": "UTC"
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": {
+      "adx_max": 25,
+      "bb_width_percentile_min": 30,
+      "atr_percentile_min": 20,
+      "atr_percentile_max": 90
+    }
+  },
+  "entry_rules": {
+    "long": "Close < LowerBB AND RSI(7) < 12 AND prev bar also below LowerBB",
+    "short": "Close > UpperBB AND RSI(7) > 88 AND prev bar also above UpperBB",
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "sl": "1.5 * ATR(14) from entry",
+    "tp": "MiddleBB (SMA20) touch OR opposite band",
+    "time_stop_bars": 30,
+    "early_exit": "RSI(7) crosses 50"
+  },
+  "sizing": {
+    "method": "risk_pct_per_trade",
+    "risk_pct": 0.5,
+    "max_concurrent_positions": 1
+  },
+  "notes": "Ported structure from MIT-licensed mean-reversion-mql5 card."
+}

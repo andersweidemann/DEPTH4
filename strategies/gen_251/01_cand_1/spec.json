@@ -1,0 +1,36 @@
+{
+  "hypothesis": "London breakout strategy can capture volatility expansion",
+  "regime_filter": {
+    "type": "asia_london_session",
+    "params": {
+      "asia_start": "00:00",
+      "asia_end": "06:00",
+      "london_start": "07:00",
+      "london_end": "10:00"
+    }
+  },
+  "symbol": "GER40",
+  "timeframe": "M15",
+  "entry_rule": {
+    "type": "london_breakout",
+    "params": {
+      "atr_period": 14,
+      "min_range_atr": 0.5,
+      "max_range_atr": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "500_pips",
+      "sl": "100_pips",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

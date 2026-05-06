@@ -1,0 +1,43 @@
+{
+  "hypothesis": "Price reverts to the mean after a strong trend",
+  "regime_filter": {
+    "type": "adx",
+    "params": {
+      "adx_period": 14,
+      "adx_threshold": 25
+    }
+  },
+  "entry_rule": {
+    "type": "mean_reversion",
+    "params": {
+      "ma_period": 20,
+      "std_deviation": 2
+    }
+  },
+  "exit_rule": {
+    "type": "ma_crossover",
+    "params": {
+      "ma_period": 20
+    }
+  },
+  "sl_rule": {
+    "type": "atr",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 2
+    }
+  },
+  "tp_rule": {
+    "type": "fixed",
+    "params": {
+      "take_profit": 100
+    }
+  },
+  "time_stop": 40,
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "lot_size": 0.2
+    }
+  }
+}

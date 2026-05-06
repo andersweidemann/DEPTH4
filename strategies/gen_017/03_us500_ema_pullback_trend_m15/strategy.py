@@ -1,0 +1,247 @@
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk, config
+from agents.backtester import RegimeStrategy
+
+
+def _rsi_arr(close, n=14):
+    return signals.rsi(close, n)
+
+
+def _ema_arr(close, n):
+    return signals.ema(close, n)
+
+
+class Strategy(RegimeStrategy):
+    spec_path = "spec.json"
+
+    def init(self):
+        super().init()
+        p = self.spec.get("params", {}) if self.spec else {}
+        self.ema_fast_p = int(p.get("ema_fast", 20))
+        self.ema_mid_p = int(p.get("ema_mid", 50))
+        self.ema_slow_p = int(p.get("ema_slow", 200))
+        self.rsi_p = int(p.get("rsi_period", 14))
+        self.rsi_trig = float(p.get("rsi_trigger", 50))
+        self.atr_p = int(p.get("atr_period", 14))
+        self.adx_min = float(p.get("adx_min", 20))
+
+        close = self.data.Close
+
+        self._ema_fast = self.I(_ema_arr, close, self.ema_fast_p)
+        self._ema_mid = self.I(_ema_arr, close, self.ema_mid_p)
+        self._ema_slow = self.I(_ema_arr, close, self.ema_slow_p)
+        self._rsi_series = self.I(_rsi_arr, close, self.rsi_p)
+        self._atr_series = self.I(signals.atr, self.data, self.atr_p)
+        self._adx_series = self.I(regime.adx, self.data, 14)
+
+        # Session mask 13:30-20:00 UTC
+        idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(
+            signals.session_mask(idx, ["13:30-20:00"]), dtype=bool
+        )
+
+        # Pullback arming state: require RSI to touch 40 (for long) or 60 (for short)
+        # before a new entry in that direction.
+        self._long_armed = False
+        self._short_armed = False
+
+        self._entry_bar = None
+
+    def _regime_ok(self) -> bool:
+        if len(self._adx_series) < 2:
+            return False
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val < self.adx_min:
+            return False
+        ef = float(self._ema_fast[-1])
+        em = float(self._ema_mid[-1])
+        es = float(self._ema_slow[-1])
+        if np.isnan(ef) or np.isnan(em) or np.isnan(es):
+            return False
+        long_stack = ef > em > es
+        short_stack = ef < em < es
+        return long_stack or short_stack
+
+    def _filters_ok(self) -> bool:
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        now_date = pd.Timestamp(self.data.index[-1]).strftime("%Y-%m-%d")
+        kill_pct = self.spec.get("risk", {}).get(
+            "daily_dd_kill_pct", config.load()["risk"]["daily_dd_kill_pct"]
+        )
+        if not risk.daily_kill_ok(self._kill_state, now_date, self.equity, kill_pct):
+            return False
+        return True
+
+    def _update_arming(self):
+        if len(self._rsi_series) < 1:
+            return
+        r = float(self._rsi_series[-1])
+        if np.isnan(r):
+            return
+        if r <= 40:
+            self._long_armed = True
+        if r >= 60:
+            self._short_armed = True
+
+    def _swing_sl(self, is_long: bool) -> float:
+        lookback = 5
+        buf = 0.25
+        highs = np.asarray(self.data.High)[-(lookback + 1):-1]
+        lows = np.asarray(self.data.Low)[-(lookback + 1):-1]
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now):
+            atr_now = 0.0
+        if is_long:
+            return float(np.min(lows)) - buf * atr_now
+        else:
+            return float(np.max(highs)) + buf * atr_now
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        if len(self.data) < max(self.ema_slow_p, 20) + 2:
+            return
+
+        ef = float(self._ema_fast[-1])
+        em = float(self._ema_mid[-1])
+        es = float(self._ema_slow[-1])
+        close = float(self.data.Close[-1])
+        prev_low = float(self.data.Low[-2])
+        prev_high = float(self.data.High[-2])
+        rsi_now = float(self._rsi_series[-1])
+        rsi_prev = float(self._rsi_series[-2])
+        atr_now = float(self._atr_series[-1])
+
+        if any(np.isnan(x) for x in (ef, em, es, rsi_now, rsi_prev, atr_now)):
+            return
+
+        if atr_now <= 0:
+            return
+
+        long_stack = ef > em > es
+        short_stack = ef < em < es
+
+        overextended = abs(close - em) > 2.5 * atr_now
+
+        risk_cfg = self.spec.get("sizing", {}) if self.spec else {}
+        risk_pct = float(risk_cfg.get("risk_per_trade_pct", 0.4))
+
+        if long_stack and self._long_armed and not overextended:
+            cond_pullback = prev_low <= float(self._ema_fast[-2])
+            cond_close = close > ef
+            cond_rsi = rsi_prev <= self.rsi_trig and rsi_now > self.rsi_trig
+            if cond_pullback and cond_close and cond_rsi:
+                sl = self._swing_sl(is_long=True)
+                if sl >= close:
+                    return
+                risk_dist = close - sl
+                tp = close + 2.0 * risk_dist
+                size = risk.lots_by_risk_pct(
+                    equity=self.equity,
+                    risk_pct=risk_pct,
+                    entry=close,
+                    stop=sl,
+                    symbol=self._symbol,
+                )
+                if size and size > 0:
+                    self.sl_price = sl
+                    self.tp_price = tp
+                    try:
+                        self.buy(size=size, sl=sl, tp=tp)
+                    except Exception:
+                        try:
+                            self.buy(sl=sl, tp=tp)
+                        except Exception:
+                            return
+                    self._long_armed = False
+                    self._entry_bar = len(self.data) - 1
+                    return
+
+        if short_stack and self._short_armed and not overextended:
+            cond_pullback = prev_high >= float(self._ema_fast[-2])
+            cond_close = close < ef
+            cond_rsi = rsi_prev >= self.rsi_trig and rsi_now < self.rsi_trig
+            if cond_pullback and cond_close and cond_rsi:
+                sl = self._swing_sl(is_long=False)
+                if sl <= close:
+                    return
+                risk_dist = sl - close
+                tp = close - 2.0 * risk_dist
+                size = risk.lots_by_risk_pct(
+                    equity=self.equity,
+                    risk_pct=risk_pct,
+                    entry=close,
+                    stop=sl,
+                    symbol=self._symbol,
+                )
+                if size and size > 0:
+                    self.sl_price = sl
+                    self.tp_price = tp
+                    try:
+                        self.sell(size=size, sl=sl, tp=tp)
+                    except Exception:
+                        try:
+                            self.sell(sl=sl, tp=tp)
+                        except Exception:
+                            return
+                    self._short_armed = False
+                    self._entry_bar = len(self.data) - 1
+                    return
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            self._entry_bar = None
+            return
+
+        trade = self.trades[-1]
+        bars_open = len(self.data) - trade.entry_bar
+        if bars_open >= 32:
+            self.position.close()
+            return
+
+        ef = float(self._ema_fast[-1])
+        price = float(self.data.Close[-1])
+        if np.isnan(ef):
+            return
+
+        for trade in self.trades:
+            entry_price = trade.entry_price
+            if trade.sl is None:
+                continue
+            if trade.is_long:
+                init_risk = entry_price - trade.sl if entry_price > trade.sl else None
+                if init_risk and init_risk > 0:
+                    r_mult = (price - entry_price) / init_risk
+                    if r_mult >= 1.0:
+                        new_sl = ef
+                        if new_sl > trade.sl and new_sl < price:
+                            trade.sl = new_sl
+            else:
+                init_risk = trade.sl - entry_price if trade.sl > entry_price else None
+                if init_risk and init_risk > 0:
+                    r_mult = (entry_price - price) / init_risk
+                    if r_mult >= 1.0:
+                        new_sl = ef
+                        if new_sl < trade.sl and new_sl > price:
+                            trade.sl = new_sl
+
+    def next(self):
+        self._update_arming()
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

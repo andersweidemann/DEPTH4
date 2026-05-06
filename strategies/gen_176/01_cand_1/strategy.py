@@ -1,0 +1,75 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: Dict[str, Any] = {}
+    _symbol: str = "GER40"
+    _equity_start: float = 10_000.0
+    sl_price: Optional[float] = None
+    tp_price: Optional[float] = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {})
+        if sessions:
+            full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+            self._session_mask_full = np.asarray(session_mask(full_idx, [sessions]), dtype=bool)
+        else:
+            self._session_mask_full = None
+        self._broker_spread_points = 0
+        self.high_asia_range = self.I(donchian, self.data, 15, "high")
+        self.low_asia_range = self.I(donchian, self.data, 15, "low")
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        start = rf.get("params", {}).get("start")
+        end = rf.get("params", {}).get("end")
+        now = pd.Timestamp(self.data.index[-1]).strftime("%H:%M")
+        return start <= now <= end
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        long_condition = self.data.Close[-1] > self.high_asia_range[-1] and self.data.Close[-2] < self.high_asia_range[-1]
+        short_condition = self.data.Close[-1] < self.low_asia_range[-1] and self.data.Close[-2] > self.low_asia_range[-1]
+        if long_condition and not self.position:
+            self.position.enter_long(lots_by_risk_pct(self.spec.get("sizing_rules", {}).get("params", {}).get("size", 0.1), self.equity))
+            self.sl_price = self.data.Close[-1] - self.I(atr, self.data, 14)[-1] * self.spec.get("exit_rules", {}).get("sl", {}).get("params", {}).get("multiplier", 1.5)
+            self.tp_price = self.data.Close[-1] + self.spec.get("exit_rules", {}).get("tp", {}).get("params", {}).get("tolerance", 0.2)
+        elif short_condition and not self.position:
+            self.position.enter_short(lots_by_risk_pct(self.spec.get("sizing_rules", {}).get("params", {}).get("size", 0.1), self.equity))
+            self.sl_price = self.data.Close[-1] + self.I(atr, self.data, 14)[-1] * self.spec.get("exit_rules", {}).get("sl", {}).get("params", {}).get("multiplier", 1.5)
+            self.tp_price = self.data.Close[-1] - self.spec.get("exit_rules", {}).get("tp", {}).get("params", {}).get("tolerance", 0.2)
+
+    def _manage_open(self):
+        time_stop = self.spec.get("exit_rules", {}).get("time_stop", {}).get("params", {}).get("count", 10)
+        if self.position and time_stop:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return

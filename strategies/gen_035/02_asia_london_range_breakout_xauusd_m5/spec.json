@@ -1,0 +1,85 @@
+{
+  "name": "asia_london_range_breakout_xauusd_m5",
+  "hypothesis": "On XAUUSD M5, the Asia-session range (00:00-06:00 UTC) contains accumulated liquidity; a decisive break during the London window (07:00-10:00 UTC) with ATR-normalized displacement yields continuation moves.",
+  "family": "breakout",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "period_bars": 72,
+          "window_utc": "00:00-06:00",
+          "condition": "break_high"
+        },
+        {
+          "primitive": "atr_breakout_levels",
+          "period": 14,
+          "distance_mult": 0.3,
+          "direction": "long"
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "donchian",
+          "period_bars": 72,
+          "window_utc": "00:00-06:00",
+          "condition": "break_low"
+        },
+        {
+          "primitive": "atr_breakout_levels",
+          "period": 14,
+          "distance_mult": 0.3,
+          "direction": "short"
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "session_mask",
+        "sessions_utc": [
+          "07:00-11:00"
+        ]
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 500,
+        "min": 30,
+        "max": 95
+      },
+      {
+        "primitive": "classify",
+        "range_atr_min": 0.5,
+        "range_atr_max": 2.5
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "opposite_range_edge",
+      "buffer_atr": 0.2
+    },
+    "take_profit": {
+      "type": "atr",
+      "period": 14,
+      "mult": 2.0
+    },
+    "time_stop": {
+      "bars": 36
+    },
+    "max_breakout_bars_from_window_start": 12,
+    "one_trade_per_day": true
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "notes": "Fixes previous-gen zero-trade issue by using looser 0.3xATR breakout threshold (not 2.0x) and wider range acceptance. UTC sessions explicit to avoid timezone bug. Based on LVC-EA idea card."
+}

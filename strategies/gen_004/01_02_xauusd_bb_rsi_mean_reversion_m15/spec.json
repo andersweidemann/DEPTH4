@@ -1,0 +1,90 @@
+{
+  "name": "02_xauusd_bb_rsi_mean_reversion_m15",
+  "hypothesis": "XAUUSD M15 exhibits statistically reliable mean reversion when price closes outside a tight Bollinger Band with a simultaneous RSI extreme, provided volatility is in a mid regime (not in a trend-day blowoff). Reverting to the mid-band yields >2 PF with >200 trades over 3 years.",
+  "family": "bb_rsi_mean_reversion",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "type": "composite",
+    "rules": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "max": 25
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 14,
+        "lookback": 200,
+        "min_pct": 20,
+        "max_pct": 80
+      },
+      {
+        "primitive": "bb_width",
+        "period": 20,
+        "stddev": 2.0,
+        "min_percentile": 30
+      },
+      {
+        "primitive": "session_mask",
+        "window_utc": "06:00-20:00",
+        "active": true
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "close < lower_BB(20, 2.0) AND RSI(7) < 12 AND prior_bar_low < lower_BB",
+    "short": "close > upper_BB(20, 2.0) AND RSI(7) > 88 AND prior_bar_high > upper_BB",
+    "cooldown_bars": 4,
+    "max_spread_points": 40
+  },
+  "exit_rules": {
+    "take_profit": "mid_BB(20)",
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 28,
+    "early_exit": "opposite BB touch"
+  },
+  "sizing": {
+    "mode": "risk_pct_of_equity",
+    "risk_per_trade_pct": 0.6,
+    "max_concurrent_positions": 1,
+    "pyramiding": 0
+  },
+  "params_to_search": {
+    "bb_stddev": [
+      1.75,
+      2.0,
+      2.25
+    ],
+    "rsi_period": [
+      5,
+      7,
+      9
+    ],
+    "rsi_long_thresh": [
+      8,
+      12,
+      15
+    ],
+    "rsi_short_thresh": [
+      85,
+      88,
+      92
+    ],
+    "sl_atr_mult": [
+      1.2,
+      1.5,
+      1.8
+    ],
+    "adx_max": [
+      20,
+      25,
+      30
+    ]
+  },
+  "acceptance_notes": "Reference scout card reports PF 1.51 / Sharpe 2.48 on EURUSD; XAUUSD M15 has larger edges. Target PF >= 2.0 with tighter RSI thresholds and ADX regime filter."
+}

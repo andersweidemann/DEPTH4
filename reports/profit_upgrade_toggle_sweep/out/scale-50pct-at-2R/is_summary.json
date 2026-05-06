@@ -1,0 +1,27 @@
+{
+  "candidate": "scale-50pct-at-2R",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "GER40",
+      "timeframe": "M30",
+      "trades": 247,
+      "metrics": {
+        "return_pct": 14.379698340780243,
+        "pf": 3.2546988119434777,
+        "sharpe": 0.6846908279011482,
+        "sortino": 1.7136939990318902,
+        "max_dd_pct": 4.726223196584344,
+        "trades": 247.0,
+        "win_rate": 19.02834008097166,
+        "expectancy": 0.18750170641695893,
+        "avg_trade": 0.1839494218373705,
+        "exposure_pct": 4.458084005156524
+      }
+    }
+  ]
+}

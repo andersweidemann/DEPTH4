@@ -1,0 +1,46 @@
+{
+  "hypothesis": "Price bouncing off the Bollinger Band with a specific 3-bar pattern occurs frequently on XAUUSD M15",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "min_width": 10,
+      "max_width": 50
+    }
+  },
+  "entry_rule": {
+    "type": "bb_bounce",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {}
+  },
+  "sl": {
+    "type": "atr",
+    "params": {
+      "period": 14,
+      "multiplier": 1.0
+    }
+  },
+  "tp": {
+    "type": "fixed",
+    "params": {
+      "pips": 20
+    }
+  },
+  "time_stop": {
+    "type": "bars",
+    "params": {
+      "bars": 20
+    }
+  },
+  "sizing": {
+    "type": "fixed",
+    "params": {
+      "lots": 0.05
+    }
+  }
+}

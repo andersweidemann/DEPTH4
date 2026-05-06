@@ -1,0 +1,179 @@
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "percentile": 30,
+        "lookback": 20
+      }
+    },
+    "entry_rules": [
+      {
+        "type": "long",
+        "condition": "close < lower_bb && rsi(7) < 10"
+      },
+      {
+        "type": "short",
+        "condition": "close > upper_bb && rsi(7) > 90"
+      }
+    ],
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 1.5
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 30
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts occur after a period of consolidation, and can be traded using a volatility-based approach",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "percentile": 50,
+        "lookback": 14
+      }
+    },
+    "entry_rules": [
+      {
+        "type": "long",
+        "condition": "close > upper_bb && atr(14) > atr(14)[1]"
+      },
+      {
+        "type": "short",
+        "condition": "close < lower_bb && atr(14) > atr(14)[1]"
+      }
+    ],
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "distance": 100
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "distance": 200
+        }
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 2
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percentage": 2
+      }
+    }
+  },
+  {
+    "hypothesis": "The Asia-London range expansion strategy can be applied to XAUUSD and GER40",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "session": "london"
+      }
+    },
+    "entry_rules": [
+      {
+        "type": "long",
+        "condition": "close > high_asia && close > upper_bb"
+      },
+      {
+        "type": "short",
+        "condition": "close < low_asia && close < lower_bb"
+      }
+    ],
+    "exit_rules": {
+      "sl": {
+        "type": "atr",
+        "params": {
+          "multiplier": 2
+        }
+      },
+      "tp": {
+        "type": "fixed",
+        "params": {
+          "distance": 300
+        }
+      },
+      "time_stop": {
+        "type": "bars",
+        "params": {
+          "num_bars": 20
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "fixed",
+      "params": {
+        "size": 0.2
+      }
+    }
+  },
+  {
+    "hypothesis": "A combination of RSI and Bollinger Bands can be used to trade mean reversion on BTCUSD",
+    "regime_filter": {
+      "type": "rsi_percentile",
+      "params": {
+        "percentile": 20,
+        "lookback": 14
+      }
+    },
+    "entry_rules": [
+      {
+        "type": "long",
+        "condition": "rsi(14) < 30 && close < lower_bb"
+      },
+      {
+        "type": "short",
+        "condition": "rsi(14) > 70 && close > upper_bb"
+      }
+    ],
+    "exit_rules": {
+      "sl": {
+        "type": "fixed",
+        "params": {
+          "distance": 150
+        }
+      },
+      "tp": {
+        "type": "opposite_bb"
+      },
+      "time_stop": {
+        "type": "hours",
+        "params": {
+          "num_hours": 4
+        }
+      }
+    },
+    "sizing_rules": {
+      "type": "risk",
+      "params": {
+        "risk_percentage": 1.5
+      }
+    }
+  }
+]

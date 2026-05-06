@@ -1,0 +1,11 @@
+{
+  "hypothesis": "Volatility contraction followed by an expansion results in a tradable move",
+  "regime_filter": "ATR(14) < 20th percentile",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "entry_rule": "ATR(14) expansion after a contraction with a minimum of 3 bars",
+  "sl": "1.2 * ATR(14)",
+  "tp": "2 * ATR(14)",
+  "time_stop": "40 bars",
+  "sizing": "Fixed fraction of equity with a maximum risk per trade"
+}

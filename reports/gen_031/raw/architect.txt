@@ -1,0 +1,154 @@
+[
+  {
+    "name": "01_bb_rsi_meanrev_xauusd_m15",
+    "hypothesis": "On XAUUSD M15, when price closes outside a Bollinger Band with an extreme RSI(7) reading during active London/NY sessions AND BB-width is above its 30th percentile, price reverts to the mean within 30 bars more often than not, yielding PF>=2.0.",
+    "symbol": "XAUUSD",
+    "timeframe": "M15",
+    "family": "mean_reversion",
+    "signals": [
+      {"type": "bollinger", "period": 20, "dev": 2.0, "source": "close"},
+      {"type": "rsi", "period": 7},
+      {"type": "bb_width", "period": 20, "dev": 2.0, "lookback": 500, "percentile_floor": 30},
+      {"type": "atr", "period": 14},
+      {"type": "session_mask", "sessions": ["london", "ny"], "tz": "UTC"}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "require": {"bb_width_percentile_gt": 30, "atr_percentile_between": [20, 90]},
+      "reject_when_all_on": true
+    },
+    "entry_rules": {
+      "long": "close[1] < lower_bb[1] AND close > lower_bb AND rsi(7) < 15 AND session_active AND bb_width_pct > 30",
+      "short": "close[1] > upper_bb[1] AND close < upper_bb AND rsi(7) > 85 AND session_active AND bb_width_pct > 30",
+      "cooldown_bars": 3
+    },
+    "exit_rules": {
+      "take_profit": "opposite_bollinger_band",
+      "stop_loss": "1.8 * ATR(14) from entry",
+      "time_stop_bars": 30,
+      "breakeven_at_r": 1.0
+    },
+    "sizing": {
+      "method": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1,
+      "max_spread_points": 40
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "02_asia_london_range_breakout_xauusd_m5",
+    "hypothesis": "On XAUUSD M5, an Asia-session range (00:00-06:00 UTC) whose size is 0.5-2.0x ATR, when broken with a wide-body candle in the first 9 bars of London (07:00-10:00 UTC), produces directional continuation with PF>=2.0 and controlled drawdown.",
+    "symbol": "XAUUSD",
+    "timeframe": "M5",
+    "family": "breakout",
+    "signals": [
+      {"type": "atr", "period": 14},
+      {"type": "donchian", "period": 72, "window": "asia_00_06_utc"},
+      {"type": "atr_breakout_levels", "range_source": "asia_session", "min_range_atr": 0.5, "max_range_atr": 2.0, "breakout_dist_atr": 0.5, "body_atr_min": 1.2},
+      {"type": "session_mask", "sessions": ["london_open_0700_1000_utc"], "tz": "UTC"}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "require": {"asia_range_atr_between": [0.5, 2.0], "atr_percentile_gt": 25},
+      "reject_when_all_on": true
+    },
+    "entry_rules": {
+      "long": "in London window AND bars_since_london_open <= 9 AND close > asia_high + 0.5*ATR AND candle_body >= 1.2*ATR AND first_breakout_of_day",
+      "short": "in London window AND bars_since_london_open <= 9 AND close < asia_low - 0.5*ATR AND candle_body >= 1.2*ATR AND first_breakout_of_day",
+      "cooldown_bars": 12
+    },
+    "exit_rules": {
+      "take_profit": "2.5 * ATR(14) from entry",
+      "stop_loss": "opposite side of asia range or 1.5*ATR, whichever is tighter",
+      "time_stop_bars": 48,
+      "trailing_stop": "chandelier 3*ATR after +1R"
+    },
+    "sizing": {
+      "method": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1,
+      "max_spread_points": 40
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "03_donchian_trend_breakout_ger40_m15",
+    "hypothesis": "On GER40 M15, Donchian(40) breakouts filtered by ADX>22 and EMA(50)>EMA(200) alignment during European cash hours capture intraday trend impulses with PF>=2.0.",
+    "symbol": "GER40",
+    "timeframe": "M15",
+    "family": "breakout",
+    "signals": [
+      {"type": "donchian", "period": 40},
+      {"type": "ema", "period": 50},
+      {"type": "ema", "period": 200},
+      {"type": "adx", "period": 14},
+      {"type": "atr", "period": 14},
+      {"type": "session_mask", "sessions": ["frankfurt_0700_1530_utc"], "tz": "UTC"}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "require": {"adx_gt": 22, "atr_percentile_gt": 30},
+      "reject_when_all_on": true
+    },
+    "entry_rules": {
+      "long": "close > donchian_upper(40)[1] AND ema50 > ema200 AND adx > 22 AND in_session",
+      "short": "close < donchian_lower(40)[1] AND ema50 < ema200 AND adx > 22 AND in_session",
+      "cooldown_bars": 6
+    },
+    "exit_rules": {
+      "take_profit": "3.0 * ATR(14) from entry",
+      "stop_loss": "1.8 * ATR(14) from entry",
+      "time_stop_bars": 32,
+      "trailing_stop": "donchian(20) opposite band after +1.5R",
+      "breakeven_at_r": 1.0
+    },
+    "sizing": {
+      "method": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1,
+      "max_spread_points": 30
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  },
+  {
+    "name": "04_vwap_pullback_trend_us500_m5",
+    "hypothesis": "On US500 M5, during the NY cash session, pullbacks to EMA(20) within a higher-timeframe trend (EMA50>EMA200, ADX>20) and an RSI(14) dip-buy (or rip-sell) yield high-hit-rate continuation trades with PF>=2.0.",
+    "symbol": "US500",
+    "timeframe": "M5",
+    "family": "trend_pullback",
+    "signals": [
+      {"type": "ema", "period": 20},
+      {"type": "ema", "period": 50},
+      {"type": "ema", "period": 200},
+      {"type": "rsi", "period": 14},
+      {"type": "adx", "period": 14},
+      {"type": "atr", "period": 14},
+      {"type": "session_mask", "sessions": ["ny_1330_2000_utc"], "tz": "UTC"}
+    ],
+    "regime_filter": {
+      "type": "classify",
+      "require": {"adx_gt": 20, "atr_percentile_between": [25, 90]},
+      "reject_when_all_on": true
+    },
+    "entry_rules": {
+      "long": "ema50 > ema200 AND close pulls back to within 0.25*ATR of ema20 AND rsi(14) crosses up through 45 AND in_session",
+      "short": "ema50 < ema200 AND close pulls back to within 0.25*ATR of ema20 AND rsi(14) crosses down through 55 AND in_session",
+      "cooldown_bars": 8
+    },
+    "exit_rules": {
+      "take_profit": "2.0 * ATR(14) from entry",
+      "stop_loss": "1.2 * ATR(14) below swing low (long) / above swing high (short)",
+      "time_stop_bars": 40,
+      "trailing_stop": "ema20 cross-back",
+      "breakeven_at_r": 0.8
+    },
+    "sizing": {
+      "method": "risk_pct",
+      "risk_per_trade_pct": 0.5,
+      "max_concurrent": 1,
+      "max_spread_points": 15
+    },
+    "acceptance_targets": {"pf_min": 2.0, "sharpe_min": 1.5, "max_dd_pct": 15.0, "trades_min": 200}
+  }
+]

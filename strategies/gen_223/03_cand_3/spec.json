@@ -1,0 +1,29 @@
+{
+  "hypothesis": "Volatility contraction precedes price expansion",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 20
+    }
+  },
+  "entry_rule": {
+    "type": "volatility_breakout",
+    "params": {
+      "volatility_threshold": 1.5
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl",
+    "params": {
+      "tp_pips": 200,
+      "sl_pips": 50
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

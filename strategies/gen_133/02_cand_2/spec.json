@@ -1,0 +1,30 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversals occur during high volatility",
+  "regime_filter": {
+    "type": "bb_width",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0,
+      "width_threshold": 0.05
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch",
+    "params": {
+      "touch_threshold": 0.2
+    }
+  },
+  "exit_rule": {
+    "type": "opposite_bb",
+    "params": {
+      "sl_multiplier": 1.5,
+      "time_stop_bars": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

@@ -1,0 +1,94 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+    _spec: dict = {}
+    _symbol: str = "GER40"
+    _equity_start: float = 10_000.0
+    sl_price: float = None
+    tp_price: float = None
+
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        sessions = self.spec.get("regime_filter", {}).get("params", {}).get("start_hour", 7), self.spec.get("regime_filter", {}).get("params", {}).get("end_hour", 10)
+        full_idx = self.data.df.index if hasattr(self.data, "df") else self.data.index
+        self._session_mask_full = np.asarray(session_mask(full_idx, [(sessions[0], sessions[1])]), dtype=bool)
+        self._atr_series = self.I(atr, self.data, self.spec.get("entry_rule", {}).get("params", {}).get("atr_period", 14))
+        self._donchian_series = self.I(donchian, self.data, self.spec.get("entry_rule", {}).get("params", {}).get("atr_period", 14))
+
+    def _regime_ok(self):
+        rf = self.spec.get("regime_filter")
+        if not rf:
+            return True
+        if rf.get("type") == "london_session":
+            start_hour = rf.get("params", {}).get("start_hour", 7)
+            end_hour = rf.get("params", {}).get("end_hour", 10)
+            current_hour = pd.Timestamp(self.data.index[-1]).hour
+            return start_hour <= current_hour < end_hour
+        return True
+
+    def _filters_ok(self):
+        filters = self.spec.get("filters", {})
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        mask = getattr(self, "_session_mask_full", None)
+        if mask is not None and 0 <= bar_i < len(mask):
+            if not bool(mask[bar_i]):
+                return False
+        max_spread = filters.get("max_spread_points")
+        if max_spread is not None:
+            broker_spread = self._broker_spread_points
+            if not spread_ok(broker_spread, max_spread):
+                return False
+        now_date = pd.Timestamp(idx[-1]).strftime("%Y-%m-%d")
+        if not daily_kill_ok(self._kill_state, now_date, self.equity, self.spec.get("risk", {}).get("daily_dd_kill_pct", 0.2)):
+            return False
+        return True
+
+    def _enter_if_signal(self):
+        entry_rule = self.spec.get("entry_rule")
+        if entry_rule.get("type") == "breakout":
+            atr_period = entry_rule.get("params", {}).get("atr_period", 14)
+            min_range_atr = entry_rule.get("params", {}).get("min_range_atr", 0.5)
+            max_range_atr = entry_rule.get("params", {}).get("max_range_atr", 2.0)
+            atr_now = float(self._atr_series[-1])
+            donchian_high = float(self._donchian_series[-1][1])
+            donchian_low = float(self._donchian_series[-1][0])
+            if atr_now > min_range_atr and atr_now < max_range_atr:
+                if self.data.Close[-1] > donchian_high:
+                    self.position.enter_long(lots_by_risk_pct(self.spec.get("sizing_rule", {}).get("params", {}).get("fraction", 0.02), self.equity, self.data))
+                    self.sl_price = self.data.Close[-1] - 1.5 * atr_now
+                    self.tp_price = self.data.Close[-1] + 10 * atr_now
+                elif self.data.Close[-1] < donchian_low:
+                    self.position.enter_short(lots_by_risk_pct(self.spec.get("sizing_rule", {}).get("params", {}).get("fraction", 0.02), self.equity, self.data))
+                    self.sl_price = self.data.Close[-1] + 1.5 * atr_now
+                    self.tp_price = self.data.Close[-1] - 10 * atr_now
+
+    def _manage_open(self):
+        exit_rule = self.spec.get("exit_rule")
+        if exit_rule.get("type") == "tp_sl_time":
+            time_stop = exit_rule.get("params", {}).get("time_stop", 60)
+            tp = exit_rule.get("params", {}).get("tp", "fixed_pips")
+            sl = exit_rule.get("params", {}).get("sl", "1.5_atr")
+            if self.position:
+                trade = self.trades[-1]
+                bars_open = len(self.data) - trade.entry_bar
+                if bars_open >= time_stop:
+                    self.position.close()
+                elif tp == "fixed_pips":
+                    if trade.is_long and self.data.Close[-1] >= trade.entry_price + 10:
+                        self.position.close()
+                    elif not trade.is_long and self.data.Close[-1] <= trade.entry_price - 10:
+                        self.position.close()
+                elif sl == "1.5_atr":
+                    atr_now = float(self._atr_series[-1])
+                    if trade.is_long and self.data.Close[-1] <= trade.entry_price - 1.5 * atr_now:
+                        self.position.close()
+                    elif not trade.is_long and self.data.Close[-1] >= trade.entry_price + 1.5 * atr_now:
+                        self.position.close()

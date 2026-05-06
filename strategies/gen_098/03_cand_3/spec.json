@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Volatility normalization using ATR occurs on BTCUSD M5",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > sma(20) && atr(14) > atr(14)[1]"
+    },
+    "short": {
+      "condition": "close < sma(20) && atr(14) < atr(14)[1]"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 500
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 100
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "strategy_id": "gen12_xau_bb_rsi_mean_reversion_m15",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, when BB width is above its 30th percentile and ADX < 22, a close outside BB(20, 2.0) with RSI(7) < 15 (long) or > 85 (short) reverts toward the middle band within 30 bars, yielding PF > 2.0 and Sharpe > 1.5.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "primitive": "bollinger",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "source": "close"
+      }
+    },
+    {
+      "primitive": "bb_width",
+      "params": {
+        "period": 20,
+        "dev": 2.0,
+        "percentile_lookback": 500,
+        "min_percentile": 30
+      }
+    },
+    {
+      "primitive": "rsi",
+      "params": {
+        "period": 7,
+        "oversold": 15,
+        "overbought": 85
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitives": [
+      {
+        "primitive": "adx",
+        "params": {
+          "period": 14,
+          "max": 22
+        }
+      },
+      {
+        "primitive": "atr_percentile",
+        "params": {
+          "period": 14,
+          "lookback": 300,
+          "min_pct": 20,
+          "max_pct": 85
+        }
+      },
+      {
+        "primitive": "session_mask",
+        "params": {
+          "trade_start_utc": "07:00",
+          "trade_end_utc": "20:00"
+        }
+      }
+    ],
+    "combine": "AND"
+  },
+  "entry_rules": {
+    "long": "Close < LowerBB AND RSI(7) < 15 AND bb_width above 30th pct AND ADX < 22 AND session active; 3-bar cooldown since last entry.",
+    "short": "Close > UpperBB AND RSI(7) > 85 (symmetric)."
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "take_profit": "Middle BB(20) OR opposite band, whichever hit first",
+    "time_stop_bars": 30,
+    "breakeven_after": "0.8 * ATR(14) favorable"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "diversification_tag": "bb_rsi_mr_xau",
+  "notes": "Port-allowed MQL5 reference; tightened RSI thresholds to 15/85 for gold volatility."
+}

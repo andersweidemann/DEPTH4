@@ -1,0 +1,31 @@
+{
+  "hypothesis": "Breakouts occur on GER40 M15 after a period of consolidation.",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "atr_period": 14,
+      "percentile": 50
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "donchian_period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "take_profit_stop_loss",
+    "params": {
+      "tp": "fixed_pips",
+      "tp_pips": 100,
+      "sl": "2_atr",
+      "time_stop": 60
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

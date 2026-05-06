@@ -1,0 +1,41 @@
+{
+  "name": "xau_bb_rsi_meanrev_m15",
+  "family": "mean_reversion",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "hypothesis": "On XAUUSD M15, after a close outside Bollinger Bands with an extreme RSI(7) reading and sufficient BB-width volatility, price reverts to the middle band within 30 bars. Falsified if trade count >= 200 but PF < 1.3 or win rate < 45%.",
+  "regime_filter": {
+    "primitive": "bb_width",
+    "rule": "bb_width_percentile_100 > 30",
+    "description": "Require BB width above 30th percentile of last 100 bars to avoid dead-range chop. Not always-on: excludes lowest-vol 30% of bars."
+  },
+  "signals": {
+    "entry_long": "close < lower_bb(20,1.75) AND rsi(7) < 15",
+    "entry_short": "close > upper_bb(20,1.75) AND rsi(7) > 85",
+    "session_mask": "07:00-20:00 server time"
+  },
+  "exits": {
+    "tp": "middle_bb(20) touch",
+    "sl": "1.8 * ATR(14) from entry",
+    "time_stop": "30 bars",
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1
+  },
+  "diagnostics": {
+    "log_rejections": true,
+    "counters": [
+      "bars_seen",
+      "signal_raw",
+      "signal_after_regime",
+      "signal_after_session",
+      "orders_attempted",
+      "orders_filled",
+      "orders_rejected_reason"
+    ]
+  },
+  "notes": "Validate plumbing first: if signal_raw==0 across full window, signal logic is broken; if signal_raw>0 but orders_filled==0, gating is broken."
+}

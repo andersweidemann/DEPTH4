@@ -1,0 +1,47 @@
+```json
+{
+  "ranking": [
+    {
+      "candidate": "Candidate_1",
+      "fitness": 0.82,
+      "verdict": "survive",
+      "metrics_summary": {
+        "pf_avg": 1.25,
+        "sharpe_avg": 0.08,
+        "max_dd_pct": 25.0,
+        "trades_total": 120
+      }
+    },
+    {
+      "candidate": "Candidate_2",
+      "fitness": 0.69,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 1.05,
+        "sharpe_avg": 0.04,
+        "max_dd_pct": 35.0,
+        "trades_total": 90
+      }
+    },
+    {
+      "candidate": "Candidate_3",
+      "fitness": 0.91,
+      "verdict": "survive",
+      "metrics_summary": {
+        "pf_avg": 1.40,
+        "sharpe_avg": 0.10,
+        "max_dd_pct": 20.0,
+        "trades_total": 100
+      }
+    }
+  ],
+  "summary_markdown": "This generation shows promise with two candidates surpassing the acceptance thresholds. However, Candidate_2's performance is lacking, indicating a need for refinement or rejection.",
+  "per_survivor_notes": {
+    "Candidate_1": "SL 2.0xATR is tighter than p90 MAE of 2.4xATR; raise to 2.6. Consider adding a volatility filter to improve consistency.",
+    "Candidate_3": "The current regime filter is effective, but consider adding a secondary filter to capture more nuanced market conditions. Also, explore optimizing the sizing strategy to maximize returns."
+  },
+  "dead_branches": [
+    "Mean reversion strategies without a clear trend identification component"
+  ]
+}
+```

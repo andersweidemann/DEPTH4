@@ -1,0 +1,74 @@
+{
+  "name": "03_cand_4_us500_pullback_trend_m15",
+  "hypothesis": "On US500 M15, during US cash session (13:30-20:00 UTC) in an uptrending regime (EMA20>EMA50 and ADX>18), shallow RSI pullbacks to 35-45 followed by reclaim of EMA20 offer high-quality long continuation entries; symmetric logic for downtrends.",
+  "family": "trend_pullback",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "signals": {
+    "ema_fast": {
+      "primitive": "ema",
+      "period": 20
+    },
+    "ema_slow": {
+      "primitive": "ema",
+      "period": 50
+    },
+    "rsi": {
+      "primitive": "rsi",
+      "period": 14
+    },
+    "atr": {
+      "primitive": "atr",
+      "period": 14
+    },
+    "session": {
+      "primitive": "session_mask",
+      "start_utc": "13:30",
+      "end_utc": "20:00"
+    }
+  },
+  "regime_filter": {
+    "primitive": "classify",
+    "require": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "min": 18
+      },
+      {
+        "primitive": "atr_percentile",
+        "period": 100,
+        "min": 20,
+        "max": 90
+      },
+      {
+        "trend_alignment": "ema_fast_vs_ema_slow"
+      },
+      {
+        "session_active": true
+      }
+    ]
+  },
+  "entry_rules": {
+    "long": "ema_fast > ema_slow AND rsi dipped below 42 within last 5 bars AND current bar closes back above ema_fast AND close > prior bar high",
+    "short": "ema_fast < ema_slow AND rsi rose above 58 within last 5 bars AND current bar closes back below ema_fast AND close < prior bar low",
+    "cooldown_bars": 4
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) below entry (long) / above (short)",
+    "take_profit": "3.0 * ATR(14) (2R)",
+    "time_stop": "Close after 20 bars (~5h) if neither hit",
+    "breakeven": "Move SL to entry after +1.25 ATR in favor",
+    "partial_exit": "Take 50% off at +1.5 ATR, trail remainder with ema_fast"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "max_positions": 1
+  },
+  "diversity_tag": "trend_pullback_ema_rsi"
+}

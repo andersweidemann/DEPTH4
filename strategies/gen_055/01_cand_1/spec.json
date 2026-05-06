@@ -1,0 +1,48 @@
+{
+  "hypothesis": "Breakouts occur during London session with sufficient volatility",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "start_hour": 7,
+      "end_hour": 10
+    }
+  },
+  "entry_rule": {
+    "type": "breakout",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.2
+    }
+  },
+  "exit_rule": {
+    "type": "trailing_stop",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 1.0
+    }
+  },
+  "sl_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 50
+    }
+  },
+  "tp_rule": {
+    "type": "fixed_pips",
+    "params": {
+      "pips": 100
+    }
+  },
+  "time_stop_rule": {
+    "type": "fixed_bars",
+    "params": {
+      "bars": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.02
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "hypothesis": "Bollinger Band touch-and-bounce reversal occurs on BTCUSD M5 with RSI confirmation",
+  "regime_filter": {
+    "type": "rsi_threshold",
+    "params": {
+      "thresholds": [
+        30,
+        70
+      ]
+    }
+  },
+  "entry_rule": {
+    "type": "bb_touch",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0,
+      "rsi_period": 7
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "opposite_bb",
+      "sl": "1.5_atr",
+      "time_stop": 30
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.01
+    }
+  }
+}

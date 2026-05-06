@@ -1,0 +1,97 @@
+{
+  "name": "bb_rsi_meanrev_us500_m5_v1",
+  "hypothesis": "On US500 M5 during regular US cash hours, short-lived BB+RSI extremes revert to the band midline with an edge when ADX<22, offering high-frequency mean reversion trades.",
+  "family": "mean_reversion",
+  "symbols": [
+    "US500"
+  ],
+  "timeframes": [
+    "M5"
+  ],
+  "signals": {
+    "entry_long": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "stddev": 1.75,
+          "condition": "close_below_lower"
+        },
+        {
+          "primitive": "rsi",
+          "period": 7,
+          "condition": "lt",
+          "threshold": 10
+        }
+      ]
+    },
+    "entry_short": {
+      "all": [
+        {
+          "primitive": "bollinger",
+          "period": 20,
+          "stddev": 1.75,
+          "condition": "close_above_upper"
+        },
+        {
+          "primitive": "rsi",
+          "period": 7,
+          "condition": "gt",
+          "threshold": 90
+        }
+      ]
+    }
+  },
+  "regime_filter": {
+    "all": [
+      {
+        "primitive": "adx",
+        "period": 14,
+        "condition": "lt",
+        "threshold": 22
+      },
+      {
+        "primitive": "bb_width",
+        "period": 20,
+        "stddev": 1.75,
+        "percentile_lookback": 300,
+        "condition": "gt",
+        "percentile": 30
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr_mult",
+      "atr_period": 14,
+      "multiplier": 1.5
+    },
+    "take_profit": {
+      "type": "bollinger_opposite",
+      "period": 20,
+      "stddev": 1.75
+    },
+    "time_stop": {
+      "bars": 30
+    }
+  },
+  "sizing": {
+    "type": "risk_pct",
+    "risk_per_trade_pct": 0.4,
+    "min_stop_points_buffer": 1.0
+  },
+  "session_filter": {
+    "type": "session_mask",
+    "sessions_utc": [
+      {
+        "start": "13:30",
+        "end": "20:00"
+      }
+    ],
+    "cooldown_bars": 3
+  },
+  "diagnostics": {
+    "log_gate_rejections": true,
+    "require_min_trades_per_year": 120
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "hypothesis": "Donchian channel breakouts are profitable when combined with a volatility filter",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 20
+    }
+  },
+  "entry_rule": {
+    "type": "donchian_breakout",
+    "params": {
+      "donchian_period": 20
+    }
+  },
+  "exit_rule": {
+    "type": "tp_sl_time",
+    "params": {
+      "tp": "fixed_pips",
+      "tp_pips": 200,
+      "sl": "fixed_pips",
+      "sl_pips": 50,
+      "time_stop": 20
+    }
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "params": {
+      "fraction": 0.005
+    }
+  }
+}

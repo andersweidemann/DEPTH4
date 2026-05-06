@@ -1,0 +1,22 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_bb_rsi_meanrev_xau_m15_v1",
+      "fitness": 0.18,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.94, "sharpe_avg": -0.36, "max_dd_pct": 15.95, "trades_total": 1503}
+    },
+    {
+      "candidate": "02_asia_london_range_break_xau_m5_v1",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\nBoth candidates fail acceptance thresholds by a wide margin. No survivors.\n\n- **00_bb_rsi_meanrev_xau_m15_v1**: 1503 trades but PF 0.94 (below 2.0), Sharpe -0.36 (below 1.5), negative return -7.83%, expectancy -0.005. Win rate 53.4% is decent but average loss exceeds average win — classic mean-reversion-in-trend failure on XAU. Max DD 15.9% slightly over 15% cap.\n- **02_asia_london_range_break_xau_m5_v1**: Zero trades generated over 4.5 years. Entry logic is either gated too tightly (session filter + breakout threshold) or never triggers. Completely broken, not just underperforming.\n\n**Recommendation**: Pivot strategy family. XAU M15 mean-reversion with BB+RSI is well-known to bleed during gold's trending regimes (2020 COVID rally, 2022-2024 uptrend). The session range breakout candidate is non-functional and needs a full re-spec, not tweaks. Consider instead: (a) trend-following on XAU H1/H4 with ATR trail, (b) volatility-breakout with regime filter (ADX > 25), (c) test mean-reversion on range-bound majors (EURCHF, AUDNZD) rather than XAU.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Bollinger+RSI pure mean-reversion on XAUUSD intraday — gold trends too strongly for fade logic without a regime filter",
+    "Asia-London session range breakout on XAU M5 as currently specified — zero-trade bug indicates session/threshold gating is fundamentally misaligned; do not iterate parameters, rewrite entry spec"
+  ]
+}

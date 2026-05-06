@@ -1,0 +1,44 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = risk.DailyKillState(start_of_day_equity=self._equity_start)
+        self._atr_series = self.I(atr, self.data, 14)
+        self._rsi_series = self.I(rsi, self.data, 7)
+        self._upper_atr_breakout = self.I(atr_breakout_levels, self.data, 14, 'upper')
+        self._lower_atr_breakout = self.I(atr_breakout_levels, self.data, 14, 'lower')
+        self._atr_percentile_series = self.I(atr_percentile, self.data, 20, 70)
+
+    def _regime_ok(self):
+        return self._atr_percentile_series[-1] > 0
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position.is_long:
+            return
+        if self.data.Close[-1] > self._upper_atr_breakout[-1] and self._rsi_series[-1] > 50:
+            self.sl_price = self.data.Close[-1] - 150 * self.data._pip
+            self.tp_price = self.data.Close[-1] + 300 * self.data._pip
+            lots = lots_by_risk_pct(self._spec, self.equity, self.data)
+            self.position.enter_long(lots)
+
+        if self.position.is_short:
+            return
+        if self.data.Close[-1] < self._lower_atr_breakout[-1] and self._rsi_series[-1] < 50:
+            self.sl_price = self.data.Close[-1] + 150 * self.data._pip
+            self.tp_price = self.data.Close[-1] - 300 * self.data._pip
+            lots = lots_by_risk_pct(self._spec, self.equity, self.data)
+            self.position.enter_short(lots)
+
+    def _manage_open(self):
+        if self.position:
+            if self.data.index[-1] - self.position.entry_time > pd.Timedelta(hours=3):
+                self.position.close()

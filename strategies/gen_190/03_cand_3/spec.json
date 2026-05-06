@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Mean reversion occurs in US500 on M15 when price reaches extreme deviations from its mean with extreme RSI readings, and volatility is above the 50th percentile.",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 1.75,
+      "percentile": 50
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close < lower_bb && rsi(7) < 10"
+    },
+    "short": {
+      "condition": "close > upper_bb && rsi(7) > 90"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "sl": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.1
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "name": "05_xauusd_m15_atr_breakout_retest_v1",
+  "hypothesis": "On XAUUSD M15, an ATR-breakout level that is broken and then retested (price returns within 0.2*ATR of the broken level and closes back in direction) produces higher win-rate continuation trades than naked breakouts, achieving PF>=2.0.",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "family": "breakout_retest",
+  "regime_filter": {
+    "primitives": [
+      "adx",
+      "atr_percentile"
+    ],
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "op": ">=",
+        "value": 20
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 200,
+        "op": "between",
+        "value": [
+          0.35,
+          0.95
+        ]
+      }
+    ],
+    "description": "Trade breakout-retests only in lively-but-not-blowoff volatility and with minimal trend strength."
+  },
+  "signals": {
+    "primitives": [
+      "atr_breakout_levels",
+      "atr",
+      "ema",
+      "session_mask"
+    ],
+    "entry_long": "Prior bar closed > ATR_breakout_upper(lookback=20, k=1.5); within next 5 bars price retraces to within 0.2*ATR(14) of that level; retest bar closes green above level AND EMA(50) > EMA(200)",
+    "entry_short": "Mirror of long using ATR_breakout_lower",
+    "session_window_entry": "07:00-20:00 UTC",
+    "cooldown_bars": 10,
+    "max_retest_bars": 5
+  },
+  "exits": {
+    "stop_loss": "1.5 * ATR(14) below retest low (long) / above retest high (short)",
+    "take_profit": "3.0 * ATR(14) (RR 2.0)",
+    "time_stop_bars": 40,
+    "breakeven_trigger": "Move SL to entry after +1.0*ATR favorable",
+    "trailing": "Chandelier 2.5*ATR once +1.5*ATR in profit"
+  },
+  "sizing": {
+    "method": "fixed_risk_pct",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent_positions": 1,
+    "min_stop_points": 50
+  },
+  "parameter_grid": {
+    "breakout_lookback": [
+      15,
+      20,
+      30
+    ],
+    "breakout_k_atr": [
+      1.2,
+      1.5,
+      1.8
+    ],
+    "retest_atr_mult": [
+      0.15,
+      0.2,
+      0.3
+    ],
+    "max_retest_bars": [
+      3,
+      5,
+      8
+    ],
+    "sl_atr_mult": [
+      1.2,
+      1.5,
+      2.0
+    ],
+    "tp_atr_mult": [
+      2.5,
+      3.0,
+      4.0
+    ]
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "max_dd_pct": 15.0,
+    "sharpe_min": 1.5,
+    "trades_min": 200
+  },
+  "diversity_tag": "breakout_retest_gold"
+}

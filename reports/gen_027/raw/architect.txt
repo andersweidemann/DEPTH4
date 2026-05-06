@@ -1,0 +1,138 @@
+[
+  {
+    "name": "XAUUSD_M5_AsiaLondonBreakout_v1",
+    "family": "breakout",
+    "hypothesis": "On XAUUSD M5, the London session (07:00-10:00 UTC) expansion of a contained Asia-session range (00:00-06:00 UTC) produces directional follow-through when the breakout candle body exceeds 1.2x ATR, yielding positive expectancy over 200+ trades.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M5"],
+    "signals": {
+      "entry_long": "price closes >= AsiaHigh + 0.5*ATR(14) AND candle_body >= 1.2*ATR(14) AND time in [07:00,10:00] UTC AND 0.5 <= (AsiaHigh-AsiaLow)/ATR(14) <= 2.0",
+      "entry_short": "price closes <= AsiaLow  - 0.5*ATR(14) AND candle_body >= 1.2*ATR(14) AND time in [07:00,10:00] UTC AND 0.5 <= (AsiaHigh-AsiaLow)/ATR(14) <= 2.0",
+      "primitives_used": ["atr", "donchian", "session_mask", "atr_breakout_levels"]
+    },
+    "regime_filter": {
+      "type": "trend_or_expansion",
+      "rules": [
+        "adx(14) >= 20",
+        "atr_percentile(100) >= 40",
+        "session_mask: London 07:00-10:00 UTC only",
+        "only first valid breakout per day"
+      ]
+    },
+    "exits": {
+      "stop_loss": "opposite side of Asia range OR 1.5*ATR(14), whichever is tighter",
+      "take_profit": "2.5*ATR(14) from entry (R:R ~1.67)",
+      "time_stop": "close after 24 M5 bars (2 hours) if neither hit",
+      "trailing": "activate trailing at +1.0*ATR, trail by 1.2*ATR"
+    },
+    "sizing": {
+      "method": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "cooldown_bars": 12
+    },
+    "diversity_tag": "breakout_session"
+  },
+  {
+    "name": "XAUUSD_M15_BBRsiMeanReversion_v1",
+    "family": "mean_reversion",
+    "hypothesis": "On XAUUSD M15, simultaneous Bollinger Band penetration and RSI extreme reading, gated by a BB-width volatility regime filter, produces profitable mean-reversion trades to the middle/opposite band with >2.0 PF over 200+ trades.",
+    "symbols": ["XAUUSD"],
+    "timeframes": ["M15"],
+    "signals": {
+      "entry_long": "close < lower_bb(20, 1.75) AND rsi(7) < 10",
+      "entry_short": "close > upper_bb(20, 1.75) AND rsi(7) > 90",
+      "primitives_used": ["bollinger", "rsi", "bb_width", "atr", "session_mask"]
+    },
+    "regime_filter": {
+      "type": "volatility_gate",
+      "rules": [
+        "bb_width(20) percentile(500) >= 30",
+        "atr_percentile(200) between 25 and 85",
+        "session_mask: 07:00-20:00 UTC",
+        "adx(14) < 30 (avoid strong trends)"
+      ]
+    },
+    "exits": {
+      "stop_loss": "1.5*ATR(14) from entry",
+      "take_profit": "opposite Bollinger Band (middle_bb as fallback if touched within 3 bars)",
+      "time_stop": "close after 20 M15 bars (~5h) if neither hit",
+      "trailing": "none"
+    },
+    "sizing": {
+      "method": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "cooldown_bars": 3
+    },
+    "diversity_tag": "mean_reversion_bb"
+  },
+  {
+    "name": "GER40_M15_DonchianTrendPullback_v1",
+    "family": "trend_following",
+    "hypothesis": "On GER40 M15, trading EMA-aligned pullbacks to the 20-EMA after a fresh 40-bar Donchian breakout yields positive expectancy during European cash hours because DAX exhibits persistent intraday momentum when ADX is elevated.",
+    "symbols": ["GER40"],
+    "timeframes": ["M15"],
+    "signals": {
+      "entry_long": "donchian_high(40) broken within last 10 bars AND ema(20) > ema(50) AND price pulls back to within 0.3*ATR of ema(20) AND close > ema(20)",
+      "entry_short": "donchian_low(40) broken within last 10 bars AND ema(20) < ema(50) AND price pulls back to within 0.3*ATR of ema(20) AND close < ema(20)",
+      "primitives_used": ["ema", "donchian", "atr", "session_mask"]
+    },
+    "regime_filter": {
+      "type": "trend",
+      "rules": [
+        "adx(14) >= 22",
+        "atr_percentile(200) >= 35",
+        "session_mask: 07:00-16:00 UTC (European cash)",
+        "classify: trend regime only"
+      ]
+    },
+    "exits": {
+      "stop_loss": "2.0*ATR(14) below/above ema(20) at entry",
+      "take_profit": "3.5*ATR(14) (R:R ~1.75)",
+      "time_stop": "close after 32 M15 bars (~8h)",
+      "trailing": "chandelier exit 3.0*ATR from highest close since entry, activated at +1.5*ATR"
+    },
+    "sizing": {
+      "method": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "cooldown_bars": 6
+    },
+    "diversity_tag": "trend_pullback"
+  },
+  {
+    "name": "US500_M5_ATRBreakoutNYOpen_v1",
+    "family": "breakout",
+    "hypothesis": "On US500 M5, ATR-band breakouts triggered within the first 90 minutes of the NY cash session (13:30-15:00 UTC), filtered by ADX trend strength, capture opening-drive momentum with PF >= 2.0 over 200+ trades.",
+    "symbols": ["US500"],
+    "timeframes": ["M5"],
+    "signals": {
+      "entry_long": "close > ema(20) + 1.5*ATR(14) AND close > highest(close, 12) AND session in [13:30,15:00] UTC",
+      "entry_short": "close < ema(20) - 1.5*ATR(14) AND close < lowest(close, 12) AND session in [13:30,15:00] UTC",
+      "primitives_used": ["ema", "atr", "atr_breakout_levels", "session_mask", "adx"]
+    },
+    "regime_filter": {
+      "type": "trend_and_volatility",
+      "rules": [
+        "adx(14) >= 18",
+        "atr_percentile(200) >= 40",
+        "session_mask: 13:30-15:00 UTC only",
+        "max 1 entry per session per direction"
+      ]
+    },
+    "exits": {
+      "stop_loss": "1.2*ATR(14) from entry",
+      "take_profit": "2.4*ATR(14) from entry (R:R 2.0)",
+      "time_stop": "close at 16:00 UTC or after 18 M5 bars, whichever first",
+      "trailing": "move to breakeven at +1.0*ATR; trail by 1.0*ATR thereafter"
+    },
+    "sizing": {
+      "method": "risk_pct_per_trade",
+      "risk_pct": 0.5,
+      "max_concurrent": 1,
+      "cooldown_bars": 6
+    },
+    "diversity_tag": "breakout_nyopen"
+  }
+]

@@ -1,0 +1,25 @@
+{
+  "hypothesis": "Price rejection off the Bollinger Bands results in a mean reversion opportunity.",
+  "regime_filter": {
+    "type": "bb_width_percentile",
+    "threshold": 50
+  },
+  "entry_rule": {
+    "type": "bb_rejection",
+    "params": {
+      "bb_period": 20,
+      "bb_deviation": 2.0,
+      "rejection_threshold": 0.2
+    }
+  },
+  "exit_rule": {
+    "type": "middle_bb",
+    "sl": "1.2 * atr(14)",
+    "tp": "middle_bb",
+    "time_stop": 20
+  },
+  "sizing_rule": {
+    "type": "fixed_fraction",
+    "fraction": 0.02
+  }
+}

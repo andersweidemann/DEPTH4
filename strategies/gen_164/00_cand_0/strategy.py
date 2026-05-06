@@ -1,0 +1,63 @@
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, ema, atr, rsi, bollinger, bb_width, donchian, atr_breakout_levels, session_mask
+from agents.regime import adx, atr_percentile, classify, REGIMES
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self.bollinger = self.I(bollinger, self.data, self.spec["regime_filter"]["params"]["bb_period"], self.spec["regime_filter"]["params"]["bb_deviation"])
+        self.rsi = self.I(rsi, self.data, 7)
+        self.atr = self.I(atr, self.data, self.spec["exit_rules"]["stop_loss"]["params"]["atr_period"])
+        self.bb_width = self.I(bb_width, self.data, self.spec["regime_filter"]["params"]["bb_period"], self.spec["regime_filter"]["params"]["bb_deviation"])
+        self._session_mask_full = None
+
+    def _regime_ok(self):
+        bb_width_percentile = self.spec["regime_filter"]["params"]["percentile"]
+        bb_width_now = float(self.bb_width[-1])
+        bb_width_history = self.bb_width[:-1]
+        if len(bb_width_history) > 0:
+            bb_width_percentile_value = np.percentile(bb_width_history, bb_width_percentile)
+            return bb_width_now < bb_width_percentile_value
+        return True
+
+    def _filters_ok(self):
+        return True
+
+    def _enter_if_signal(self):
+        if self.position:
+            return
+        close = float(self.data.Close[-1])
+        lower_bb = float(self.bollinger.lower[-1])
+        upper_bb = float(self.bollinger.upper[-1])
+        rsi_now = float(self.rsi[-1])
+        if close < lower_bb and rsi_now < 10:
+            self.position = self.buy(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start, self.data))
+            self.sl_price = float(self.data.Close[-1]) - self.spec["exit_rules"]["stop_loss"]["params"]["atr_multiplier"] * float(self.atr[-1])
+            self.tp_price = float(self.bollinger.upper[-1])
+        elif close > upper_bb and rsi_now > 90:
+            self.position = self.sell(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start, self.data))
+            self.sl_price = float(self.data.Close[-1]) + self.spec["exit_rules"]["stop_loss"]["params"]["atr_multiplier"] * float(self.atr[-1])
+            self.tp_price = float(self.bollinger.lower[-1])
+
+    def _manage_open(self):
+        if not self.position:
+            return
+        time_stop = self.spec["exit_rules"]["time_stop"]["params"]["bars"]
+        if time_stop is not None:
+            trade = self.trades[-1]
+            bars_open = len(self.data) - trade.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+                return
+        if self.tp_price is not None:
+            if (self.position.is_long and float(self.data.Close[-1]) >= self.tp_price) or (not self.position.is_long and float(self.data.Close[-1]) <= self.tp_price):
+                self.position.close()
+                return
+        if self.sl_price is not None:
+            if (self.position.is_long and float(self.data.Close[-1]) <= self.sl_price) or (not self.position.is_long and float(self.data.Close[-1]) >= self.sl_price):
+                self.position.close()
+                return

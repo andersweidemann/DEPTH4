@@ -1,0 +1,41 @@
+{
+  "hypothesis": "Range expansion occurs in US500 during the Asia session on the M5 timeframe",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "asia"
+    }
+  },
+  "entry_rules": {
+    "type": "range_expansion",
+    "params": {
+      "atr_period": 14,
+      "atr_multiplier": 2
+    }
+  },
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "atr_period": 14,
+        "atr_multiplier": 1.5
+      }
+    },
+    "tp": {
+      "type": "opposite_bb",
+      "params": {}
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "bars": 30
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.01
+    }
+  }
+}

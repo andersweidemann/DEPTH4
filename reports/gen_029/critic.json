@@ -1,0 +1,45 @@
+{
+  "ranking": [
+    {
+      "candidate": "01_xauusd_m15_bbrsimeanreversion",
+      "fitness": 0.05,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.42,
+        "max_dd_pct": 0.0,
+        "trades_total": 1
+      }
+    },
+    {
+      "candidate": "00_xauusd_m5_asialondonbreakout_atr",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    },
+    {
+      "candidate": "03_us500_m5_orb_volexpansion",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: TOTAL FAILURE\n\nAll three candidates effectively produced zero trades across the 4.5-year IS window (2020-01-01 to 2024-06-30) on all four symbol/TF combos. Only `01_bbrsimeanreversion` managed a single trade on XAUUSD M5 (1 trade, 100% win, meaningless statistically). This is not a parameter tuning problem \u2014 it is an **entry-logic wiring / data-feed / signal-gating defect**.\n\n### Probable root causes (in priority order)\n1. **Session/time filters too restrictive or timezone-misaligned** \u2014 Asia/London breakout and ORB strategies are highly session-dependent; if the broker server time offset is not applied, the session windows never open.\n2. **Entry gates stacked multiplicatively** (e.g., ATR expansion AND volume AND BB band AND RSI extreme) so the joint probability of trigger is near zero.\n3. **Symbol/TF routing bug** \u2014 US500 ORB was tested against XAUUSD/GER40 only; US500 was never actually run. Same likely for GER40 on a XAUUSD-named strategy.\n4. **Threshold units mismatch** \u2014 e.g., ATR threshold specified in price but compared to points, or BB std-dev set to 3.0+ on M5 where touches are rare.\n\n### Recommendation\nDo **not** iterate parameters on these three candidates. Pivot the generation: fix the harness first (verify non-zero signal counts at the indicator layer before gating), then replace the family mix.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Asia/London session breakout with ATR filter on XAUUSD M5/M15 \u2014 zero trades in 4.5y indicates session window never triggers; do not re-spawn without first proving session-bar coverage via a diagnostic print of bars-per-session.",
+    "BB+RSI mean reversion stacked gates on XAUUSD \u2014 joint entry probability collapses to ~0; if revisited, use OR-gate (BB touch OR RSI extreme) not AND, and relax BB to 2.0 std / RSI to 30-70.",
+    "ORB + volume expansion on US500 as currently wired \u2014 candidate was routed to wrong symbols (XAUUSD/GER40) and never tested on US500; dead until routing/config is fixed.",
+    "General: any new candidate in next generation must include a mandatory 'signal_count' sanity log (>= 500 raw signals before risk filters over 4y) or it is auto-rejected pre-backtest."
+  ]
+}

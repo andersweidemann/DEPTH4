@@ -1,0 +1,15 @@
+{
+  "ranking": [
+    {
+      "candidate": "02_03_03_asia_london_range_breakout_xauusd_",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {"pf_avg": 0.0, "sharpe_avg": 0.0, "max_dd_pct": 0.0, "trades_total": 0}
+    }
+  ],
+  "summary_markdown": "## Generation Review\n\n**Verdict: Entire generation failed — 0 trades executed on XAUUSD M5 over 2020-01-01 to 2024-06-30.**\n\nThe sole candidate `02_03_03_asia_london_range_breakout_xauusd_` produced zero trades across a 4.5-year IS window. This is not a performance issue — it is a signal-generation failure. Possible root causes:\n\n1. **Session window misconfiguration**: Asia range (e.g., 00:00–07:00 broker time) or London breakout window may be defined in a timezone that never aligns with broker server time, or the range-end time is before range-start.\n2. **Range filter too strict**: Min/max range size in pips/points may be filtering out 100% of Asia sessions (e.g., requiring range < 50 pips on XAUUSD where typical Asia range is 300–800 points).\n3. **Breakout confirmation condition impossible**: e.g., requiring close beyond range + buffer AND another indicator alignment that never co-occurs.\n4. **Symbol/point-size mismatch**: Thresholds written for FX 5-digit pricing but XAUUSD uses 2-digit with different point value.\n5. **Order placement logic bug**: pending orders placed but immediately deleted each tick, or expiry too short.\n\n**Recommendation**: Do not tune parameters — instrument the EA with debug logging to confirm (a) Asia range is computed, (b) London breakout trigger is reached, (c) order send returns success. Verify broker timezone offset first.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "asia_london_range_breakout on XAUUSD M5 with current range/session filters — re-enter only after debug logs confirm signals are generated; otherwise pivot to London-open momentum breakout (no Asia range dependency) or NY-session mean-reversion on XAUUSD"
+  ]
+}

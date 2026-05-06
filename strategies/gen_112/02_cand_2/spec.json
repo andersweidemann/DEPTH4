@@ -1,0 +1,45 @@
+{
+  "hypothesis": "The Asia-London range expansion strategy can be applied to XAUUSD and GER40",
+  "regime_filter": {
+    "type": "session",
+    "params": {
+      "session": "london"
+    }
+  },
+  "entry_rules": [
+    {
+      "type": "long",
+      "condition": "close > high_asia && close > upper_bb"
+    },
+    {
+      "type": "short",
+      "condition": "close < low_asia && close < lower_bb"
+    }
+  ],
+  "exit_rules": {
+    "sl": {
+      "type": "atr",
+      "params": {
+        "multiplier": 2
+      }
+    },
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "distance": 300
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "num_bars": 20
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "fixed",
+    "params": {
+      "size": 0.2
+    }
+  }
+}

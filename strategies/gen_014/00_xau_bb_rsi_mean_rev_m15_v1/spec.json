@@ -1,0 +1,56 @@
+{
+  "name": "xau_bb_rsi_mean_rev_m15_v1",
+  "family": "mean_reversion",
+  "hypothesis": "On XAUUSD M15, when price closes outside a 20-period Bollinger Band (2.0\u03c3) with RSI(2) in extreme territory AND BB width is above its 40th percentile (non-dead range), price mean-reverts to the middle band within 24 bars. A low-ADX regime filter excludes strong trends where mean-reversion fails.",
+  "symbols": [
+    "XAUUSD"
+  ],
+  "timeframes": [
+    "M15"
+  ],
+  "regime_filter": {
+    "primitive": "classify",
+    "rules": [
+      {
+        "name": "adx",
+        "period": 14,
+        "max": 25
+      },
+      {
+        "name": "bb_width_percentile",
+        "lookback": 200,
+        "min_pct": 40
+      }
+    ],
+    "require_all": true
+  },
+  "entry": {
+    "long": "close < lower_bb(20,2.0) AND rsi(2) < 10 AND prior_bar_close >= lower_bb",
+    "short": "close > upper_bb(20,2.0) AND rsi(2) > 90 AND prior_bar_close <= upper_bb",
+    "primitives": [
+      "bollinger",
+      "rsi",
+      "bb_width"
+    ],
+    "cooldown_bars": 4,
+    "max_concurrent_positions": 1
+  },
+  "exit": {
+    "take_profit": "middle_bb(20) OR opposite_bb whichever hit first",
+    "stop_loss": "1.5 * ATR(14) from entry",
+    "time_stop_bars": 24,
+    "trailing": "none"
+  },
+  "sizing": {
+    "method": "risk_pct_of_equity",
+    "risk_pct": 0.5,
+    "min_lots": 0.01,
+    "max_lots": 5.0
+  },
+  "instrumentation": {
+    "log_bars_loaded": true,
+    "log_signal_eval_counts": true,
+    "log_rejection_reasons": true
+  },
+  "notes": "Instrumentation mandatory given prior-gen zero-trade failure. Verify broker symbol alias resolves (XAUUSD/GOLD). No session filter to avoid TZ bug."
+}

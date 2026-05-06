@@ -1,0 +1,62 @@
+{
+  "id": "gen30_04_atr_breakout_trend_xau_m5",
+  "name": "ATR Breakout Trend-Follow XAUUSD M5",
+  "family": "trend_breakout",
+  "hypothesis": "On XAUUSD M5, a close that exceeds prior close by more than 1.0*ATR(14) while aligned with EMA(50)>EMA(200) signals a sustained impulse yielding positive expectancy at 2R TP.",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "signals": [
+    {
+      "primitive": "atr_breakout_levels",
+      "params": {
+        "atr_period": 14,
+        "mult": 1.0
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 50
+      }
+    },
+    {
+      "primitive": "ema",
+      "params": {
+        "period": 200
+      }
+    },
+    {
+      "primitive": "atr",
+      "params": {
+        "period": 14
+      }
+    }
+  ],
+  "regime_filter": {
+    "primitive": "adx",
+    "params": {
+      "period": 14,
+      "min_value": 20
+    }
+  },
+  "entry_rules": {
+    "long": "close > close[1] + 1.0 * atr14[1] AND ema50 > ema200",
+    "short": "close < close[1] - 1.0 * atr14[1] AND ema50 < ema200",
+    "notes": "Pure momentum impulse with trend alignment and ADX regime filter; no session gate."
+  },
+  "exit_rules": {
+    "take_profit": "2.0 * ATR(14)",
+    "stop_loss": "1.2 * ATR(14)",
+    "time_stop_bars": 60,
+    "trailing": "after +1R move stop to breakeven"
+  },
+  "sizing": {
+    "mode": "risk_pct",
+    "risk_pct_per_trade": 0.4,
+    "max_concurrent": 1,
+    "cooldown_bars": 4
+  },
+  "diagnostics": {
+    "expect_signal_count_per_year_min": 150
+  }
+}

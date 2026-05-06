@@ -1,0 +1,27 @@
+{
+  "candidate": "01_ger40_donchian_breakout_m15",
+  "label": "is",
+  "window": [
+    "2020-01-01",
+    "2024-06-30"
+  ],
+  "combos": [
+    {
+      "symbol": "GER40",
+      "timeframe": "M15",
+      "trades": 1389,
+      "metrics": {
+        "return_pct": -3.3202091337531923,
+        "pf": 1.0022645014215241,
+        "sharpe": -0.12313933149626362,
+        "sortino": -0.19396816057530666,
+        "max_dd_pct": 10.037553712320035,
+        "trades": 1389.0,
+        "win_rate": 33.837293016558675,
+        "expectancy": 0.0003021294962008082,
+        "avg_trade": -0.0003199825257094169,
+        "exposure_pct": 7.222675684079602
+      }
+    }
+  ]
+}

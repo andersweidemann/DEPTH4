@@ -1,0 +1,44 @@
+{
+  "hypothesis": "Volatility normalization using ATR leads to profitable trades on GER40 M5",
+  "regime_filter": {
+    "type": "atr_percentile",
+    "params": {
+      "percentile": 50,
+      "lookback": 20
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "close > sma(20) && atr(14) > 10"
+    },
+    "short": {
+      "condition": "close < sma(20) && atr(14) > 10"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "fixed",
+      "params": {
+        "pips": 50
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 20
+      }
+    },
+    "time_stop": {
+      "type": "hours",
+      "params": {
+        "num_hours": 1
+      }
+    }
+  },
+  "sizing_rules": {
+    "type": "risk",
+    "params": {
+      "risk_percent": 1
+    }
+  }
+}

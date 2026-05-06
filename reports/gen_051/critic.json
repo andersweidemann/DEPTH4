@@ -1,0 +1,30 @@
+{
+  "ranking": [
+    {
+      "candidate": "00_xau_bb_rsi_meanrev_m5",
+      "fitness": 0.0,
+      "verdict": "reject",
+      "metrics_summary": {
+        "pf_avg": 0.0,
+        "sharpe_avg": 0.0,
+        "max_dd_pct": 0.0,
+        "trades_total": 0
+      }
+    }
+  ],
+  "summary_markdown": "## Generation Verdict: FAIL (Zero Trades)\n\nThe sole candidate `00_xau_bb_rsi_meanrev_m5` produced **0 trades** over the 4.5-year IS window (2020-01-01 to 2024-06-30) on XAUUSD M5. All metrics are NaN/0, meaning the entry logic never fired \u2014 this is a specification/implementation failure, not a performance failure.\n\n### Likely root causes\n1. **Entry gates too strict**: BB+RSI mean-reversion with compounded filters (e.g., RSI<30 AND close<lower BB AND additional trend/volatility filter) can trivially produce zero hits on M5 XAU if thresholds are mis-scaled for gold's volatility.\n2. **Symbol/price scaling bug**: BB stdev multiplier or RSI period may be applied to wrong series, or pip/point conversion is off for XAUUSD (price ~2000, not ~1.2).\n3. **Session/time filter** excluding all bars (e.g., TZ mismatch, news filter always-on).\n4. **Data feed empty or misaligned** for the symbol on the test harness.\n\n### Recommendation\nDo NOT tune parameters further until a smoke test confirms the strategy fires. Instrument the entry function with a counter for each gate. Once trades > 0, reassess whether BB+RSI meanrev on XAU M5 is even viable \u2014 gold M5 is trend/momentum-dominated during LDN/NY sessions and chops aggressively elsewhere; pure meanrev typically bleeds. Consider a strategy-family pivot.",
+  "per_survivor_notes": {},
+  "dead_branches": [
+    "Pure BB+RSI mean-reversion on XAUUSD M5 without volatility regime filter \u2014 XAU M5 exhibits fat-tailed momentum bursts during LDN/NY open that punish symmetric meanrev entries; revisit only as a session-gated Asia-range fade, not as a 24h strategy.",
+    "Any further parameter sweep on this candidate before a zero-trade diagnostic is run (wasted compute)."
+  ],
+  "refinement_notes_for_next_gen": {
+    "diagnostic_first": "Add per-gate rejection counters to the entry block and re-run a 30-day slice before any optimization.",
+    "symbol_sanity": "Verify BB width is computed on price (not log-return) and that stdev multiplier (likely 2.0) is not being applied on top of an already-normalized series \u2014 on XAU at 2000, a 2-sigma band on 20-period M5 is typically 3\u20136 USD; if band width in logs is <0.1 or >50, scaling is broken.",
+    "pivot_candidates": [
+      "XAU M5 ATR-breakout with session filter (LDN 07:00\u201310:00 UTC).",
+      "XAU M15 Donchian trend-follow with ADX>20 gate.",
+      "If meanrev insisted upon, move to H1 with BB(20,2.0) + RSI(14)<25 + prior-bar bullish divergence; expect ~300\u2013600 trades over 4.5y."
+    ]
+  }
+}

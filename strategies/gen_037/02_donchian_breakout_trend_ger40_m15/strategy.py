@@ -1,0 +1,216 @@
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, regime, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    donchian_period: int = 40
+    adx_period: int = 14
+    adx_min: float = 22.0
+    atr_period: int = 14
+    atr_sl_mult: float = 2.0
+    r_target: float = 2.5
+    ema_period: int = 50
+    time_stop_bars: int = 40
+    cooldown_bars: int = 8
+    trail_period: int = 20
+    trail_activate_r: float = 1.0
+    risk_pct: float = 0.5
+    min_lot: float = 0.1
+    atr_pct_min: float = 35.0
+    atr_pct_lookback: int = 500
+
+    def init(self):
+        try:
+            p = Path(__file__).parent / self.spec_path
+            if p.exists():
+                self._spec = json.loads(p.read_text())
+        except Exception:
+            pass
+        if not self._spec:
+            self._spec = {
+                "filters": {"session_utc": [["07:00", "15:30"]]},
+                "risk": {},
+            }
+        else:
+            self._spec.setdefault("filters", {}).setdefault(
+                "session_utc", [["07:00", "15:30"]]
+            )
+        super().init()
+
+        self._don_high = self.I(
+            lambda h, n: pd.Series(h).rolling(n).max().to_numpy(),
+            self.data.High, self.donchian_period,
+        )
+        self._don_low = self.I(
+            lambda l, n: pd.Series(l).rolling(n).min().to_numpy(),
+            self.data.Low, self.donchian_period,
+        )
+        self._trail_high = self.I(
+            lambda h, n: pd.Series(h).rolling(n).max().to_numpy(),
+            self.data.High, self.trail_period,
+        )
+        self._trail_low = self.I(
+            lambda l, n: pd.Series(l).rolling(n).min().to_numpy(),
+            self.data.Low, self.trail_period,
+        )
+        self._atr_series = self.I(signals.atr, self.data, self.atr_period)
+        self._ema_series = self.I(signals.ema, self.data.Close, self.ema_period)
+        self._adx_series = self.I(regime.adx, self.data, self.adx_period)
+        self._atr_pct_series = self.I(
+            regime.atr_percentile, self.data, self.atr_period, self.atr_pct_lookback
+        )
+
+        self._last_exit_bar: int = -10_000
+
+    def _regime_ok(self) -> bool:
+        adx_val = float(self._adx_series[-1])
+        if np.isnan(adx_val) or adx_val < self.adx_min:
+            return False
+        atr_pct = float(self._atr_pct_series[-1])
+        if np.isnan(atr_pct) or atr_pct < self.atr_pct_min:
+            return False
+        return True
+
+    def _enter_if_signal(self) -> None:
+        if self.position:
+            return
+        bar_i = len(self.data) - 1
+        if bar_i - self._last_exit_bar < self.cooldown_bars:
+            return
+
+        if len(self._don_high) < 2:
+            return
+
+        don_high_prev = float(self._don_high[-2])
+        don_low_prev = float(self._don_low[-2])
+        if np.isnan(don_high_prev) or np.isnan(don_low_prev):
+            return
+
+        close = float(self.data.Close[-1])
+        ema_val = float(self._ema_series[-1])
+        atr_val = float(self._atr_series[-1])
+        if np.isnan(ema_val) or np.isnan(atr_val) or atr_val <= 0:
+            return
+
+        equity = float(self.equity)
+        price = close
+
+        long_sig = close > don_high_prev and close > ema_val
+        short_sig = close < don_low_prev and close < ema_val
+
+        if long_sig:
+            sl = price - self.atr_sl_mult * atr_val
+            risk_per_unit = price - sl
+            if risk_per_unit <= 0:
+                return
+            tp = price + self.r_target * risk_per_unit
+            size = risk.lots_by_risk_pct(
+                equity=equity,
+                risk_pct=self.risk_pct,
+                stop_distance=risk_per_unit,
+                price=price,
+                min_lot=self.min_lot,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.buy(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.buy(sl=sl, tp=tp)
+                except Exception:
+                    return
+        elif short_sig:
+            sl = price + self.atr_sl_mult * atr_val
+            risk_per_unit = sl - price
+            if risk_per_unit <= 0:
+                return
+            tp = price - self.r_target * risk_per_unit
+            size = risk.lots_by_risk_pct(
+                equity=equity,
+                risk_pct=self.risk_pct,
+                stop_distance=risk_per_unit,
+                price=price,
+                min_lot=self.min_lot,
+            )
+            if size is None or size <= 0:
+                return
+            self.sl_price = sl
+            self.tp_price = tp
+            try:
+                self.sell(size=size, sl=sl, tp=tp)
+            except Exception:
+                try:
+                    self.sell(sl=sl, tp=tp)
+                except Exception:
+                    return
+
+    def _manage_open(self) -> None:
+        if not self.position or not self.trades:
+            if not self.position:
+                self._last_exit_bar = len(self.data) - 1
+            return
+
+        bar_i = len(self.data) - 1
+        price = float(self.data.Close[-1])
+        atr_val = float(self._atr_series[-1])
+
+        for trade in list(self.trades):
+            bars_open = bar_i - trade.entry_bar
+            if bars_open >= self.time_stop_bars:
+                trade.close()
+                continue
+
+            entry = float(trade.entry_price)
+            if trade.is_long:
+                init_risk = entry - (self.sl_price if self.sl_price else entry - self.atr_sl_mult * atr_val)
+                if init_risk <= 0:
+                    continue
+                r_now = (price - entry) / init_risk
+                if r_now >= self.trail_activate_r:
+                    trail = float(self._trail_low[-1])
+                    if not np.isnan(trail):
+                        if trade.sl is None or trail > trade.sl:
+                            try:
+                                trade.sl = trail
+                            except Exception:
+                                pass
+            else:
+                init_risk = (self.sl_price if self.sl_price else entry + self.atr_sl_mult * atr_val) - entry
+                if init_risk <= 0:
+                    continue
+                r_now = (entry - price) / init_risk
+                if r_now >= self.trail_activate_r:
+                    trail = float(self._trail_high[-1])
+                    if not np.isnan(trail):
+                        if trade.sl is None or trail < trade.sl:
+                            try:
+                                trade.sl = trail
+                            except Exception:
+                                pass
+
+        if not self.position:
+            self._last_exit_bar = bar_i
+
+    def next(self):
+        if not self.position and len(self.trades) == 0:
+            pass
+        if not self._regime_ok():
+            self._manage_open()
+            return
+        if not self._filters_ok():
+            self._manage_open()
+            return
+        self._enter_if_signal()
+        self._manage_open()

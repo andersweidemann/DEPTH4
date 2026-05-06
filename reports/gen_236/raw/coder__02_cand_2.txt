@@ -1,0 +1,45 @@
+```python
+import numpy as np
+import pandas as pd
+from agents.backtester import RegimeStrategy
+from agents.signals import sma, adx
+from agents.risk import lots_by_risk_pct, daily_kill_ok, spread_ok, DailyKillState
+
+class Strategy(RegimeStrategy):
+    def init(self):
+        self.spec = dict(self._spec)
+        self._kill_state = DailyKillState(start_of_day_equity=self._equity_start)
+        self._adx_series = self.I(adx, self.data, 14)
+        self._sma_series = self.I(sma, self.data, 20)
+        self._broker_spread_points = 0
+
+    def _regime_ok(self):
+        adx_val = float(self._adx_series[-1])
+        return adx_val > self.spec["regime_filter"]["params"]["threshold"]
+
+    def _filters_ok(self):
+        idx = self.data.index
+        bar_i = len(self.data) - 1
+        return True
+
+    def _enter_if_signal(self):
+        adx_val = float(self._adx_series[-1])
+        sma_val = float(self._sma_series[-1])
+        close_val = float(self.data.Close[-1])
+        if adx_val > self.spec["regime_filter"]["params"]["threshold"]:
+            if close_val < sma_val:
+                self.position.enter_long(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start, self.data))
+                self.sl_price = close_val - self.spec["exit_rules"]["sl"]["params"]["distance"]
+                self.tp_price = sma_val
+            elif close_val > sma_val:
+                self.position.enter_short(lots_by_risk_pct(self.spec["sizing_rules"]["params"]["size"], self._equity_start, self.data))
+                self.sl_price = close_val + self.spec["exit_rules"]["sl"]["params"]["distance"]
+                self.tp_price = sma_val
+
+    def _manage_open(self):
+        time_stop = self.spec["exit_rules"]["time_stop"]["params"]["bars"]
+        if self.position:
+            bars_open = len(self.data) - self.position.entry_bar
+            if bars_open >= time_stop:
+                self.position.close()
+```

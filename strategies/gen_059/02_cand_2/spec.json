@@ -1,0 +1,45 @@
+{
+  "hypothesis": "RSI divergence on US500 M5 indicates a potential reversal.",
+  "regime_filter": {
+    "type": "rsi",
+    "params": {
+      "period": 14,
+      "threshold": 70
+    }
+  },
+  "entry_rules": {
+    "long": {
+      "condition": "rsi(14) < 30 && close > rsi_divergence_high"
+    },
+    "short": {
+      "condition": "rsi(14) > 70 && close < rsi_divergence_low"
+    }
+  },
+  "exit_rules": {
+    "tp": {
+      "type": "atr",
+      "params": {
+        "period": 14,
+        "multiplier": 2
+      }
+    },
+    "sl": {
+      "type": "fixed",
+      "params": {
+        "pips": 15
+      }
+    },
+    "time_stop": {
+      "type": "bars",
+      "params": {
+        "count": 20
+      }
+    }
+  },
+  "sizing": {
+    "type": "fixed",
+    "params": {
+      "size": 0.05
+    }
+  }
+}

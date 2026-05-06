@@ -1,0 +1,124 @@
+```json
+[
+  {
+    "hypothesis": "Mean reversion occurs when price touches the upper or lower Bollinger Band with extreme RSI readings",
+    "regime_filter": {
+      "type": "bb_width_percentile",
+      "params": {
+        "period": 20,
+        "deviation": 1.75,
+        "percentile": 30
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_mean_reversion",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [10, 90]
+      }
+    },
+    "exit_rule": {
+      "type": "opposite_bb",
+      "params": {
+        "sl_multiplier": 1.5,
+        "time_stop_bars": 30
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed_fraction",
+      "params": {
+        "fraction": 0.01
+      }
+    }
+  },
+  {
+    "hypothesis": "Breakouts from the Asia range during the London session can be profitable",
+    "regime_filter": {
+      "type": "session",
+      "params": {
+        "start_hour": 7,
+        "end_hour": 10
+      }
+    },
+    "entry_rule": {
+      "type": "asia_london_breakout",
+      "params": {
+        "atr_period": 14,
+        "min_range_atr": 0.5,
+        "max_range_atr": 2.0
+      }
+    },
+    "exit_rule": {
+      "type": "tp_sl",
+      "params": {
+        "tp_pips": 100,
+        "sl_pips": 50
+      }
+    },
+    "sizing_rule": {
+      "type": "fixed",
+      "params": {
+        "size": 0.1
+      }
+    }
+  },
+  {
+    "hypothesis": "Price touching the Bollinger Band with a high RSI reading can indicate a reversal",
+    "regime_filter": {
+      "type": "bb_width",
+      "params": {
+        "min_width": 0.01
+      }
+    },
+    "entry_rule": {
+      "type": "bb_rsi_reversal",
+      "params": {
+        "rsi_period": 7,
+        "rsi_thresholds": [70, 30]
+      }
+    },
+    "exit_rule": {
+      "type": "trailing_stop",
+      "params": {
+        "trailing_stop_pips": 20,
+        "trailing_step_pips": 10
+      }
+    },
+    "sizing_rule": {
+      "type": "proportional",
+      "params": {
+        "proportion": 0.02
+      }
+    }
+  },
+  {
+    "hypothesis": "ATR-based volatility can be used to filter trades and adjust position sizing",
+    "regime_filter": {
+      "type": "atr_percentile",
+      "params": {
+        "period": 14,
+        "percentile": 50
+      }
+    },
+    "entry_rule": {
+      "type": "donchian_breakout",
+      "params": {
+        "breakout_period": 20
+      }
+    },
+    "exit_rule": {
+      "type": "time_stop",
+      "params": {
+        "time_stop_bars": 60
+      }
+    },
+    "sizing_rule": {
+      "type": "volatility_based",
+      "params": {
+        "atr_period": 14,
+        "size_multiplier": 0.1
+      }
+    }
+  }
+]
+```

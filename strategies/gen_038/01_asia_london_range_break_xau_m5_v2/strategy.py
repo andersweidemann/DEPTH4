@@ -1,0 +1,280 @@
+import json
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
+import pandas as pd
+
+from agents import signals, risk
+from agents.backtester import RegimeStrategy
+
+
+class Strategy(RegimeStrategy):
+    spec_path: str = "spec.json"
+
+    asia_start_utc = "00:00"
+    asia_end_utc = "06:00"
+    london_start_utc = "07:00"
+    london_end_utc = "12:00"
+    min_range_atr = 0.4
+    max_range_atr = 2.5
+    breakout_body_atr = 0.8
+    breakout_distance_atr = 0.3
+    max_breakout_bars = 18
+    risk_pct = 0.75
+    cooldown_bars = 12
+    sl_atr_mult = 1.2
+    tp_range_mult = 2.0
+    be_trigger_atr = 1.0
+    trail_atr_mult = 2.0
+
+    def init(self):
+        try:
+            p = Path(__file__).parent / self.spec_path
+            if p.exists():
+                self._spec = json.loads(p.read_text())
+        except Exception:
+            pass
+
+        super().init()
+
+        params = self.spec.get("params", {}) if isinstance(self.spec, dict) else {}
+        self.asia_start_utc = params.get("asia_start_utc", self.asia_start_utc)
+        self.asia_end_utc = params.get("asia_end_utc", self.asia_end_utc)
+        self.london_start_utc = params.get("london_window_start", self.london_start_utc)
+        self.london_end_utc = params.get("london_window_end", self.london_end_utc)
+        self.min_range_atr = params.get("min_range_atr", self.min_range_atr)
+        self.max_range_atr = params.get("max_range_atr", self.max_range_atr)
+        self.breakout_body_atr = params.get("breakout_body_atr", self.breakout_body_atr)
+        self.breakout_distance_atr = params.get("breakout_distance_atr", self.breakout_distance_atr)
+        self.max_breakout_bars = params.get("max_breakout_bars", self.max_breakout_bars)
+
+        self._atr_series = self.I(signals.atr, self.data, 14)
+
+        df = self.data.df if hasattr(self.data, "df") else self.data
+        idx = df.index
+
+        self._london_mask = np.asarray(
+            signals.session_mask(idx, [f"{self.london_start_utc}-{self.london_end_utc}"]),
+            dtype=bool,
+        )
+        self._asia_mask = np.asarray(
+            signals.session_mask(idx, [f"{self.asia_start_utc}-{self.asia_end_utc}"]),
+            dtype=bool,
+        )
+
+        ts = pd.DatetimeIndex(idx)
+        if ts.tz is None:
+            ts = ts.tz_localize("UTC")
+        else:
+            ts = ts.tz_convert("UTC")
+
+        dates = ts.normalize()
+        highs = np.asarray(df["High"].values, dtype=float)
+        lows = np.asarray(df["Low"].values, dtype=float)
+
+        n = len(ts)
+        asia_high = np.full(n, np.nan)
+        asia_low = np.full(n, np.nan)
+        london_bar_count = np.full(n, -1, dtype=int)
+
+        cur_day = None
+        cur_high = -np.inf
+        cur_low = np.inf
+        cur_set = False
+        london_counter = -1
+        prev_london = False
+
+        for i in range(n):
+            day = dates[i].value
+            if day != cur_day:
+                cur_day = day
+                cur_high = -np.inf
+                cur_low = np.inf
+                cur_set = False
+                london_counter = -1
+                prev_london = False
+
+            if self._asia_mask[i]:
+                if highs[i] > cur_high:
+                    cur_high = highs[i]
+                if lows[i] < cur_low:
+                    cur_low = lows[i]
+                cur_set = True
+
+            if self._london_mask[i]:
+                if not prev_london:
+                    london_counter = 0
+                else:
+                    london_counter += 1
+                prev_london = True
+                if cur_set:
+                    asia_high[i] = cur_high
+                    asia_low[i] = cur_low
+                london_bar_count[i] = london_counter
+            else:
+                prev_london = False
+
+        self._asia_high_arr = asia_high
+        self._asia_low_arr = asia_low
+        self._london_bar_count = london_bar_count
+        self._dates_day = dates.values
+
+        self._last_entry_bar = -10_000
+        self._trades_today_long = 0
+        self._trades_today_short = 0
+        self._current_day = None
+
+    def _regime_ok(self) -> bool:
+        i = len(self.data) - 1
+        if i < 0:
+            return False
+        if not self._london_mask[i]:
+            return False
+        lbc = self._london_bar_count[i]
+        if lbc < 0 or lbc >= self.max_breakout_bars:
+            return False
+        ah = self._asia_high_arr[i]
+        al = self._asia_low_arr[i]
+        if np.isnan(ah) or np.isnan(al):
+            return False
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now) or atr_now <= 0:
+            return False
+        range_size = ah - al
+        if range_size <= 0:
+            return False
+        ratio = range_size / atr_now
+        if ratio < self.min_range_atr or ratio > self.max_range_atr:
+            return False
+        return True
+
+    def _filters_ok(self) -> bool:
+        return True
+
+    def next(self):
+        i = len(self.data) - 1
+        if i < 20:
+            return
+
+        day = self._dates_day[i]
+        if day != self._current_day:
+            self._current_day = day
+            self._trades_today_long = 0
+            self._trades_today_short = 0
+
+        self._manage_trailing()
+
+        idx = self.data.index
+        ts = pd.Timestamp(idx[-1])
+        if ts.tz is None:
+            ts = ts.tz_localize("UTC")
+        else:
+            ts = ts.tz_convert("UTC")
+
+        if self.position:
+            if ts.hour >= 16:
+                self.position.close()
+            return
+
+        if i - self._last_entry_bar < self.cooldown_bars:
+            return
+
+        if not self._regime_ok():
+            return
+
+        atr_now = float(self._atr_series[-1])
+        ah = float(self._asia_high_arr[i])
+        al = float(self._asia_low_arr[i])
+        close = float(self.data.Close[-1])
+        open_ = float(self.data.Open[-1])
+        body = abs(close - open_)
+        range_size = ah - al
+
+        long_sig = (
+            close > ah
+            and (close - ah) >= self.breakout_distance_atr * atr_now
+            and body >= self.breakout_body_atr * atr_now
+            and self._trades_today_long < 2
+        )
+        short_sig = (
+            close < al
+            and (al - close) >= self.breakout_distance_atr * atr_now
+            and body >= self.breakout_body_atr * atr_now
+            and self._trades_today_short < 2
+        )
+
+        if long_sig:
+            sl_atr = close - self.sl_atr_mult * atr_now
+            sl = max(al, sl_atr)
+            if sl >= close:
+                return
+            tp = close + self.tp_range_mult * range_size
+            self.sl_price = sl
+            self.tp_price = tp
+            size = self._size_for(close, sl)
+            if size and size > 0:
+                self.buy(sl=sl, tp=tp, size=size)
+                self._last_entry_bar = i
+                self._trades_today_long += 1
+
+        elif short_sig:
+            sl_atr = close + self.sl_atr_mult * atr_now
+            sl = min(ah, sl_atr)
+            if sl <= close:
+                return
+            tp = close - self.tp_range_mult * range_size
+            self.sl_price = sl
+            self.tp_price = tp
+            size = self._size_for(close, sl)
+            if size and size > 0:
+                self.sell(sl=sl, tp=tp, size=size)
+                self._last_entry_bar = i
+                self._trades_today_short += 1
+
+    def _size_for(self, price: float, sl: float):
+        try:
+            lots = risk.lots_by_risk_pct(
+                equity=float(self.equity),
+                risk_pct=self.risk_pct,
+                entry=price,
+                sl=sl,
+                symbol=self._symbol,
+            )
+        except Exception:
+            lots = None
+
+        if lots is None or lots <= 0:
+            risk_amt = float(self.equity) * (self.risk_pct / 100.0)
+            dist = abs(price - sl)
+            if dist <= 0:
+                return 0
+            units = risk_amt / dist
+            size_frac = units * price / float(self.equity)
+            size_frac = max(1e-4, min(size_frac, 0.99))
+            return size_frac
+        return lots
+
+    def _manage_trailing(self):
+        if not self.trades:
+            return
+        atr_now = float(self._atr_series[-1])
+        if np.isnan(atr_now):
+            return
+        price = float(self.data.Close[-1])
+        for trade in self.trades:
+            entry = trade.entry_price
+            if trade.is_long:
+                profit = price - entry
+                if profit >= self.be_trigger_atr * atr_now:
+                    be = entry
+                    new_sl = max(be, price - self.trail_atr_mult * atr_now)
+                    if trade.sl is None or new_sl > trade.sl:
+                        trade.sl = new_sl
+            else:
+                profit = entry - price
+                if profit >= self.be_trigger_atr * atr_now:
+                    be = entry
+                    new_sl = min(be, price + self.trail_atr_mult * atr_now)
+                    if trade.sl is None or new_sl < trade.sl:
+                        trade.sl = new_sl

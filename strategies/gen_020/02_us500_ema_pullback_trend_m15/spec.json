@@ -1,0 +1,73 @@
+{
+  "name": "us500_ema_pullback_trend_m15",
+  "hypothesis": "US500 exhibits persistent intraday trends during US cash session; pullbacks to a fast EMA within an established trend (slow EMA slope + ADX) offer better risk/reward than breakout entries and avoid chop.",
+  "family": "trend_pullback",
+  "symbol": "US500",
+  "timeframe": "M15",
+  "signals": [
+    {
+      "type": "ema",
+      "period": 20
+    },
+    {
+      "type": "ema",
+      "period": 50
+    },
+    {
+      "type": "ema",
+      "period": 200
+    },
+    {
+      "type": "atr",
+      "period": 14
+    },
+    {
+      "type": "rsi",
+      "period": 7
+    },
+    {
+      "type": "session_mask",
+      "windows": [
+        {
+          "start": "13:30",
+          "end": "20:00",
+          "tz": "UTC"
+        }
+      ]
+    }
+  ],
+  "regime_filter": {
+    "type": "adx",
+    "period": 14,
+    "min_value": 20,
+    "description": "Only take pullbacks when trend strength is present; ADX<20 likely mean-revert or chop."
+  },
+  "entry_rules": {
+    "long": "EMA50 > EMA200 and EMA50 slope positive over last 10 bars; price pulls back to touch or cross below EMA20 then closes back above EMA20; RSI(7) crossed up from <40.",
+    "short": "Mirror: EMA50 < EMA200, negative slope, pullback above EMA20 then close back below, RSI(7) crossed down from >60.",
+    "max_signals_per_day": 3,
+    "cooldown_bars": 6
+  },
+  "exit_rules": {
+    "stop_loss": "1.5 * ATR(14) below entry (long) / above entry (short)",
+    "take_profit": "3.0 * ATR(14) (2R)",
+    "time_stop": "Close after 24 bars (6 hours) if neither hit",
+    "trailing": "After +1R, move SL to entry; after +1.5R, trail at EMA20"
+  },
+  "sizing": {
+    "type": "risk_percent",
+    "risk_per_trade_pct": 0.75,
+    "max_concurrent_positions": 1
+  },
+  "parameters": {
+    "ema_fast": 20,
+    "ema_mid": 50,
+    "ema_slow": 200,
+    "atr_period": 14,
+    "rsi_period": 7,
+    "rsi_long_threshold": 40,
+    "rsi_short_threshold": 60,
+    "adx_period": 14,
+    "adx_min": 20
+  }
+}

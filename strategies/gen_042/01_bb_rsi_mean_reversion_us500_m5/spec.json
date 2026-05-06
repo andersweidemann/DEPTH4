@@ -1,0 +1,92 @@
+{
+  "name": "bb_rsi_mean_reversion_us500_m5",
+  "family": "mean_reversion",
+  "symbol": "US500",
+  "timeframe": "M5",
+  "hypothesis": "US500 M5 exhibits strong intraday mean reversion outside of macro-news trends. Closing outside BB(20,1.75) with RSI(7) extreme during regular US cash hours leads to reversion to middle band before session close. Tighter BB deviation (1.75) fires more often than 2.0 on equity indices whose intraday ranges are narrower than gold's.",
+  "signals": {
+    "primary": {
+      "type": "bollinger",
+      "period": 20,
+      "stddev": 1.75,
+      "source": "close"
+    },
+    "confirm": {
+      "type": "rsi",
+      "period": 7,
+      "long_threshold": 10,
+      "short_threshold": 90
+    },
+    "entry_rules": {
+      "long": "close < lower_bb AND rsi7 < 10 AND bb_width_percentile(200) > 30",
+      "short": "close > upper_bb AND rsi7 > 90 AND bb_width_percentile(200) > 30",
+      "cooldown_bars": 6
+    }
+  },
+  "regime_filter": {
+    "type": "classify",
+    "rules": [
+      {
+        "indicator": "adx",
+        "period": 14,
+        "operator": "<",
+        "value": 25,
+        "reason": "skip strong trend days"
+      },
+      {
+        "indicator": "atr_percentile",
+        "period": 14,
+        "lookback": 300,
+        "operator": ">",
+        "value": 30,
+        "reason": "need minimum volatility to reach bands"
+      },
+      {
+        "indicator": "session_mask",
+        "sessions": [
+          "US_cash"
+        ],
+        "start": "13:30",
+        "end": "20:00",
+        "tz": "UTC",
+        "reason": "avoid thin overnight index futures"
+      }
+    ]
+  },
+  "exits": {
+    "stop_loss": {
+      "type": "atr",
+      "period": 14,
+      "multiplier": 1.5
+    },
+    "take_profit": {
+      "type": "band_target",
+      "target": "opposite_bb",
+      "fallback_rr": 1.2
+    },
+    "time_stop": {
+      "type": "bars",
+      "value": 30
+    },
+    "breakeven": {
+      "after_rr": 1.0,
+      "lock_pips": 0
+    }
+  },
+  "sizing": {
+    "mode": "risk_percent",
+    "risk_per_trade_pct": 0.5,
+    "max_concurrent": 1,
+    "max_daily_trades": 8
+  },
+  "acceptance_targets": {
+    "pf_min": 2.0,
+    "sharpe_min": 1.5,
+    "max_dd_pct": 15.0,
+    "trades_min": 200
+  },
+  "inspiration": [
+    "bb-rsi-mean-reversion-scalper.md",
+    "mean-reversion-scalper-v3.md"
+  ]
+}
