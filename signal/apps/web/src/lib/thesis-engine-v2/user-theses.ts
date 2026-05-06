@@ -117,7 +117,7 @@ function mkAdvisoryLog(thesis: Thesis): ThesisUpdate[] {
       id: `${thesis.id}-u2`,
       thesisId: thesis.id,
       timestamp: "Next",
-      text: "This becomes actionable if trigger confirms while mispricing remains visible.",
+      text: "This becomes actionable if the trigger confirms while the market still hasn’t caught up yet.",
     },
   ];
 }

@@ -68,10 +68,10 @@ export const MOCK_THESES: Thesis[] = [
     probabilityRationale:
       "Peace talk momentum improved, but gold still trades like escalation risk is the base case.",
 
-    hiddenDriver: "Diplomacy is the real driver, not ‘risk sentiment’.",
-    likelyPath: "Headline cadence shifts from escalation to negotiated sequencing; tail risk compresses first, then spot follows.",
+    hiddenDriver: "This is about actual diplomacy, not just market mood shifting.",
+    likelyPath: "Headlines shift from escalation to steady progress on talks; gold can fall before a final deal is signed.",
     marketMisread: "The market still prices gold for escalation risk, even though de-escalation odds are rising.",
-    tradeExpression: "Fade the premium via XAUUSD/GLD; keep tight invalidation above the local high.",
+    tradeExpression: "Short gold via XAUUSD/GLD; keep invalidation above the local high.",
 
     whyNow: "The odds of peace talks succeeding are now high enough that gold should be falling — but it hasn't yet.",
     whatsUnpriced: "The escalation premium is still embedded in spot and short-dated hedges.",
@@ -109,10 +109,10 @@ export const MOCK_THESES: Thesis[] = [
 
     hiddenDriver: "Chokepoint fragility (insurance, routing, and policy signaling).",
     likelyPath: "Friction shows up first in freight/insurance, then physical diffs, then flat price jumps.",
-    marketMisread: "The market still prices a smooth flow regime; it’s a discontinuity risk.",
+    marketMisread: "The market still expects smooth flows; it's a jump-risk story.",
     tradeExpression: "Be positioned for upside moves in oil, with defined risk, and respect headline gaps.",
 
-    whyNow: "The posture has shifted and routing chatter is real — this is when the curve misprices discontinuity.",
+    whyNow: "The posture has shifted and routing chatter is real — this is when oil can jump faster than people expect.",
     whatsUnpriced: "The jump risk from a single incident is not reflected in flat price.",
     trigger: "Verified incident, restriction language, or sudden freight/insurance spike.",
     trade: "Long pullbacks toward 72.40–73.20 · Stop 70.80 · TP 78.50 / 81.00",
@@ -147,11 +147,11 @@ export const MOCK_THESES: Thesis[] = [
       "The incentive structure is diverging, but the timing catalyst is not tight enough yet.",
 
     hiddenDriver: "Political budget needs and compliance fatigue.",
-    likelyPath: "Divergence leaks first; then meeting language surprises; then vol reprices faster than spot.",
-    marketMisread: "Options still price ‘steady policy’ with low tail risk into meetings.",
+    likelyPath: "First the disagreement leaks; then the meeting surprises; then volatility rises fast.",
+    marketMisread: "Options still assume the meeting will be calm and predictable.",
     tradeExpression: "Prefer vol structures once timing compresses; avoid directional until meeting outcome is in hand.",
 
-    whyNow: "The narrative is forming, but it’s not compressed into a tradeable window yet.",
+    whyNow: "The story is forming, but it's not close enough in time to trade yet.",
     whatsUnpriced: "Vol risk into the next guidance window is too cheap for the uncertainty.",
     trigger: "Leak, dissent signal, or meeting prep headline that breaks the unity story.",
     trade: "Watch until trigger; then express via defined-risk vol (dummy).",
@@ -179,14 +179,14 @@ export const MOCK_THESES: Thesis[] = [
     probability: 61,
     status: "active",
     probabilityRationale:
-      "Data keeps failing to deliver a clean disinflation glidepath; the curve’s optimism is the mispricing.",
+      "Data keeps failing to cool cleanly; rate markets still expect cuts sooner than the Fed likely delivers.",
 
     hiddenDriver: "Sticky services inflation + resilient labor keeps the Fed restrictive longer than futures price.",
     likelyPath: "Cuts get pushed stepwise; long duration sells first, then stabilizes when pricing matches reality.",
-    marketMisread: "The market still underprices the probability of ‘no cut’ or ‘later cut’ quarters.",
+    marketMisread: "The market still assumes rate cuts will come sooner than they probably will.",
     tradeExpression: "Sell/avoid long duration; express via TLT weakness with clear stop above key level.",
 
-    whyNow: "The next two data prints can force a repricing; bond longs are early.",
+    whyNow: "The next two data prints can shift rate expectations quickly; bond longs are early.",
     whatsUnpriced: "A later pivot path is still not fully priced in duration.",
     trigger: "Hot CPI/Payrolls or Fed language that explicitly pushes back on easing expectations.",
     trade: "Scale 92.50–93.80 adds · Stop 95.20 · TP 88.00",
@@ -210,9 +210,9 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.defense,
     slug: "us-defense-repricing-rtx-lmt",
-    title: "US DEFENSE REPRICING — RTX / LMT LONG",
+    title: "US DEFENSE RESET — RTX / LMT LONG",
     thesisStatement:
-      "Backlog visibility is improving; multiples still reflect yesterday’s uncertainty.",
+      "Backlog visibility is improving; multiples still reflect yesterday's uncertainty.",
     asset: "RTX",
     direction: "long",
     probability: 55,
@@ -222,11 +222,11 @@ export const MOCK_THESES: Thesis[] = [
 
     hiddenDriver: "Appropriations + award cadence, not the daily headline cycle.",
     likelyPath: "Awards convert to backlog → guide confidence improves → multiples re-rate on visibility.",
-    marketMisread: "The market still prices ‘headline risk’ instead of backlog math.",
+    marketMisread: "The market focuses on headlines and misses how strong the order backlog is.",
     tradeExpression: "Own primes where backlog converts cleanly; use defined risk around key support.",
 
     whyNow: "The awards are close enough to pull forward the re-rating window.",
-    whatsUnpriced: "Visibility into outyear cash flows isn’t reflected in current multiples.",
+    whatsUnpriced: "Visibility into outyear cash flows isn't reflected in current multiples.",
     trigger: "Named contract awards + guide affirmation; supply chain commentary stays stable.",
     trade: "RTX 128–132 accumulation · Stop 123 · TP 148",
     invalidation: "Major program slip or funding shock.",
@@ -257,14 +257,14 @@ export const MOCK_THESES: Thesis[] = [
     probability: 49,
     status: "watching",
     probabilityRationale:
-      "Narrative is real but the timing isn’t compressed — needs an earnings catalyst to become tradeable.",
+      "The story is real but the timing isn't tight yet — it needs an earnings catalyst to become tradeable.",
 
     hiddenDriver: "Capex intensity vs monetization lag.",
     likelyPath: "Guides rise → margins wobble → dispersion widens → index leadership rotates.",
     marketMisread: "Index pricing still assumes smooth AI monetization with minimal margin cost.",
     tradeExpression: "Wait for the print; then rotate into cash-flow quality and away from capex-heavy laggards (dummy).",
 
-    whyNow: "The setup is forming into earnings — but it isn’t a ‘now’ trade without confirmation.",
+    whyNow: "The setup is forming into earnings — but it isn't a 'now' trade without confirmation.",
     whatsUnpriced: "Dispersion risk is underpriced at the index level.",
     trigger: "Two consecutive prints show margin pressure or demand softness tied to AI spend.",
     trade: "Wait for trigger; then rotate / reduce beta (dummy).",
@@ -286,7 +286,7 @@ export const MOCK_THESES: Thesis[] = [
     slug: "china-stimulus-copper-long",
     title: "CHINA STIMULUS REACCELERATION — COPPER LONG",
     thesisStatement:
-      "The market is still priced for ‘slow China’; policy impulse is turning and copper is late to it.",
+      "The market is still priced for 'slow China'; policy impulse is turning and copper is late to it.",
     asset: "HG",
     direction: "long",
     probability: 52,
@@ -295,12 +295,12 @@ export const MOCK_THESES: Thesis[] = [
       "Policy tone + early HF data suggest impulse stabilization; copper pricing still reflects the prior regime.",
 
     hiddenDriver: "Policy impulse (credit + fiscal) turning from defense to support.",
-    likelyPath: "Impulse turns → industrial proxies firm → inventories draw → copper reprices the growth tail.",
-    marketMisread: "The market still anchors to ‘slow China’ and underprices a policy-led growth uptick.",
+    likelyPath: "Impulse turns → industrial proxies firm → inventories draw → copper catches up to the growth shift.",
+    marketMisread: "The market still thinks China will stay slow, even if policy support speeds things up.",
     tradeExpression: "Own copper in a defined zone; add on confirmation via inventory draw and HF demand prints.",
 
-    whyNow: "The impulse is turning while the market is still anchored to the last quarter’s narrative.",
-    whatsUnpriced: "A reacceleration path isn’t reflected in copper risk premium.",
+    whyNow: "Policy signals are turning while the market is still stuck in last quarter's story.",
+    whatsUnpriced: "A reacceleration path isn't reflected in copper risk premium.",
     trigger: "Inventory draw + credit impulse confirmation in two consecutive reads.",
     trade: "Long HG 4.12–4.18 zone · Stop 3.98 · TP 4.45",
     invalidation: "Renewed property stress or USD spike.",
@@ -335,11 +335,11 @@ export const MOCK_THESES: Thesis[] = [
 
     hiddenDriver: "Structural remedies (behavioral constraints) that change terminal assumptions.",
     likelyPath: "Binding action → compliance cost rises → growth assumptions compress → multiple derates.",
-    marketMisread: "The market still prices enforcement as ‘one-off fines’, not structural constraints.",
+    marketMisread: "The market treats this like a one-time fine, not a rule change that lasts.",
     tradeExpression: "Wait for binding action; then short rallies with defined stop (dummy).",
 
-    whyNow: "The narrative is real, but it’s only tradeable when the action becomes binding.",
-    whatsUnpriced: "Structural constraint risk isn’t in the multiple yet.",
+    whyNow: "The story is real, but it's only tradeable when the action becomes binding.",
+    whatsUnpriced: "Structural constraint risk isn't in the multiple yet.",
     trigger: "Binding remedies or enforcement action with clear behavioral constraints.",
     trade: "Strategic short rallies 605–625 · Stop 640 · TP 540",
     invalidation: "Legal wins or settlement that removes structural risk.",
@@ -404,7 +404,7 @@ export const MOCK_DETAIL_EXTRA: Record<string, Omit<ThesisDetailBundle, "thesis"
         thesisId: TID.gold,
         source: "Reuters",
         timestamp: "Today · 09:12 UTC",
-        headline: "Delegations signal ‘constructive’ weekend talks",
+        headline: "Delegations signal 'constructive' weekend talks",
         impact: "major_positive",
         probabilityBefore: 54,
         probabilityAfter: 67,
@@ -498,11 +498,11 @@ function defaultDetail(slug: string): ThesisDetailBundle {
         thesisId: thesis.id,
         source: "FT",
         timestamp: "Today · 10:20 UTC",
-        headline: "Macro desk note: positioning still light vs narrative",
+        headline: "Macro desk note: positioning still light vs story",
         impact: "minor_positive",
         probabilityBefore: Math.max(30, thesis.probability - 6),
         probabilityAfter: thesis.probability,
-        interpretation: "Narrative catching up; watch next two catalysts.",
+        interpretation: "Market catching up; watch the next two catalysts.",
       },
       {
         id: `${slug}-e2`,
@@ -605,7 +605,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     source: "FT",
     timestamp: "55m ago",
     headline: "EU regulators sharpen remedies on platform competition",
-    summary: "Structural constraints narrative strengthens for mega-cap platforms.",
+    summary: "Regulation story strengthens for mega-cap platforms.",
     linkedThesisSlug: "eu-tech-crackdown-megacap",
     linkedThesisTitle: "EU tech crackdown — Mega-cap compression",
   },
@@ -625,14 +625,14 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Pentagon accelerates award timeline on missile defense line",
     summary: "Backlog visibility improves for defense primes.",
     linkedThesisSlug: "us-defense-repricing-rtx-lmt",
-    linkedThesisTitle: "US defense repricing — RTX / LMT long",
+    linkedThesisTitle: "US defense reset — RTX / LMT long",
   },
   {
     id: "f7",
     source: "Argus",
     timestamp: "2h ago",
     headline: "OPEC+ members disagree on quota enforcement",
-    summary: "Unity narrative frays; vol surface bid in energy.",
+    summary: "Unity story frays; volatility bids in energy.",
     linkedThesisSlug: "opec-unity-fracturing",
     linkedThesisTitle: "OPEC unity fracturing — Oil volatility",
   },
@@ -671,7 +671,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     source: "Barron's",
     timestamp: "7h ago",
     headline: "Retail traders rotate into single-stock momentum",
-    summary: "Positioning noise — DEPTH4 flags when it intersects narrative.",
+    summary: "Positioning noise — DEPTH4 flags it when it matches a thesis.",
   },
 ];
 

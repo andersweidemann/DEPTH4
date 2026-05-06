@@ -35,7 +35,7 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
   }, [slug]);
 
   const actionable = useMemo(() => MOCK_THESES.filter((t) => t.status === "actionable").length, []);
-  const liveLine = `${MOCK_THESES.length} live theses · ${actionable} actionable · updated 2m ago`;
+  const liveLine = `${MOCK_THESES.length} theses tracked · ${actionable} ready to trade · last update 2 minutes ago`;
 
   const scoreRow = (label: string, value: number, max: number) => {
     const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
@@ -138,7 +138,7 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
 
         <div className="mt-8 grid gap-3 sm:grid-cols-2">
           <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
-          <AnswerBlock kicker="What’s unpriced">{thesis.whatsUnpriced}</AnswerBlock>
+          <AnswerBlock kicker="What the market hasn't priced in yet">{thesis.whatsUnpriced}</AnswerBlock>
           <AnswerBlock kicker="Trigger">{thesis.trigger}</AnswerBlock>
           <AnswerBlock kicker="Trade">{thesis.trade}</AnswerBlock>
         </div>
@@ -182,7 +182,7 @@ export function ThesisDetailClient({ slug }: { slug: string }) {
             <div className="mt-5 grid gap-3">
               {scoreRow("Driver strength", thesis.scores.driverStrength, 20)}
               {scoreRow("Time compression", thesis.scores.timeCompression, 25)}
-              {scoreRow("Market mispricing", thesis.scores.marketMispricingScore, 25)}
+              {scoreRow("Market hasn't caught up yet", thesis.scores.marketMispricingScore, 25)}
               {scoreRow("Trade clarity", thesis.scores.tradeClarityScore, 15)}
               {scoreRow("Trigger clarity", thesis.scores.triggerClarityScore, 15)}
             </div>

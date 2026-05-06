@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function LeaderboardPage() {
   const actionable = MOCK_THESES.filter((t) => t.status === "actionable").length;
-  const liveLine = `${MOCK_THESES.length} live theses · ${actionable} actionable · updated 2m ago`;
+  const liveLine = `${MOCK_THESES.length} theses tracked · ${actionable} ready to trade · last update 2 minutes ago`;
 
   return (
     <>

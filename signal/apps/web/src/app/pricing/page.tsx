@@ -214,7 +214,7 @@ export default function PricingPage() {
                 <p className="mt-1">DEPTH4 supports individual workflow, community publishing, and creator economics. Each tier unlocks the next loop.</p>
               </div>
               <div>
-                <p className="font-medium text-zinc-200">What’s included in annual?</p>
+                <p className="font-medium text-zinc-200">What&apos;s included in annual?</p>
                 <p className="mt-1">Annual is transparent: pay for 10 months, get 12.</p>
               </div>
             </div>

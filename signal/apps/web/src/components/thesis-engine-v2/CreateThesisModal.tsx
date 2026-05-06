@@ -74,11 +74,11 @@ function buildUserThesis(form: FormState): Thesis {
     origin: "user",
 
     hiddenDriver: "User thesis — driver defined by your framing; DEPTH4 will infer supporting drivers from incoming signals.",
-    likelyPath: "Signals accumulate → trigger clarity improves → market reprices the misread → trade resolves into targets or invalidation.",
+    likelyPath: "Signals accumulate → trigger clarity improves → the market catches up → the trade resolves into targets or invalidation.",
     marketMisread: form.marketMisread.trim(),
     tradeExpression: `Cleanest expression: ${asset || "asset"} — ${tradeLine}`,
 
-    whyNow: "You flagged a mispricing with a tradeable horizon — DEPTH4 begins monitoring immediately.",
+    whyNow: "You flagged an idea with a tradeable horizon — DEPTH4 begins monitoring immediately.",
     whatsUnpriced: form.marketMisread.trim(),
     trigger: form.trigger.trim(),
     trade: tradeLine,
@@ -231,7 +231,7 @@ export function CreateThesisModal({
 
               <div className="sm:col-span-2">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Why market is mispricing it
+                  Why the market hasn&apos;t caught up yet
                 </label>
                 <textarea
                   value={form.marketMisread}
