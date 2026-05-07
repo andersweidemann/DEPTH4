@@ -89,13 +89,13 @@ export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onC
 
       <aside
         className={cn(
-          "relative z-[1] flex h-dvh max-h-dvh w-full flex-col bg-[#131316] sm:w-[min(48vw,40rem)] sm:max-w-none sm:border-l sm:border-white/[0.07]",
+          "relative z-[1] flex h-dvh max-h-dvh w-full flex-col bg-[#131316] shadow-2xl sm:w-[min(48vw,40rem)] sm:max-w-none",
           "transition-transform duration-300 ease-out motion-reduce:transition-none",
           panelOpen ? "translate-x-0" : "translate-x-full",
         )}
         onKeyDown={(e) => e.stopPropagation()}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.06] bg-[#151518] px-4 py-3 sm:px-5">
+        <div className="flex shrink-0 items-center justify-between gap-3 bg-[#151518] px-4 py-3 sm:px-5">
           <div className="min-w-0 flex-1 pr-2">
             <p className="truncate text-[12px] font-semibold leading-snug text-zinc-100" title={drawerTitle}>
               {drawerTitle}
@@ -117,6 +117,8 @@ export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onC
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        <div className="h-px w-full bg-white/[0.06]" aria-hidden />
 
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
           <ThesisDetailClient slug={slug} layout="drawer" onClose={requestClose} />

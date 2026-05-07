@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
+import { ThesisTableRow } from "@/components/thesis-engine-v2/ThesisTableRow";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
 import { ReadyPing } from "@/components/thesis-engine-v2/ReadyPing";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
@@ -92,8 +93,18 @@ export function ThesesDashboardClient({
     return next;
   }, [assetClass, moveBySlug, show, sortKey, liveSorted]);
 
-  const tradeable = useMemo(() => filtered.filter(isTradeable), [filtered]);
-  const emerging = useMemo(() => filtered.filter(isEmerging), [filtered]);
+  const focus = useMemo(() => filtered.filter((t) => t.status === "ready" || t.status === "active"), [filtered]);
+  const focusTop = useMemo(() => focus.slice(0, 3), [focus]);
+  const focusIds = useMemo(() => new Set(focusTop.map((t) => t.id)), [focusTop]);
+
+  const monitoring = useMemo(
+    () => filtered.filter((t) => !focusIds.has(t.id) && (t.status === "watching" || t.status === "forming")),
+    [filtered, focusIds],
+  );
+  const archived = useMemo(
+    () => filtered.filter((t) => !focusIds.has(t.id) && (t.status === "resolved" || t.status === "invalidated")),
+    [filtered, focusIds],
+  );
 
   return (
     <>
@@ -180,54 +191,116 @@ export function ThesesDashboardClient({
         </div>
       </div>
 
-      <div className="mt-10 flex flex-col gap-4">
-        {tradeable.map((thesis) => (
-          <ThesisCard
-            key={thesis.id}
-            thesis={thesis}
-            selectedSlug={drawerSlug}
-            pulseKey={live.pulseKey(thesis.id)}
-            onSelect={(s) => setDrawerSlug(s)}
-          />
-        ))}
-      </div>
+      <section className="mt-10">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Focus</h2>
+          <span className="text-[11px] text-zinc-600">Ready / Active</span>
+        </div>
 
-      {emerging.length > 0 && (
-        <section className="mt-14">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Forming ideas</h2>
-              <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
-                Real drivers, not enough timing compression yet.
-              </p>
+        {focusTop.length === 0 ? (
+          <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-4 text-[12px] text-zinc-500">
+            No Ready or Active theses match the current filters.
+          </div>
+        ) : focusTop.length === 1 ? (
+          <div className="mt-4">
+            <ThesisCard
+              thesis={focusTop[0]}
+              variant="primary"
+              selectedSlug={drawerSlug}
+              pulseKey={live.pulseKey(focusTop[0].id)}
+              onSelect={(s) => setDrawerSlug(s)}
+            />
+          </div>
+        ) : (
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-12">
+            <div className="md:col-span-7">
+              <ThesisCard
+                thesis={focusTop[0]}
+                variant="primary"
+                selectedSlug={drawerSlug}
+                pulseKey={live.pulseKey(focusTop[0].id)}
+                onSelect={(s) => setDrawerSlug(s)}
+              />
+            </div>
+            <div className="grid gap-4 md:col-span-5">
+              {focusTop.slice(1).map((t) => (
+                <ThesisCard
+                  key={t.id}
+                  thesis={t}
+                  selectedSlug={drawerSlug}
+                  pulseKey={live.pulseKey(t.id)}
+                  onSelect={(s) => setDrawerSlug(s)}
+                />
+              ))}
             </div>
           </div>
-          <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
-            {emerging.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setDrawerSlug(t.slug)}
-                className={[
-                  "block w-full border-b border-white/[0.05] py-4 text-left last:border-0",
-                  drawerSlug === t.slug ? "bg-zinc-900/35" : "hover:bg-zinc-900/25",
-                ].join(" ")}
-              >
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-[12px] font-medium text-zinc-200">{t.title}</span>
-                  <span className="text-[11px] tabular-nums text-zinc-500">
-                    {t.probability}% · score {t.scores.total}
-                  </span>
-                </div>
-                <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-500">
-                  <span className="text-zinc-600">Market misread · </span>
-                  {t.marketMisread}
-                </p>
-              </button>
-            ))}
+        )}
+      </section>
+
+      <section className="mt-14">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <div>
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Monitor</h2>
+            <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+              Watching and forming theses stay visible, but quieter and denser.
+            </p>
+          </div>
+          <div className="hidden text-[11px] text-zinc-600 sm:block">Thesis · Probability · Status · Last update · Star</div>
+        </div>
+
+        <div className="mt-4 rounded-lg bg-zinc-900/20 p-2 shadow-sm ring-1 ring-white/[0.03]">
+          <div className="hidden grid-cols-[1fr_76px_92px_96px_44px] gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 sm:grid">
+            <span>Thesis</span>
+            <span className="text-right">Prob</span>
+            <span className="text-right">Status</span>
+            <span className="text-right">Update</span>
+            <span className="text-right">Star</span>
+          </div>
+          <div className="mt-1 grid gap-1">
+            {monitoring.length ? (
+              monitoring.map((t) => (
+                <ThesisTableRow
+                  key={t.id}
+                  thesis={t}
+                  selected={drawerSlug === t.slug}
+                  pulseKey={live.pulseKey(t.id)}
+                  starred={live.isEffectivelyStarred(t.id)}
+                  starDisabled={!!live.starDisabledReason(t.id)}
+                  onToggleStar={() => live.toggleStar(t.id)}
+                  onSelect={() => setDrawerSlug(t.slug)}
+                />
+              ))
+            ) : (
+              <div className="px-3 py-4 text-[12px] text-zinc-500">No watching or forming theses match the current filters.</div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {archived.length ? (
+        <section className="mt-12">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Archive</h2>
+            <span className="text-[11px] text-zinc-600">Resolved / Invalidated</span>
+          </div>
+          <div className="mt-4 rounded-lg bg-zinc-900/15 p-2 shadow-sm ring-1 ring-white/[0.03]">
+            <div className="mt-1 grid gap-1">
+              {archived.map((t) => (
+                <ThesisTableRow
+                  key={t.id}
+                  thesis={t}
+                  selected={drawerSlug === t.slug}
+                  pulseKey={live.pulseKey(t.id)}
+                  starred={live.isEffectivelyStarred(t.id)}
+                  starDisabled={!!live.starDisabledReason(t.id)}
+                  onToggleStar={() => live.toggleStar(t.id)}
+                  onSelect={() => setDrawerSlug(t.slug)}
+                />
+              ))}
+            </div>
           </div>
         </section>
-      )}
+      ) : null}
 
       <CreateThesisModal
         open={open}

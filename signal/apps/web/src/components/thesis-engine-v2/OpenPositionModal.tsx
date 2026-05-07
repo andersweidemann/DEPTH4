@@ -92,12 +92,12 @@ export function OpenPositionModal({
         <Dialog.Content
           className={cn(
             "fixed inset-0 z-[231] w-full bg-[#0c0c0e] shadow-2xl",
-            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border sm:border-white/[0.08]",
+            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-xl sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:ring-1 sm:ring-white/[0.04]",
             "focus:outline-none",
           )}
           aria-describedby={undefined}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-5 py-4">
             <div className="min-w-0">
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Open position</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
@@ -114,6 +114,8 @@ export function OpenPositionModal({
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
+
+          <div className="h-px w-full bg-white/[0.06]" aria-hidden />
 
           <div className="h-[calc(100dvh-132px)] overflow-y-auto px-5 py-4 sm:h-auto sm:max-h-[70vh]">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -157,7 +159,7 @@ export function OpenPositionModal({
                   onChange={(e) => set("entryPrice", e.target.value)}
                   inputMode="decimal"
                   placeholder="e.g. 3290"
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -171,7 +173,7 @@ export function OpenPositionModal({
                   onChange={(e) => set("size", e.target.value)}
                   inputMode="decimal"
                   placeholder="e.g. 0.5"
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -182,7 +184,7 @@ export function OpenPositionModal({
                   onChange={(e) => set("stopLoss", e.target.value)}
                   inputMode="decimal"
                   placeholder="optional"
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -193,7 +195,7 @@ export function OpenPositionModal({
                   onChange={(e) => set("takeProfit", e.target.value)}
                   inputMode="decimal"
                   placeholder="optional"
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 />
               </div>
 
@@ -204,13 +206,14 @@ export function OpenPositionModal({
                   onChange={(e) => set("notes", e.target.value)}
                   rows={2}
                   placeholder="Why you took it, what you’re watching, etc."
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full resize-none rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-4">
+          <div className="h-px w-full bg-white/[0.06]" aria-hidden />
+          <div className="flex items-center justify-between gap-3 px-5 py-4">
             <p className="text-[11px] text-zinc-500">Creates a linked position in your Book (session-only).</p>
             <div className="flex items-center gap-2">
               <Dialog.Close className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500">

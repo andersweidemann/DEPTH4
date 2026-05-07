@@ -14,12 +14,14 @@ export function ThesisCard({
   selectedSlug,
   onSelect,
   pulseKey = 0,
+  variant = "default",
 }: {
   thesis: Thesis;
   selectedSlug?: string | null;
   onSelect?: (slug: string) => void;
   /** Increment to trigger a brief “live update” pulse on the card. */
   pulseKey?: number;
+  variant?: "default" | "primary";
 }) {
   const live = useThesisLive();
   const tradeable = thesis.qualification === "tradeable";
@@ -30,13 +32,14 @@ export function ThesisCard({
   const starDisabled = !!live.starDisabledReason(thesis.id);
 
   const terminal = thesis.status === "resolved" || thesis.status === "invalidated";
+  const primary = variant === "primary";
   const className = cn(
-    "group relative block w-full rounded-lg border bg-zinc-900/40 p-5 text-left transition-colors hover:bg-zinc-900/70",
-    !terminal &&
-      (entrySetupValid ? "border-amber-500/25 hover:border-amber-500/35" : "border-white/[0.06] hover:border-amber-500/20"),
-    terminal && thesis.status === "resolved" && "border-emerald-500/20 bg-zinc-900/50 hover:border-emerald-500/30",
-    terminal && thesis.status === "invalidated" && "border-red-500/25 bg-zinc-900/50 hover:border-red-500/35",
-    selected && "ring-1 ring-amber-500/40 border-amber-500/30 bg-zinc-900/65",
+    "group relative block w-full rounded-lg bg-zinc-900/40 text-left shadow-sm ring-1 ring-white/[0.03] transition-colors hover:bg-zinc-900/55 hover:ring-white/[0.05]",
+    primary ? "p-6 sm:p-7" : "p-5",
+    !terminal && entrySetupValid && "bg-gradient-to-br from-amber-500/[0.08] via-zinc-900/40 to-zinc-900/35",
+    terminal && thesis.status === "resolved" && "bg-gradient-to-br from-emerald-500/[0.06] via-zinc-900/45 to-zinc-900/35",
+    terminal && thesis.status === "invalidated" && "bg-gradient-to-br from-red-500/[0.06] via-zinc-900/45 to-zinc-900/35",
+    selected && "ring-1 ring-amber-500/35 bg-zinc-900/60",
     pulseKey > 0 && "animate-[thesis-pulse_0.85s_ease-out_1]",
   );
 
@@ -60,10 +63,15 @@ export function ThesisCard({
       </div>
       <div className="flex flex-wrap items-start justify-between gap-3 pr-10">
         <div className="min-w-0 flex-1">
-          <h2 className="text-[13px] font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95">
+          <h2
+            className={cn(
+              "font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95",
+              primary ? "text-[14px] sm:text-[15px]" : "text-[13px]",
+            )}
+          >
             {thesis.title}
           </h2>
-          <p className="mt-2 font-mono text-[11px] text-zinc-500">{thesis.asset}</p>
+          <p className={cn("mt-2 font-mono text-zinc-500", primary ? "text-[11px]" : "text-[11px]")}>{thesis.asset}</p>
         </div>
         <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
           <DirectionBadge direction={thesis.direction} />
@@ -86,7 +94,9 @@ export function ThesisCard({
         </div>
       </div>
       <div className="mt-4 flex items-center gap-3">
-        <span className="text-[14px] font-semibold tabular-nums text-amber-200/90">{thesis.probability}%</span>
+        <span className={cn("font-semibold tabular-nums text-amber-200/90", primary ? "text-[16px]" : "text-[14px]")}>
+          {thesis.probability}%
+        </span>
         <div className="min-w-0 flex-1">
           <ProbabilityBar value={thesis.probability} />
         </div>

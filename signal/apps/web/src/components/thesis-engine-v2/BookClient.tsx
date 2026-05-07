@@ -14,7 +14,7 @@ import type { Position, ResolvedThesisRecord, WatchlistIdea } from "@/lib/thesis
 
 function BookRiskDisclaimer() {
   return (
-    <section className="rounded-xl border border-white/[0.10] bg-zinc-950/35 p-4 shadow-sm sm:p-5" aria-label="Risk notice">
+    <section className="rounded-xl bg-zinc-950/30 p-4 shadow-sm ring-1 ring-white/[0.03] sm:p-5" aria-label="Risk notice">
       <p className="text-sm leading-relaxed text-zinc-200">
         Performance tracking is for informational and educational purposes only.
         <br />
@@ -121,7 +121,7 @@ export function BookClient({
             {userOpen.length}
           </span>
         </div>
-        <div className="mt-3 rounded-lg border border-white/[0.07] bg-zinc-900/25 px-4 sm:px-5">
+        <div className="mt-3 rounded-lg bg-zinc-900/25 px-4 shadow-sm ring-1 ring-white/[0.03] sm:px-5">
           {userOpen.length ? (
             userOpen.map((p) => (
               <PositionRow
@@ -145,7 +145,7 @@ export function BookClient({
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Open</h3>
                 <span className="text-[11px] tabular-nums text-zinc-600">{mockOpen.length}</span>
               </div>
-              <div className="rounded-lg border border-white/[0.05] bg-zinc-900/15 px-3 sm:px-4">
+              <div className="rounded-lg bg-zinc-900/15 px-3 ring-1 ring-white/[0.03] sm:px-4">
                 {mockOpen.map((p) => (
                   <PositionRow key={p.id} position={p} thesisMeta={metaFor(p)} manageable={false} onBookChange={refreshFromStore} />
                 ))}
@@ -162,7 +162,7 @@ export function BookClient({
           </span>
         </div>
         <p className="mt-1 text-[11px] text-zinc-600">Drafts and cancelled lines stay here; full close moves an open row out of Open.</p>
-        <div className="mt-3 rounded-lg border border-white/[0.07] bg-zinc-900/25 px-4 sm:px-5">
+        <div className="mt-3 rounded-lg bg-zinc-900/25 px-4 shadow-sm ring-1 ring-white/[0.03] sm:px-5">
           {userClosed.length ? (
             userClosed.map((p) => (
               <PositionRow key={p.id} position={p} thesisMeta={metaFor(p)} manageable={false} onBookChange={refreshFromStore} />
@@ -180,7 +180,7 @@ export function BookClient({
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Closed / other</h3>
                 <span className="text-[11px] tabular-nums text-zinc-600">{mockClosed.length}</span>
               </div>
-              <div className="rounded-lg border border-white/[0.05] bg-zinc-900/15 px-3 sm:px-4">
+              <div className="rounded-lg bg-zinc-900/15 px-3 ring-1 ring-white/[0.03] sm:px-4">
                 {mockClosed.map((p) => (
                   <PositionRow key={p.id} position={p} thesisMeta={metaFor(p)} manageable={false} onBookChange={refreshFromStore} />
                 ))}
@@ -193,7 +193,7 @@ export function BookClient({
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Watchlist (no position attached yet)</h2>
         <ul className="mt-4 space-y-3">
           {watchlist.map((w) => (
-            <li key={w.id} className="rounded-lg border border-white/[0.06] bg-zinc-900/25 px-4 py-3">
+            <li key={w.id} className="rounded-lg bg-zinc-900/25 px-4 py-3 shadow-sm ring-1 ring-white/[0.03]">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-mono text-sm text-zinc-200">{w.symbol}</span>
                 <Link href={`/theses/${w.thesisSlug}`} className="text-[11px] font-medium text-amber-500/85 hover:text-amber-400">
@@ -208,7 +208,7 @@ export function BookClient({
 
       <section className="mt-14">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Resolved theses</h2>
-        <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
+        <div className="mt-4 rounded-lg bg-zinc-900/20 px-4 shadow-sm ring-1 ring-white/[0.03] sm:px-5">
           {resolved.map((r) => (
             <div key={r.id} className="grid gap-2 border-b border-white/[0.05] py-4 last:border-0">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -219,7 +219,7 @@ export function BookClient({
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="rounded border border-white/[0.06] bg-zinc-900/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-zinc-300">
+                  <span className="rounded bg-zinc-900/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-zinc-300 ring-1 ring-white/[0.06]">
                     {r.result}
                   </span>
                 </div>

@@ -66,12 +66,12 @@ export function ClosePositionModal({
         <Dialog.Content
           className={cn(
             "fixed inset-0 z-[241] w-full bg-[#0c0c0e] shadow-2xl",
-            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border sm:border-white/[0.08]",
+            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:ring-1 sm:ring-white/[0.04]",
             "focus:outline-none",
           )}
           aria-describedby={undefined}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-5 py-4">
             <div className="min-w-0">
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Close position</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
@@ -92,6 +92,8 @@ export function ClosePositionModal({
             </Dialog.Close>
           </div>
 
+          <div className="h-px w-full bg-white/[0.06]" aria-hidden />
+
           <div className="max-h-[min(70dvh,28rem)] overflow-y-auto px-5 py-4 sm:max-h-none">
             <div className="grid gap-4">
               <div>
@@ -102,7 +104,7 @@ export function ClosePositionModal({
                   onChange={(e) => setExitPrice(e.target.value)}
                   inputMode="decimal"
                   placeholder="e.g. 3275"
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 />
               </div>
               <div>
@@ -115,7 +117,7 @@ export function ClosePositionModal({
                   onChange={(e) => setRealized(e.target.value)}
                   inputMode="decimal"
                   placeholder="e.g. 1.2 or -0.4"
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 />
                 <p className="mt-1 text-[10px] text-zinc-600">Signed number; used for win rate and averages in Book.</p>
               </div>
@@ -124,7 +126,7 @@ export function ClosePositionModal({
                 <select
                   value={reason}
                   onChange={(e) => setReason(e.target.value as CloseReason)}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[14px] text-zinc-200 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[14px] text-zinc-200 ring-1 ring-white/[0.06] focus:outline-none focus:ring-amber-500/20 sm:py-2 sm:text-[12px]"
                 >
                   {CLOSE_REASON_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -136,7 +138,8 @@ export function ClosePositionModal({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/[0.06] px-5 py-4">
+          <div className="h-px w-full bg-white/[0.06]" aria-hidden />
+          <div className="flex flex-wrap items-center justify-end gap-2 px-5 py-4">
             <Dialog.Close className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500">
               Cancel
             </Dialog.Close>

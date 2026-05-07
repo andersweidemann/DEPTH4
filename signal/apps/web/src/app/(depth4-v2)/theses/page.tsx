@@ -24,7 +24,7 @@ export default function ThesesDashboardPage({
   return (
     <>
       <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
-      <main className="mx-auto max-w-3xl px-5 pb-20 pt-6">
+      <main className="mx-auto max-w-5xl px-5 pb-20 pt-6">
         <ThesesDashboardClient systemTheses={MOCK_THESES} initialDrawerSlug={initialDrawerSlug} />
       </main>
     </>
