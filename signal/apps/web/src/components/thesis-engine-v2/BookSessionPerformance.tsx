@@ -43,7 +43,7 @@ function StatCell({
   valueClassName?: string;
 }) {
   return (
-    <div className="rounded-lg bg-zinc-950/35 px-3 py-2.5 shadow-sm ring-1 ring-white/[0.03] sm:px-3.5 sm:py-3">
+    <div className="rounded-lg bg-zinc-950/35 px-2.5 py-2 shadow-sm ring-1 ring-white/[0.03] sm:px-3 sm:py-2.5">
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">{label}</p>
       <p className={cn("mt-1.5 text-lg font-semibold tabular-nums tracking-tight sm:text-xl", valueClassName ?? "text-zinc-50")}>
         {value}
@@ -58,14 +58,14 @@ export function BookHeaderSummary() {
   const s = useSessionBookStats();
   return (
     <div
-      className="mt-3 rounded-xl bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 px-3 py-3 shadow-sm ring-1 ring-white/[0.03] sm:mt-4 sm:px-4 sm:py-3.5"
+      className="mt-2 rounded-xl bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 px-3 py-2.5 shadow-sm ring-1 ring-white/[0.03] sm:mt-3 sm:px-4 sm:py-3"
       aria-label="Session book performance summary"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Your book · session</p>
         <p className="text-[9px] text-zinc-600">Full closes only for win rate and averages</p>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <StatCell label="Open" value={s.openCount} />
         <StatCell label="Closed trades" value={s.closedTradeCount} sub="User exits" />
         <StatCell label="Realized" value={s.realizedStr} valueClassName={bookStatTone(s.realizedStr)} />
@@ -101,7 +101,7 @@ export function BookHeaderSummary() {
 export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats }) {
   const hasClosed = stats.closedTradeCount > 0;
   return (
-    <section className="mt-8 rounded-xl bg-gradient-to-b from-zinc-900/50 to-zinc-950/80 p-4 shadow-sm ring-1 ring-white/[0.03] sm:p-5">
+    <section className="mt-6 rounded-xl bg-gradient-to-b from-zinc-900/50 to-zinc-950/80 p-3.5 shadow-sm ring-1 ring-white/[0.03] sm:p-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Performance</h2>
@@ -120,7 +120,7 @@ export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats })
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <StatCell label="Open positions" value={stats.openCount} />
         <StatCell label="Closed trades" value={stats.closedTradeCount} sub="Full user exits" />
         <StatCell label="Realized PnL" value={stats.realizedStr} valueClassName={bookStatTone(stats.realizedStr)} />
@@ -134,7 +134,7 @@ export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats })
         />
       </div>
 
-      <div className="mt-3 grid grid-cols-1 gap-2 pt-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-2.5 grid grid-cols-1 gap-2 pt-2.5 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg bg-zinc-950/30 px-3 py-2.5 ring-1 ring-white/[0.03]">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Best closed trade</p>
           <p className={cn("mt-1 text-base font-semibold tabular-nums sm:text-lg", bookStatTone(stats.bestClosedStr))}>

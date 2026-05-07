@@ -54,7 +54,7 @@ export function AppHeader({
     <Link
       href={href}
       className={cn(
-        "min-h-11 rounded-md px-3 py-2 text-[13px] font-medium transition-colors sm:min-h-0 sm:py-1.5 sm:text-xs",
+        "min-h-11 rounded-md px-2.5 py-2 text-[13px] font-medium transition-colors sm:min-h-0 sm:px-2 sm:py-1 sm:text-xs",
         active === id
           ? "bg-zinc-800 text-zinc-100"
           : "text-zinc-500 hover:text-zinc-300",
@@ -66,19 +66,19 @@ export function AppHeader({
 
   return (
     <header className="border-b border-white/[0.06] bg-[#0c0c0e]/95 backdrop-blur-sm">
-      <div className="mx-auto max-w-3xl px-4 pt-6 pb-4 sm:px-5 sm:pt-7">
+      <div className="mx-auto max-w-5xl px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <DepthMark className="text-amber-500/90" />
               <div className="min-w-0">
-                <p className="text-[18px] font-semibold tracking-tight text-zinc-100">DEPTH4</p>
+                <p className="text-[16px] font-semibold tracking-tight text-zinc-100 sm:text-[17px]">DEPTH4</p>
                 <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   Macro Thesis Engine
                 </p>
               </div>
             </div>
-            <p className="mt-2 text-[10px] text-zinc-600">See how news will move markets before it happens</p>
+            <p className="mt-1.5 text-[10px] text-zinc-600">See how news will move markets before it happens</p>
           </div>
           <div className="flex items-center gap-2">
             {alertsSlot}
@@ -105,7 +105,7 @@ export function AppHeader({
           </div>
         </div>
         <nav
-          className="mt-5 -mx-1 flex flex-nowrap items-center gap-1 overflow-x-auto px-1 pb-1 sm:mt-6 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
+          className="mt-3 -mx-1 flex flex-nowrap items-center gap-1 overflow-x-auto px-1 pb-1 sm:mt-4 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0"
           aria-label="Primary"
         >
           {tab("theses", "/theses", "Theses")}
@@ -115,8 +115,8 @@ export function AppHeader({
           {tab("leaderboard", "/leaderboard", "Leaderboard")}
           {tab("help", "/help", "Help")}
         </nav>
-        <p className="mt-3 text-[12px] leading-relaxed text-zinc-500 sm:mt-4 sm:text-[11px]">{liveLine}</p>
-        {bookSummarySlot ? <div className="mt-3 sm:mt-4">{bookSummarySlot}</div> : null}
+        <p className="mt-2 text-[12px] leading-snug text-zinc-500 sm:mt-3 sm:text-[11px]">{liveLine}</p>
+        {bookSummarySlot ? <div className="mt-2 sm:mt-3">{bookSummarySlot}</div> : null}
       </div>
     </header>
   );

@@ -35,7 +35,7 @@ export function ThesisCard({
   const primary = variant === "primary";
   const className = cn(
     "group relative block w-full rounded-lg bg-zinc-900/40 text-left shadow-sm ring-1 ring-white/[0.03] transition-colors hover:bg-zinc-900/55 hover:ring-white/[0.05]",
-    primary ? "p-6 sm:p-7" : "p-5",
+    primary ? "p-4 sm:p-5" : "p-3.5 sm:p-4",
     !terminal && entrySetupValid && "bg-gradient-to-br from-amber-500/[0.08] via-zinc-900/40 to-zinc-900/35",
     terminal && thesis.status === "resolved" && "bg-gradient-to-br from-emerald-500/[0.06] via-zinc-900/45 to-zinc-900/35",
     terminal && thesis.status === "invalidated" && "bg-gradient-to-br from-red-500/[0.06] via-zinc-900/45 to-zinc-900/35",
@@ -61,7 +61,7 @@ export function ThesisCard({
           onClick={() => live.toggleStar(thesis.id)}
         />
       </div>
-      <div className="flex flex-wrap items-start justify-between gap-3 pr-10">
+      <div className="flex flex-wrap items-start justify-between gap-2 pr-10">
         <div className="min-w-0 flex-1">
           <h2
             className={cn(
@@ -71,9 +71,9 @@ export function ThesisCard({
           >
             {thesis.title}
           </h2>
-          <p className={cn("mt-2 font-mono text-zinc-500", primary ? "text-[11px]" : "text-[11px]")}>{thesis.asset}</p>
+          <p className={cn("mt-1.5 font-mono text-zinc-500", primary ? "text-[11px]" : "text-[11px]")}>{thesis.asset}</p>
         </div>
-        <div className="flex flex-shrink-0 flex-wrap items-center gap-2">
+        <div className="flex flex-shrink-0 flex-wrap items-center gap-1.5">
           <DirectionBadge direction={thesis.direction} />
           <StatusBadge status={thesis.status} />
           {entrySetupValid && (
@@ -93,7 +93,7 @@ export function ThesisCard({
           )}
         </div>
       </div>
-      <div className="mt-4 flex items-center gap-3">
+      <div className="mt-3 flex items-center gap-2.5">
         <span className={cn("font-semibold tabular-nums text-amber-200/90", primary ? "text-[16px]" : "text-[14px]")}>
           {thesis.probability}%
         </span>
@@ -102,7 +102,7 @@ export function ThesisCard({
         </div>
         <span className="text-[10px] tabular-nums text-zinc-500">score {thesis.scores.total}</span>
       </div>
-      <div className="mt-4 space-y-2 border-t border-white/[0.04] pt-4 text-[11px] leading-relaxed text-zinc-500">
+      <div className="mt-3 space-y-1.5 border-t border-white/[0.04] pt-3 text-[11px] leading-snug text-zinc-500">
         <p>
           <span className="text-zinc-400">Why now · </span>
           {thesis.whyNow}
@@ -112,7 +112,7 @@ export function ThesisCard({
           {thesis.whatsUnpriced}
         </p>
         <p className="font-mono text-[10px] text-zinc-400">{thesis.trade}</p>
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-zinc-600">
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[10px] text-zinc-600">
           <span className="text-zinc-500">{thesis.horizon}</span>
           <span className="tabular-nums text-zinc-500">{thesis.lastUpdated}</span>
         </div>

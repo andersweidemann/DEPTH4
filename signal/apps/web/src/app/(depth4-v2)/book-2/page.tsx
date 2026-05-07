@@ -17,7 +17,7 @@ export default function Book2Page() {
   return (
     <>
       <AppHeader active="book" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} bookSummarySlot={<BookHeaderSummary />} />
-      <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
+      <main className="mx-auto max-w-3xl px-5 pb-14 pt-6">
         <BookClient mockPositions={MOCK_POSITIONS} watchlist={MOCK_WATCHLIST} resolved={MOCK_RESOLVED_THESES} />
       </main>
     </>

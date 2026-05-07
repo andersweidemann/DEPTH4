@@ -162,14 +162,14 @@ export function ThesisDetailClient({
 
   const inner = (
     <>
-      <div className={cn(layout === "drawer" ? "px-4 pb-10 pt-1 sm:px-5" : "mt-6")}>
+      <div className={cn(layout === "drawer" ? "px-4 pb-6 pt-1 sm:px-5" : "mt-6")}>
         <ThesisHero thesis={thesis} />
       </div>
 
       {(entrySetupValid || hasOpen || bookSnap.latest) && (
         <div
           className={cn(
-            "mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/25 px-4 py-3 text-[12px] text-zinc-300",
+            "mt-3 rounded-lg bg-zinc-900/25 px-4 py-2.5 text-[12px] text-zinc-300 ring-1 ring-white/[0.03]",
             layout === "drawer" && "mx-4 sm:mx-5",
           )}
         >
@@ -224,7 +224,7 @@ export function ThesisDetailClient({
 
       <div
         className={cn(
-          "mt-4 flex flex-wrap items-center justify-between gap-3",
+          "mt-3 flex flex-wrap items-center justify-between gap-3",
           layout === "drawer" && "px-4 sm:px-5",
         )}
       >
@@ -310,12 +310,12 @@ export function ThesisDetailClient({
       </div>
 
       {layout === "drawer" && assistBundle ? (
-        <div className={cn("mt-4", "px-4 sm:px-5")}>
+        <div className={cn("mt-3", "px-4 sm:px-5")}>
           <ThesisAssistantPanel variant="drawer" bundle={assistBundle} openBookPosition={bookSnap.open} />
         </div>
       ) : null}
 
-      <div className={cn("mt-8 grid gap-3 sm:grid-cols-2", layout === "drawer" && "px-4 sm:px-5")}>
+      <div className={cn("mt-6 grid gap-3 sm:grid-cols-2", layout === "drawer" && "px-4 sm:px-5")}>
         <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
         <AnswerBlock kicker="What the market hasn't priced in yet">{thesis.whatsUnpriced}</AnswerBlock>
         <AnswerBlock kicker="Trigger">{thesis.trigger}</AnswerBlock>
@@ -328,7 +328,7 @@ export function ThesisDetailClient({
         </Link>
       </div>
 
-      <div className={cn("mt-12 space-y-12", layout === "drawer" && "px-4 sm:px-5")}>
+      <div className={cn("mt-9 space-y-10", layout === "drawer" && "px-4 sm:px-5")}>
         {layout !== "drawer" && assistBundle ? (
           <ThesisAssistantPanel bundle={assistBundle} openBookPosition={bookSnap.open} />
         ) : null}

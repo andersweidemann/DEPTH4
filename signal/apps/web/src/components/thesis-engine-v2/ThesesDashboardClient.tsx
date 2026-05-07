@@ -139,7 +139,7 @@ export function ThesesDashboardClient({
         </div>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-zinc-900/20 p-1">
           <button
             type="button"
@@ -191,18 +191,18 @@ export function ThesesDashboardClient({
         </div>
       </div>
 
-      <section className="mt-10">
+      <section className="mt-7">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Focus</h2>
           <span className="text-[11px] text-zinc-600">Ready / Active</span>
         </div>
 
         {focusTop.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-4 text-[12px] text-zinc-500">
+          <div className="mt-3 rounded-lg bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-500 ring-1 ring-white/[0.03]">
             No Ready or Active theses match the current filters.
           </div>
         ) : focusTop.length === 1 ? (
-          <div className="mt-4">
+          <div className="mt-3">
             <ThesisCard
               thesis={focusTop[0]}
               variant="primary"
@@ -212,7 +212,7 @@ export function ThesesDashboardClient({
             />
           </div>
         ) : (
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-12">
+          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-12">
             <div className="md:col-span-7">
               <ThesisCard
                 thesis={focusTop[0]}
@@ -222,7 +222,7 @@ export function ThesesDashboardClient({
                 onSelect={(s) => setDrawerSlug(s)}
               />
             </div>
-            <div className="grid gap-4 md:col-span-5">
+            <div className="grid gap-3 md:col-span-5">
               {focusTop.slice(1).map((t) => (
                 <ThesisCard
                   key={t.id}
@@ -237,7 +237,7 @@ export function ThesesDashboardClient({
         )}
       </section>
 
-      <section className="mt-14">
+      <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Monitor</h2>
@@ -248,7 +248,7 @@ export function ThesesDashboardClient({
           <div className="hidden text-[11px] text-zinc-600 sm:block">Thesis · Probability · Status · Last update · Star</div>
         </div>
 
-        <div className="mt-4 rounded-lg bg-zinc-900/20 p-2 shadow-sm ring-1 ring-white/[0.03]">
+        <div className="mt-3 rounded-lg bg-zinc-900/20 p-2 shadow-sm ring-1 ring-white/[0.03]">
           <div className="hidden grid-cols-[1fr_76px_92px_96px_44px] gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 sm:grid">
             <span>Thesis</span>
             <span className="text-right">Prob</span>
@@ -278,12 +278,12 @@ export function ThesesDashboardClient({
       </section>
 
       {archived.length ? (
-        <section className="mt-12">
+        <section className="mt-9">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Archive</h2>
             <span className="text-[11px] text-zinc-600">Resolved / Invalidated</span>
           </div>
-          <div className="mt-4 rounded-lg bg-zinc-900/15 p-2 shadow-sm ring-1 ring-white/[0.03]">
+          <div className="mt-3 rounded-lg bg-zinc-900/15 p-2 shadow-sm ring-1 ring-white/[0.03]">
             <div className="mt-1 grid gap-1">
               {archived.map((t) => (
                 <ThesisTableRow
