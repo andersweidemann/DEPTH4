@@ -12,6 +12,27 @@ import { MOCK_THESES, thesisSlugById, thesisTitleById } from "@/lib/thesis-engin
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { Position, ResolvedThesisRecord, WatchlistIdea } from "@/lib/thesis-engine-v2/types";
 
+function BookRiskDisclaimer() {
+  return (
+    <section className="rounded-xl border border-white/[0.10] bg-zinc-950/35 p-4 shadow-sm sm:p-5" aria-label="Risk notice">
+      <p className="text-sm leading-relaxed text-zinc-200">
+        Performance tracking is for informational and educational purposes only.
+        <br />
+        Past performance does not guarantee future results.
+        <br />
+        DEPTH4 does not provide personalized investment advice.
+        <br />
+        You are solely responsible for all trading decisions and risk management.
+      </p>
+      <div className="mt-3">
+        <Link href="/risk" className="text-sm font-medium text-amber-500/90 hover:text-amber-400">
+          See full Risk Disclosure →
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 function demoShell(children: ReactNode) {
   return (
     <div className="mt-6 rounded-xl border border-dashed border-zinc-600/30 bg-zinc-950/25 p-4 sm:p-5">
@@ -84,6 +105,8 @@ export function BookClient({
 
   return (
     <>
+      <BookRiskDisclaimer />
+
       <h1 className="text-lg font-semibold tracking-tight text-zinc-100">Book</h1>
       <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
         Your positions, tracked against live macro theses. Session-only until backend wiring.

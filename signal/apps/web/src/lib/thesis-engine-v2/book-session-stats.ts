@@ -2,7 +2,7 @@ import type { Position } from "@/lib/thesis-engine-v2/types";
 
 export type SessionBookStats = {
   openCount: number;
-  /** Full user exits only (`tradeStatus === "closed"`). Used for all closed-trade analytics. */
+  /** Full user exits only (`tradeStatus === "closed" | "stopped"`). Used for all closed-trade analytics. */
   closedTradeCount: number;
   totalRealized: number;
   /** Sum of open-line unrealized when every open row has a numeric mark. */
@@ -50,8 +50,8 @@ function fmtHoldMs(ms: number): string {
 /** Session Book rows only (browser positions store). */
 export function computeSessionBookStats(userPositions: Position[]): SessionBookStats {
   const openRows = userPositions.filter((p) => p.tradeStatus === "open");
-  /** Full closes only — excludes draft, cancelled, and open. */
-  const fullCloses = userPositions.filter((p) => p.tradeStatus === "closed");
+  /** Full exits only — excludes draft, cancelled, and open. */
+  const fullCloses = userPositions.filter((p) => p.tradeStatus === "closed" || p.tradeStatus === "stopped");
 
   const openCount = openRows.length;
   const closedTradeCount = fullCloses.length;

@@ -99,6 +99,7 @@ export function BookHeaderSummary() {
 
 /** Main Book page performance board (replaces duplicate strip + basic grid). */
 export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats }) {
+  const hasClosed = stats.closedTradeCount > 0;
   return (
     <section className="mt-8 rounded-xl border border-white/[0.08] bg-gradient-to-b from-zinc-900/50 to-zinc-950/80 p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-end justify-between gap-2">
@@ -106,8 +107,16 @@ export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats })
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Performance</h2>
           <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-zinc-600">
             Metrics use your session positions only. Closed-trade stats count <span className="text-zinc-500">full exits</span>{" "}
-            (<code className="text-[10px] text-zinc-500">closed</code>) with recorded PnL. Demo rows are listed separately below.
+            (<code className="text-[10px] text-zinc-500">closed</code>, <code className="text-[10px] text-zinc-500">stopped</code>)
+            with recorded PnL. Demo rows are listed separately below.
           </p>
+          {!hasClosed ? (
+            <p className="mt-3 text-sm leading-relaxed text-zinc-300">
+              No closed trades yet.
+              <br />
+              Performance metrics will appear after you close your first position.
+            </p>
+          ) : null}
         </div>
       </div>
 
