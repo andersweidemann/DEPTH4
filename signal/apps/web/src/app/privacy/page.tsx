@@ -8,7 +8,6 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   const effective = "May 6, 2026";
   const version = "v0.1 (draft)";
-  const jurisdiction = "[your jurisdiction]";
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-12 text-zinc-100">
@@ -25,7 +24,7 @@ export default function PrivacyPage() {
             <strong>Account information</strong> (such as email, name, and authentication identifiers).
           </li>
           <li>
-            <strong>Thesis data</strong> (user-created theses, evidence items, trades, positions, and related notes).
+            <strong>Thesis data</strong> (user-created theses, evidence items, and related notes).
           </li>
           <li>
             <strong>Usage data</strong> (pages viewed, features used, clicks, and feature interactions).
@@ -66,15 +65,28 @@ export default function PrivacyPage() {
             <strong>Business transfers</strong>: acquisition, merger, or sale of assets.
           </li>
         </ul>
+        <p>
+          We do not sell your personal information to third parties.
+        </p>
 
-        <h2>4. Data security</h2>
+        <h2>4. Position and trade data (current MVP)</h2>
+        <p>
+          In the current MVP, positions and performance metrics are stored locally in your browser (for example via{" "}
+          <code>sessionStorage</code>). This data is used to render your Book and related session-only features. Clearing
+          your browser storage may remove this data.
+        </p>
+        <p>
+          In a future version, we may offer encrypted cloud storage so you can access your data across devices.
+        </p>
+
+        <h2>5. Data security</h2>
         <p>
           We use reasonable administrative, technical, and physical safeguards such as encryption in transit and at
           rest, access controls, and routine security reviews. No method of transmission or storage is 100% secure, and
           we cannot guarantee absolute security.
         </p>
 
-        <h2>5. Your rights and choices</h2>
+        <h2>6. Your rights and choices</h2>
         <ul>
           <li>Access and correct your data.</li>
           <li>Export your data (for example JSON/CSV/PDF where supported).</li>
@@ -83,7 +95,7 @@ export default function PrivacyPage() {
           <li>EU/GDPR rights may apply depending on your location.</li>
         </ul>
 
-        <h2>6. Cookies and tracking</h2>
+        <h2>7. Cookies and tracking</h2>
         <ul>
           <li>
             <strong>Essential</strong>: authentication, security, and preferences.
@@ -94,18 +106,18 @@ export default function PrivacyPage() {
         </ul>
         <p>You can typically disable cookies in your browser settings, but some DEPTH4 features may not function.</p>
 
-        <h2>7. Children&apos;s privacy</h2>
+        <h2>8. Children&apos;s privacy</h2>
         <p>
           DEPTH4 is not intended for users under 18. We do not knowingly collect personal information from minors.
         </p>
 
-        <h2>8. International users</h2>
+        <h2>9. International users</h2>
         <p>
-          Data may be processed in {jurisdiction} and other locations where our providers operate. You are responsible
-          for compliance with local laws where you access the service.
+          DEPTH4 may be operated from multiple jurisdictions and may use service providers in different countries. You
+          are responsible for compliance with local laws where you access the service.
         </p>
 
-        <h2>9. Changes to this Privacy Policy</h2>
+        <h2>10. Changes to this Privacy Policy</h2>
         <p>
           We may update this policy from time to time. We will provide notice of material changes. Continued use after
           an effective date constitutes acceptance.
