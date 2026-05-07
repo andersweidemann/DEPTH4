@@ -124,8 +124,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "";
   const simActive = pathname === "/theses" || pathname.startsWith("/theses/");
 
-  const [starred, setStarred] = useState<Set<string>>(() => loadStarred());
-  const [openIds, setOpenIds] = useState<Set<string>>(() => openPositionThesisIds());
+  // Avoid hydration mismatches: read sessionStorage only after mount.
+  const [starred, setStarred] = useState<Set<string>>(() => new Set());
+  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
   const [overrides, setOverrides] = useState<Overrides>({});
   const [tickerItems, setTickerItems] = useState<LiveSignalTickerItem[]>(() => [...MOCK_LIVE_SIGNAL_TICKER]);
   const [alerts, setAlerts] = useState<ThesisAlertEntry[]>([]);
@@ -142,6 +143,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setStarred(loadStarred());
+    setOpenIds(openPositionThesisIds());
   }, []);
 
   useEffect(() => {
