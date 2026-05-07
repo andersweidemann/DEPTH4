@@ -65,19 +65,27 @@ export function ThesisCard({
           onClick={() => live.toggleStar(thesis.id)}
         />
       </div>
-      <div className="flex flex-wrap items-start justify-between gap-2 pr-10">
+      <div
+        className={cn(
+          "pr-10",
+          primary ? "flex flex-wrap items-start justify-between gap-2" : "flex flex-col gap-2",
+        )}
+      >
         <div className="min-w-0 flex-1">
-          <h2
-            className={cn(
-              "te2-clamp-2 break-words font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95",
-              primary ? "text-[14px] sm:text-[15px]" : "text-[13px]",
-            )}
-          >
-            {thesis.title}
-          </h2>
+          <Tooltip label={thesis.title} side="top">
+            <h2
+              title={thesis.title}
+              className={cn(
+                "te2-clamp-2 break-words font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95",
+                primary ? "text-[14px] sm:text-[15px]" : "text-[13px]",
+              )}
+            >
+              {thesis.title}
+            </h2>
+          </Tooltip>
           <p className={cn("mt-1.5 font-mono text-zinc-500", primary ? "text-[11px]" : "text-[11px]")}>{thesis.asset}</p>
         </div>
-        <div className="flex flex-shrink-0 flex-wrap items-center gap-1.5">
+        <div className={cn("flex flex-shrink-0 flex-wrap items-center gap-1.5", primary ? "justify-end" : "justify-start")}>
           <DirectionBadge direction={thesis.direction} />
           <StatusBadge status={thesis.status} />
           {entrySetupValid && (
