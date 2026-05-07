@@ -1,16 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { Position, ThesisDetailBundle, ThesisEvidence, ThesisStatus } from "@/lib/thesis-engine-v2/types";
+import type { Position, ThesisDetailBundle, ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 import { cn } from "@/lib/utils";
 
-type QuestionId = "enter" | "wait_or_act" | "stop" | "take_profit" | "what_changed" | "explain_simply";
+type QuestionId = "suggest" | "entry" | "risk" | "changed" | "simple";
 
 type AssistantAnswer = {
-  stance: string;
-  why: string;
-  change: string;
-  risk: string;
+  assessment: string;
+  context: string;
+  considerations: string;
+  riskFactors: string;
 };
 
 function latestEvidence(evidence: ThesisEvidence[]) {
@@ -22,182 +22,93 @@ function evidenceDelta(ev?: ThesisEvidence) {
   return ev.probabilityAfter - ev.probabilityBefore;
 }
 
-function statusStance(status: ThesisStatus) {
-  switch (status) {
-    case "ready":
-      return "entry possible";
-    case "active":
-      return "manage";
-    case "forming":
-    case "watching":
-      return "wait";
-    case "resolved":
-      return "stand down";
-    case "invalidated":
-      return "stand down";
-    default:
-      return "wait";
-  }
-}
-
-function defaultRisk(bundle: ThesisDetailBundle) {
-  const t = bundle.thesis;
-  if (t.stop) return `Price moving beyond your stop (${t.stop}).`;
-  return `The thesis breaking via invalidation: ${t.invalidation}`;
-}
-
-function bookLine(book: Position | null | undefined): string {
-  if (!book || book.tradeStatus !== "open") return "";
-  const e = typeof book.entryPrice === "number" ? ` @ ${book.entryPrice}` : "";
-  return ` Your Book line: open ${book.side.toUpperCase()} ${book.symbol}${e}.`;
-}
-
 function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Position | null | undefined): AssistantAnswer {
   const t = bundle.thesis;
   const ev = latestEvidence(bundle.evidence);
   const d = evidenceDelta(ev);
-  const strengthening = d > 0;
-  const weakening = d < 0;
   const hasOpenBook = !!(book && book.tradeStatus === "open");
 
-  const baseWhy =
-    t.status === "ready"
-      ? "The thesis has crossed your confidence threshold, but the trigger and price setup still matter."
-      : t.status === "active"
-        ? "A position is open against this thesis. Manage risk first, then reassess on new evidence."
-        : "This is not in a trade-ready state yet. Treat it as monitoring until the trigger is clearer.";
+  const statusLine = `Thesis status: ${t.status} · probability ${t.probability}%.`;
+  const lastUpdateLine = ev
+    ? `Latest evidence: “${ev.headline}” (${ev.source}) · ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
+    : "Latest evidence: none logged (dummy).";
 
-  const whatWouldChange =
-    t.status === "ready"
-      ? `Clear trigger confirmation plus price acceptance around the setup zone (${t.entryZone ?? "your entry zone"}).`
-      : t.status === "active"
-        ? "A meaningful probability drop, a failed reaction to good news, or invalidation."
-        : "A tighter trigger and a cleaner trade plan (entry + stop + target).";
+  const mapping =
+    t.status === "invalidated"
+      ? "Invalidation conditions appear to have been triggered according to the thesis framework."
+      : t.status === "resolved"
+        ? "The thesis is marked resolved; new entries may not be the intended behavior of this framework."
+        : t.status === "watching" || t.status === "forming"
+          ? "Setup conditions do not yet appear met according to the thesis framework."
+          : t.status === "ready" && !hasOpenBook
+            ? "Entry conditions appear to be met according to the thesis framework, but independent verification still matters."
+            : t.status === "ready" && hasOpenBook
+              ? "Thesis conditions appear intact based on current state, with an open Book position linked."
+              : hasOpenBook
+                ? "A Book position is open against this thesis; the thesis state can be monitored for changes and invalidation risk."
+                : "The thesis is active; conditions may support monitoring for follow-through and invalidation signals.";
 
-  const riskToWatch = defaultRisk(bundle);
+  const invalidationLine = `Invalidation would occur if: ${t.invalidation}`;
+  const entryZoneLine = t.entryZone ? `Entry zone (thesis-defined): ${t.entryZone}.` : "Entry zone: not specified in this thesis.";
+  const triggerLine = `Trigger (thesis-defined): ${t.trigger}`;
 
-  if (question === "what_changed") {
-    const changeLine = ev
-      ? `Latest update: “${ev.headline}” (${ev.source}). Probability moved ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
-      : "No recent evidence logged in this dummy.";
-    const bookPn =
-      hasOpenBook && typeof book?.unrealizedPnlNumeric === "number"
-        ? ` Book mark: ${book.unrealizedPnlNumeric >= 0 ? "+" : ""}${book.unrealizedPnlNumeric.toFixed(2)} (dummy).`
-        : "";
+  if (question === "changed") {
     return {
-      stance: "review",
-      why: `${changeLine}${bookPn}`,
-      change: "Another confirming update in the same direction, or a reversal headline that changes the driver.",
-      risk: riskToWatch,
+      assessment: "The thesis framework indicates the most recent change is driven by the latest evidence update.",
+      context: `${statusLine} ${lastUpdateLine}`,
+      considerations:
+        "A second confirming update within a short window may strengthen confidence. A contradictory headline, muted price response, or probability reversal may weaken the setup.",
+      riskFactors: `${invalidationLine} Headline-driven reversals and regime shifts are key risks to monitor.`,
     };
   }
 
-  if (question === "stop") {
-    const stop = t.stop ? `One simple anchor is the listed stop: ${t.stop}.` : "Use the invalidation condition as the stop anchor.";
-    const bookStop =
-      hasOpenBook && typeof book?.stopLoss === "number"
-        ? ` Your logged stop on the Book line: ${book.stopLoss}.`
-        : hasOpenBook
-          ? " Add / confirm a stop on the Book line if you trade with hard risk."
-          : "";
-    const why = strengthening
-      ? "If the thesis is strengthening, consider tightening to reduce giveback while staying inside the thesis."
-      : weakening
-        ? "If the thesis is weakening, keep stops strict and avoid giving it extra room."
-        : "Use a stop that matches the thesis invalidation—not just a random price level.";
+  if (question === "entry") {
     return {
-      stance: "risk management",
-      why: `${stop}${bookStop} ${why}`,
-      change: "A fresh probability jump with clean price follow-through can justify more room; a drop should do the opposite.",
-      risk: riskToWatch,
+      assessment: mapping,
+      context: `${statusLine} ${entryZoneLine} ${triggerLine}`,
+      considerations:
+        "Confirm that the trigger is observable and that price behavior aligns with the thesis narrative. Consider whether liquidity, volatility, and timing make the setup coherent within your plan.",
+      riskFactors: `${invalidationLine} Consider monitoring for failed breakouts, sudden volatility, or news that contradicts the core driver.`,
     };
   }
 
-  if (question === "take_profit") {
-    const bookTp =
-      hasOpenBook && (book?.takeProfit != null)
-        ? ` Your Book take-profit field: ${book.takeProfit}.`
-        : "";
-    const tp =
-      t.target2 || t.target1
-        ? `Targets in this thesis: ${[t.target1, t.target2].filter(Boolean).join(" / ")}.${bookTp}`
-        : `No explicit targets are set here—treat this as thesis-led management, not a fixed-point prediction.${bookTp}`;
+  if (question === "risk") {
     return {
-      stance: "plan exits",
-      why: tp,
-      change: "If the thesis probability peaks then stalls, consider taking partials even before the final target.",
-      risk: "Sharp headline reversals can erase thesis-driven moves quickly.",
+      assessment: "The thesis framework highlights invalidation conditions and adverse scenarios as the primary risk reference points.",
+      context: `${statusLine} ${invalidationLine}`,
+      considerations:
+        "Risk may change as probability shifts and as new evidence arrives. A stable probability with constructive price response may reduce thesis fragility; a drift lower may increase it.",
+      riskFactors:
+        "Monitor for conditions that directly contradict the thesis driver, plus sudden gaps, liquidity events, or correlated shocks that can override the thesis path.",
     };
   }
 
-  if (question === "enter") {
-    if (hasOpenBook) {
-      return {
-        stance: "manage — book is open",
-        why: `You already have an open position linked to this thesis.${bookLine(book)} DEPTH4 “Ready” describes the idea, not whether to double a live line. Size up only if your plan says so.`,
-        change: "A clean invalidation / risk event, or a planned scale rule — not a second discretionary entry off the same headline.",
-        risk: riskToWatch,
-      };
-    }
-    const stance = t.status === "ready" ? "entry possible" : "wait";
-    const why =
-      t.status === "ready"
-        ? `Probability is elevated (${t.probability}%) and the thesis is marked Ready (entry setup valid). The remaining question is whether price is in your setup zone (${t.entryZone ?? "not specified"}).`
-        : "This thesis is not marked Ready. Treat it as monitoring until the trigger and setup are clearer.";
+  if (question === "simple") {
     return {
-      stance,
-      why,
-      change: whatWouldChange,
-      risk: riskToWatch,
+      assessment: "In plain terms, this thesis is a structured hypothesis about what could move the market and how it might play out.",
+      context: `${statusLine} ${lastUpdateLine}`,
+      considerations:
+        "The framework becomes more actionable when a clear trigger appears and price behavior aligns with the described entry zone. The setup may weaken if evidence turns mixed or probability falls.",
+      riskFactors: `${invalidationLine} Unexpected news and fast reversals are common failure modes for narrative theses.`,
     };
   }
 
-  if (question === "wait_or_act") {
-    const base = statusStance(t.status);
-    const stance =
-      hasOpenBook
-        ? "current stance: act on risk / manage the book line"
-        : base === "manage"
-          ? `current stance: hold / manage`
-          : base === "entry possible"
-            ? `current stance: entry possible`
-            : base === "stand down"
-              ? `current stance: stand down`
-              : `current stance: wait`;
-
-    const why =
-      hasOpenBook
-        ? `Thesis state: ${t.status} · ${t.probability}%.${bookLine(book)} Act means manage stops, size, and invalidation vs the thesis — not chase new entries unless planned.`
-        : strengthening
-          ? `Evidence is strengthening (latest move: ${d > 0 ? "+" : ""}${d} pts). Keep focus on trigger + price response.`
-          : weakening
-            ? `Evidence is weakening (latest move: ${d} pts). Avoid forcing entries; prioritize risk control.`
-            : baseWhy;
-
-    return {
-      stance,
-      why,
-      change: whatWouldChange,
-      risk: riskToWatch,
-    };
-  }
-
-  // explain_simply
+  // suggest (default)
   return {
-    stance: `current stance: ${hasOpenBook ? "manage book + thesis" : t.status === "ready" ? "entry possible" : t.status === "active" ? "manage" : "wait"}`,
-    why: `${t.marketMisread}${bookLine(book)}`,
-    change: `Trigger: ${t.trigger}`,
-    risk: `Invalidation: ${t.invalidation}`,
+    assessment: mapping,
+    context: `${statusLine} ${lastUpdateLine}`,
+    considerations:
+      "Consider whether the thesis driver is still valid, whether the trigger is clearly defined, and whether price action supports the narrative. A confirming sequence of evidence may strengthen; contradictions may weaken.",
+    riskFactors: `${invalidationLine} Consider monitoring for adverse price moves, probability deterioration, and contradictory catalysts.`,
   };
 }
 
 const QUESTIONS: { id: QuestionId; label: string }[] = [
-  { id: "enter", label: "Enter now?" },
-  { id: "wait_or_act", label: "Wait or act?" },
-  { id: "stop", label: "Stop-loss?" },
-  { id: "take_profit", label: "Take-profit?" },
-  { id: "what_changed", label: "What changed?" },
-  { id: "explain_simply", label: "Explain simply" },
+  { id: "suggest", label: "What does the thesis suggest?" },
+  { id: "entry", label: "Entry conditions?" },
+  { id: "risk", label: "Risk management considerations?" },
+  { id: "changed", label: "What changed recently?" },
+  { id: "simple", label: "Explain the thesis simply" },
 ];
 
 export function ThesisAssistantPanel({
@@ -210,7 +121,7 @@ export function ThesisAssistantPanel({
   /** Open Book line for this thesis, if any — shapes answers. */
   openBookPosition?: Position | null;
 }) {
-  const [q, setQ] = useState<QuestionId>("wait_or_act");
+  const [q, setQ] = useState<QuestionId>("suggest");
   const ans = useMemo(() => answerFor(q, bundle, openBookPosition ?? null), [bundle, openBookPosition, q]);
   const drawer = variant === "drawer";
 
@@ -223,11 +134,19 @@ export function ThesisAssistantPanel({
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className={cn("font-semibold uppercase tracking-[0.14em] text-zinc-500", drawer ? "text-[10px]" : "text-[11px]")}>
-          {drawer ? "Trade desk (quick)" : "Talk to this thesis"}
+          {drawer ? "Thesis assistant" : "Ask about this thesis"}
         </h2>
         <span className={cn("text-zinc-600", drawer ? "text-[10px]" : "text-[11px]")}>
-          {drawer ? "Rules + Book" : "Decision support (dummy)"}
+          {drawer ? "Informational (dummy)" : "Informational (dummy)"}
         </span>
+      </div>
+
+      <div className={cn("mt-3 rounded-lg border border-white/[0.07] bg-zinc-950/35", drawer ? "p-3" : "p-4")}>
+        <p className={cn("leading-relaxed text-zinc-300", drawer ? "text-[11px]" : "text-[12px]")}>
+          This assistant provides general thesis analysis for informational purposes only. It does not provide personalized investment advice.
+          <br />
+          All trading decisions and risk management are your sole responsibility.
+        </p>
       </div>
 
       <div className={cn("flex flex-wrap gap-1.5", drawer ? "mt-2" : "mt-4", "sm:gap-2")}>
@@ -259,36 +178,21 @@ export function ThesisAssistantPanel({
           )}
         >
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Stance</p>
-            <p className={cn("font-medium text-zinc-100", drawer ? "mt-0.5 line-clamp-2" : "mt-1")}>{ans.stance}</p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Thesis assessment</p>
+            <p className={cn("font-medium text-zinc-100", drawer ? "mt-0.5" : "mt-1")}>{ans.assessment}</p>
           </div>
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Why</p>
-            <p className={cn(drawer ? "mt-0.5 line-clamp-4" : "mt-1")}>{ans.why}</p>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Context</p>
+            <p className={cn(drawer ? "mt-0.5" : "mt-1")}>{ans.context}</p>
           </div>
-          {drawer ? (
-            <p className="text-[9px] text-zinc-500">
-              <span className="font-semibold text-zinc-600">Shift if · </span>
-              <span className="line-clamp-2">{ans.change}</span>
-            </p>
-          ) : null}
-          {!drawer ? (
-            <>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">What would change this</p>
-                <p className="mt-1">{ans.change}</p>
-              </div>
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Risk to watch</p>
-                <p className="mt-1">{ans.risk}</p>
-              </div>
-            </>
-          ) : (
-            <p className="text-[9px] text-zinc-600">
-              <span className="font-semibold text-zinc-500">Risk · </span>
-              <span className="line-clamp-2">{ans.risk}</span>
-            </p>
-          )}
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Considerations</p>
+            <p className={cn(drawer ? "mt-0.5" : "mt-1")}>{ans.considerations}</p>
+          </div>
+          <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-zinc-600">Risk factors</p>
+            <p className={cn(drawer ? "mt-0.5" : "mt-1")}>{ans.riskFactors}</p>
+          </div>
         </div>
       </div>
 
@@ -297,7 +201,7 @@ export function ThesisAssistantPanel({
           <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Ask a custom question</label>
           <input
             disabled
-            placeholder="Coming later"
+            placeholder="Future feature"
             className="mt-2 w-full rounded-md border border-white/[0.08] bg-zinc-900/20 px-3 py-3 text-[16px] text-zinc-500 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
           />
         </div>

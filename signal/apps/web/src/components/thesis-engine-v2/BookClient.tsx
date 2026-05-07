@@ -25,7 +25,7 @@ function BookRiskDisclaimer() {
         You are solely responsible for all trading decisions and risk management.
       </p>
       <div className="mt-3">
-        <Link href="/risk" className="text-sm font-medium text-amber-500/90 hover:text-amber-400">
+        <Link href="/risk-disclosure" className="text-sm font-medium text-amber-500/90 hover:text-amber-400">
           See full Risk Disclosure →
         </Link>
       </div>
