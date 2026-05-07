@@ -8,6 +8,7 @@ import { DirectionBadge } from "./DirectionBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { ThesisStarButton } from "./ThesisStarButton";
+import { Tooltip } from "./Tooltip";
 
 export function ThesisCard({
   thesis,
@@ -65,7 +66,7 @@ export function ThesisCard({
         <div className="min-w-0 flex-1">
           <h2
             className={cn(
-              "font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95",
+              "te2-clamp-2 break-words font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95",
               primary ? "text-[14px] sm:text-[15px]" : "text-[13px]",
             )}
           >
@@ -94,9 +95,11 @@ export function ThesisCard({
         </div>
       </div>
       <div className="mt-3 flex items-center gap-2.5">
-        <span className={cn("font-semibold tabular-nums text-amber-200/90", primary ? "text-[16px]" : "text-[14px]")}>
-          {thesis.probability}%
-        </span>
+        <Tooltip label="Likelihood estimate based on current evidence">
+          <span className={cn("font-semibold tabular-nums text-amber-200/90", primary ? "text-[16px]" : "text-[14px]")}>
+            {thesis.probability}%
+          </span>
+        </Tooltip>
         <div className="min-w-0 flex-1">
           <ProbabilityBar value={thesis.probability} />
         </div>

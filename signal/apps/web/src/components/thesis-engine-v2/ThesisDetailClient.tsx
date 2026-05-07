@@ -44,6 +44,7 @@ export function ThesisDetailClient({
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => getThesisDetail(slug) ?? null);
   const [needPro, setNeedPro] = useState(false);
   const [needCreator, setNeedCreator] = useState(false);
+  const [needAnalystPositions, setNeedAnalystPositions] = useState(false);
   const [openPos, setOpenPos] = useState(false);
   const [bookPulse, setBookPulse] = useState(0);
 
@@ -261,7 +262,13 @@ export function ThesisDetailClient({
             type="button"
             data-testid="thesis-drawer-open-position"
             className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-200/90 hover:bg-emerald-500/15"
-            onClick={() => setOpenPos(true)}
+            onClick={() => {
+              if (!canUse(plan, "positionTracking")) {
+                setNeedAnalystPositions(true);
+                return;
+              }
+              setOpenPos(true);
+            }}
             title="Open a linked position in your Book (dummy)"
           >
             Open position
@@ -395,6 +402,23 @@ export function ThesisDetailClient({
 
   const modals = (
     <>
+      <UpgradeModal
+        open={needAnalystPositions}
+        onOpenChange={setNeedAnalystPositions}
+        requiredPlan="analyst"
+        featureLabel="Position tracking"
+        title="Track positions with Analyst"
+        description={
+          <>
+            Upgrade to <span className="text-amber-200/85">Analyst</span> (<span className="tabular-nums">$29/month</span>) to open and track
+            positions linked to theses.
+          </>
+        }
+        primaryLabel="Upgrade to Analyst"
+        secondaryLabel="View pricing"
+        secondaryHref="/pricing"
+        showCompare={false}
+      />
       <UpgradeModal
         open={needPro}
         onOpenChange={setNeedPro}

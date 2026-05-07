@@ -3,6 +3,7 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { cn } from "@/lib/utils";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
+import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 
 function statusPill(status: Thesis["status"]): { label: string; className: string } {
   switch (status) {
@@ -22,6 +23,15 @@ function statusPill(status: Thesis["status"]): { label: string; className: strin
       return { label: String(status), className: "text-zinc-400" };
   }
 }
+
+const STATUS_TOOLTIP: Record<Thesis["status"], string> = {
+  ready: "Entry conditions met according to thesis framework",
+  forming: "Thesis is forming, not yet actionable",
+  watching: "Monitoring for setup conditions",
+  active: "Position open and being tracked",
+  resolved: "Thesis outcome confirmed",
+  invalidated: "Thesis conditions no longer valid",
+};
 
 export function ThesisTableRow({
   thesis,
@@ -63,10 +73,16 @@ export function ThesisTableRow({
         <p className="truncate text-[12px] font-medium text-zinc-100">{thesis.title}</p>
       </div>
 
-      <div className="text-right text-[12px] font-semibold tabular-nums text-amber-200/90">{thesis.probability}%</div>
+      <div className="text-right text-[12px] font-semibold tabular-nums text-amber-200/90">
+        <Tooltip label="Likelihood estimate based on current evidence">
+          <span>{thesis.probability}%</span>
+        </Tooltip>
+      </div>
 
       <div className="flex justify-end">
-        <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", pill.className)}>{pill.label}</span>
+        <Tooltip label={STATUS_TOOLTIP[thesis.status]}>
+          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", pill.className)}>{pill.label}</span>
+        </Tooltip>
       </div>
 
       <div className="text-right font-mono text-[11px] tabular-nums text-zinc-500">{thesis.lastUpdated}</div>

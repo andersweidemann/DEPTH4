@@ -1,5 +1,6 @@
 import type { ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "./Tooltip";
 
 const COPY: Record<ThesisStatus, string> = {
   forming: "Forming",
@@ -10,18 +11,20 @@ const COPY: Record<ThesisStatus, string> = {
   invalidated: "Invalidated",
 };
 
-/** Short helper shown under the main label when `showHint` is true. */
-const HINT: Partial<Record<ThesisStatus, string>> = {
-  watching: "Not ready yet",
-  ready: "Entry setup valid",
-  active: "Position open",
+const TOOLTIP: Record<ThesisStatus, string> = {
+  ready: "Entry conditions met according to thesis framework",
+  forming: "Thesis is forming, not yet actionable",
+  watching: "Monitoring for setup conditions",
+  active: "Position open and being tracked",
+  resolved: "Thesis outcome confirmed",
+  invalidated: "Thesis conditions no longer valid",
 };
 
 export function StatusBadge({ status, showHint = false }: { status: ThesisStatus; showHint?: boolean }) {
-  const hint = showHint ? HINT[status] : undefined;
+  void showHint;
 
   return (
-    <span className="inline-flex flex-col items-start gap-0.5">
+    <Tooltip label={TOOLTIP[status]}>
       <span
         className={cn(
           "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide",
@@ -36,7 +39,6 @@ export function StatusBadge({ status, showHint = false }: { status: ThesisStatus
       >
         {COPY[status]}
       </span>
-      {hint ? <span className="text-[9px] font-medium leading-tight text-zinc-500">{hint}</span> : null}
-    </span>
+    </Tooltip>
   );
 }

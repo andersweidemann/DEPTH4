@@ -3,6 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
 import { X } from "lucide-react";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { V2Plan } from "@/lib/thesis-engine-v2/plan";
 import { V2_PLAN_LABEL } from "@/lib/thesis-engine-v2/plan";
@@ -14,12 +15,24 @@ export function UpgradeModal({
   requiredPlan,
   featureLabel,
   onUpgraded,
+  title,
+  description,
+  primaryLabel,
+  secondaryLabel,
+  secondaryHref,
+  showCompare = true,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   requiredPlan: V2Plan;
   featureLabel: string;
   onUpgraded?: () => void;
+  title?: string;
+  description?: ReactNode;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+  secondaryHref?: string;
+  showCompare?: boolean;
 }) {
   const { setPlan } = useV2Plan();
 
@@ -74,11 +87,15 @@ export function UpgradeModal({
         >
           <div className="flex items-start justify-between gap-4 px-5 py-4">
             <div>
-              <Dialog.Title className="text-sm font-semibold text-zinc-100">Upgrade required</Dialog.Title>
-              <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-                <span className="text-zinc-400">{featureLabel}</span> is a{" "}
-                <span className="text-amber-200/85">{V2_PLAN_LABEL[requiredPlan]}</span> feature.
-              </p>
+              <Dialog.Title className="text-sm font-semibold text-zinc-100">{title ?? "Upgrade required"}</Dialog.Title>
+              {description ? (
+                <div className="mt-1 text-[11px] leading-relaxed text-zinc-500">{description}</div>
+              ) : (
+                <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+                  <span className="text-zinc-400">{featureLabel}</span> is a{" "}
+                  <span className="text-amber-200/85">{V2_PLAN_LABEL[requiredPlan]}</span> feature.
+                </p>
+              )}
             </div>
             <Dialog.Close
               className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-900/60 hover:text-zinc-300"
@@ -93,17 +110,19 @@ export function UpgradeModal({
           <div className="px-5 py-4">
             <p className="text-[13px] leading-relaxed text-zinc-400 sm:text-[12px]">{subcopy}</p>
 
-            <div className="mt-3.5 bg-zinc-900/25 p-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">At a glance</p>
-              <div className="mt-3 grid gap-2 text-[12px] text-zinc-300">
-                {compare[0]!.items.map((t) => (
-                  <div key={t} className="flex items-start gap-2">
-                    <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-amber-400/70" />
-                    <span>{t}</span>
-                  </div>
-                ))}
+            {showCompare ? (
+              <div className="mt-3.5 bg-zinc-900/25 p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">At a glance</p>
+                <div className="mt-3 grid gap-2 text-[12px] text-zinc-300">
+                  {compare[0]!.items.map((t) => (
+                    <div key={t} className="flex items-start gap-2">
+                      <span className="mt-[2px] h-1.5 w-1.5 rounded-full bg-amber-400/70" />
+                      <span>{t}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : null}
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
@@ -115,27 +134,34 @@ export function UpgradeModal({
                   onUpgraded?.();
                 }}
               >
-                {primary}
+                {primaryLabel ?? primary}
               </button>
 
-              {requiredPlan === "creator" ? (
+              {secondaryHref ? (
+                <Link
+                  href={secondaryHref}
+                  className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
+                >
+                  {secondaryLabel ?? secondary}
+                </Link>
+              ) : requiredPlan === "creator" ? (
                 <a
                   href="mailto:sales@depth4.example?subject=DEPTH4%20Creator%20plan"
                   className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
                 >
-                  {secondary}
+                  {secondaryLabel ?? secondary}
                 </a>
               ) : (
                 <Link
                   href="/pricing"
                   className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
                 >
-                  {secondary}
+                  {secondaryLabel ?? secondary}
                 </Link>
               )}
 
               <Dialog.Close className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500">
-                Not now
+                {requiredPlan === "analyst" ? "Cancel" : "Not now"}
               </Dialog.Close>
             </div>
           </div>

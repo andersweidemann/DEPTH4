@@ -19,6 +19,14 @@
   letter-spacing: -0.005em;
 }
 
+/* Multiline truncation helper (Tailwind doesn't include line-clamp plugin here). */
+.te2-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .te2-bg {
   background-color: var(--te2-bg);
 }

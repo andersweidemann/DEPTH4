@@ -11,33 +11,34 @@
     "test:e2e:ci": "playwright install chromium && playwright test"
   },
   "dependencies": {
-    "react": "^18",
-    "react-dom": "^18",
-    "next": "14.2.35",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-tabs": "^1.1.1",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "@signal/ai": "file:../../packages/ai",
+    "@signal/shared": "file:../../packages/shared",
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "lucide-react": "^0.456.0",
-    "@ducanh2912/next-pwa": "^10.2.9",
+    "next": "14.2.35",
+    "react": "^18",
+    "react-dom": "^18",
     "react-markdown": "^9.0.1",
     "stripe": "^17.4.0",
     "tailwind-merge": "^2.5.4",
-    "zod": "^3.23.0",
-    "@signal/shared": "file:../../packages/shared",
-    "@signal/ai": "file:../../packages/ai"
+    "zod": "^3.23.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.1",
-    "typescript": "^5",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "eslint": "^8",
-    "eslint-config-next": "14.2.35"
+    "typescript": "^5"
   }
 }

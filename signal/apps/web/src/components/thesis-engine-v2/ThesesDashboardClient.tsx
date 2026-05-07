@@ -52,7 +52,7 @@ export function ThesesDashboardClient({
   const [open, setOpen] = useState(false);
   const [userTheses, setUserTheses] = useState<Thesis[]>([]);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [show, setShow] = useState<"all" | "ready">("all");
+  const [show, setShow] = useState<"all" | "ready" | "starred">("all");
   const [assetClass, setAssetClass] = useState<AssetClass>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [drawerSlug, setDrawerSlug] = useState<string | null>(initialDrawerSlug ?? null);
@@ -81,6 +81,7 @@ export function ThesesDashboardClient({
   const filtered = useMemo(() => {
     let list = liveSorted;
     if (show === "ready") list = list.filter((t) => t.status === "ready");
+    if (show === "starred") list = list.filter((t) => live.isEffectivelyStarred(t.id));
     if (assetClass !== "all") list = list.filter((t) => assetClassFor(t) === assetClass);
 
     const next = [...list];
@@ -90,7 +91,9 @@ export function ThesesDashboardClient({
       return parseRelativeMinutes(a.lastUpdated) - parseRelativeMinutes(b.lastUpdated);
     });
     return next;
-  }, [assetClass, moveBySlug, show, sortKey, liveSorted]);
+  }, [assetClass, live, moveBySlug, show, sortKey, liveSorted]);
+
+  const starredCount = useMemo(() => liveSorted.filter((t) => live.isEffectivelyStarred(t.id)).length, [live, liveSorted]);
 
   const focus = useMemo(() => filtered.filter((t) => t.status === "ready" || t.status === "active"), [filtered]);
   const focusTop = useMemo(() => focus.slice(0, 3), [focus]);
@@ -148,6 +151,16 @@ export function ThesesDashboardClient({
             onClick={() => setShow("all")}
           >
             All theses
+          </button>
+          <button
+            type="button"
+            className={[
+              "rounded-md px-3 py-1.5 text-[11px] font-semibold",
+              show === "starred" ? "bg-zinc-900/60 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
+            ].join(" ")}
+            onClick={() => setShow("starred")}
+          >
+            Starred ({starredCount})
           </button>
           <button
             type="button"

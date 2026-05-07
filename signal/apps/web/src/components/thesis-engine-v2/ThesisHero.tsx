@@ -3,6 +3,7 @@ import { DirectionBadge } from "./DirectionBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "./Tooltip";
 
 const ADVISORY_LABEL: Record<AdvisoryAction, string> = {
   watch: "Watch — wait for trigger clarity.",
@@ -14,17 +15,25 @@ const ADVISORY_LABEL: Record<AdvisoryAction, string> = {
 
 function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
+  const tip =
+    q === "tradeable"
+      ? "Thesis meets the framework’s actionability threshold"
+      : q === "emerging"
+        ? "Thesis is forming, not yet actionable"
+        : "High-level theme; trigger and trade expression may still be forming";
   return (
-    <span
-      className={cn(
-        "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
-        q === "tradeable" && "text-amber-200/80",
-        q === "emerging" && "text-zinc-400",
-        q === "theme" && "text-zinc-500",
-      )}
-    >
-      {label}
-    </span>
+    <Tooltip label={tip}>
+      <span
+        className={cn(
+          "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+          q === "tradeable" && "text-amber-200/80",
+          q === "emerging" && "text-zinc-400",
+          q === "theme" && "text-zinc-500",
+        )}
+      >
+        {label}
+      </span>
+    </Tooltip>
   );
 }
 
@@ -57,18 +66,24 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className="bg-zinc-900/40 px-3 py-2.5">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Live probability</p>
+            <Tooltip label="Likelihood estimate based on current evidence">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Live probability</p>
+            </Tooltip>
             <span className="text-[10px] tabular-nums text-zinc-500">score {thesis.scores.total}/100</span>
           </div>
           <div className="mt-2 flex items-center gap-3">
-            <span className="text-base font-semibold tabular-nums text-amber-200/90">{thesis.probability}%</span>
+            <Tooltip label="Likelihood estimate based on current evidence">
+              <span className="text-base font-semibold tabular-nums text-amber-200/90">{thesis.probability}%</span>
+            </Tooltip>
             <div className="min-w-0 flex-1">
               <ProbabilityBar value={thesis.probability} />
             </div>
           </div>
         </div>
         <div className="bg-zinc-900/40 px-3 py-2.5">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Horizon</p>
+          <Tooltip label="Expected timeframe for thesis to play out">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Horizon</p>
+          </Tooltip>
           <p className="mt-1 text-sm text-zinc-200">{thesis.horizon}</p>
         </div>
         <div className="bg-zinc-900/40 px-3 py-2.5">
