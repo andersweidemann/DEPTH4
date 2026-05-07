@@ -49,7 +49,9 @@ export function AppHeader({
   /** Optional Book session performance summary (shown under live line). */
   bookSummarySlot?: ReactNode;
 }) {
-  const { plan, setPlan } = useV2Plan();
+  const { plan } = useV2Plan();
+  const planLabel = V2_PLAN_LABEL[plan] ?? plan;
+  const tierLabel = plan === V2_PLAN_ORDER[0] ? "Free Tier" : planLabel;
   const tab = (id: ThesisNavTab, href: string, label: string) => (
     <Link
       href={href}
@@ -82,26 +84,9 @@ export function AppHeader({
           </div>
           <div className="flex items-center gap-2">
             {alertsSlot}
-            <Link
-              href="/pricing"
-              className="min-h-11 rounded border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] font-semibold text-zinc-200 hover:bg-zinc-900/60 sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[10px] sm:uppercase sm:tracking-wider sm:text-zinc-300"
-              title="View plans"
-            >
-              Upgrade
-            </Link>
-            <select
-              className="min-h-11 rounded border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[16px] font-semibold text-amber-100 outline-none sm:min-h-0 sm:px-2.5 sm:py-1 sm:text-[10px] sm:uppercase sm:tracking-wider sm:text-amber-200/90"
-              value={plan}
-              onChange={(e) => setPlan(e.target.value as (typeof V2_PLAN_ORDER)[number])}
-              aria-label="Plan (demo)"
-              title="Plan (demo)"
-            >
-              {V2_PLAN_ORDER.map((p) => (
-                <option key={p} value={p}>
-                  {V2_PLAN_LABEL[p]}
-                </option>
-              ))}
-            </select>
+            <span className="text-sm text-zinc-500" aria-label="Current tier">
+              {tierLabel}
+            </span>
           </div>
         </div>
         <nav
