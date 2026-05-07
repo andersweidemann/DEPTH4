@@ -4,12 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
 import { ThesisTableRow } from "@/components/thesis-engine-v2/ThesisTableRow";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
-import { ReadyPing } from "@/components/thesis-engine-v2/ReadyPing";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDrawer";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
-import { getThesisDetail, isEmerging, isTradeable, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
+import { getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { canUse } from "@/lib/thesis-engine-v2/plan";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
@@ -109,7 +108,6 @@ export function ThesesDashboardClient({
   return (
     <>
       <LiveSignalTicker items={live.tickerItems} intervalMs={12_000} />
-      <ReadyPing theses={liveSorted} />
 
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -140,7 +138,7 @@ export function ThesesDashboardClient({
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-zinc-900/20 p-1">
+        <div className="flex items-center gap-2 bg-zinc-900/20 p-1">
           <button
             type="button"
             className={[
@@ -198,7 +196,7 @@ export function ThesesDashboardClient({
         </div>
 
         {focusTop.length === 0 ? (
-          <div className="mt-3 rounded-lg bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-500 ring-1 ring-white/[0.03]">
+          <div className="mt-3 bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-500">
             No Ready or Active theses match the current filters.
           </div>
         ) : focusTop.length === 1 ? (
@@ -248,7 +246,7 @@ export function ThesesDashboardClient({
           <div className="hidden text-[11px] text-zinc-600 sm:block">Thesis · Probability · Status · Last update · Star</div>
         </div>
 
-        <div className="mt-3 rounded-lg bg-zinc-900/20 p-2 shadow-sm ring-1 ring-white/[0.03]">
+        <div className="mt-3 bg-zinc-900/20">
           <div className="hidden grid-cols-[1fr_76px_92px_96px_44px] gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 sm:grid">
             <span>Thesis</span>
             <span className="text-right">Prob</span>
@@ -256,7 +254,7 @@ export function ThesesDashboardClient({
             <span className="text-right">Update</span>
             <span className="text-right">Star</span>
           </div>
-          <div className="mt-1 grid gap-1">
+          <div className="mt-1 grid gap-0">
             {monitoring.length ? (
               monitoring.map((t) => (
                 <ThesisTableRow
@@ -283,8 +281,8 @@ export function ThesesDashboardClient({
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Archive</h2>
             <span className="text-[11px] text-zinc-600">Resolved / Invalidated</span>
           </div>
-          <div className="mt-3 rounded-lg bg-zinc-900/15 p-2 shadow-sm ring-1 ring-white/[0.03]">
-            <div className="mt-1 grid gap-1">
+          <div className="mt-3 bg-zinc-900/15">
+            <div className="mt-1 grid gap-0">
               {archived.map((t) => (
                 <ThesisTableRow
                   key={t.id}

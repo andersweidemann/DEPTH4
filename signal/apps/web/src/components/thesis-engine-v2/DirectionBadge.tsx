@@ -12,9 +12,10 @@ export function DirectionBadge({ direction }: { direction: Thesis["direction"] }
     <span
       className={cn(
         "inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider",
-        direction === "long" && "bg-emerald-950/60 text-emerald-400/95 ring-1 ring-emerald-500/20",
-        direction === "short" && "bg-red-950/50 text-red-400/95 ring-1 ring-red-500/20",
-        direction === "watch" && "bg-zinc-800 text-zinc-400 ring-1 ring-zinc-600/40",
+        // Text-only (avoid decorative filled pills).
+        direction === "long" && "text-emerald-300/90",
+        direction === "short" && "text-red-300/90",
+        direction === "watch" && "text-zinc-500",
       )}
     >
       {LABEL[direction]}

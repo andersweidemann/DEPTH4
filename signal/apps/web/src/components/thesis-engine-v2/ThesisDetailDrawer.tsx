@@ -89,7 +89,7 @@ export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onC
 
       <aside
         className={cn(
-          "relative z-[1] flex h-dvh max-h-dvh w-full flex-col bg-[#131316] shadow-2xl sm:w-[min(48vw,40rem)] sm:max-w-none",
+          "relative z-[1] flex h-dvh max-h-dvh w-full flex-col bg-[#131316] sm:w-[min(48vw,40rem)] sm:max-w-none",
           "transition-transform duration-300 ease-out motion-reduce:transition-none",
           panelOpen ? "translate-x-0" : "translate-x-full",
         )}

@@ -11,7 +11,7 @@ export function ThesisLiveToasts() {
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[200] flex justify-center px-4 pb-6">
       <div
         className={cn(
-          "pointer-events-auto max-w-md rounded-lg border border-white/[0.08] bg-[#151518] px-4 py-3 text-[12px] leading-relaxed text-zinc-200 shadow-sm",
+          "pointer-events-auto max-w-md rounded-none bg-[#151518] px-4 py-3 text-[12px] leading-relaxed text-zinc-200 ring-1 ring-white/[0.04]",
         )}
         role="status"
       >

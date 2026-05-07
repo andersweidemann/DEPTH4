@@ -8,28 +8,28 @@ function impactStyle(impact: "major_positive" | "minor_positive" | "neutral" | "
   switch (impact) {
     case "major_positive":
       return {
-        chip: "bg-emerald-500/10 text-emerald-300 ring-emerald-500/20",
+        chip: "text-emerald-300/90",
         label: "Major positive",
       };
     case "minor_positive":
       return {
-        chip: "bg-emerald-500/5 text-emerald-300/80 ring-emerald-500/15",
+        chip: "text-emerald-300/70",
         label: "Minor positive",
       };
     case "major_negative":
       return {
-        chip: "bg-red-500/10 text-red-300 ring-red-500/20",
+        chip: "text-red-300/90",
         label: "Major negative",
       };
     case "minor_negative":
       return {
-        chip: "bg-red-500/5 text-red-300/80 ring-red-500/15",
+        chip: "text-red-300/70",
         label: "Minor negative",
       };
     case "neutral":
     default:
       return {
-        chip: "bg-amber-500/8 text-amber-200/90 ring-amber-500/15",
+        chip: "text-zinc-300/80",
         label: "Neutral",
       };
   }
@@ -48,14 +48,14 @@ function kindChip(kind: LiveSignalTickerItem["kind"]) {
 function containerTone(it: LiveSignalTickerItem) {
   if (it.kind === "thesis_update") {
     const impact = impactStyle(it.impact);
-    if (impact.label === "Major positive") return "bg-emerald-500/[0.02] border-emerald-500/15";
-    if (impact.label === "Major negative") return "bg-red-500/[0.02] border-red-500/15";
-    if (impact.label === "Minor positive") return "bg-emerald-500/[0.015] border-emerald-500/10";
-    if (impact.label === "Minor negative") return "bg-red-500/[0.015] border-red-500/10";
-    return "bg-zinc-900/20 border-white/[0.06]";
+    if (impact.label === "Major positive") return "bg-emerald-500/[0.02]";
+    if (impact.label === "Major negative") return "bg-red-500/[0.02]";
+    if (impact.label === "Minor positive") return "bg-emerald-500/[0.015]";
+    if (impact.label === "Minor negative") return "bg-red-500/[0.015]";
+    return "bg-zinc-900/20";
   }
-  if (it.kind === "building_new_thesis") return "bg-amber-500/[0.015] border-amber-500/10";
-  return "bg-zinc-900/15 border-white/[0.06]";
+  if (it.kind === "building_new_thesis") return "bg-amber-500/[0.015]";
+  return "bg-zinc-900/15";
 }
 
 export function LiveSignalTicker({
@@ -86,7 +86,7 @@ export function LiveSignalTicker({
   const k = kindChip(it.kind);
 
   return (
-    <div className={cn("rounded-md border px-3 py-2", containerTone(it))}>
+    <div className={cn("rounded-none px-3 py-2 ring-1 ring-white/[0.04]", containerTone(it))}>
       <div
         className={cn(
           "transition-all duration-300",
@@ -116,7 +116,7 @@ export function LiveSignalTicker({
               return (
                 <span
                   className={cn(
-                    "rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1",
+                    "rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
                     s.chip,
                   )}
                 >

@@ -161,14 +161,14 @@ export function CreateThesisModal({
           className={cn(
             // Mobile: fullscreen sheet. Desktop: centered modal.
             "fixed inset-0 z-[201] w-full max-w-none translate-x-0 translate-y-0",
-            "rounded-none border-0 bg-[#0c0c0e] shadow-2xl",
+            "rounded-none border-0 bg-[#0c0c0e]",
             "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2",
-            "sm:rounded-xl sm:border sm:border-white/[0.08]",
+            "sm:rounded-none sm:ring-1 sm:ring-white/[0.04]",
             "focus:outline-none",
           )}
           aria-describedby={undefined}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-5 py-4">
             <div>
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Create new thesis</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
@@ -183,8 +183,10 @@ export function CreateThesisModal({
             </Dialog.Close>
           </div>
 
+          <div className="h-px w-full bg-white/[0.06]" aria-hidden />
+
           <div className="h-[calc(100dvh-132px)] overflow-y-auto px-5 py-4 sm:max-h-[70vh] sm:h-auto">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
                   Thesis title
@@ -192,7 +194,7 @@ export function CreateThesisModal({
                 <input
                   value={form.title}
                   onChange={(e) => set("title", e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] sm:py-2 sm:text-[12px]"
                 />
               </div>
 

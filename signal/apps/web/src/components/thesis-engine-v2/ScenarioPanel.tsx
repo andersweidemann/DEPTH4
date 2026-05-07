@@ -14,7 +14,7 @@ export function ScenarioPanel({ scenarios }: { scenarios: ThesisScenario[] }) {
         {ordered.map((s) => (
           <div
             key={s.id}
-            className="rounded-lg border border-white/[0.06] bg-zinc-900/30 p-4"
+            className="rounded-none bg-zinc-900/30 p-4"
           >
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="text-xs font-semibold text-zinc-200">{s.label}</h3>

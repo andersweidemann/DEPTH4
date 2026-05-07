@@ -7,6 +7,16 @@
   --te2-gold: #d4a574;
   --te2-gold-dim: rgba(212, 165, 116, 0.15);
   line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lightweight hierarchy tuning for the v2 shell (keeps Tailwind as source-of-truth). */
+.te2 h1 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.te2 h2 {
+  letter-spacing: -0.005em;
 }
 
 .te2-bg {

@@ -97,7 +97,7 @@ export function PositionRow({
             ) : null}
           </div>
 
-          <div className="mt-3 grid gap-2 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-3 py-2 text-[11px] text-zinc-500 sm:grid-cols-2">
+          <div className="mt-2.5 grid gap-2 bg-zinc-900/20 px-3 py-2 text-[11px] text-zinc-500 sm:grid-cols-2">
             <div>
               <span className="text-zinc-600">Entry · </span>
               <span className="font-mono text-zinc-300">{fmtMaybe(position.entryPrice)}</span>

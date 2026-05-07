@@ -16,12 +16,12 @@ export function FeedSignalCard({ item }: { item: FeedSignal }) {
         {linked ? (
           <Link
             href={`/theses/${item.linkedThesisSlug}`}
-            className="inline-flex rounded-md border border-amber-500/20 bg-amber-500/5 px-2.5 py-1 text-[10px] font-medium text-amber-500/90 transition-colors hover:border-amber-500/35"
+            className="inline-flex rounded-md px-2.5 py-1 text-[10px] font-medium text-amber-200/90 hover:text-amber-100"
           >
             Linked · {item.linkedThesisTitle}
           </Link>
         ) : (
-          <span className="inline-flex rounded-md border border-zinc-700/60 bg-zinc-900/50 px-2.5 py-1 text-[10px] font-medium text-zinc-500">
+          <span className="inline-flex rounded-md px-2.5 py-1 text-[10px] font-medium text-zinc-500">
             Propose thesis
           </span>
         )}

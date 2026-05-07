@@ -40,7 +40,7 @@ export function ThesisAlertsBell() {
       {open ? (
         <div
           className={cn(
-            "absolute right-0 top-full z-[120] mt-2 w-[min(calc(100vw-2rem),22rem)] rounded-lg border border-white/[0.08] bg-[#141416] shadow-sm",
+            "absolute right-0 top-full z-[120] mt-2 w-[min(calc(100vw-2rem),22rem)] rounded-none bg-[#141416]",
           )}
         >
           <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">

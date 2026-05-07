@@ -4,17 +4,17 @@ import { cn } from "@/lib/utils";
 function impactLabel(impact: ThesisEvidence["impact"]): { text: string; className: string } {
   switch (impact) {
     case "major_positive":
-      return { text: "Major +", className: "text-emerald-400 ring-emerald-500/25 bg-emerald-950/40" };
+      return { text: "Major +", className: "text-emerald-300/90" };
     case "minor_positive":
-      return { text: "Minor +", className: "text-emerald-400/80 ring-emerald-500/15 bg-emerald-950/25" };
+      return { text: "Minor +", className: "text-emerald-300/70" };
     case "neutral":
-      return { text: "Neutral", className: "text-sky-400/90 ring-sky-500/20 bg-sky-950/30" };
+      return { text: "Neutral", className: "text-zinc-300/80" };
     case "minor_negative":
-      return { text: "Minor −", className: "text-red-400/80 ring-red-500/15 bg-red-950/25" };
+      return { text: "Minor −", className: "text-red-300/70" };
     case "major_negative":
-      return { text: "Major −", className: "text-red-400 ring-red-500/25 bg-red-950/40" };
+      return { text: "Major −", className: "text-red-300/90" };
     default:
-      return { text: impact, className: "text-zinc-400 ring-zinc-600/30 bg-zinc-900" };
+      return { text: impact, className: "text-zinc-400" };
   }
 }
 
@@ -36,7 +36,7 @@ export function EvidenceTimeline({ items }: { items: ThesisEvidence[] }) {
                 <span className="text-[10px] font-medium text-zinc-400">{ev.source}</span>
                 <span
                   className={cn(
-                    "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ring-1",
+                    "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",
                     imp.className,
                   )}
                 >

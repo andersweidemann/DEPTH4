@@ -34,12 +34,12 @@ export function ThesisCard({
   const terminal = thesis.status === "resolved" || thesis.status === "invalidated";
   const primary = variant === "primary";
   const className = cn(
-    "group relative block w-full rounded-lg bg-zinc-900/40 text-left shadow-sm ring-1 ring-white/[0.03] transition-colors hover:bg-zinc-900/55 hover:ring-white/[0.05]",
+    "group relative block w-full rounded-none bg-zinc-900/40 text-left transition-colors hover:bg-zinc-900/55",
     primary ? "p-4 sm:p-5" : "p-3.5 sm:p-4",
     !terminal && entrySetupValid && "bg-gradient-to-br from-amber-500/[0.08] via-zinc-900/40 to-zinc-900/35",
     terminal && thesis.status === "resolved" && "bg-gradient-to-br from-emerald-500/[0.06] via-zinc-900/45 to-zinc-900/35",
     terminal && thesis.status === "invalidated" && "bg-gradient-to-br from-red-500/[0.06] via-zinc-900/45 to-zinc-900/35",
-    selected && "ring-1 ring-amber-500/35 bg-zinc-900/60",
+    selected && "bg-zinc-900/60",
     pulseKey > 0 && "animate-[thesis-pulse_0.85s_ease-out_1]",
   );
 
@@ -77,17 +77,17 @@ export function ThesisCard({
           <DirectionBadge direction={thesis.direction} />
           <StatusBadge status={thesis.status} />
           {entrySetupValid && (
-            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/25 bg-amber-500/10">
+            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200/90">
               Entry setup valid
             </span>
           )}
           {tradeable && (
-            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300 ring-1 ring-amber-500/25 bg-amber-500/10">
+            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200/80">
               Tradeable
             </span>
           )}
           {isUser && (
-            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300 ring-1 ring-white/[0.08] bg-zinc-900/40">
+            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
               User thesis
             </span>
           )}

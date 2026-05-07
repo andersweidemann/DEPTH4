@@ -25,12 +25,13 @@ export function StatusBadge({ status, showHint = false }: { status: ThesisStatus
       <span
         className={cn(
           "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide",
-          status === "ready" && "bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/25",
-          status === "active" && "bg-zinc-800 text-zinc-300 ring-1 ring-zinc-600/35",
-          status === "watching" && "bg-zinc-900 text-zinc-500 ring-1 ring-zinc-700/50",
-          status === "forming" && "bg-zinc-950 text-zinc-500 ring-1 ring-zinc-800/60",
-          status === "resolved" && "bg-emerald-950/40 text-emerald-500/80 ring-1 ring-emerald-500/15",
-          status === "invalidated" && "bg-red-950/40 text-red-400/80 ring-1 ring-red-500/15",
+          // Limit filled pills to: valid/invalid/pending. Everything else is text-only.
+          status === "ready" && "bg-amber-500/12 text-amber-200 ring-1 ring-amber-500/25", // valid
+          status === "invalidated" && "bg-red-500/10 text-red-200/95 ring-1 ring-red-500/25", // invalid
+          status === "forming" && "bg-zinc-900/50 text-zinc-200 ring-1 ring-white/[0.08]", // pending
+          status === "active" && "text-zinc-300",
+          status === "watching" && "text-zinc-400",
+          status === "resolved" && "text-zinc-400",
         )}
       >
         {COPY[status]}

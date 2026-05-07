@@ -65,14 +65,14 @@ export function UpgradeModal({
           className={cn(
             // Mobile: bottom-sheet. Desktop: centered modal.
             "fixed inset-x-0 bottom-0 z-[221] w-full max-w-none translate-x-0 translate-y-0",
-            "rounded-t-2xl border border-white/[0.08] bg-[#0c0c0e] shadow-2xl",
+            "rounded-none border-0 bg-[#0c0c0e] ring-1 ring-white/[0.04]",
             "sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:w-[92vw] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2",
-            "sm:rounded-xl",
+            "sm:rounded-none",
             "focus:outline-none",
           )}
           aria-describedby={undefined}
         >
-          <div className="flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+          <div className="flex items-start justify-between gap-4 px-5 py-4">
             <div>
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Upgrade required</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
@@ -88,10 +88,12 @@ export function UpgradeModal({
             </Dialog.Close>
           </div>
 
+          <div className="h-px w-full bg-white/[0.06]" aria-hidden />
+
           <div className="px-5 py-4">
             <p className="text-[13px] leading-relaxed text-zinc-400 sm:text-[12px]">{subcopy}</p>
 
-            <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/25 p-4">
+            <div className="mt-3.5 bg-zinc-900/25 p-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">At a glance</p>
               <div className="mt-3 grid gap-2 text-[12px] text-zinc-300">
                 {compare[0]!.items.map((t) => (

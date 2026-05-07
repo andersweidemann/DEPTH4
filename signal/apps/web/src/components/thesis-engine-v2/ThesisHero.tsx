@@ -17,10 +17,10 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   return (
     <span
       className={cn(
-        "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1",
-        q === "tradeable" && "bg-amber-500/12 text-amber-300 ring-amber-500/25",
-        q === "emerging" && "bg-zinc-900 text-zinc-400 ring-zinc-700/50",
-        q === "theme" && "bg-zinc-950 text-zinc-500 ring-zinc-800/60",
+        "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+        q === "tradeable" && "text-amber-200/80",
+        q === "emerging" && "text-zinc-400",
+        q === "theme" && "text-zinc-500",
       )}
     >
       {label}
@@ -29,9 +29,20 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
 }
 
 export function ThesisHero({ thesis }: { thesis: Thesis }) {
+  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
   return (
     <div className="border-b border-white/[0.06] pb-7">
-      <h1 className="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">{thesis.title}</h1>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h1 className="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">{thesis.title}</h1>
+        {entrySetupValid ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300/80">
+            <span aria-hidden className="text-emerald-300/80">
+              ●
+            </span>
+            Entry valid
+          </span>
+        ) : null}
+      </div>
       <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-zinc-400">{thesis.thesisStatement}</p>
       <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
         <span className="text-zinc-500">Market misread · </span>
@@ -44,7 +55,7 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
         <QualificationBadge q={thesis.qualification} />
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-md border border-white/[0.05] bg-zinc-900/40 px-3 py-2.5">
+        <div className="bg-zinc-900/40 px-3 py-2.5">
           <div className="flex items-baseline justify-between gap-2">
             <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Live probability</p>
             <span className="text-[10px] tabular-nums text-zinc-500">score {thesis.scores.total}/100</span>
@@ -56,11 +67,11 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
             </div>
           </div>
         </div>
-        <div className="rounded-md border border-white/[0.05] bg-zinc-900/40 px-3 py-2.5">
+        <div className="bg-zinc-900/40 px-3 py-2.5">
           <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Horizon</p>
           <p className="mt-1 text-sm text-zinc-200">{thesis.horizon}</p>
         </div>
-        <div className="rounded-md border border-white/[0.05] bg-zinc-900/40 px-3 py-2.5">
+        <div className="bg-zinc-900/40 px-3 py-2.5">
           <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Advisory</p>
           <p className="mt-1 text-sm text-amber-200/90">{ADVISORY_LABEL[thesis.advisoryAction]}</p>
         </div>

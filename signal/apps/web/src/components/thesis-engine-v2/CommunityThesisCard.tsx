@@ -8,9 +8,10 @@ import { ProbabilityBar } from "@/components/thesis-engine-v2/ProbabilityBar";
 import { cn } from "@/lib/utils";
 
 function badgeTone(b: string) {
-  if (/top\s*5%/i.test(b)) return "bg-amber-500/12 text-amber-200 ring-amber-500/20";
-  if (/top\s*10%/i.test(b)) return "bg-zinc-900 text-zinc-300 ring-zinc-700/50";
-  return "bg-zinc-950 text-zinc-400 ring-zinc-800/60";
+  // Text-only badges (avoid decorative filled pills).
+  if (/top\s*5%/i.test(b)) return "text-amber-200/90";
+  if (/top\s*10%/i.test(b)) return "text-zinc-300";
+  return "text-zinc-400";
 }
 
 export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
@@ -18,7 +19,7 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
   useEffect(() => setFollowed(isFollowed(item.id)), [item.id]);
 
   return (
-    <div className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-4 sm:p-5">
+    <div className="rounded-none bg-zinc-900/25 p-4 sm:p-4.5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <Link
@@ -29,7 +30,7 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
           </Link>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
             <span className="text-zinc-300">{item.author}</span>
-            <span className={cn("rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", badgeTone(item.reputationBadge))}>
+            <span className={cn("rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide", badgeTone(item.reputationBadge))}>
               {item.reputationBadge}
             </span>
             <span className="text-zinc-600">·</span>

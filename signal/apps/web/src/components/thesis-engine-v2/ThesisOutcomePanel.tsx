@@ -41,8 +41,8 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
   return (
     <section
       className={cn(
-        "rounded-lg border border-white/[0.06] bg-zinc-900/25",
-        layout === "drawer" ? "p-4" : "p-5",
+        "rounded-none bg-zinc-900/25",
+        layout === "drawer" ? "p-3.5" : "p-4",
       )}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -52,14 +52,14 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
         </Link>
       </div>
 
-      <div className="mt-3 rounded-md border border-white/[0.05] bg-zinc-950/35 px-3 py-2.5 text-[11px] text-zinc-400">
+      <div className="mt-2.5 bg-zinc-950/35 px-3 py-2.5 text-[11px] text-zinc-400">
         <span className="text-zinc-600">Linked trades (session) · </span>
         <span className="tabular-nums text-zinc-300">{openN}</span> open ·{" "}
         <span className="tabular-nums text-zinc-300">{closedN}</span> closed (full exits)
       </div>
 
       {sessionOutcome ? (
-        <div className="mt-3 rounded-md border border-amber-500/15 bg-amber-500/[0.06] px-3 py-2.5 text-[12px] text-zinc-200">
+        <div className="mt-2.5 bg-amber-500/[0.06] px-3 py-2.5 text-[12px] text-zinc-200">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/80">Session outcome</p>
           <p className="mt-1">
             <span className="font-semibold text-zinc-100">{sessionOutcome.status === "resolved" ? "Resolved" : "Invalidated"}</span>
@@ -77,7 +77,7 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
           data-testid="thesis-mark-resolved"

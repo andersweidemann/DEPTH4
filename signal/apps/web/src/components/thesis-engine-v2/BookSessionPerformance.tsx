@@ -43,7 +43,7 @@ function StatCell({
   valueClassName?: string;
 }) {
   return (
-    <div className="rounded-lg bg-zinc-950/35 px-2.5 py-2 shadow-sm ring-1 ring-white/[0.03] sm:px-3 sm:py-2.5">
+    <div className="rounded-none bg-zinc-950/35 px-2.5 py-2 sm:px-3 sm:py-2.5">
       <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">{label}</p>
       <p className={cn("mt-1.5 text-lg font-semibold tabular-nums tracking-tight sm:text-xl", valueClassName ?? "text-zinc-50")}>
         {value}
@@ -58,7 +58,7 @@ export function BookHeaderSummary() {
   const s = useSessionBookStats();
   return (
     <div
-      className="mt-2 rounded-xl bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 px-3 py-2.5 shadow-sm ring-1 ring-white/[0.03] sm:mt-3 sm:px-4 sm:py-3"
+      className="mt-2 rounded-none bg-gradient-to-b from-zinc-900/80 to-zinc-950/90 px-3 py-2.5 sm:mt-3 sm:px-4 sm:py-3"
       aria-label="Session book performance summary"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -101,7 +101,7 @@ export function BookHeaderSummary() {
 export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats }) {
   const hasClosed = stats.closedTradeCount > 0;
   return (
-    <section className="mt-6 rounded-xl bg-gradient-to-b from-zinc-900/50 to-zinc-950/80 p-3.5 shadow-sm ring-1 ring-white/[0.03] sm:p-4">
+    <section className="mt-6 rounded-none bg-gradient-to-b from-zinc-900/50 to-zinc-950/80 p-3.5 sm:p-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Performance</h2>
@@ -135,25 +135,25 @@ export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats })
       </div>
 
       <div className="mt-2.5 grid grid-cols-1 gap-2 pt-2.5 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg bg-zinc-950/30 px-3 py-2.5 ring-1 ring-white/[0.03]">
+        <div className="rounded-none bg-zinc-950/30 px-3 py-2.5">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Best closed trade</p>
           <p className={cn("mt-1 text-base font-semibold tabular-nums sm:text-lg", bookStatTone(stats.bestClosedStr))}>
             {stats.bestClosedStr}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-950/30 px-3 py-2.5 ring-1 ring-white/[0.03]">
+        <div className="rounded-none bg-zinc-950/30 px-3 py-2.5">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Worst closed trade</p>
           <p className={cn("mt-1 text-base font-semibold tabular-nums sm:text-lg", bookStatTone(stats.worstClosedStr))}>
             {stats.worstClosedStr}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-950/30 px-3 py-2.5 ring-1 ring-white/[0.03]">
+        <div className="rounded-none bg-zinc-950/30 px-3 py-2.5">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Last closed trade</p>
           <p className="mt-1 truncate text-sm font-semibold text-zinc-100 sm:text-base" title={stats.lastClosedStr}>
             {stats.lastClosedStr}
           </p>
         </div>
-        <div className="rounded-lg bg-zinc-950/30 px-3 py-2.5 ring-1 ring-white/[0.03]">
+        <div className="rounded-none bg-zinc-950/30 px-3 py-2.5">
           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Avg hold time</p>
           <p className="mt-1 text-base font-semibold tabular-nums text-zinc-100 sm:text-lg">{stats.avgHoldStr}</p>
           <p className="mt-0.5 text-[9px] text-zinc-600">Mean open → exit (closed)</p>

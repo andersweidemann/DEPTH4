@@ -25,7 +25,7 @@ function evidenceDelta(ev?: ThesisEvidence) {
 function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Position | null | undefined): AssistantAnswer {
   const t = bundle.thesis;
   const ev = latestEvidence(bundle.evidence);
-  const d = evidenceDelta(ev);
+  void evidenceDelta(ev);
   const hasOpenBook = !!(book && book.tradeStatus === "open");
 
   const statusLine = `Thesis status: ${t.status} · probability ${t.probability}%.`;
@@ -128,8 +128,8 @@ export function ThesisAssistantPanel({
   return (
     <section
       className={cn(
-        "rounded-lg border border-white/[0.06] bg-zinc-900/25",
-        drawer ? "p-3 sm:p-4" : "p-5",
+        "rounded-none bg-zinc-900/25",
+        drawer ? "p-3 sm:p-3.5" : "p-4",
       )}
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -141,7 +141,7 @@ export function ThesisAssistantPanel({
         </span>
       </div>
 
-      <div className={cn("mt-3 rounded-lg border border-white/[0.07] bg-zinc-950/35", drawer ? "p-3" : "p-4")}>
+      <div className={cn("mt-2.5 bg-zinc-950/35", drawer ? "p-3" : "p-3.5")}>
         <p className={cn("leading-relaxed text-zinc-300", drawer ? "text-[11px]" : "text-[12px]")}>
           This assistant provides general thesis analysis for informational purposes only. It does not provide personalized investment advice.
           <br />
@@ -170,7 +170,7 @@ export function ThesisAssistantPanel({
         ))}
       </div>
 
-      <div className={cn("rounded-lg border border-white/[0.06] bg-zinc-950/30", drawer ? "mt-2 p-3" : "mt-4 p-4")}>
+      <div className={cn("bg-zinc-950/30", drawer ? "mt-2 p-3" : "mt-3.5 p-3.5")}>
         <div
           className={cn(
             "space-y-2 leading-relaxed text-zinc-300",

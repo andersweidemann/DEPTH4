@@ -52,7 +52,7 @@ export function LeaderboardClient() {
       </div>
 
       <p className="mt-3 text-[11px] text-zinc-600 sm:hidden">Tip: swipe the table to see all columns.</p>
-      <div className="mt-10 overflow-x-auto rounded-lg border border-white/[0.06] bg-zinc-900/20">
+      <div className="mt-8 overflow-x-auto rounded-none bg-zinc-900/20">
         <table className="w-full min-w-[560px] text-left">
           <thead className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
             <tr className="border-b border-white/[0.06]">
@@ -71,7 +71,7 @@ export function LeaderboardClient() {
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-zinc-100">{u.name}</span>
-                    <span className="rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1 ring-white/[0.08] bg-zinc-900/40 text-zinc-300">
+                    <span className="rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-400">
                       {u.badge}
                     </span>
                   </div>

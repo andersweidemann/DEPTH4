@@ -65,8 +65,8 @@ export function ClosePositionModal({
         <Dialog.Overlay className="fixed inset-0 z-[240] bg-black/55" />
         <Dialog.Content
           className={cn(
-            "fixed inset-0 z-[241] w-full bg-[#0c0c0e] shadow-2xl",
-            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:ring-1 sm:ring-white/[0.04]",
+            "fixed inset-0 z-[241] w-full bg-[#0c0c0e]",
+            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-none sm:ring-1 sm:ring-white/[0.04]",
             "focus:outline-none",
           )}
           aria-describedby={undefined}

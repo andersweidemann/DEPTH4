@@ -175,11 +175,6 @@ export function ThesisDetailClient({
         >
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
-              {entrySetupValid && (
-                <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200 ring-1 ring-amber-500/20">
-                  Entry setup valid
-                </span>
-              )}
               {hasOpen && (
                 <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-200 ring-1 ring-emerald-500/20">
                   In your book · Active position

@@ -7,12 +7,12 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
       ? `Entry: ${thesis.entryZone ?? "—"} | Stop-loss: ${thesis.stop ?? "—"} | Target: ${thesis.target2 ?? thesis.target1 ?? "—"}`
       : null;
   return (
-    <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
+    <section className="rounded-none bg-zinc-900/25 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Trade plan</h2>
         <StatusBadge status={thesis.status} />
       </div>
-      <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+      <dl className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Entry zone</dt>
           <dd className="mt-1 font-mono text-sm text-zinc-200">{thesis.entryZone ?? "—"}</dd>
