@@ -112,14 +112,21 @@ export function ThesisCard({
 
   if (onSelect) {
     return (
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         data-testid={`thesis-card-${thesis.slug}`}
         onClick={() => onSelect(thesis.slug)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect(thesis.slug);
+          }
+        }}
         className={className}
       >
         {body}
-      </button>
+      </div>
     );
   }
 
