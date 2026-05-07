@@ -18,6 +18,7 @@ import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionMod
 import { MispricingAnalysis } from "@/components/thesis-engine-v2/MispricingAnalysis";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
+import { PaywallModal } from "@/components/thesis-engine-v2/PaywallModal";
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
@@ -413,22 +414,19 @@ export function ThesisDetailClient({
 
   const modals = (
     <>
-      <UpgradeModal
+      <PaywallModal
         open={needAnalystPositions}
         onOpenChange={setNeedAnalystPositions}
-        requiredPlan="analyst"
-        featureLabel="Position tracking"
         title="Track positions with Analyst"
-        description={
+        body={
           <>
-            Upgrade to <span className="text-amber-200/85">Analyst</span> (<span className="tabular-nums">$29/month</span>) to open and track
-            positions linked to theses.
+            Link trades to theses, track PnL, and keep thesis monitoring connected to your positions.
           </>
         }
-        primaryLabel="Upgrade to Analyst"
-        secondaryLabel="View pricing"
-        secondaryHref="/pricing"
-        showCompare={false}
+        subtext="Position tracking is part of the Analyst tier."
+        primaryHref="/pricing"
+        primaryLabel="View pricing"
+        secondaryLabel="Not now"
       />
       <UpgradeModal
         open={needPro}

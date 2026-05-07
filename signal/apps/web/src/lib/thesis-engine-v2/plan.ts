@@ -19,6 +19,7 @@ export type V2Feature =
   | "communityReadOnly"
   | "createPrivateTheses"
   | "fullThesisTracking"
+  | "positionTracking"
   | "advisoryLog"
   | "exports"
   | "publishPublicly"
@@ -38,6 +39,7 @@ export const V2_FEATURE_MIN_PLAN: Record<V2Feature, V2Plan> = {
   // Analyst
   createPrivateTheses: "analyst",
   fullThesisTracking: "analyst",
+  positionTracking: "analyst",
   advisoryLog: "analyst",
   exports: "analyst",
 
