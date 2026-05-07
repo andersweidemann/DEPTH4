@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 export const metadata: Metadata = {
   title: "DEPTH4 — Your macro thesis engine",
@@ -15,8 +16,7 @@ export default function HomePage() {
       <header className="border-b border-white/[0.06]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
           <div className="flex items-center gap-3">
-            <span className="text-[12px] font-semibold tracking-tight text-zinc-100">DEPTH4</span>
-            <span className="hidden text-[11px] text-zinc-500 sm:inline">Macro thesis engine</span>
+            <Depth4Wordmark size="sm" subline="Your macro thesis engine" />
           </div>
           <nav className="flex items-center gap-2 text-[12px]">
             <Link href="/demo" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">

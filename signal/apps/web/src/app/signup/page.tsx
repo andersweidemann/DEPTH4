@@ -8,6 +8,7 @@ import { safeAppPath } from "@/lib/app-paths";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 function isValidEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
@@ -104,10 +105,7 @@ export default function SignupPage() {
     <div className="min-h-dvh bg-[#0c0c0e] text-zinc-100 antialiased">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 py-12 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-5">
-          <Link href="/" className="text-[12px] font-semibold tracking-tight text-zinc-100 hover:text-zinc-200">
-            DEPTH4
-          </Link>
-          <p className="mt-2 text-[11px] text-zinc-500">Your macro thesis engine</p>
+          <Depth4Wordmark size="sm" subline="Your macro thesis engine" />
 
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-zinc-50">Create your account</h1>
           <p className="mt-3 max-w-md text-[13px] leading-relaxed text-zinc-300">

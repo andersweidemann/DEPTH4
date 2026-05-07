@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { V2_PLAN_LABEL, V2_PLAN_ORDER } from "@/lib/thesis-engine-v2/plan";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 export type ThesisNavTab = "theses" | "feed" | "book" | "community" | "leaderboard" | "help";
 
@@ -74,7 +75,7 @@ export function AppHeader({
             <div className="flex items-center gap-2">
               <DepthMark className="text-amber-500/90" />
               <div className="min-w-0">
-                <p className="text-[16px] font-semibold tracking-tight text-zinc-100 sm:text-[17px]">DEPTH4</p>
+                <Depth4Wordmark href="/theses" size="lg" className="leading-none" />
                 <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
                   Macro Thesis Engine
                 </p>
