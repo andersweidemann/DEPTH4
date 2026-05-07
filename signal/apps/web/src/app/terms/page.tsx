@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PublicTopBar } from "@/components/brand/PublicTopBar";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Terms of Use",
@@ -10,8 +11,9 @@ export default function TermsPage() {
   const version = "v0.1 (draft)";
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-12 text-zinc-100">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">DEPTH4</p>
+    <div className="min-h-dvh bg-[#0c0c0e] text-zinc-100">
+      <PublicTopBar backHref="/" />
+      <main className="mx-auto w-full max-w-3xl px-4 pb-20 pt-10 text-zinc-100">
       <h1 className="mt-2 text-2xl font-semibold tracking-tight">Terms of Use</h1>
       <p className="mt-2 text-sm text-zinc-400">
         Effective date: {effective} · {version}
@@ -134,7 +136,8 @@ export default function TermsPage() {
           This document is a draft template for pre-launch use and must be reviewed by counsel for your jurisdiction.
         </p>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 

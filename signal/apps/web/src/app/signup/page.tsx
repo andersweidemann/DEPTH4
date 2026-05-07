@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
+import { BackButton } from "@/components/brand/BackButton";
 
 function isValidEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
@@ -105,6 +106,7 @@ export default function SignupPage() {
     <div className="min-h-dvh bg-[#0c0c0e] text-zinc-100 antialiased">
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 py-12 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-5">
+          <BackButton fallbackHref="/" label="Back" className="mb-3" />
           <Depth4Wordmark size="sm" subline="Your macro thesis engine" />
 
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-zinc-50">Create your account</h1>

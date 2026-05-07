@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
+import { BackButton } from "@/components/brand/BackButton";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Help",
@@ -58,13 +60,14 @@ export default function HelpPage() {
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-10">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-600">DEPTH4</p>
+            <Depth4Wordmark size="sm" subline="Your macro thesis engine" className="text-zinc-100" />
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50">Help Center</h1>
             <p className="mt-2 max-w-2xl text-[16px] leading-relaxed text-zinc-400">
               Practical, task-oriented guidance for using DEPTH4 as a thesis-first market workspace.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-500">
+            <BackButton label="Back" fallbackHref="/theses" />
             <Link className="rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 py-2 hover:bg-zinc-900/50" href="/theses">
               Open Theses
             </Link>

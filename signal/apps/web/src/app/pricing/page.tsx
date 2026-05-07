@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { TIER_OFFERS } from "@/lib/tier";
+import { PublicTopBar } from "@/components/brand/PublicTopBar";
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
@@ -14,31 +15,30 @@ export default function PricingPage() {
 
   return (
     <div className="min-h-dvh bg-zinc-950 text-zinc-100">
-      <header className="border-b border-zinc-800 px-4 py-3 flex items-center justify-between max-w-5xl mx-auto w-full">
-        <Link href="/" className="font-semibold tracking-tight text-amber-300">
-          DEPTH4
-        </Link>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/login"
-            className={cn(
-              buttonVariants({ variant: "ghost", size: "sm" }),
-              "text-zinc-300 hover:text-white hover:bg-zinc-800",
-            )}
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup?next=/onboarding"
-            className={cn(buttonVariants({ size: "sm" }), "bg-amber-500 text-zinc-950 hover:bg-amber-400")}
-          >
-            Create account
-          </Link>
-        </div>
-      </header>
+      <PublicTopBar
+        backHref="/"
+        right={
+          <>
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants({ variant: "ghost", size: "sm" }),
+                "text-zinc-300 hover:text-white hover:bg-zinc-800",
+              )}
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/signup?next=/onboarding"
+              className={cn(buttonVariants({ size: "sm" }), "bg-amber-500 text-zinc-950 hover:bg-amber-400")}
+            >
+              Create account
+            </Link>
+          </>
+        }
+      />
       <main className="max-w-5xl mx-auto px-4 py-12 space-y-12">
         <div className="text-center space-y-3">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">DEPTH4</p>
           <h1 className="text-3xl md:text-4xl font-semibold">Pricing</h1>
           <p className="text-zinc-400 max-w-2xl mx-auto text-sm leading-relaxed">
             Start free. Upgrade when you&apos;re ready to create your own theses, publish them, or turn your track record into revenue.
