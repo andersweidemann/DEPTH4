@@ -15,6 +15,9 @@ import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomeP
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
+import { MispricingAnalysis } from "@/components/thesis-engine-v2/MispricingAnalysis";
+import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
+import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
@@ -29,6 +32,7 @@ import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { canUse } from "@/lib/thesis-engine-v2/plan";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
+import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 
 export function ThesisDetailClient({
   slug,
@@ -160,12 +164,19 @@ export function ThesisDetailClient({
   const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
+  const mispricing = getThesisMispricing(thesis);
 
   const inner = (
     <>
       <div className={cn(layout === "drawer" ? "px-4 pb-6 pt-1 sm:px-5" : "mt-6")}>
         <ThesisHero thesis={thesis} />
       </div>
+
+      {layout === "drawer" ? (
+        <div className="mt-3">
+          <MispricingAnalysis m={mispricing} />
+        </div>
+      ) : null}
 
       {(entrySetupValid || hasOpen || bookSnap.latest) && (
         <div
@@ -364,9 +375,9 @@ export function ThesisDetailClient({
         <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Qualification breakdown</h2>
-            <span className="text-[11px] tabular-nums text-zinc-400">
-              Total score {thesis.scores.total}/100 · {thesis.qualification}
-            </span>
+            <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+              <span className="text-[11px] tabular-nums text-zinc-400">Mispricing score {mispricing.score}/100</span>
+            </Tooltip>
           </div>
           <div className="mt-5 grid gap-3">
             {scoreRow("Driver strength", thesis.scores.driverStrength, 20)}

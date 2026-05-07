@@ -1,8 +1,8 @@
 "use client";
 
-import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
 export function Tooltip({
   label,
@@ -14,7 +14,7 @@ export function Tooltip({
   side?: "top" | "right" | "bottom" | "left";
 }) {
   return (
-    <TooltipPrimitive.Provider delayDuration={200}>
+    <TooltipPrimitive.Provider delayDuration={200} skipDelayDuration={0}>
       <TooltipPrimitive.Root>
         <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>

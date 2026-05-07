@@ -4,6 +4,8 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { cn } from "@/lib/utils";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
+import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 
 function statusPill(status: Thesis["status"]): { label: string; className: string } {
   switch (status) {
@@ -51,6 +53,7 @@ export function ThesisTableRow({
   onSelect: () => void;
 }) {
   const pill = statusPill(thesis.status);
+  const mispricing = getThesisMispricing(thesis);
   return (
     <div
       role="button"
@@ -73,10 +76,17 @@ export function ThesisTableRow({
         <p className="truncate text-[12px] font-medium text-zinc-100">{thesis.title}</p>
       </div>
 
-      <div className="text-right text-[12px] font-semibold tabular-nums text-amber-200/90">
-        <Tooltip label="Likelihood estimate based on current evidence">
-          <span>{thesis.probability}%</span>
-        </Tooltip>
+      <div className="text-right">
+        <div className="text-[12px] font-semibold tabular-nums text-amber-200/90">
+          <Tooltip label="Likelihood estimate based on current evidence">
+            <span>{thesis.probability}%</span>
+          </Tooltip>
+        </div>
+        <div className="mt-0.5 text-[10px] tabular-nums text-zinc-500">
+          <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+            <span>score {mispricing.score}</span>
+          </Tooltip>
+        </div>
       </div>
 
       <div className="flex justify-end">

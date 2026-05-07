@@ -4,6 +4,8 @@ import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "./Tooltip";
+import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { MispricingTooltipContent } from "./MispricingTooltipContent";
 
 const ADVISORY_LABEL: Record<AdvisoryAction, string> = {
   watch: "Watch — wait for trigger clarity.",
@@ -39,6 +41,7 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
 
 export function ThesisHero({ thesis }: { thesis: Thesis }) {
   const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
+  const mispricing = getThesisMispricing(thesis);
   return (
     <div className="border-b border-white/[0.06] pb-7">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -69,7 +72,9 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
             <Tooltip label="Likelihood estimate based on current evidence">
               <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Live probability</p>
             </Tooltip>
-            <span className="text-[10px] tabular-nums text-zinc-500">score {thesis.scores.total}/100</span>
+            <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+              <span className="text-[10px] tabular-nums text-zinc-500">score {mispricing.score}/100</span>
+            </Tooltip>
           </div>
           <div className="mt-2 flex items-center gap-3">
             <Tooltip label="Likelihood estimate based on current evidence">

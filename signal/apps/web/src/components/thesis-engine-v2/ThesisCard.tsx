@@ -9,6 +9,8 @@ import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { ThesisStarButton } from "./ThesisStarButton";
 import { Tooltip } from "./Tooltip";
+import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { MispricingTooltipContent } from "./MispricingTooltipContent";
 
 export function ThesisCard({
   thesis,
@@ -34,6 +36,7 @@ export function ThesisCard({
 
   const terminal = thesis.status === "resolved" || thesis.status === "invalidated";
   const primary = variant === "primary";
+  const mispricing = getThesisMispricing(thesis);
   const className = cn(
     "group relative block w-full rounded-none bg-zinc-900/40 text-left transition-colors hover:bg-zinc-900/55",
     primary ? "p-4 sm:p-5" : "p-3.5 sm:p-4",
@@ -103,7 +106,9 @@ export function ThesisCard({
         <div className="min-w-0 flex-1">
           <ProbabilityBar value={thesis.probability} />
         </div>
-        <span className="text-[10px] tabular-nums text-zinc-500">score {thesis.scores.total}</span>
+        <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+          <span className="text-[10px] tabular-nums text-zinc-500">score {mispricing.score}</span>
+        </Tooltip>
       </div>
       <div className="mt-3 space-y-1.5 border-t border-white/[0.04] pt-3 text-[11px] leading-snug text-zinc-500">
         <p>
