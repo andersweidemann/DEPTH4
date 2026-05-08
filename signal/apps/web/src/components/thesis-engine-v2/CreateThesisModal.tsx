@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { InsiderFlowSetupFields, type InsiderFlowFieldKey } from "@/components/thesis-engine-v2/InsiderFlowSetupFields";
 
 type FormState = {
   mode: "choice" | "ai" | "review" | "manual";
@@ -623,64 +624,14 @@ export function CreateThesisModal({
 
                 <div className="h-px w-full bg-white/[0.06]" aria-hidden />
 
-                <div className="grid gap-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Insider Flow setup (optional)</p>
-                  <p className="text-[11px] leading-relaxed text-zinc-500">
-                    Configure instruments + confirm tags to monitor suspicious pre-headline flow for this thesis.
-                  </p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                        Bull-case instruments
-                      </label>
-                      <input
-                        value={form.bullInstruments}
-                        onChange={(e) => set("bullInstruments", e.target.value)}
-                        placeholder="BTC, TLT, XLE"
-                        className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 font-mono text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                      />
-                      <p className="mt-1 text-[10px] text-zinc-600">Comma-separated symbols.</p>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                        Bear-case instruments
-                      </label>
-                      <input
-                        value={form.bearInstruments}
-                        onChange={(e) => set("bearInstruments", e.target.value)}
-                        placeholder="WTI, ITA, XAUUSD"
-                        className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 font-mono text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                      />
-                      <p className="mt-1 text-[10px] text-zinc-600">Comma-separated symbols.</p>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                        Headline confirm tags
-                      </label>
-                      <input
-                        value={form.confirmTags}
-                        onChange={(e) => set("confirmTags", e.target.value)}
-                        placeholder="ceasefire, Fed pivot, OPEC cuts"
-                        className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                      />
-                      <p className="mt-1 text-[10px] text-zinc-600">Used to classify moves as confirmed vs unconfirmed.</p>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                        Contradicting headline tags (optional)
-                      </label>
-                      <input
-                        value={form.contradictTags}
-                        onChange={(e) => set("contradictTags", e.target.value)}
-                        placeholder="strikes, escalation, talks collapse"
-                        className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                      />
-                      <p className="mt-1 text-[10px] text-zinc-600">
-                        Optional tags that would invalidate or contradict this leak interpretation.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <InsiderFlowSetupFields
+                  bullInstruments={form.bullInstruments}
+                  bearInstruments={form.bearInstruments}
+                  confirmTags={form.confirmTags}
+                  contradictTags={form.contradictTags}
+                  onChange={(key: InsiderFlowFieldKey, value: string) => set(key, value)}
+                  largeTouch
+                />
               </div>
             ) : null}
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
@@ -32,6 +33,8 @@ import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
+import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 
 function notifyLabel(p: "any" | "major" | "consequence" | "mute") {
   switch (p) {
@@ -64,6 +67,8 @@ export function ThesisDetailClient({
   const [bookPulse, setBookPulse] = useState(0);
   const [alertsMenuOpen, setAlertsMenuOpen] = useState(false);
   const alertsMenuRef = useRef<HTMLDivElement>(null);
+  const [editInsiderOpen, setEditInsiderOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!alertsMenuOpen) return;
@@ -196,6 +201,9 @@ export function ThesisDetailClient({
 
   const { evidence, scenarios, advisoryLog, relatedAssets } = bundle;
   const thesis = thesisLive!;
+  const isUserThesis = bundle.thesis.origin === "user";
+  const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
+  const returnToPath = pathname && pathname.length > 0 ? pathname : `/theses/${slug}`;
   const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
@@ -436,6 +444,120 @@ export function ThesisDetailClient({
         </section>
 
         <TradePlanCard thesis={thesis} />
+
+        {isUserThesis && !insiderMonitoring ? (
+          <section
+            className={cn(
+              "rounded-lg border border-amber-500/20 bg-amber-500/[0.06] p-5 ring-1 ring-amber-500/10",
+              layout === "drawer" && "mx-4 sm:mx-5",
+            )}
+          >
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200/80">Insider Flow</h2>
+            <p className="mt-2 text-[12px] leading-relaxed text-zinc-200">
+              Add Insider Flow monitoring to track unusual options/market activity.
+            </p>
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+              Star this thesis after saving so scheduled scans can pick it up.
+            </p>
+            <button
+              type="button"
+              className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-100 hover:bg-amber-500/15"
+              onClick={() => setEditInsiderOpen(true)}
+            >
+              Add Insider Flow setup
+            </button>
+          </section>
+        ) : null}
+
+        {isUserThesis && insiderMonitoring ? (
+          <section
+            className={cn(
+              "rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5",
+              layout === "drawer" && "mx-4 sm:mx-5",
+            )}
+          >
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Insider Flow monitoring</h2>
+                <p className="mt-1 text-[11px] text-zinc-500">
+                  Bull/bear symbols and headline tags are synced for server-side scans when this thesis is starred.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="shrink-0 rounded-md border border-white/[0.10] bg-zinc-900/40 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
+                onClick={() => setEditInsiderOpen(true)}
+              >
+                Edit setup
+              </button>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                ["Bull instruments", thesis.insiderFlow?.bullInstruments ?? []],
+                ["Bear instruments", thesis.insiderFlow?.bearInstruments ?? []],
+                ["Confirm tags", thesis.insiderFlow?.confirmTags ?? []],
+                ["Contradict tags", thesis.insiderFlow?.contradictTags ?? []],
+              ].map(([label, items]) => (
+                <div key={String(label)}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">{label}</p>
+                  <div className="mt-2 flex min-h-[28px] flex-wrap gap-1.5">
+                    {(items as string[]).length ? (
+                      (items as string[]).map((x) => (
+                        <span
+                          key={`${label}-${x}`}
+                          className="rounded bg-zinc-900/50 px-2 py-0.5 font-mono text-[10px] text-zinc-300 ring-1 ring-white/[0.06]"
+                        >
+                          {x}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[11px] text-zinc-600">—</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        {!isUserThesis && insiderMonitoring ? (
+          <section
+            className={cn(
+              "rounded-lg border border-white/[0.06] bg-zinc-900/20 p-5",
+              layout === "drawer" && "mx-4 sm:mx-5",
+            )}
+          >
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Insider Flow monitoring (system)</h2>
+            <p className="mt-1 text-[11px] text-zinc-500">Pre-configured for this catalog thesis — read only.</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {[
+                ["Bull instruments", thesis.insiderFlow?.bullInstruments ?? []],
+                ["Bear instruments", thesis.insiderFlow?.bearInstruments ?? []],
+                ["Confirm tags", thesis.insiderFlow?.confirmTags ?? []],
+                ["Contradict tags", thesis.insiderFlow?.contradictTags ?? []],
+              ].map(([label, items]) => (
+                <div key={String(label)}>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">{label}</p>
+                  <div className="mt-2 flex min-h-[28px] flex-wrap gap-1.5">
+                    {(items as string[]).length ? (
+                      (items as string[]).map((x) => (
+                        <span
+                          key={`${label}-${x}`}
+                          className="rounded bg-zinc-900/50 px-2 py-0.5 font-mono text-[10px] text-zinc-300 ring-1 ring-white/[0.06]"
+                        >
+                          {x}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-[11px] text-zinc-600">—</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {liveEvidence.length > 0 ? (
           <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Live evidence</h2>
@@ -566,6 +688,15 @@ export function ThesisDetailClient({
           upsertPosition(p);
           liveOpt?.syncOpenIdsFromBook();
           setBookPulse((n) => n + 1);
+        }}
+      />
+      <EditInsiderFlowModal
+        thesis={isUserThesis ? bundle.thesis : null}
+        open={editInsiderOpen}
+        onOpenChange={setEditInsiderOpen}
+        returnToPath={returnToPath}
+        onSaved={(next) => {
+          setBundle((b) => (b ? { ...b, thesis: next } : null));
         }}
       />
     </>

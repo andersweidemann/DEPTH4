@@ -102,7 +102,11 @@ export function ThesisAlertsBell() {
             {filtered.length === 0 ? (
               <div className="px-3 py-4 text-[12px] text-zinc-500">
                 <p className="text-zinc-400">No alerts yet.</p>
-                <p className="mt-1">Star a thesis to get probability-change alerts here.</p>
+                <p className="mt-1">
+                  Star a thesis for probability updates. Insider Flow events (tape + tags) also land here under{" "}
+                  <span className="text-zinc-300">System</span> when the server writes evidence — works on any DEPTH4 page, not only
+                  Theses.
+                </p>
               </div>
             ) : (
               filtered.map((a) => (

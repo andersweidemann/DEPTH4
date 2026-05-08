@@ -22,6 +22,7 @@ type DbThesis = {
   id: string;
   title: string;
   status: string;
+  slug?: string | null;
   insider_flow: { bullInstruments?: string[]; bearInstruments?: string[]; confirmTags?: string[]; contradictTags?: string[] } | null;
   scenario_probabilities?: { base?: number; bull?: number; bear?: number } | null;
 };
@@ -254,7 +255,7 @@ export async function GET(req: NextRequest) {
   // Fetch theses with insider_flow configured (active-ish only).
   const { data: thesesRaw } = await admin
     .from("theses")
-    .select("id,title,status,insider_flow,scenario_probabilities")
+    .select("id,title,status,slug,insider_flow,scenario_probabilities")
     .not("insider_flow", "is", null)
     .in("status", ["watching", "ready", "active"])
     .limit(500);
@@ -568,10 +569,12 @@ export async function GET(req: NextRequest) {
           return true;
         });
         if (!watchers.length) continue;
+        const slugRaw = thesis?.slug?.trim();
+        const pathSlug = slugRaw && slugRaw.length > 0 ? slugRaw : thId;
         const payload = {
           title: "Insider Flow Detected",
           body: `${a.thesis_title}: ${a.pattern_type === "BULL_LEAK" ? "Bull leak" : "Bear leak"} · ${oldP}% → ${newP}%`,
-          url: `/theses/${encodeURIComponent(thId)}`,
+          url: `/theses/${encodeURIComponent(pathSlug)}`,
           tag: `anomaly-${String(a.id ?? "")}`,
         };
         const res = await pushToUsers({ admin, userIds: watchers, payload });

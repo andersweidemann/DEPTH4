@@ -8,6 +8,7 @@ import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDr
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 
@@ -325,6 +326,11 @@ export function ThesesDashboardClient({
         onCreate={(t) => {
           const next = upsertUserThesis(t);
           setUserTheses(next);
+          void putUserThesisToSupabase(t).then((r) => {
+            if (!r.ok && r.error !== "sign_in_required") {
+              console.warn("[theses] Could not sync thesis to server:", r.error);
+            }
+          });
         }}
       />
 

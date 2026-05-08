@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { createClient } from "@/lib/supabase/client";
+import { resolveThesisDetailSlug } from "@/lib/thesis-engine-v2/user-theses";
 
 function planGte(a: string, b: string) {
   const order = ["free", "analyst", "pro", "creator"];
@@ -24,7 +25,7 @@ export function InsiderFlowRadarButton({ onClick, state }: { onClick: () => void
         tone,
       )}
       aria-label="Insider Flow Detector"
-      title="Insider Flow Detector"
+      title="Insider Flow — followed theses; bell + toast when evidence is written; optional Pro web push"
       onClick={onClick}
     >
       <Radar className="h-4 w-4" />
@@ -53,6 +54,7 @@ export function InsiderFlowPanel({
   >({ kind: "loading" });
 
   const anomalies = useMemo(() => live?.insiderFlowAnomalies ?? [], [live?.insiderFlowAnomalies]);
+  const watchedCount = live?.insiderFlowWatchedCount ?? 0;
   const latest = anomalies[0] ?? null;
   const invalidationCopy = (reason?: string) => {
     if (!reason) return "Invalidated.";
@@ -237,7 +239,10 @@ export function InsiderFlowPanel({
         <div className="flex items-center justify-between gap-3 bg-[#151518] px-4 py-3">
           <div className="min-w-0">
             <p className="text-[12px] font-semibold text-zinc-100">Insider Flow Detector</p>
-            <p className="mt-0.5 text-[11px] text-zinc-500">Unusual pre-headline flow tied to your theses.</p>
+            <p className="mt-0.5 text-[11px] text-zinc-500">
+              Unusual pre-headline flow for theses you follow (starred or open in Book). Bell + toast on any DEPTH4 tab when
+              evidence is written; optional web push (Pro) when the app is closed.
+            </p>
           </div>
           <button
             type="button"
@@ -254,11 +259,33 @@ export function InsiderFlowPanel({
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
           {!visible.hasRecent ? (
             <div className="text-[12px] text-zinc-500">
-              <p className="text-zinc-300">No flow anomalies yet.</p>
-              <p className="mt-1">Add Insider Flow setup on a thesis to start monitoring.</p>
-              <p className="mt-3 text-[11px] text-zinc-600">
-                Tip: star a thesis if you want bell alerts when a leak changes scenario probabilities.
-              </p>
+              {watchedCount === 0 ? (
+                <>
+                  <p className="text-zinc-300">Not monitoring any theses yet.</p>
+                  <p className="mt-1">
+                    Star a thesis that has Insider Flow instruments/tags saved (and synced). The server only scans starred theses;
+                    this panel lists anomalies for those IDs.
+                  </p>
+                  <p className="mt-3 text-[11px] text-zinc-600">
+                    In-app: when an anomaly is written, you get a bell entry (Alerts → System) and a toast on Book, Feed, Theses,
+                    etc. Web push is separate — Pro tier, radar panel, browser permission.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-zinc-300">Monitoring active — no leak pattern in the last 24h.</p>
+                  <p className="mt-1">
+                    You&apos;re following {watchedCount} thesis{watchedCount === 1 ? "" : "es"}. Cron writes to{" "}
+                    <span className="font-mono text-zinc-400">flow_anomalies</span> and{" "}
+                    <span className="font-mono text-zinc-400">thesis_evidence_log</span> when tape + tags line up; this list updates
+                    about every 30s while DEPTH4 is open.
+                  </p>
+                  <p className="mt-3 text-[11px] text-zinc-600">
+                    If a row appears here but you didn&apos;t get a push, check Pro + push enabled + notifications not blocked. Bell
+                    alerts don&apos;t require push.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <>
@@ -274,6 +301,25 @@ export function InsiderFlowPanel({
                     <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
                       {latest.status === "INVALIDATED" ? invalidationCopy(latest.statusReason) : latest.notes}
                     </p>
+                    <p className="mt-2 text-[11px] text-zinc-400">
+                      In-app notification: check the <span className="text-zinc-200">bell</span> → System tab for the matching evidence
+                      row (starred theses only). That does not require web push.
+                    </p>
+                    {plan === "pro" ? (
+                      pushState.kind === "on" ? (
+                        <p className="mt-1 text-[11px] text-emerald-300/85">
+                          This device is subscribed to Insider Flow push — new anomalies may also surface as OS notifications (per
+                          your alert mode below).
+                        </p>
+                      ) : pushState.kind === "blocked" || pushState.kind === "off" ? (
+                        <p className="mt-1 text-[11px] text-amber-200/85">
+                          Push is off or blocked here — you still get bell + toast while DEPTH4 is open; enable push below for
+                          background alerts.
+                        </p>
+                      ) : null
+                    ) : (
+                      <p className="mt-1 text-[11px] text-zinc-600">Background web push for Insider Flow requires Pro.</p>
+                    )}
                     <div className="mt-3 grid gap-2">
                       {latest.instrumentsMoved.slice(0, 5).map((x) => {
                         const c = confidence(x.z_score, x.volume_multiple);
@@ -298,7 +344,7 @@ export function InsiderFlowPanel({
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <Link
-                        href={`/theses/${encodeURIComponent(latest.thesisId)}`}
+                        href={`/theses/${encodeURIComponent(resolveThesisDetailSlug(latest.thesisId))}`}
                         className="text-[11px] font-semibold text-zinc-400 hover:text-zinc-200"
                       >
                         View thesis →

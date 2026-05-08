@@ -214,6 +214,9 @@ type Ctx = {
 
   /** Recent thesis evidence rows from Supabase (news / server updates). */
   evidenceLog: ThesisEvidenceLogRow[];
+
+  /** Starred ∪ open-book thesis count — Insider Flow polls anomalies for these IDs only. */
+  insiderFlowWatchedCount: number;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -230,7 +233,8 @@ export function useThesisLiveOptional(): Ctx | null {
 
 export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "";
-  const simActive = pathname === "/theses" || pathname.startsWith("/theses/");
+  /** Mock ticker ticks only on thesis routes; DB evidence + Insider Flow poll app-wide (v2 layout). */
+  const thesisPageActive = pathname === "/theses" || pathname.startsWith("/theses/");
   const { plan } = useV2Plan();
   const mockTicksEnabled = process.env.NEXT_PUBLIC_THESIS_MOCK_TICKS === "1";
 
@@ -267,6 +271,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const evidenceHighWaterRef = useRef(0);
 
   const starredKey = useMemo(() => Array.from(starred).sort().join(","), [starred]);
+  const openIdsKey = useMemo(() => Array.from(openIds).sort().join(","), [openIds]);
+  const insiderFlowWatchedCount = useMemo(() => {
+    const u = new Set<string>();
+    starred.forEach((id) => u.add(id));
+    openIds.forEach((id) => u.add(id));
+    return u.size;
+  }, [starred, openIds]);
 
   const mergeThesisCb = useCallback(
     (t: Thesis) => applyManualOutcome(mergeThesis(t, overrides[t.id])),
@@ -330,7 +341,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   }, [starredKey]);
 
   useEffect(() => {
-    if (!simActive) return;
     const sb = createSbClient();
     let cancelled = false;
 
@@ -345,7 +355,14 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     };
 
     const tick = async () => {
-      const ids = Array.from(starredRef.current);
+      const ids = Array.from(
+        (() => {
+          const u = new Set<string>();
+          starredRef.current.forEach((id) => u.add(id));
+          openIdsRef.current.forEach((id) => u.add(id));
+          return u;
+        })(),
+      );
       if (!ids.length) {
         if (!cancelled) setEvidenceLog([]);
         return;
@@ -384,7 +401,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       const fresh = rows.filter((r) => r.createdAt > hw).sort((a, b) => a.createdAt - b.createdAt);
 
       for (const r of fresh) {
-        if (!starredRef.current.has(r.thesisId)) continue;
+        if (!starredRef.current.has(r.thesisId) && !openIdsRef.current.has(r.thesisId)) continue;
         const pref = prefsRef.current[r.thesisId] ?? "major";
         if (pref === "mute") continue;
 
@@ -399,6 +416,39 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
               [r.thesisId]: { ...(o[r.thesisId] ?? {}), ...scenarioProbPatchFromDb(bt, r.probabilityAfter!) },
             }));
           }
+        }
+
+        const insiderEvt =
+          r.eventType === "insider_flow" ||
+          r.eventType === "insider_flow_confirmed" ||
+          r.eventType === "insider_flow_invalidated";
+
+        if (insiderEvt) {
+          let notify = pref === "any" || pref === "major";
+          if (pref === "consequence") notify = r.eventType === "insider_flow_invalidated";
+          if (notify) {
+            const kind =
+              r.eventType === "insider_flow"
+                ? "Unusual flow detected"
+                : r.eventType === "insider_flow_confirmed"
+                  ? "Flow confirmed by headline"
+                  : "Flow invalidated";
+            pushAlert({
+              thesisId: r.thesisId,
+              thesisTitle: title,
+              type: "system",
+              confirmText: `${kind} — ${r.description || "Insider Flow update"}`,
+              consequenceText: "Check the thesis or Insider Flow radar for tape + tags. Pro: enable web push in the radar panel for alerts when this tab is closed.",
+              impact:
+                r.eventType === "insider_flow_invalidated"
+                  ? "major_negative"
+                  : r.eventType === "insider_flow_confirmed"
+                    ? "major_positive"
+                    : "neutral",
+            });
+            pushToast(`${title}: ${kind}`);
+          }
+          continue;
         }
 
         if (r.probabilityBefore && r.probabilityAfter) {
@@ -473,20 +523,33 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [pushAlert, pushToast, simActive, starredKey]);
+  }, [pushAlert, pushToast, starredKey, openIdsKey]);
 
   useEffect(() => {
-    // Phase 2: read anomalies from Supabase (persistent log) instead of client-side detection.
-    if (!simActive) return;
+    // Read flow_anomalies for followed theses only (starred ∪ open book) — matches server cron scan scope.
     const sb = createSbClient();
 
     let cancelled = false;
     const tick = async () => {
+      const watchIds = Array.from(
+        (() => {
+          const u = new Set<string>();
+          starredRef.current.forEach((id) => u.add(id));
+          openIdsRef.current.forEach((id) => u.add(id));
+          return u;
+        })(),
+      );
+      if (!watchIds.length) {
+        if (!cancelled) setInsiderFlowAnomalies([]);
+        return;
+      }
+
       const { data } = await sb
         .from("flow_anomalies")
         .select(
           "id,created_at,thesis_id,thesis_title,pattern_type,status,instruments_moved,matched_tags,confirmed_headline_at,invalidated_at,notes,probability_suggestion,status_reason",
         )
+        .in("thesis_id", watchIds)
         .order("created_at", { ascending: false })
         .limit(60);
 
@@ -512,15 +575,14 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
       setInsiderFlowAnomalies(parsed);
 
-      // Tier behavior (Phase 2 MVP): use probability_suggestion if present; otherwise keep previous behavior empty.
-      if (plan !== "free") {
-        const top = (data ?? [])[0] as { probability_suggestion?: unknown; thesis_id?: unknown } | undefined;
-        const tid = top?.thesis_id ? String(top.thesis_id) : null;
-        const ps = top?.probability_suggestion as { base?: unknown; bull?: unknown; bear?: unknown } | undefined;
-        if (tid && ps && typeof ps.base === "number" && typeof ps.bull === "number" && typeof ps.bear === "number") {
+      if (plan !== "free" && data?.length) {
+        for (const raw of data as Array<{ thesis_id?: unknown; probability_suggestion?: unknown }>) {
+          const tid = raw.thesis_id ? String(raw.thesis_id) : "";
+          const ps = raw.probability_suggestion as { base?: unknown; bull?: unknown; bear?: unknown } | undefined;
+          if (!tid || !ps || typeof ps.base !== "number" || typeof ps.bull !== "number" || typeof ps.bear !== "number") continue;
           const s = { base: ps.base, bull: ps.bull, bear: ps.bear };
           if (plan === "pro") setInsiderApplied((cur) => ({ ...cur, [tid]: s }));
-          if (plan === "analyst") setInsiderSuggested((cur) => ({ ...cur, [tid]: s }));
+          else if (plan === "analyst") setInsiderSuggested((cur) => ({ ...cur, [tid]: s }));
         }
       }
     };
@@ -531,7 +593,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [plan, simActive]);
+  }, [plan, starredKey, openIdsKey]);
 
   useEffect(() => {
     const on = () => setOutcomeEpoch((e) => e + 1);
@@ -674,7 +736,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!simActive || !mockTicksEnabled) return;
+    if (!thesisPageActive || !mockTicksEnabled) return;
     const stream = createMockThesisStream();
     return stream.subscribe((ev) => {
       if (ev.kind !== "mock_tick") return;
@@ -778,7 +840,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         setTickerItems((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
       }
     });
-  }, [mockTicksEnabled, simActive, pushAlert, mergeThesisCb, prefs, pushToast]);
+  }, [mockTicksEnabled, thesisPageActive, pushAlert, mergeThesisCb, prefs, pushToast]);
 
   const value = useMemo<Ctx>(() => {
     void outcomeEpoch;
@@ -809,6 +871,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       applyInsiderFlowSuggestion,
       dismissInsiderFlowSuggestion,
       evidenceLog,
+      insiderFlowWatchedCount,
     };
   },
     [
@@ -838,6 +901,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       applyInsiderFlowSuggestion,
       dismissInsiderFlowSuggestion,
       evidenceLog,
+      insiderFlowWatchedCount,
       outcomeEpoch,
     ],
   );

@@ -1,5 +1,5 @@
 import type { Thesis, ThesisDetailBundle, ThesisEvidence, ThesisScenario, ThesisUpdate } from "@/lib/thesis-engine-v2/types";
-import { getThesisBySlug } from "@/lib/thesis-engine-v2/mock-data";
+import { getThesisBySlug, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
 const USER_THESES_KEY = "depth4.v2.user_theses.v1";
 
@@ -50,6 +50,14 @@ export function upsertUserThesis(thesis: Thesis) {
 
 export function getUserThesisBySlug(slug: string): Thesis | undefined {
   return loadUserTheses().find((t) => t.slug === slug);
+}
+
+/** Route param for `/theses/[slug]` — system catalog + session user theses. */
+export function resolveThesisDetailSlug(thesisId: string): string {
+  const sys = MOCK_THESES.find((t) => t.id === thesisId);
+  if (sys) return sys.slug;
+  const u = loadUserTheses().find((t) => t.id === thesisId);
+  return u?.slug ?? thesisId;
 }
 
 function mkEvidence(thesis: Thesis): ThesisEvidence[] {

@@ -10,6 +10,7 @@ import type {
   TrackRecordMetrics,
   WatchlistIdea,
 } from "./types";
+import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";
 
 function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
@@ -43,17 +44,8 @@ function withQualification(t: Omit<Thesis, "qualification" | "scores"> & { score
   return { ...(t as Thesis), qualification, scores: { ...t.scores, total } };
 }
 
-/** Stable IDs shared with `public.theses` (Supabase seed). Do not rename without a DB migration. */
-export const TID = {
-  gold: "th-gold",
-  hormuz: "th-hormuz",
-  opec: "th-opec",
-  tlt: "th-tlt",
-  defense: "th-defense",
-  qqq: "th-qqq",
-  copper: "th-copper",
-  euTech: "th-eutech",
-} as const;
+/** Stable IDs shared with `public.theses` (Supabase seed). */
+export const TID = SYSTEM_THESIS_IDS;
 
 export const MOCK_THESES: Thesis[] = [
   withQualification({
@@ -139,6 +131,12 @@ export const MOCK_THESES: Thesis[] = [
     stop: "70.80",
     target1: "78.50",
     target2: "81.00",
+
+    insiderFlow: {
+      bullInstruments: ["USOIL", "WTI", "BRENT"],
+      bearInstruments: [],
+      confirmTags: ["hormuz", "strait", "tanker", "oil", "opec"],
+    },
   }),
   withQualification({
     id: TID.opec,
@@ -173,6 +171,12 @@ export const MOCK_THESES: Thesis[] = [
       marketMispricingScore: 13,
       tradeClarityScore: 7,
       triggerClarityScore: 8,
+    },
+
+    insiderFlow: {
+      bullInstruments: ["USOIL"],
+      bearInstruments: [],
+      confirmTags: ["opec", "quota", "production", "meeting"],
     },
   }),
   withQualification({
@@ -213,6 +217,12 @@ export const MOCK_THESES: Thesis[] = [
     stop: "95.20",
     target1: "90.00",
     target2: "88.00",
+
+    insiderFlow: {
+      bullInstruments: [],
+      bearInstruments: ["TLT", "IEF"],
+      confirmTags: ["fed", "cpi", "payrolls", "rates", "inflation"],
+    },
   }),
   withQualification({
     id: TID.defense,
@@ -252,6 +262,12 @@ export const MOCK_THESES: Thesis[] = [
     stop: "123",
     target1: "140",
     target2: "148",
+
+    insiderFlow: {
+      bullInstruments: ["RTX", "LMT"],
+      bearInstruments: [],
+      confirmTags: ["defense", "appropriations", "pentagon", "contract", "backlog"],
+    },
   }),
   withQualification({
     id: TID.qqq,
@@ -286,6 +302,12 @@ export const MOCK_THESES: Thesis[] = [
       marketMispricingScore: 12,
       tradeClarityScore: 7,
       triggerClarityScore: 7,
+    },
+
+    insiderFlow: {
+      bullInstruments: ["QQQ"],
+      bearInstruments: [],
+      confirmTags: ["ai", "capex", "margin", "guidance", "nvidia"],
     },
   }),
   withQualification({
@@ -326,6 +348,12 @@ export const MOCK_THESES: Thesis[] = [
     stop: "3.98",
     target1: "4.32",
     target2: "4.45",
+
+    insiderFlow: {
+      bullInstruments: ["HG", "COPPER"],
+      bearInstruments: [],
+      confirmTags: ["china", "stimulus", "copper", "infrastructure"],
+    },
   }),
   withQualification({
     id: TID.euTech,
@@ -365,6 +393,12 @@ export const MOCK_THESES: Thesis[] = [
     stop: "640",
     target1: "575",
     target2: "540",
+
+    insiderFlow: {
+      bullInstruments: [],
+      bearInstruments: ["META"],
+      confirmTags: ["european commission", "dma", "antitrust", "meta", "fine"],
+    },
   }),
 ];
 
