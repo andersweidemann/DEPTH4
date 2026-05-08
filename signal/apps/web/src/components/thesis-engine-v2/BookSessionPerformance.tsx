@@ -108,7 +108,7 @@ export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats })
           <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-zinc-600">
             Metrics use your session positions only. Closed-trade stats count <span className="text-zinc-500">full exits</span>{" "}
             (<code className="text-[10px] text-zinc-500">closed</code>, <code className="text-[10px] text-zinc-500">stopped</code>)
-            with recorded PnL. Demo rows are listed separately below.
+            with recorded PnL.
           </p>
           {!hasClosed ? (
             <p className="mt-3 text-sm leading-relaxed text-zinc-300">

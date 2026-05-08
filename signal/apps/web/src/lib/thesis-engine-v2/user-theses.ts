@@ -53,7 +53,7 @@ export function getUserThesisBySlug(slug: string): Thesis | undefined {
 }
 
 function mkEvidence(thesis: Thesis): ThesisEvidence[] {
-  // For the dummy: create a small, plausible evidence stack.
+  // Seed a small plausible evidence stack for new user theses.
   const p0 = Math.max(25, Math.round(thesis.probability - 10));
   const p1 = Math.max(25, Math.round(thesis.probability - 4));
   return [

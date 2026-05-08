@@ -75,8 +75,7 @@ export function ClosePositionModal({
             <div className="min-w-0">
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Close position</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-                Full close (dummy). Captures exit, timestamp, realized PnL, and why you exited — framed for your thesis
-                review.
+                Full close. Captures exit, timestamp, realized PnL, and why you exited — framed for your thesis review.
               </p>
               {position ? (
                 <p className="mt-2 font-mono text-[11px] text-zinc-400">
@@ -109,7 +108,7 @@ export function ClosePositionModal({
               </div>
               <div>
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Realized PnL (dummy points)
+                  Realized PnL (%)
                 </label>
                 <input
                   data-testid="close-position-realized"

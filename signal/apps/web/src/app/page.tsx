@@ -19,8 +19,8 @@ export default function HomePage() {
             <span className="hidden text-[11px] text-zinc-500 sm:inline">Macro thesis engine</span>
           </div>
           <nav className="flex items-center gap-2 text-[12px]">
-            <Link href="/demo" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">
-              View live demo
+            <Link href="/theses" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">
+              Theses
             </Link>
             <Link href="/pricing" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">
               Pricing
@@ -66,13 +66,13 @@ export default function HomePage() {
                 Start free
               </Link>
               <Link
-                href="/demo"
+                href="/theses"
                 className={cn(
                   buttonVariants({ variant: "outline", size: "lg" }),
                   "justify-center rounded-md border border-white/[0.10] bg-transparent text-zinc-200 hover:bg-white/[0.06]",
                 )}
               >
-                View live demo
+                Open theses
               </Link>
             </div>
           </div>
@@ -84,14 +84,14 @@ export default function HomePage() {
                 <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                   <span className="text-zinc-400">Live theses</span>
                   <span className="text-zinc-700">·</span>
-                  <span className="text-zinc-600">Dashboard</span>
+                  <span className="text-zinc-600">Workspace</span>
                 </div>
                 <span className="text-[10px] text-zinc-600">Screenshot</span>
               </div>
               <div className="relative aspect-[16/10] overflow-hidden bg-[#0c0c0e]">
                 <Image
                   src="/landing/depth4-theses.png"
-                  alt="DEPTH4 product screenshot showing live theses dashboard and drawer"
+                  alt="DEPTH4 product screenshot showing the live theses list and detail drawer"
                   fill
                   className="object-cover"
                   priority
@@ -204,7 +204,7 @@ export default function HomePage() {
               </div>
               <div className="mt-6">
                 <Link href="/theses" className="text-[12px] font-semibold text-amber-200/90 hover:text-amber-100">
-                  Explore the live theses dashboard →
+                  Open the thesis workspace →
                 </Link>
               </div>
             </div>

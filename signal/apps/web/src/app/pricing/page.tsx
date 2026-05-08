@@ -51,7 +51,7 @@ function PricingPageInner() {
               Sign in
             </Link>
             <Link
-              href="/signup?next=/onboarding"
+              href="/signup?next=/theses"
               className={cn(buttonVariants({ size: "sm" }), "bg-amber-500 text-zinc-950 hover:bg-amber-400")}
             >
               Create account
@@ -111,7 +111,7 @@ function PricingPageInner() {
               ))}
             </ul>
             <Link
-              href="/signup?next=/onboarding"
+              href="/signup?next=/theses"
               className={cn(
                 buttonVariants({ variant: "secondary" }),
                 "mt-6 w-full justify-center bg-zinc-800 text-zinc-200 border border-zinc-700",
@@ -144,7 +144,7 @@ function PricingPageInner() {
               ))}
             </ul>
             <Link
-              href="/signup?next=/onboarding"
+              href="/signup?next=/theses"
               className={cn(buttonVariants({ size: "default" }), "mt-6 w-full justify-center bg-amber-500 text-zinc-950 hover:bg-amber-400")}
             >
               Choose Analyst
@@ -171,7 +171,7 @@ function PricingPageInner() {
               ))}
             </ul>
             <Link
-              href="/signup?next=/onboarding"
+              href="/signup?next=/theses"
               className={cn(
                 buttonVariants({ variant: "secondary" }),
                 "mt-6 w-full justify-center bg-zinc-800 text-zinc-200 border border-zinc-700",
@@ -227,7 +227,9 @@ function PricingPageInner() {
             <div className="mt-4 space-y-4 text-sm text-zinc-400">
               <div>
                 <p className="font-medium text-zinc-200">Is this real billing?</p>
-                <p className="mt-1">Not yet. This is a proof-of-concept: the product logic and gating are real; billing comes later.</p>
+                <p className="mt-1">
+                  Paid plans use secure checkout. The free tier does not require a payment method; upgrade when you need Analyst or Pro features.
+                </p>
               </div>
               <div>
                 <p className="font-medium text-zinc-200">Why four tiers?</p>
@@ -252,7 +254,7 @@ function PricingPageInner() {
                 Open thesis engine
               </Link>
               <Link
-                href="/signup?next=/onboarding"
+                href="/signup?next=/theses"
                 className={cn(buttonVariants({ size: "default" }), "bg-amber-500 text-zinc-950 hover:bg-amber-400")}
               >
                 Create account

@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { LeaderboardClient } from "@/components/thesis-engine-v2/LeaderboardClient";
+import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
 import { MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Leaderboard",
-  description: "Rankings update weekly based on thesis accuracy (dummy).",
+  description: "Thesis accuracy rankings and resolution outcomes.",
 };
 
 export default function LeaderboardPage() {
   const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
-  const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
+  const liveLine = thesesLiveLine(readyCount, MOCK_THESES.length);
 
   return (
     <>

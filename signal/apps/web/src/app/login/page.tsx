@@ -64,7 +64,7 @@ function LoginPageInner() {
       setSubmitting(true);
       try {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
-        // Dummy-friendly: send a reset email; the actual reset screen can be added later.
+        // Password reset email; dedicated reset UI may be added separately.
         const { error } = await supa.auth.resetPasswordForEmail(email.trim(), {
           redirectTo: `${origin}/login?next=${encodeURIComponent(next)}`,
         });

@@ -110,7 +110,7 @@ export function closePosition(id: string, input: ClosePositionInput): Position |
     currentPnl: undefined,
     latestUpdate: [
       `Position closed (${reasonLine}).`,
-      `Exit ${input.exitPrice} · Realized ${realizedPnl} (dummy units).`,
+      `Exit ${input.exitPrice} · Realized ${realizedPnl} (%).`,
       `Thesis link kept so you can compare outcome to the idea.`,
     ].join(" "),
   };

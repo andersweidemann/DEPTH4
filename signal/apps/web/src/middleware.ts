@@ -14,7 +14,6 @@ const PUBLIC_PREFIXES = [
   "/risk",
   "/risk-disclosure",
   "/disclaimer",
-  "/demo",
   "/auth/callback",
 ];
 
@@ -22,8 +21,9 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PREFIXES.some((p) => pathname === p || (p !== "/" && pathname.startsWith(`${p}/`)));
 }
 
+const LEGACY_REDIRECTS = ["/dashboard", "/onboarding", "/demo"] as const;
+
 export async function middleware(req: NextRequest) {
-  // Skip static assets / next internals early.
   const { pathname } = req.nextUrl;
   if (
     pathname.startsWith("/_next/") ||
@@ -38,6 +38,16 @@ export async function middleware(req: NextRequest) {
     pathname.endsWith(".txt")
   ) {
     return NextResponse.next();
+  }
+
+  const lower = pathname.toLowerCase();
+  for (const prefix of LEGACY_REDIRECTS) {
+    if (lower === prefix || lower.startsWith(`${prefix}/`)) {
+      const u = req.nextUrl.clone();
+      u.pathname = "/theses";
+      u.search = "";
+      return NextResponse.redirect(u);
+    }
   }
 
   if (isPublicPath(pathname)) return NextResponse.next();
@@ -77,4 +87,3 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: ["/((?!_next/static|_next/image|sw.js).*)"],
 };
-

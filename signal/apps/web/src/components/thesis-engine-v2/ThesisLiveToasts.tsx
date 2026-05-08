@@ -3,7 +3,7 @@
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { cn } from "@/lib/utils";
 
-/** Layer 3 dummy: push-style preview (no real email). */
+/** In-app preview of out-of-session alert copy. */
 export function ThesisLiveToasts() {
   const { outToast, dismissToast } = useThesisLive();
   if (!outToast) return null;
@@ -25,7 +25,7 @@ export function ThesisLiveToasts() {
             Dismiss
           </button>
         </div>
-        <p className="mt-2 text-[10px] text-zinc-600">Out-of-app alert preview (dummy)</p>
+        <p className="mt-2 text-[10px] text-zinc-600">Email and mobile alerts use your account settings when enabled.</p>
       </div>
     </div>
   );

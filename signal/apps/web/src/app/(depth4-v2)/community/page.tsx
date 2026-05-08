@@ -2,16 +2,17 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { CommunityThesisCard } from "@/components/thesis-engine-v2/CommunityThesisCard";
+import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
 import { MOCK_COMMUNITY_THESES, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Community",
-  description: "Published theses from the community (dummy).",
+  description: "Published theses from the DEPTH4 community.",
 };
 
 export default function CommunityPage() {
   const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
-  const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
+  const liveLine = thesesLiveLine(readyCount, MOCK_THESES.length);
 
   return (
     <>
@@ -24,7 +25,7 @@ export default function CommunityPage() {
               Published theses from other traders. Follow thinkers with repeatable accuracy.
             </p>
           </div>
-          <p className="text-[11px] text-zinc-600">Read-only on Free · Pro unlocks publishing (dummy)</p>
+          <p className="text-[11px] text-zinc-600">Upgrade to publish your own theses to the community.</p>
         </div>
 
         <div className="mt-10 grid gap-4">

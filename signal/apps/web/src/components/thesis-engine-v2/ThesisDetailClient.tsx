@@ -17,6 +17,7 @@ import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionMod
 import { MispricingAnalysis } from "@/components/thesis-engine-v2/MispricingAnalysis";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
+import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
 import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
@@ -131,7 +132,7 @@ export function ThesisDetailClient({
   }, [bundle, liveOpt]);
 
   const readyCount = useMemo(() => MOCK_THESES.filter((t) => t.status === "ready").length, []);
-  const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
+  const liveLine = useMemo(() => thesesLiveLine(readyCount, MOCK_THESES.length), [readyCount]);
 
   const scoreRow = (label: string, value: number, max: number) => {
     const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
@@ -354,33 +355,9 @@ export function ThesisDetailClient({
             onClick={() => {
               requireFeature("positionTracking", "open-position", () => setOpenPos(true));
             }}
-            title="Open a linked position in your Book (dummy)"
+            title="Record a position in your Book linked to this thesis"
           >
             Open position
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-zinc-900/60"
-            onClick={() => {
-              requireFeature("publishPublicly", "publish-thesis", () => {
-                alert("Dummy: published. (In the real product this creates a public thesis + leaderboard entry.)");
-              });
-            }}
-            title="Publish this thesis publicly (dummy)"
-          >
-            Publish
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
-            onClick={() => {
-              requireFeature("publishPublicly", "creator-tools", () => {
-                alert("Dummy: monetization enabled. (In the real product this opens monetization tools.)");
-              });
-            }}
-            title="Enable monetization tools (dummy)"
-          >
-            Monetize
           </button>
           <Link
             href="/risk"

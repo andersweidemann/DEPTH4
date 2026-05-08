@@ -31,7 +31,7 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
   const statusLine = `Thesis status: ${t.status} · probability ${t.probability}%.`;
   const lastUpdateLine = ev
     ? `Latest evidence: “${ev.headline}” (${ev.source}) · ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
-    : "Latest evidence: none logged (dummy).";
+    : "Latest evidence: none logged yet.";
 
   const mapping =
     t.status === "invalidated"
@@ -137,7 +137,7 @@ export function ThesisAssistantPanel({
           {drawer ? "Thesis assistant" : "Ask about this thesis"}
         </h2>
         <span className={cn("text-zinc-600", drawer ? "text-[10px]" : "text-[11px]")}>
-          {drawer ? "Informational (dummy)" : "Informational (dummy)"}
+          Informational only
         </span>
       </div>
 
@@ -196,16 +196,6 @@ export function ThesisAssistantPanel({
         </div>
       </div>
 
-      {!drawer ? (
-        <div className="mt-4">
-          <label className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-600">Ask a custom question</label>
-          <input
-            disabled
-            placeholder="Future feature"
-            className="mt-2 w-full rounded-md border border-white/[0.08] bg-zinc-900/20 px-3 py-3 text-[16px] text-zinc-500 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-          />
-        </div>
-      ) : null}
     </section>
   );
 }

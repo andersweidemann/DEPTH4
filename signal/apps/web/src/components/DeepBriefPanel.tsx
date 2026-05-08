@@ -105,7 +105,7 @@ export function DeepBriefPanel({
             onGenerate?.();
           }}
           disabled={!onGenerate}
-          title={!onGenerate ? "Generate handler not wired yet" : undefined}
+          title={!onGenerate ? "Brief generation is not available in this context" : undefined}
         >
           ⚡ Generate Deep Brief
         </button>

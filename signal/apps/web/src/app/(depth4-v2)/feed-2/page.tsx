@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { FeedSignalCard } from "@/components/thesis-engine-v2/FeedSignalCard";
+import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
 import { MOCK_FEED_SIGNALS, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
 export const metadata: Metadata = {
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default function Feed2Page() {
   const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
   const activeCount = MOCK_THESES.filter((t) => t.status === "active").length;
-  const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
+  const liveLine = thesesLiveLine(readyCount, MOCK_THESES.length);
 
   return (
     <>
@@ -38,8 +39,8 @@ export default function Feed2Page() {
                 {activeCount} active · {readyCount} ready
               </p>
               <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
-                The Feed prioritizes items that are linked to active narratives. Unlinked items will be matchable once
-                thesis creation and routing are fully wired.
+                The feed surfaces headlines that map cleanly to a thesis first. Unlinked items are shown when no system
+                thesis is a clear match yet.
               </p>
             </div>
           </aside>

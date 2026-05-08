@@ -55,7 +55,7 @@ export function UpgradeModal({
       ? "Track your own macro ideas. Get alerts when news moves your theses."
       : requiredPlan === "pro"
         ? "Share your theses publicly and build a following based on your track record."
-        : "Turn your published theses into subscription revenue with a 70% revenue share (dummy).";
+        : "Turn your published theses into subscription revenue with a 70% revenue share.";
 
   const compare =
     requiredPlan === "analyst"

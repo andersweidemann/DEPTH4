@@ -141,9 +141,9 @@ export function AuthPanel({ nextPath, intent }: Props) {
           </div>
           <p className="text-xs text-zinc-600">
             <Link href="/pricing" className="text-emerald-500/90 hover:text-emerald-400">
-              Full comparison
-            </Link>{" "}
-            · Billing is not wired yet (dummy).
+              Full comparison and checkout
+            </Link>
+            .
           </p>
         </div>
 

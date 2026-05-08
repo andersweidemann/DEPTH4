@@ -1,13 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookPagePerformanceBoard } from "@/components/thesis-engine-v2/BookSessionPerformance";
 import { PositionRow } from "@/components/thesis-engine-v2/PositionRow";
 import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
-import { DEPTH4_POSITIONS_CHANGED, loadPositions, savePositions } from "@/lib/thesis-engine-v2/positions-store";
+import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import { MOCK_THESES, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { Position, ResolvedThesisRecord, WatchlistIdea } from "@/lib/thesis-engine-v2/types";
@@ -33,26 +32,10 @@ function BookRiskDisclaimer() {
   );
 }
 
-function demoShell(children: ReactNode) {
-  return (
-    <div className="mt-6 rounded-xl border border-dashed border-zinc-600/30 bg-zinc-950/25 p-4 sm:p-5">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="rounded-md border border-zinc-600/40 bg-zinc-900/60 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
-          Demo portfolio
-        </span>
-        <span className="text-[11px] text-zinc-600">Illustrative rows — not included in your session metrics</span>
-      </div>
-      {children}
-    </div>
-  );
-}
-
 export function BookClient({
-  mockPositions,
   watchlist,
   resolved,
 }: {
-  mockPositions: Position[];
   watchlist: WatchlistIdea[];
   resolved: ResolvedThesisRecord[];
 }) {
@@ -71,76 +54,6 @@ export function BookClient({
   useEffect(() => {
     refreshFromStore();
   }, [refreshFromStore]);
-
-  useEffect(() => {
-    const cur = loadPositions();
-    if (cur.length) return;
-
-    const now = new Date();
-    const isoDaysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000).toISOString();
-
-    const demo: Position[] = [
-      {
-        id: "demo-book-1",
-        symbol: "RTX",
-        side: "long",
-        linkedThesisId: "th-defense",
-        thesisStatus: "resolved",
-        tradeStatus: "closed",
-        openedAt: isoDaysAgo(90),
-        closedAt: isoDaysAgo(0),
-        entryPrice: 130,
-        exitPrice: 148,
-        size: 100,
-        closeReason: "target_hit",
-        realizedPnlNumeric: 13.8,
-        realizedPnl: "+13.8%",
-        recommendation: "exit",
-        probability: 64,
-        latestUpdate: "Illustrative close recorded to populate Book performance metrics.",
-      },
-      {
-        id: "demo-book-2",
-        symbol: "XAUUSD",
-        side: "short",
-        linkedThesisId: "th-gold",
-        thesisStatus: "ready",
-        tradeStatus: "closed",
-        openedAt: isoDaysAgo(14),
-        closedAt: isoDaysAgo(0),
-        entryPrice: 3291,
-        exitPrice: 3312,
-        size: 1,
-        closeReason: "manual_exit",
-        realizedPnlNumeric: -0.6,
-        realizedPnl: "-0.6%",
-        recommendation: "exit",
-        probability: 67,
-        latestUpdate: "Illustrative close recorded to populate Book performance metrics.",
-      },
-      {
-        id: "demo-book-3",
-        symbol: "TLT",
-        side: "short",
-        linkedThesisId: "th-tlt",
-        thesisStatus: "forming",
-        tradeStatus: "closed",
-        openedAt: isoDaysAgo(5),
-        closedAt: isoDaysAgo(0),
-        entryPrice: 95,
-        exitPrice: 89,
-        size: 200,
-        closeReason: "target_hit",
-        realizedPnlNumeric: 6.3,
-        realizedPnl: "+6.3%",
-        recommendation: "exit",
-        probability: 54,
-        latestUpdate: "Illustrative close recorded to populate Book performance metrics.",
-      },
-    ];
-
-    savePositions(demo);
-  }, []);
 
   useEffect(() => {
     const onPos = () => refreshFromStore();
@@ -167,8 +80,6 @@ export function BookClient({
 
   const userOpen = useMemo(() => userPositions.filter((p) => p.tradeStatus === "open"), [userPositions]);
   const userClosed = useMemo(() => userPositions.filter((p) => p.tradeStatus !== "open"), [userPositions]);
-  const mockOpen = useMemo(() => mockPositions.filter((p) => p.tradeStatus === "open"), [mockPositions]);
-  const mockClosed = useMemo(() => mockPositions.filter((p) => p.tradeStatus !== "open"), [mockPositions]);
 
   const userIds = useMemo(() => new Set(userPositions.map((p) => p.id)), [userPositions]);
   const stats = useMemo(() => computeSessionBookStats(userPositions), [userPositions]);
@@ -207,22 +118,6 @@ export function BookClient({
         </div>
       </section>
 
-      {mockOpen.length > 0
-        ? demoShell(
-            <div>
-              <div className="mb-2 flex items-baseline justify-between gap-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Open</h3>
-                <span className="text-[11px] tabular-nums text-zinc-600">{mockOpen.length}</span>
-              </div>
-              <div className="rounded-lg bg-zinc-900/15 px-3 ring-1 ring-white/[0.03] sm:px-4">
-                {mockOpen.map((p) => (
-                  <PositionRow key={p.id} position={p} thesisMeta={metaFor(p)} manageable={false} onBookChange={refreshFromStore} />
-                ))}
-              </div>
-            </div>,
-          )
-        : null}
-
       <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Your session · Closed</h2>
@@ -241,22 +136,6 @@ export function BookClient({
           )}
         </div>
       </section>
-
-      {mockClosed.length > 0
-        ? demoShell(
-            <div>
-              <div className="mb-2 flex items-baseline justify-between gap-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Closed / other</h3>
-                <span className="text-[11px] tabular-nums text-zinc-600">{mockClosed.length}</span>
-              </div>
-              <div className="rounded-lg bg-zinc-900/15 px-3 ring-1 ring-white/[0.03] sm:px-4">
-                {mockClosed.map((p) => (
-                  <PositionRow key={p.id} position={p} thesisMeta={metaFor(p)} manageable={false} onBookChange={refreshFromStore} />
-                ))}
-              </div>
-            </div>,
-          )
-        : null}
 
       <section className="mt-14">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Watchlist (no position attached yet)</h2>

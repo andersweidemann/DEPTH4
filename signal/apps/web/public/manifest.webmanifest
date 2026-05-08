@@ -2,7 +2,7 @@
   "name": "DEPTH4",
   "short_name": "DEPTH4",
   "description": "Geopolitical & macro intelligence for your portfolio",
-  "start_url": "/dashboard?tab=feed",
+  "start_url": "/theses",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",

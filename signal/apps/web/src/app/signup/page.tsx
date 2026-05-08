@@ -44,7 +44,7 @@ export default function SignupPage() {
 function SignupPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const next = useMemo(() => safeAppPath(sp.get("next") || "/onboarding"), [sp]);
+  const next = useMemo(() => safeAppPath(sp.get("next") || "/theses"), [sp]);
 
   const supa = useMemo(() => createClient(), []);
 

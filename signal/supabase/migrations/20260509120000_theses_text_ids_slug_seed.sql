@@ -1,22 +1,111 @@
 -- Align thesis primary keys with v2 UI (string IDs like th-defense, not UUIDs).
--- Also seed system theses so thesis_evidence_log / thesis_stars FK targets exist.
+-- Seed system theses so thesis_evidence_log / thesis_stars FK targets exist.
+--
+-- Safe to run once. Includes prerequisites if earlier DEPTH4 migrations were not applied
+-- (e.g. thesis_evidence_log missing).
 
+-- =============================================================================
+-- 0) Prerequisites (no-op if tables already exist from 20260508115200 / 238 / 310)
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS public.theses (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('forming','watching','ready','active','resolved','invalidated','archived')),
+  scenario_probabilities jsonb NOT NULL DEFAULT '{"base":40,"bull":35,"bear":25}',
+  insider_flow jsonb,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_theses_status ON public.theses (status);
+CREATE INDEX IF NOT EXISTS idx_theses_updated_at ON public.theses (updated_at DESC);
+
+ALTER TABLE public.theses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated can read theses" ON public.theses;
+CREATE POLICY "Authenticated can read theses"
+  ON public.theses
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE TABLE IF NOT EXISTS public.thesis_stars (
+  user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+  thesis_id uuid NOT NULL REFERENCES public.theses (id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, thesis_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_thesis_stars_thesis ON public.thesis_stars (thesis_id);
+CREATE INDEX IF NOT EXISTS idx_thesis_stars_created ON public.thesis_stars (created_at DESC);
+
+ALTER TABLE public.thesis_stars ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users can read their thesis stars" ON public.thesis_stars;
+DROP POLICY IF EXISTS "Users can insert their thesis stars" ON public.thesis_stars;
+DROP POLICY IF EXISTS "Users can delete their thesis stars" ON public.thesis_stars;
+CREATE POLICY "Users can read their thesis stars"
+  ON public.thesis_stars
+  FOR SELECT
+  TO authenticated
+  USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert their thesis stars"
+  ON public.thesis_stars
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can delete their thesis stars"
+  ON public.thesis_stars
+  FOR DELETE
+  TO authenticated
+  USING (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.thesis_evidence_log (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  thesis_id uuid NOT NULL REFERENCES public.theses (id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  event_type text NOT NULL,
+  description text,
+  probability_before jsonb,
+  probability_after jsonb,
+  metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  dedupe_key text UNIQUE
+);
+
+CREATE INDEX IF NOT EXISTS idx_evidence_log_thesis_id ON public.thesis_evidence_log (thesis_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_log_created_at ON public.thesis_evidence_log (created_at DESC);
+
+ALTER TABLE public.thesis_evidence_log ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Authenticated can read evidence log" ON public.thesis_evidence_log;
+CREATE POLICY "Authenticated can read evidence log"
+  ON public.thesis_evidence_log
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- =============================================================================
 -- 1) Drop FKs that reference public.theses(id)
+-- =============================================================================
 ALTER TABLE public.thesis_evidence_log DROP CONSTRAINT IF EXISTS thesis_evidence_log_thesis_id_fkey;
 ALTER TABLE public.thesis_stars DROP CONSTRAINT IF EXISTS thesis_stars_thesis_id_fkey;
 
+-- =============================================================================
 -- 2) Widen id / thesis_id to text
+-- =============================================================================
 ALTER TABLE public.theses ALTER COLUMN id DROP DEFAULT;
 ALTER TABLE public.theses ALTER COLUMN id TYPE text USING id::text;
 
 ALTER TABLE public.thesis_stars ALTER COLUMN thesis_id TYPE text USING thesis_id::text;
 ALTER TABLE public.thesis_evidence_log ALTER COLUMN thesis_id TYPE text USING thesis_id::text;
 
+-- =============================================================================
 -- 3) Optional slug for admin links / future sync
+-- =============================================================================
 ALTER TABLE public.theses ADD COLUMN IF NOT EXISTS slug text;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_theses_slug ON public.theses (slug) WHERE slug IS NOT NULL;
 
+-- =============================================================================
 -- 4) Restore FKs
+-- =============================================================================
 ALTER TABLE public.thesis_stars
   ADD CONSTRAINT thesis_stars_thesis_id_fkey
   FOREIGN KEY (thesis_id) REFERENCES public.theses (id) ON DELETE CASCADE;
@@ -25,7 +114,9 @@ ALTER TABLE public.thesis_evidence_log
   ADD CONSTRAINT thesis_evidence_log_thesis_id_fkey
   FOREIGN KEY (thesis_id) REFERENCES public.theses (id) ON DELETE CASCADE;
 
+-- =============================================================================
 -- 5) Seed system theses (IDs must match signal/apps/web mock-data.ts `TID`)
+-- =============================================================================
 INSERT INTO public.theses (id, title, status, scenario_probabilities, insider_flow, slug, updated_at)
 VALUES
   (

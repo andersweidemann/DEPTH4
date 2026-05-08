@@ -51,7 +51,7 @@ function clamp(n: number, a: number, b: number) {
 }
 
 function scoreFromProb(p: number) {
-  // Heuristic for dummy: higher conviction tends to imply stronger driver + clearer trade.
+  // Heuristic: higher conviction tends to imply stronger driver + clearer trade.
   const driverStrength = clamp(Math.round((p / 100) * 18), 6, 20);
   const timeCompression = clamp(Math.round((p / 100) * 22), 6, 25);
   const marketMispricingScore = clamp(Math.round((p / 100) * 22), 6, 25);
@@ -687,7 +687,7 @@ export function CreateThesisModal({
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-4">
             <p className="text-[11px] text-zinc-500">
-              DEPTH4 will monitor signals against your trigger and log probability changes over time (dummy).
+              DEPTH4 will monitor signals against your trigger and log probability changes over time.
             </p>
             <div className="flex items-center gap-2">
               <Dialog.Close className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500">

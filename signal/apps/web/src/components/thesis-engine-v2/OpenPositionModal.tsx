@@ -77,7 +77,7 @@ export function OpenPositionModal({
 
       recommendation: thesis.advisoryAction,
       probability: thesis.probability,
-      latestUpdate: "Position opened (dummy). DEPTH4 will track updates against this thesis.",
+      latestUpdate: "Position opened. DEPTH4 will track updates against this thesis.",
     };
 
     onCreate(p);
@@ -103,7 +103,7 @@ export function OpenPositionModal({
             <div className="min-w-0">
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Open position</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-                Link a real trade to this thesis so DEPTH4 can track both the idea and your execution (dummy).
+                Link a trade to this thesis so DEPTH4 can track both the idea and your execution.
               </p>
               <p className="mt-2 text-[11px] text-zinc-400">
                 <span className="font-mono">{thesis.asset}</span> · {thesis.title}
