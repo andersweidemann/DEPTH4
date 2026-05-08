@@ -17,7 +17,8 @@ import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 
-const DEFAULT_MODEL = "claude-3-5-haiku-20241022";
+/** Default when `ANTHROPIC_MODEL` unset — strongest model for macro reasoning quality checks. */
+const DEFAULT_MODEL = "claude-opus-4-7";
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
