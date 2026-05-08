@@ -23,6 +23,11 @@ export async function POST(req: NextRequest) {
   const user = userRes.user;
   if (userErr || !user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
+  // Pro-only
+  const { data: urow } = await sb.from("users").select("tier").eq("id", user.id).single();
+  const tier = String((urow as { tier?: unknown } | null)?.tier ?? "");
+  if (tier !== "pro") return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
+
   const body = (await req.json().catch(() => null)) as PushSubscriptionJson | null;
   const endpoint = typeof body?.endpoint === "string" ? body.endpoint : "";
   const p256dh = typeof body?.keys?.p256dh === "string" ? body.keys.p256dh : "";

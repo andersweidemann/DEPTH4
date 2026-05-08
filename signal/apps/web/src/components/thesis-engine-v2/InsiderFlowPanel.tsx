@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Radar, X } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -43,6 +43,14 @@ export function InsiderFlowPanel({
   const { plan } = useV2Plan();
   const live = useThesisLiveOptional();
   const sb = useMemo(() => createClient(), []);
+  const [pushState, setPushState] = useState<
+    | { kind: "loading" }
+    | { kind: "locked" }
+    | { kind: "blocked" }
+    | { kind: "off"; mode: string; endpoint: string | null }
+    | { kind: "on"; mode: string; endpoint: string }
+    | { kind: "error"; message: string }
+  >({ kind: "loading" });
 
   const anomalies = useMemo(() => live?.insiderFlowAnomalies ?? [], [live?.insiderFlowAnomalies]);
   const latest = anomalies[0] ?? null;
@@ -93,43 +101,126 @@ export function InsiderFlowPanel({
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open, onClose]);
 
-  if (!open) return null;
+  const modeLabel: Record<string, string> = {
+    any: "Any change",
+    major: "Major changes",
+    confirmed_only: "Confirmations only",
+    invalidations_only: "Invalidations only",
+    mute: "Mute",
+  };
+
+  const toUint8 = (base64String: string) => {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+    return outputArray;
+  };
+
+  async function loadPushState() {
+    try {
+      setPushState({ kind: "loading" });
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return setPushState({ kind: "locked" });
+      const { data: urow } = await sb.from("users").select("tier,notification_preferences").eq("id", user.id).single();
+      const tier = String((urow as { tier?: unknown } | null)?.tier ?? "free");
+      if (tier !== "pro") return setPushState({ kind: "locked" });
+
+      const np = (urow as { notification_preferences?: unknown } | null)?.notification_preferences;
+      const isp =
+        np && typeof np === "object" && !Array.isArray(np) ? (np as Record<string, unknown>)["insiderFlowPush"] : null;
+      const mode =
+        isp && typeof isp === "object" && !Array.isArray(isp) && typeof (isp as { mode?: unknown }).mode === "string"
+          ? String((isp as { mode?: unknown }).mode)
+          : "major";
+
+      if (!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") {
+        return setPushState({ kind: "error", message: "Push notifications unavailable in this browser." });
+      }
+      if (Notification.permission === "denied") return setPushState({ kind: "blocked" });
+
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (!sub) return setPushState({ kind: "off", mode, endpoint: null });
+      return setPushState({ kind: "on", mode, endpoint: sub.endpoint });
+    } catch (e) {
+      return setPushState({ kind: "error", message: e instanceof Error ? e.message : "Failed to check push status." });
+    }
+  }
+
+  async function setMode(mode: string) {
+    const { data: { session } } = await sb.auth.getSession();
+    const tok = session?.access_token;
+    if (!tok) return;
+    await fetch("/api/user/preferences", {
+      method: "PATCH",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      body: JSON.stringify({ notification_preferences: { insiderFlowPush: { enabled: mode !== "mute", mode } } }),
+    });
+    await loadPushState();
+  }
 
   async function enablePush() {
     const { data: { session } } = await sb.auth.getSession();
     const tok = session?.access_token;
     if (!tok) return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
-    if (typeof Notification === "undefined") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || typeof Notification === "undefined") return;
 
     const perm = await Notification.requestPermission();
-    if (perm !== "granted") return;
+    if (perm !== "granted") return loadPushState();
 
-    // Ensure SW is ready (next-pwa registers /sw.js automatically).
     const reg = await navigator.serviceWorker.ready;
     const vapid = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "").trim();
-    if (!vapid) return;
-
-    const toUint8 = (base64String: string) => {
-      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-      const rawData = atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-      for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
-      return outputArray;
-    };
+    if (!vapid) return setPushState({ kind: "error", message: "Missing VAPID public key." });
 
     const sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: toUint8(vapid),
     });
 
-    await fetch("/api/push/subscribe", {
+    const r = await fetch("/api/push/subscribe", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
       body: JSON.stringify(sub),
     });
+    if (!r.ok) return setPushState({ kind: "error", message: "Failed to enable push notifications." });
+
+    // Ensure prefs enabled by default.
+    await fetch("/api/user/preferences", {
+      method: "PATCH",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      body: JSON.stringify({ notification_preferences: { insiderFlowPush: { enabled: true, mode: "major" } } }),
+    });
+
+    await loadPushState();
   }
+
+  async function disablePush() {
+    const { data: { session } } = await sb.auth.getSession();
+    const tok = session?.access_token;
+    if (!tok) return;
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return loadPushState();
+
+    const ok = await sub.unsubscribe();
+    if (!ok) return setPushState({ kind: "error", message: "Failed to disable push notifications." });
+    await fetch("/api/push/unsubscribe", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      body: JSON.stringify({ endpoint: sub.endpoint }),
+    });
+    await loadPushState();
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    void loadPushState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[140] flex justify-end" role="dialog" aria-modal="true" aria-label="Insider Flow Detector">
@@ -257,24 +348,95 @@ export function InsiderFlowPanel({
         </div>
 
         <div className="border-t border-white/[0.06] px-4 py-3 text-[11px] text-zinc-600">
-          {canSeeLog ? "Analyst: 7-day log enabled." : "Free: 24h indicator only."}{" "}
-          {canRealtime ? "Pro: realtime alerts enabled." : null}
-          {plan === "pro" ? (
-            <button
-              type="button"
-              className="ml-2 text-[11px] font-semibold text-amber-200/90 hover:text-amber-100"
-              onClick={() => void enablePush()}
-            >
-              Enable push →
-            </button>
-          ) : (
-            <Link
-              href="/pricing?source=push-notifications&recommended=pro"
-              className="ml-2 text-[11px] font-semibold text-amber-200/90 hover:text-amber-100"
-            >
-              Push alerts (Pro) →
-            </Link>
-          )}
+          <div className="grid gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                {canSeeLog ? "Analyst: 7-day log enabled." : "Free: 24h indicator only."} {canRealtime ? "Pro: realtime alerts enabled." : null}
+              </span>
+              {plan !== "pro" ? (
+                <Link
+                  href="/pricing?source=push-notifications&recommended=pro"
+                  className="text-[11px] font-semibold text-amber-200/90 hover:text-amber-100"
+                >
+                  Push alerts (Pro) →
+                </Link>
+              ) : null}
+            </div>
+
+            {plan === "pro" ? (
+              <div className="rounded-none border border-white/[0.06] bg-zinc-900/20 px-3 py-2 text-[11px] text-zinc-300">
+                {pushState.kind === "loading" ? (
+                  <p className="text-zinc-400">🔔 Push notifications · Checking status…</p>
+                ) : pushState.kind === "locked" ? (
+                  <p className="text-zinc-400">🔒 Push notifications · Sign in to manage.</p>
+                ) : pushState.kind === "blocked" ? (
+                  <div>
+                    <p className="text-zinc-200">🔔 Push notifications (blocked)</p>
+                    <p className="mt-1 text-zinc-500">
+                      Browser notifications are blocked. Enable them in browser settings to receive Insider Flow alerts.
+                    </p>
+                    <details className="mt-2 text-zinc-500">
+                      <summary className="cursor-pointer text-zinc-400 hover:text-zinc-200">How to enable notifications</summary>
+                      <div className="mt-2 grid gap-1 text-[11px]">
+                        <p>Chrome: Settings → Privacy → Site Settings → Notifications</p>
+                        <p>Firefox: Preferences → Privacy → Permissions → Notifications</p>
+                        <p>Safari: Settings → Websites → Notifications</p>
+                      </div>
+                    </details>
+                  </div>
+                ) : pushState.kind === "error" ? (
+                  <div>
+                    <p className="text-zinc-200">🔔 Push notifications</p>
+                    <p className="mt-1 text-rose-300/90">{pushState.message}</p>
+                  </div>
+                ) : pushState.kind === "off" ? (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-zinc-200">🔔 Push notifications (off)</p>
+                      <p className="mt-1 text-zinc-500">
+                        Get instant alerts when Insider Flow anomalies are detected, even when DEPTH4 is closed.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="rounded-md bg-amber-500/15 px-3 py-2 text-[11px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20"
+                      onClick={() => void enablePush()}
+                    >
+                      Enable push notifications
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-zinc-200">🔔 Push notifications (active)</p>
+                      <p className="mt-1 text-zinc-500">✓ Receiving alerts on this device</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-[11px] text-zinc-500">Alert mode</label>
+                      <select
+                        className="rounded-md border border-white/[0.08] bg-zinc-900/40 px-2 py-1 text-[11px] text-zinc-200"
+                        value={pushState.mode}
+                        onChange={(e) => void setMode(e.target.value)}
+                      >
+                        <option value="major">{modeLabel.major}</option>
+                        <option value="any">{modeLabel.any}</option>
+                        <option value="confirmed_only">{modeLabel.confirmed_only}</option>
+                        <option value="invalidations_only">{modeLabel.invalidations_only}</option>
+                        <option value="mute">{modeLabel.mute}</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 py-2 text-[11px] font-semibold text-zinc-200 hover:bg-zinc-900/50"
+                        onClick={() => void disablePush()}
+                      >
+                        Turn off push
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
       </aside>
     </div>

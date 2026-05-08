@@ -25,6 +25,9 @@ type DbThesis = {
   scenario_probabilities?: { base?: number; bull?: number; bear?: number } | null;
 };
 
+type InsiderFlowPushMode = "any" | "major" | "confirmed_only" | "invalidations_only" | "mute";
+type InsiderFlowPushPref = { enabled: boolean; mode: InsiderFlowPushMode };
+
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
@@ -157,6 +160,37 @@ async function pushToUsers(args: {
   }
 
   return { attempted, sent, removed };
+}
+
+function getInsiderFlowPushPref(userRow: { tier?: unknown; notification_preferences?: unknown }): InsiderFlowPushPref {
+  const tier = String(userRow.tier ?? "");
+  const defaults: InsiderFlowPushPref = { enabled: tier === "pro", mode: "major" };
+  const np = userRow.notification_preferences;
+  if (!np || typeof np !== "object" || Array.isArray(np)) return defaults;
+  const isp = (np as Record<string, unknown>)["insiderFlowPush"];
+  if (!isp || typeof isp !== "object" || Array.isArray(isp)) return defaults;
+  const enabledRaw = (isp as { enabled?: unknown }).enabled;
+  const enabled = typeof enabledRaw === "boolean" ? enabledRaw : defaults.enabled;
+  const modeRaw = (isp as { mode?: unknown }).mode;
+  const mode: InsiderFlowPushMode =
+    modeRaw === "any" || modeRaw === "major" || modeRaw === "confirmed_only" || modeRaw === "invalidations_only" || modeRaw === "mute"
+      ? modeRaw
+      : defaults.mode;
+  return { enabled, mode };
+}
+
+function shouldPushForMode(args: {
+  mode: InsiderFlowPushMode;
+  event: "new_anomaly" | "confirmed" | "invalidated";
+  major: boolean;
+}): boolean {
+  const { mode, event, major } = args;
+  if (mode === "mute") return false;
+  if (mode === "any") return event === "new_anomaly" || event === "confirmed" || event === "invalidated";
+  if (mode === "confirmed_only") return event === "confirmed";
+  if (mode === "invalidations_only") return event === "invalidated";
+  // major
+  return event === "new_anomaly" ? major : event === "confirmed" ? true : false;
 }
 
 function shouldInvalidateOnReversal(args: {
@@ -375,6 +409,7 @@ export async function GET(req: NextRequest) {
   let push_attempted = 0;
   let push_sent = 0;
   let push_removed = 0;
+  let push_skipped_by_prefs = 0;
 
   if (anomalies.length) {
     // Deduplicate: skip if similar anomaly already exists recently for the thesis.
@@ -444,7 +479,7 @@ export async function GET(req: NextRequest) {
     const { data: inserted } = await admin
       .from("flow_anomalies")
       .insert(toInsert)
-      .select("id,thesis_id,thesis_title,pattern_type,status,probability_suggestion,created_at")
+      .select("id,thesis_id,thesis_title,pattern_type,status,probability_suggestion,created_at,instruments_moved")
       .throwOnError();
     written = toInsert.length;
 
@@ -478,7 +513,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Push notifications (Pro only): notify users who starred the thesis and have a subscription.
-    const insertedRows = (inserted ?? []) as Array<{ id: string; thesis_id: string; thesis_title: string; pattern_type: string }>;
+    const insertedRows = (inserted ?? []) as Array<{
+      id: string;
+      thesis_id: string;
+      thesis_title: string;
+      pattern_type: "BULL_LEAK" | "BEAR_LEAK";
+      probability_suggestion?: unknown;
+      instruments_moved?: unknown;
+    }>;
     if (insertedRows.length) {
       const tids = Array.from(new Set(insertedRows.map((r) => String(r.thesis_id ?? "")).filter(Boolean)));
       const { data: starRows } = await admin.from("thesis_stars").select("user_id,thesis_id").in("thesis_id", tids).limit(10000);
@@ -489,19 +531,51 @@ export async function GET(req: NextRequest) {
         })) ?? [];
       const userIds = Array.from(new Set(starPairs.map((p) => p.userId).filter(Boolean)));
       const { data: users } = await admin.from("users").select("id,tier,notification_preferences").in("id", userIds).limit(5000);
-      const proIds = new Set(
-        (users ?? [])
-          .filter((u: { id?: unknown; tier?: unknown; notification_preferences?: unknown }) => String(u.tier ?? "") === "pro")
-          .map((u: { id?: unknown }) => String(u.id ?? "")),
+      const userMap = new Map(
+        (users ?? []).map((u: { id?: unknown; tier?: unknown; notification_preferences?: unknown }) => [String(u.id ?? ""), u] as const),
       );
 
       for (const a of insertedRows) {
         const thId = String(a.thesis_id ?? "");
-        const watchers = starPairs.filter((p) => p.thesisId === thId).map((p) => p.userId).filter((id) => proIds.has(id));
+        const thesis = theses.find((t) => t.id === thId);
+        const priorRaw = thesis?.scenario_probabilities ?? null;
+        const prior = {
+          base: typeof priorRaw?.base === "number" ? priorRaw.base : 40,
+          bull: typeof priorRaw?.bull === "number" ? priorRaw.bull : 35,
+          bear: typeof priorRaw?.bear === "number" ? priorRaw.bear : 25,
+        };
+        const sug = a.probability_suggestion as { base?: unknown; bull?: unknown; bear?: unknown } | null;
+        const suggestion =
+          sug && typeof sug.base === "number" && typeof sug.bull === "number" && typeof sug.bear === "number"
+            ? ({ base: sug.base, bull: sug.bull, bear: sug.bear } as const)
+            : null;
+        const scenarioLabel = a.pattern_type === "BULL_LEAK" ? ("bull" as const) : ("bear" as const);
+        const oldP = prior[scenarioLabel];
+        const newP = suggestion ? (suggestion[scenarioLabel] as number) : oldP;
+        const delta = Math.abs(newP - oldP);
+        const oldLead = (["base", "bull", "bear"] as const).reduce((best, k) => (prior[k] > prior[best] ? k : best), "base");
+        const newLead = suggestion
+          ? (["base", "bull", "bear"] as const).reduce((best, k) => (suggestion[k] > suggestion[best] ? k : best), "base")
+          : oldLead;
+        const leadChanged = oldLead !== newLead && newLead !== "base";
+        const moved = Array.isArray(a.instruments_moved) ? (a.instruments_moved as unknown[]) : [];
+        const multi = moved.length >= 3;
+        const major = delta >= 10 || leadChanged || multi;
+
+        const watchersAll = starPairs.filter((p) => p.thesisId === thId).map((p) => p.userId);
+        const watchers = watchersAll.filter((id) => {
+          const u = userMap.get(id);
+          if (!u) return false;
+          const pref = getInsiderFlowPushPref(u);
+          if (!pref.enabled) return (push_skipped_by_prefs += 1, false);
+          if (String((u as { tier?: unknown }).tier ?? "") !== "pro") return (push_skipped_by_prefs += 1, false);
+          if (!shouldPushForMode({ mode: pref.mode, event: "new_anomaly", major })) return (push_skipped_by_prefs += 1, false);
+          return true;
+        });
         if (!watchers.length) continue;
         const payload = {
           title: "Insider Flow Detected",
-          body: `${a.thesis_title}: ${a.pattern_type === "BULL_LEAK" ? "Bull leak" : "Bear leak"} (new signal)`,
+          body: `${a.thesis_title}: ${a.pattern_type === "BULL_LEAK" ? "Bull leak" : "Bear leak"} · ${oldP}% → ${newP}%`,
           url: `/theses/${encodeURIComponent(thId)}`,
           tag: `anomaly-${String(a.id ?? "")}`,
         };
@@ -767,6 +841,7 @@ export async function GET(req: NextRequest) {
     push_attempted,
     push_sent,
     push_removed,
+    push_skipped_by_prefs,
   });
 }
 
