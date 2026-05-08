@@ -93,6 +93,12 @@ export const MOCK_THESES: Thesis[] = [
     stop: "3312",
     target1: "3220",
     target2: "3180",
+
+    insiderFlow: {
+      bullInstruments: ["BTC", "TLT"],
+      bearInstruments: ["XAUUSD", "WTI", "ITA"],
+      confirmTags: ["ceasefire", "peace talks", "tanker deal", "de-escalation"],
+    },
   }),
   withQualification({
     id: TID.hormuz,

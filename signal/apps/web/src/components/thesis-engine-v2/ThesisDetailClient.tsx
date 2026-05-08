@@ -105,6 +105,14 @@ export function ThesisDetailClient({
     };
   }, [bundle, bookPulse]);
 
+  const insider = useMemo(() => {
+    if (!bundle || !liveOpt) return null;
+    const latest = liveOpt.insiderFlowAnomalies.find((a) => a.thesisId === bundle.thesis.id) ?? null;
+    const applied = liveOpt.insiderFlowScenarioOverride(bundle.thesis.id);
+    const suggested = liveOpt.insiderFlowScenarioSuggestion(bundle.thesis.id);
+    return { latest, applied, suggested };
+  }, [bundle, liveOpt]);
+
   const hasOpen = !!bookSnap.open;
 
   const thesisLive = useMemo(() => {
@@ -447,8 +455,74 @@ export function ThesisDetailClient({
 
         <TradePlanCard thesis={thesis} />
         <EvidenceTimeline items={evidence} />
-        <ScenarioPanel scenarios={scenarios} />
-        <AdvisoryLog updates={advisoryLog} />
+        {/* Insider Flow row (thesis-aware) */}
+        {insider?.latest ? (
+          <div className="rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Insider Flow</p>
+                <p className="mt-1 text-[12px] font-semibold text-zinc-200">
+                  {insider.latest.patternType === "BULL_LEAK" ? "Bull leak detected" : "Bear leak detected"} ·{" "}
+                  {insider.latest.status === "UNCONFIRMED_LEAK"
+                    ? "Unconfirmed"
+                    : insider.latest.status === "CONFIRMED_MOVE"
+                      ? "Confirmed move"
+                      : "Invalidated"}
+                </p>
+                <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{insider.latest.notes}</p>
+              </div>
+              {liveOpt && insider.suggested && !insider.applied ? (
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
+                    onClick={() => liveOpt.applyInsiderFlowSuggestion(thesis.id)}
+                  >
+                    Apply suggestion
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 py-2 text-[11px] font-semibold text-zinc-300 hover:bg-zinc-900/50"
+                    onClick={() => liveOpt.dismissInsiderFlowSuggestion(thesis.id)}
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            {insider.applied || insider.suggested ? (
+              <p className="mt-2 text-[11px] text-zinc-500">
+                {insider.applied ? "Applied" : "Suggested"}: Base {((insider.applied ?? insider.suggested)!.base)}% · Bull{" "}
+                {((insider.applied ?? insider.suggested)!.bull)}% · Bear {((insider.applied ?? insider.suggested)!.bear)}%
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        <ScenarioPanel
+          scenarios={(() => {
+            if (!insider?.applied) return scenarios;
+            return scenarios.map((s) =>
+              s.label === "Base case"
+                ? { ...s, probability: insider.applied!.base }
+                : s.label === "Bull case"
+                  ? { ...s, probability: insider.applied!.bull }
+                  : { ...s, probability: insider.applied!.bear },
+            );
+          })()}
+        />
+
+        <AdvisoryLog
+          updates={(() => {
+            if (!insider?.latest || (!insider.applied && !insider.suggested)) return advisoryLog;
+            const eff = insider.applied ?? insider.suggested;
+            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Base ${eff!.base}%, Bull ${eff!.bull}%, Bear ${eff!.bear}%.`;
+            return [
+              { id: `${thesis.id}-if-${insider.latest.id}`, thesisId: thesis.id, timestamp: "Now", text: line },
+              ...advisoryLog,
+            ];
+          })()}
+        />
         <ThesisOutcomePanel thesis={thesis} layout={layout} />
         <section>
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Related assets</h2>

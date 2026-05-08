@@ -11,6 +11,7 @@ export function ThesisAlertsBell() {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<"all" | "probability" | "trade" | "system">("all");
+  const [testRowId, setTestRowId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (filter === "all") return alerts;
@@ -28,6 +29,16 @@ export function ThesisAlertsBell() {
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
   }, [open, markReadOnOpen]);
+
+  useEffect(() => {
+    if (!open) return;
+    setTestRowId((prev) => prev ?? alerts[0]?.id ?? null);
+  }, [open, alerts]);
+
+  useEffect(() => {
+    if (open) return;
+    setTestRowId(null);
+  }, [open]);
 
   return (
     <div ref={rootRef} className="relative">
@@ -94,10 +105,10 @@ export function ThesisAlertsBell() {
                 <p className="mt-1">Star a thesis to get probability-change alerts here.</p>
               </div>
             ) : (
-              filtered.map((a, i) => (
+              filtered.map((a) => (
                 <div
                   key={a.id}
-                  data-testid={i === 0 ? "thesis-alert-row" : undefined}
+                  data-testid={a.id === testRowId ? "thesis-alert-row" : undefined}
                   className={cn(
                     "group relative border-b border-white/[0.04] bg-zinc-900/20 pl-3 pr-2 py-3 last:border-0",
                     !a.read && "border-l-2 border-l-amber-500/55",
@@ -106,7 +117,7 @@ export function ThesisAlertsBell() {
                   <div className="absolute right-1 top-2">
                     <button
                       type="button"
-                      data-testid={i === 0 ? "thesis-alert-dismiss" : undefined}
+                      data-testid={a.id === testRowId ? "thesis-alert-dismiss" : undefined}
                       className="flex h-8 w-8 items-center justify-center rounded-md text-zinc-500 opacity-70 hover:bg-zinc-900/60 hover:text-zinc-200 hover:opacity-100"
                       aria-label="Dismiss alert"
                       title="Dismiss"

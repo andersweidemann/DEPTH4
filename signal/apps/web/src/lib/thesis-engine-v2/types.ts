@@ -62,6 +62,13 @@ export type Thesis = {
     bull: { probability: number; confirmation: string; marketConsequence: string };
     bear: { probability: number; confirmation: string; marketConsequence: string };
   };
+
+  /** Optional Insider Flow Detector configuration (enables monitoring). */
+  insiderFlow?: {
+    bullInstruments: string[];
+    bearInstruments: string[];
+    confirmTags: string[];
+  };
 };
 
 export type ThesisEvidence = {

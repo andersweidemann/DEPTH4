@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { V2_PLAN_LABEL, V2_PLAN_ORDER } from "@/lib/thesis-engine-v2/plan";
 import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
+import { useMemo, useState } from "react";
+import { InsiderFlowPanel, InsiderFlowRadarButton } from "@/components/thesis-engine-v2/InsiderFlowPanel";
+import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 
 export type ThesisNavTab = "theses" | "feed" | "book" | "community" | "leaderboard" | "help";
 
@@ -23,6 +26,8 @@ export function AppHeader({
   bookSummarySlot?: ReactNode;
 }) {
   const { plan } = useV2Plan();
+  const liveOpt = useThesisLiveOptional();
+  const [insiderOpen, setInsiderOpen] = useState(false);
   const planLabel = V2_PLAN_LABEL[plan] ?? plan;
   const tierLabel = plan === V2_PLAN_ORDER[0] ? "Free Tier" : planLabel;
   const tab = (id: ThesisNavTab, href: string, label: string) => (
@@ -39,6 +44,12 @@ export function AppHeader({
     </Link>
   );
 
+  const radarState = useMemo(() => {
+    const latest = liveOpt?.insiderFlowAnomalies?.[0];
+    if (!latest) return "none" as const;
+    return latest.patternType === "BULL_LEAK" ? ("bull" as const) : ("bear" as const);
+  }, [liveOpt?.insiderFlowAnomalies]);
+
   return (
     <header className="border-b border-white/[0.06] bg-[#0c0c0e]/95 backdrop-blur-sm">
       <div className="mx-auto max-w-5xl px-4 pt-4 pb-3 sm:px-5 sm:pt-5">
@@ -49,6 +60,7 @@ export function AppHeader({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <InsiderFlowRadarButton onClick={() => setInsiderOpen(true)} state={radarState} />
             {alertsSlot}
             <span className="text-sm text-zinc-500" aria-label="Current tier">
               {tierLabel}
@@ -69,6 +81,7 @@ export function AppHeader({
         <p className="mt-2 text-[12px] leading-snug text-zinc-500 sm:mt-3 sm:text-[11px]">{liveLine}</p>
         {bookSummarySlot ? <div className="mt-2 sm:mt-3">{bookSummarySlot}</div> : null}
       </div>
+      <InsiderFlowPanel open={insiderOpen} onClose={() => setInsiderOpen(false)} />
     </header>
   );
 }
