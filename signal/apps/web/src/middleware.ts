@@ -23,8 +23,21 @@ function isPublicPath(pathname: string): boolean {
 
 const LEGACY_REDIRECTS = ["/dashboard", "/onboarding", "/demo"] as const;
 
+/** Case-insensitive: avoids missing cron if the edge path ever differs in casing. */
+function isCronApiPath(pathname: string): boolean {
+  const p = pathname.toLowerCase();
+  return p === "/api/cron" || p.startsWith("/api/cron/");
+}
+
 export async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+  const pathname = req.nextUrl.pathname;
+
+  // (1) Cron API — MUST run before any session / Supabase logic (no 302 to /login).
+  if (isCronApiPath(pathname)) {
+    console.info("[middleware] cron route: skip session auth", { pathname, method: req.method });
+    return NextResponse.next();
+  }
+
   if (
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon") ||
@@ -37,11 +50,6 @@ export async function middleware(req: NextRequest) {
     pathname.endsWith(".json") ||
     pathname.endsWith(".txt")
   ) {
-    return NextResponse.next();
-  }
-
-  // Cron hooks (cron-job.org, Vercel cron, etc.): no session — routes validate CRON_SECRET / INSIDER_FLOW_CRON_SECRET only.
-  if (pathname === "/api/cron" || pathname.startsWith("/api/cron/")) {
     return NextResponse.next();
   }
 
@@ -89,6 +97,10 @@ export async function middleware(req: NextRequest) {
   return res;
 }
 
+/**
+ * Include `/api/cron` explicitly so cron always invokes middleware on all Next/Vercel builds.
+ * Second pattern keeps the existing auth gate for pages + other `/api/*` routes.
+ */
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|sw.js).*)"],
+  matcher: ["/api/cron", "/api/cron/:path*", "/((?!_next/static|_next/image|sw.js).*)"],
 };
