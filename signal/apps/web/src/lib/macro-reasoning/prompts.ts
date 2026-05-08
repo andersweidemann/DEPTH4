@@ -4,7 +4,7 @@
  */
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-v1";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-opus-4-7";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
