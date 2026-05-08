@@ -1,0 +1,25 @@
+---
+description: DEPTH4 UI/UX Pro Max invocation defaults (fintech terminal dark mode, #E8473F accent)
+globs: signal/apps/web/src/app/**/*.{ts,tsx},signal/apps/web/src/components/**/*.{ts,tsx}
+alwaysApply: true
+---
+
+# DEPTH4 UI/UX Pro Max Defaults
+
+When implementing or changing **any UI component, page, or layout** in `signal/apps/web`, invoke the `ui-ux-pro-max` skill *before writing code* and apply its guidance with the DEPTH4 constraints below.
+
+## DEPTH4 context (always include)
+
+- **Product type**: fintech / SaaS trading tool
+- **Style**: dark mode, terminal, institutional
+- **Stack**: Next.js + Tailwind
+- **Accent color**: `#E8473F`
+
+## DEPTH4 overrides (must win over generic suggestions)
+
+- **Accent**: `#E8473F` (always)
+- **Background**: `#111110` (or near-black)
+- **Text**: `#ffffff` / `#888888`
+
+Treat the skill’s palette as a starting point; apply DEPTH4’s brand tokens when they conflict.
+
