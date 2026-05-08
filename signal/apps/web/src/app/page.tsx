@@ -19,9 +19,6 @@ export default function HomePage() {
             <span className="hidden text-[11px] text-zinc-500 sm:inline">Macro thesis engine</span>
           </div>
           <nav className="flex items-center gap-2 text-[12px]">
-            <Link href="/theses" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">
-              Theses
-            </Link>
             <Link href="/pricing" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">
               Pricing
             </Link>
@@ -60,19 +57,10 @@ export default function HomePage() {
                 href="/signup?next=/theses"
                 className={cn(
                   buttonVariants({ size: "lg" }),
-                  "justify-center rounded-md bg-amber-500 text-zinc-950 hover:bg-amber-400",
+                  "justify-center rounded-md bg-amber-500 text-zinc-950 hover:bg-amber-400 sm:w-auto",
                 )}
               >
                 Start free
-              </Link>
-              <Link
-                href="/theses"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "justify-center rounded-md border border-white/[0.10] bg-transparent text-zinc-200 hover:bg-white/[0.06]",
-                )}
-              >
-                Open theses
               </Link>
             </div>
           </div>
@@ -82,16 +70,16 @@ export default function HomePage() {
             <div className="bg-zinc-950/35 p-2 ring-1 ring-white/[0.08]">
               <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
                 <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                  <span className="text-zinc-400">Live theses</span>
+                  <span className="text-zinc-400">Workspace</span>
                   <span className="text-zinc-700">·</span>
-                  <span className="text-zinc-600">Workspace</span>
+                  <span className="text-zinc-600">Preview</span>
                 </div>
                 <span className="text-[10px] text-zinc-600">Screenshot</span>
               </div>
               <div className="relative aspect-[16/10] overflow-hidden bg-[#0c0c0e]">
                 <Image
                   src="/landing/depth4-theses.png"
-                  alt="DEPTH4 product screenshot showing the live theses list and detail drawer"
+                  alt="DEPTH4 product screenshot showing the macro workspace and detail drawer"
                   fill
                   className="object-cover"
                   priority
@@ -202,11 +190,6 @@ export default function HomePage() {
                   </p>
                 </div>
               </div>
-              <div className="mt-6">
-                <Link href="/theses" className="text-[12px] font-semibold text-amber-200/90 hover:text-amber-100">
-                  Open the thesis workspace →
-                </Link>
-              </div>
             </div>
           </div>
         </section>
@@ -283,7 +266,7 @@ export default function HomePage() {
                   "w-full justify-center rounded-md bg-amber-500 text-zinc-950 hover:bg-amber-400 lg:w-auto",
                 )}
               >
-                Create account
+                Start free
               </Link>
             </div>
           </div>
