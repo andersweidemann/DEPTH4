@@ -104,6 +104,8 @@ export function ThesesDashboardClient({
     [filtered, focusIds],
   );
 
+  const showNewUserEmpty = filtered.length === 0 && userTheses.length === 0;
+
   return (
     <>
       <LiveSignalTicker items={live.tickerItems} intervalMs={12_000} />
@@ -128,6 +130,30 @@ export function ThesesDashboardClient({
           </button>
         </div>
       </div>
+
+      {showNewUserEmpty ? (
+        <section className="mt-8 bg-zinc-950/35 p-6 ring-1 ring-white/[0.08] sm:p-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-xl">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Welcome</p>
+              <h2 className="mt-2 text-xl font-semibold tracking-tight text-zinc-50">Create your first thesis</h2>
+              <p className="mt-2 text-[13px] leading-relaxed text-zinc-300">
+                A thesis is a macro narrative with scenarios and confirmation signals. Star it to receive probability-change alerts.
+              </p>
+              <p className="mt-3 text-[12px] text-zinc-500">
+                Example: <span className="text-zinc-300">US Defense Reset — RTX / LMT LONG</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              className="rounded-md border border-white/[0.10] bg-transparent px-4 py-2.5 text-[12px] font-semibold text-zinc-100 hover:bg-white/[0.05]"
+              onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setOpen(true))}
+            >
+              + New thesis
+            </button>
+          </div>
+        </section>
+      ) : null}
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 bg-zinc-900/20 p-1">

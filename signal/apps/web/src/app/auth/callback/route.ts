@@ -9,6 +9,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { SetAllCookies } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { betaBlockedRedirectUrl, isBetaEmailAllowed } from "@/lib/beta";
 
 export async function GET(request: Request) {
   const u = new URL(request.url);
@@ -48,6 +49,13 @@ export async function GET(request: Request) {
       if (error) {
         const q = new URLSearchParams({ error: safeAuthErrorForQuery(error.message) });
         return NextResponse.redirect(new URL(`/login?${q.toString()}`, request.url));
+      }
+
+      const { data } = await s.auth.getUser();
+      const email = data.user?.email ?? null;
+      if (!isBetaEmailAllowed(email)) {
+        await s.auth.signOut();
+        return NextResponse.redirect(betaBlockedRedirectUrl(u.origin, n));
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "exchangeCodeForSession failed";

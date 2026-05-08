@@ -21,10 +21,10 @@ export function ProPaywallCard({ compact }: { compact?: boolean }) {
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link
-              href="/help"
+              href="/pricing"
               className="inline-flex h-8 items-center justify-center rounded-md border border-white/[0.10] px-3 text-sm font-medium text-zinc-100 hover:bg-white/[0.05]"
             >
-              Learn more
+              View plans
             </Link>
           </div>
         </div>
