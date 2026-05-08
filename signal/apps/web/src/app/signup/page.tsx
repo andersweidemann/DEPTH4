@@ -107,7 +107,7 @@ export default function SignupPage() {
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 py-12 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-5">
           <BackButton fallbackHref="/" label="Back" className="mb-3" />
-          <Depth4Wordmark size="sm" subline="Your macro thesis engine" />
+          <Depth4Wordmark size="md" showTagline align="center" className="w-full" />
 
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-zinc-50">Create your account</h1>
           <p className="mt-3 max-w-md text-[13px] leading-relaxed text-zinc-300">

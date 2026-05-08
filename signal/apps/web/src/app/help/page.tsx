@@ -60,7 +60,7 @@ export default function HelpPage() {
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-10">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <Depth4Wordmark size="sm" subline="Your macro thesis engine" className="text-zinc-100" />
+            <Depth4Wordmark size="sm" className="text-zinc-100" />
             <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50">Help Center</h1>
             <p className="mt-2 max-w-2xl text-[16px] leading-relaxed text-zinc-400">
               Practical, task-oriented guidance for using DEPTH4 as a thesis-first market workspace.

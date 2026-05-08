@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 const FOOTER_DISCLAIMER = [
   "DEPTH4 is a macro analysis and information tool, not personalized investment advice.",
@@ -17,6 +18,9 @@ export function LegalFooter({ variant = "default" }: { variant?: "default" | "mi
     >
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="text-xs leading-relaxed text-zinc-500">
+          <div className="mb-4">
+            <Depth4Wordmark size="md" showTagline />
+          </div>
           <p className="text-zinc-500">{FOOTER_DISCLAIMER}</p>
           <p className="mt-2 text-zinc-600">
             See{" "}

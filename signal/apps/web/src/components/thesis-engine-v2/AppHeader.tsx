@@ -9,34 +9,6 @@ import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 export type ThesisNavTab = "theses" | "feed" | "book" | "community" | "leaderboard" | "help";
 
-function DepthMark({ className }: { className?: string }) {
-  // Minimal, institutional mark: 4 nodes with forward path.
-  return (
-    <svg
-      viewBox="0 0 28 28"
-      width="22"
-      height="22"
-      className={className}
-      role="img"
-      aria-label="DEPTH4 mark"
-    >
-      <path
-        d="M6 20 L13 13 L18 16 L23 10"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        opacity="0.9"
-      />
-      <circle cx="6" cy="20" r="2.1" fill="currentColor" opacity="0.35" />
-      <circle cx="13" cy="13" r="2.1" fill="currentColor" opacity="0.55" />
-      <circle cx="18" cy="16" r="2.1" fill="currentColor" opacity="0.55" />
-      <circle cx="23" cy="10" r="2.1" fill="currentColor" opacity="0.9" />
-    </svg>
-  );
-}
-
 export function AppHeader({
   active,
   liveLine,
@@ -73,15 +45,8 @@ export function AppHeader({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <DepthMark className="text-amber-500/90" />
-              <div className="min-w-0">
-                <Depth4Wordmark href="/theses" size="lg" className="leading-none" />
-                <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                  Macro Thesis Engine
-                </p>
-              </div>
+              <Depth4Wordmark href="/theses" size="md" className="leading-none" />
             </div>
-            <p className="mt-1.5 text-[10px] text-zinc-600">See how news will move markets before it happens</p>
           </div>
           <div className="flex items-center gap-2">
             {alertsSlot}

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 /** Hidden launcher — entry point for DEPTH4 2.0 prototype. */
 export default function Depth42LauncherPage() {
@@ -18,7 +19,7 @@ export default function Depth42LauncherPage() {
   return (
     <div className="min-h-dvh bg-[#0c0c0e] text-zinc-100">
       <div className="mx-auto max-w-3xl px-5 py-12">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-zinc-500">DEPTH4</p>
+        <Depth4Wordmark href="/theses" size="sm" />
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-50">2.0 Prototype Launcher</h1>
         <p className="mt-3 text-sm leading-relaxed text-zinc-400">
           Thesis-first macro advisor. This page auto-opens <span className="text-amber-200/85">/theses</span> in a moment.

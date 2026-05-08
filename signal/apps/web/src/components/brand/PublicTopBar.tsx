@@ -21,7 +21,7 @@ export function PublicTopBar({
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
         <div className="flex items-center gap-2">
           <BackButton fallbackHref={backHref} label={backLabel} />
-          <Depth4Wordmark size="sm" subline="Your macro thesis engine" />
+          <Depth4Wordmark size="sm" />
         </div>
         {right ? <div className="flex items-center gap-2">{right}</div> : null}
       </div>
