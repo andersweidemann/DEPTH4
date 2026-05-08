@@ -506,7 +506,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     // UX: opening a position is an explicit follow action; keep alerts eligible via star state.
     setStarred((prev) => {
       const next = new Set(prev);
-      for (const id of ids) next.add(id);
+      Array.from(ids).forEach((id) => next.add(id));
       saveStarred(next);
       return next;
     });

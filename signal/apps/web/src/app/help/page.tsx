@@ -17,6 +17,7 @@ const SECTIONS: Section[] = [
   { id: "what-depth4-does", nav: "What DEPTH4 does", title: "What DEPTH4 does" },
   { id: "how-to-use-depth4", nav: "How to use DEPTH4", title: "How to use DEPTH4" },
   { id: "read-a-thesis", nav: "How to read a thesis", title: "How to read a thesis" },
+  { id: "insider-flow-detector", nav: "Insider Flow Detector", title: "Insider Flow Detector" },
   { id: "use-profitably", nav: "Use DEPTH4 profitably", title: "How to use DEPTH4 profitably" },
   { id: "example-gold", nav: "Example: Gold & peace", title: "Example: the gold and peace thesis" },
   { id: "feed-vs-theses", nav: "Feed + Theses", title: "How the Feed and Theses work together" },
@@ -205,6 +206,67 @@ export default function HelpPage() {
                   <strong className="text-zinc-100">Invalidated</strong>: the thesis no longer holds
                 </Bullet>
               </ul>
+            </SectionBlock>
+
+            <SectionBlock id="insider-flow-detector" title="Insider Flow Detector">
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">What it is</h3>
+              <p>
+                The <strong className="text-zinc-100">Insider Flow Detector</strong> watches for unusual price and volume moves in the instruments tied
+                to your thesis scenarios. When the market is moving as if your thesis is leaking — but no public headline has confirmed it yet — DEPTH4
+                flags it and updates scenario probabilities.
+              </p>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">How it works</h3>
+              <ul className="space-y-2">
+                <Bullet>You configure bull-case and bear-case instruments when creating a thesis (or let the AI suggest them).</Bullet>
+                <Bullet>DEPTH4 monitors those instruments every 5 minutes.</Bullet>
+                <Bullet>If returns move beyond normal volatility and volume spikes, a flow anomaly is detected.</Bullet>
+                <Bullet>If the move matches a scenario but no matching confirm headline exists yet, it is labeled an <strong className="text-zinc-100">unconfirmed leak</strong>.</Bullet>
+                <Bullet>Scenario probabilities adjust based on signal strength.</Bullet>
+                <Bullet>If you have <strong className="text-zinc-100">starred</strong> the thesis, you get a bell notification.</Bullet>
+              </ul>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">What you’ll see</h3>
+              <ul className="space-y-2">
+                <Bullet>Radar icon in the top bar (grey / teal / amber).</Bullet>
+                <Bullet>Anomaly card in the Insider Flow panel.</Bullet>
+                <Bullet>Updated scenario probabilities (suggested or auto-applied, depending on tier).</Bullet>
+                <Bullet>
+                  Evidence log style entry:
+                  <ExampleBox>
+                    Insider flow detected: TLT −3.2%, 5× volume → Bear case +15pts
+                  </ExampleBox>
+                </Bullet>
+              </ul>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Example walkthrough</h3>
+              <div className="space-y-3">
+                <p>
+                  You have a thesis: <strong className="text-zinc-100">“Fed pivot delayed — TLT weakness.”</strong>
+                </p>
+                <p>
+                  You map <strong className="text-zinc-100">TLT</strong> and long-duration bonds to the bear case, and add confirm tags like{" "}
+                  <strong className="text-zinc-100">“Fed pivot”</strong> and <strong className="text-zinc-100">“rates”</strong>.
+                </p>
+                <p>
+                  At 11:42, TLT dumps −3.2% on 5× normal volume, but there is no Fed headline yet. DEPTH4 flags a bear-leak anomaly and raises the bear
+                  case probability from 20% to 35%. 47 minutes later, a Bloomberg headline confirms delayed easing — the anomaly flips to “Confirmed.”
+                </p>
+              </div>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">What tier do I need?</h3>
+              <ul className="space-y-2">
+                <Bullet><strong className="text-zinc-100">Free</strong>: indicator only (an anomaly occurred in the last 24h).</Bullet>
+                <Bullet><strong className="text-zinc-100">Analyst</strong>: full 7-day log, probability suggestions you approve manually.</Bullet>
+                <Bullet><strong className="text-zinc-100">Pro</strong>: real-time alerts, automatic probability updates.</Bullet>
+              </ul>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Legal disclaimer</h3>
+              <p className="text-zinc-400">
+                The Insider Flow Detector identifies unusual market activity that may precede news. It does not detect illegal insider trading, provide
+                investment advice, or guarantee that detected patterns will be confirmed by headlines. Use it as one input among many in your trading
+                decisions.
+              </p>
             </SectionBlock>
 
             <SectionBlock id="use-profitably" title="How to use DEPTH4 profitably">

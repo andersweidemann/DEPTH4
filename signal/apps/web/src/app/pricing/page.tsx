@@ -199,6 +199,7 @@ function PricingPageInner() {
               </thead>
               <tbody className="text-[12px] text-zinc-300">
                 {[
+                  ["Insider Flow Detector", "Last 24h indicator only", "Full 7-day log + probability suggestions", "Real-time alerts + auto-apply updates"],
                   ["System theses access", "Limited", "Full", "Full"],
                   ["Create private theses", "—", "✓", "✓"],
                   ["Live probability updates", "Limited", "✓", "✓"],

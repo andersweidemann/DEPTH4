@@ -171,6 +171,12 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
+              <div className="mt-4 bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
+                <p className="text-[12px] font-semibold text-zinc-100">Insider Flow — tape before the headline</p>
+                <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
+                  See when Level 3 is leaking: unusual price/volume moves in your mapped instruments before Level 1 confirms it.
+                </p>
+              </div>
             </div>
           </div>
         </section>
@@ -194,6 +200,56 @@ export default function HomePage() {
                   <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
                     Make the “score” concrete by comparing thesis probability to market-implied probability and the gap.
                   </p>
+                </div>
+                <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <p className="text-[12px] font-semibold text-zinc-100">See the leak before the headline</p>
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/80">Insider Flow Detector</span>
+                  </div>
+                  <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
+                    Detect when your thesis is moving markets before the news confirms it. When unusual volume and price moves
+                    match your scenario, you see it immediately — and probabilities can adjust.
+                  </p>
+                  <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
+                    Most traders react to headlines. DEPTH4 shows you when the tape is already pricing your thesis.
+                  </p>
+                  <div className="mt-3 grid gap-2 bg-[#0c0c0e] p-3 ring-1 ring-white/[0.06]">
+                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                      <span className="font-semibold text-zinc-200">Radar</span>
+                      <span className="text-teal-200/90">Bull leak · Unconfirmed</span>
+                    </div>
+                    <div className="grid gap-1 text-[11px] text-zinc-400">
+                      <p className="text-zinc-200">Fed pivot delayed — TLT weakness</p>
+                      <p className="text-zinc-500">TLT −3.2% · 5.0× vol · no matching headline yet</p>
+                    </div>
+                    <div className="mt-2 grid gap-1 text-[11px] text-zinc-400">
+                      <p className="text-zinc-500">Scenario shift</p>
+                      <div className="grid gap-1">
+                        <div className="flex items-center justify-between">
+                          <span>Bear</span>
+                          <span className="tabular-nums text-zinc-200">20% → 35%</span>
+                        </div>
+                        <div className="h-1 w-full bg-white/[0.06]">
+                          <div className="h-1 bg-amber-500/70" style={{ width: "35%" }} />
+                        </div>
+                      </div>
+                      <p className="text-zinc-600">Evidence log: “Insider flow detected … → Bear case +15pts”</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    <Link
+                      href="/signup?next=/onboarding"
+                      className={cn(
+                        buttonVariants({ size: "sm" }),
+                        "rounded-md bg-amber-500 px-3 text-zinc-950 hover:bg-amber-400",
+                      )}
+                    >
+                      Start tracking
+                    </Link>
+                    <Link href="/pricing" className="text-[12px] font-semibold text-zinc-300 hover:text-zinc-100">
+                      See tiers →
+                    </Link>
+                  </div>
                 </div>
                 <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
                   <p className="text-[12px] font-semibold text-zinc-100">Position linking & review</p>
