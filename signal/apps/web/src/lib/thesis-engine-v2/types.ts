@@ -68,6 +68,8 @@ export type Thesis = {
     bullInstruments: string[];
     bearInstruments: string[];
     confirmTags: string[];
+    /** Optional tags that contradict / invalidate the leak interpretation. */
+    contradictTags?: string[];
   };
 };
 

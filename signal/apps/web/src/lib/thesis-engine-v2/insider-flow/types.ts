@@ -23,6 +23,7 @@ export type InsiderFlowAnomaly = {
   matchedTags: string[];
   confirmedHeadlineAt?: number;
   invalidatedAt?: number;
+  statusReason?: string;
   notes?: string;
 };
 

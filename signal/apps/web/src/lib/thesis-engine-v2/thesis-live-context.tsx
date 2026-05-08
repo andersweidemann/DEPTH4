@@ -27,10 +27,10 @@ import { runMockThesisTick } from "@/lib/thesis-engine-v2/thesis-mock-tick";
 import type { Overrides } from "@/lib/thesis-engine-v2/thesis-mock-tick";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
-import { buildMockMarketSnapshot } from "@/lib/thesis-engine-v2/insider-flow/mock-market";
-import { detectInsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/detect";
 import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/types";
+import type { InsiderFlowPatternType, InsiderFlowStatus } from "@/lib/thesis-engine-v2/insider-flow/types";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
+import { createClient as createSbClient } from "@/lib/supabase/client";
 
 const STAR_KEY = "depth4.v2.starred.v1";
 const MAX_TICKER = 14;
@@ -189,7 +189,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [outToast, setOutToast] = useState<Toast>(null);
   const [outcomeEpoch, setOutcomeEpoch] = useState(0);
   const [prefs, setPrefs] = useState<Record<string, NotifyPref>>({});
-  const [userTheses, setUserTheses] = useState<Thesis[]>([]);
+  const [, setUserTheses] = useState<Thesis[]>([]);
   const [insiderFlowAnomalies, setInsiderFlowAnomalies] = useState<InsiderFlowAnomaly[]>([]);
   const [insiderApplied, setInsiderApplied] = useState<Record<string, { base: number; bull: number; bear: number }>>({});
   const [insiderSuggested, setInsiderSuggested] = useState<Record<string, { base: number; bull: number; bear: number }>>({});
@@ -197,7 +197,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const scenarioRef = useRef(
     new Map<string, { base: number; bull: number; bear: number; lead: "base" | "bull" | "bear" }>(),
   );
-  const insiderNotifiedRef = useRef(new Map<string, string>());
 
   const overridesRef = useRef(overrides);
   overridesRef.current = overrides;
@@ -264,149 +263,62 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Insider Flow Detector (MVP): run a deterministic scan every 5 minutes while the live demo pages are active.
+    // Phase 2: read anomalies from Supabase (persistent log) instead of client-side detection.
     if (!simActive) return;
-    const run = () => {
-      const nowMs = Date.now();
-      const theses = [...MOCK_THESES.map(mergeThesisCb), ...userTheses];
-      const monitored = theses.filter((t) => {
-        const cfg = t.insiderFlow;
-        if (!cfg) return false;
-        const nInstr = (cfg.bullInstruments?.length ?? 0) + (cfg.bearInstruments?.length ?? 0);
-        const nTags = cfg.confirmTags?.length ?? 0;
-        return nInstr > 0 && nTags > 0;
-      });
-      if (!monitored.length) return;
+    const sb = createSbClient();
 
-      const symbols = Array.from(
-        new Set(
-          monitored.flatMap((t) => [
-            ...(t.insiderFlow?.bullInstruments ?? []),
-            ...(t.insiderFlow?.bearInstruments ?? []),
-          ]),
-        ),
-      );
-      const market = buildMockMarketSnapshot(nowMs, symbols);
+    let cancelled = false;
+    const tick = async () => {
+      const { data } = await sb
+        .from("flow_anomalies")
+        .select(
+          "id,created_at,thesis_id,thesis_title,pattern_type,status,instruments_moved,matched_tags,confirmed_headline_at,invalidated_at,notes,probability_suggestion,status_reason",
+        )
+        .order("created_at", { ascending: false })
+        .limit(60);
 
-      // Use the mock theses as a stand-in for recent headlines (future: feed items / stories).
-      const recentHeadlines = MOCK_THESES.slice(0, 12).map((t) => ({ headline: t.title, atMs: nowMs - 6 * 60_000 }));
+      if (cancelled) return;
+      const isPattern = (x: unknown): x is InsiderFlowPatternType => x === "BULL_LEAK" || x === "BEAR_LEAK";
+      const isStatus = (x: unknown): x is InsiderFlowStatus =>
+        x === "UNCONFIRMED_LEAK" || x === "CONFIRMED_MOVE" || x === "INVALIDATED";
+      const parsed: InsiderFlowAnomaly[] =
+        (data ?? []).map((r: { [k: string]: unknown }) => ({
+          id: String(r.id),
+          createdAt: Date.parse(String(r.created_at)) || Date.now(),
+          thesisId: String(r.thesis_id),
+          thesisTitle: String(r.thesis_title),
+          patternType: isPattern(r.pattern_type) ? r.pattern_type : "BULL_LEAK",
+          status: isStatus(r.status) ? r.status : "UNCONFIRMED_LEAK",
+          instrumentsMoved: Array.isArray(r.instruments_moved) ? r.instruments_moved : [],
+          matchedTags: Array.isArray(r.matched_tags) ? r.matched_tags : [],
+          confirmedHeadlineAt: r.confirmed_headline_at ? Date.parse(String(r.confirmed_headline_at)) : undefined,
+          invalidatedAt: r.invalidated_at ? Date.parse(String(r.invalidated_at)) : undefined,
+          statusReason: typeof r.status_reason === "string" ? r.status_reason : undefined,
+          notes: typeof r.notes === "string" ? r.notes : undefined,
+        })) ?? [];
 
-      const found: InsiderFlowAnomaly[] = [];
-      for (const t of monitored) {
-        const cfg = t.insiderFlow!;
-        const a = detectInsiderFlowAnomaly({
-          nowMs,
-          thesisId: t.id,
-          thesisTitle: t.title,
-          bullInstruments: cfg.bullInstruments ?? [],
-          bearInstruments: cfg.bearInstruments ?? [],
-          confirmTags: cfg.confirmTags ?? [],
-          recentHeadlines,
-          market,
-        });
-        if (a) found.push(a);
-      }
+      setInsiderFlowAnomalies(parsed);
 
-      if (found.length) {
-        setInsiderFlowAnomalies((cur) => [...found, ...cur].slice(0, 120));
-
-        // Scenario probability suggestion/auto-apply (MVP).
-        // Base numbers: if thesis has explicit scenarioOverrides use those; otherwise use a 40/35/25 prior.
-        for (const a of found) {
-          const t = monitored.find((x) => x.id === a.thesisId);
-          const prior = t?.scenarioOverrides
-            ? { base: t.scenarioOverrides.base.probability, bull: t.scenarioOverrides.bull.probability, bear: t.scenarioOverrides.bear.probability }
-            : { base: 40, bull: 35, bear: 25 };
-
-          const zMax = a.instrumentsMoved.reduce((m, x) => Math.max(m, Math.abs(x.z_score)), 0);
-          const volMax = a.instrumentsMoved.reduce((m, x) => Math.max(m, x.volume_multiple), 0);
-          const aligned = a.instrumentsMoved.length;
-
-          let bump = 7;
-          if (zMax >= 2 || volMax >= 5) bump = 15;
-          if (aligned >= 3) bump = 20;
-
-          const next = { ...prior };
-          if (a.patternType === "BULL_LEAK") {
-            next.bull = prior.bull + bump;
-            next.bear = prior.bear - Math.round(bump * 0.7);
-          } else {
-            next.bear = prior.bear + bump;
-            next.bull = prior.bull - Math.round(bump * 0.7);
-          }
-          next.base = 100 - next.bull - next.bear;
-          // Clamp and renormalize lightly.
-          next.bull = Math.max(5, Math.min(90, next.bull));
-          next.bear = Math.max(5, Math.min(90, next.bear));
-          next.base = Math.max(5, Math.min(90, next.base));
-          const sum = next.base + next.bull + next.bear;
-          if (sum !== 100) {
-            // distribute diff to base to preserve bias
-            next.base = Math.max(5, Math.min(90, next.base + (100 - sum)));
-          }
-
-          if (plan === "pro") {
-            setInsiderApplied((cur) => ({ ...cur, [a.thesisId]: next }));
-          } else if (plan === "analyst") {
-            setInsiderSuggested((cur) => ({ ...cur, [a.thesisId]: next }));
-          }
-
-          // Starred-only bell notification (respects per-thesis alert prefs).
-          if (starredRef.current.has(a.thesisId)) {
-            const last = insiderNotifiedRef.current.get(a.thesisId);
-            if (last !== a.id) {
-              insiderNotifiedRef.current.set(a.thesisId, a.id);
-              const pref = prefs[a.thesisId] ?? "major";
-              if (pref !== "mute") {
-                const scenarioLabel = a.patternType === "BULL_LEAK" ? ("bull" as const) : ("bear" as const);
-                const oldP = prior[scenarioLabel];
-                const newP = next[scenarioLabel];
-                const delta = Math.abs(newP - oldP);
-                const oldLead = (["base", "bull", "bear"] as const).reduce((best, k) => (prior[k] > prior[best] ? k : best), "base");
-                const newLead = (["base", "bull", "bear"] as const).reduce((best, k) => (next[k] > next[best] ? k : best), "base");
-                const leadChanged = oldLead !== newLead;
-
-                const shouldNotify =
-                  pref === "any"
-                    ? delta >= 2 || leadChanged
-                    : pref === "consequence"
-                      ? a.patternType === "BEAR_LEAK" && (delta >= 5 || leadChanged)
-                      : delta >= 10 || leadChanged;
-
-                if (shouldNotify) {
-                  pushAlert({
-                    thesisId: a.thesisId,
-                    thesisTitle: a.thesisTitle,
-                    type: "probability_change",
-                    scenario: scenarioLabel,
-                    oldProbability: oldP,
-                    newProbability: newP,
-                    confirmText: `Insider flow: ${a.patternType === "BULL_LEAK" ? "Bull leak" : "Bear leak"} · ${oldP}% → ${newP}%`,
-                    consequenceText:
-                      a.status === "UNCONFIRMED_LEAK"
-                        ? "No matching public headline yet."
-                        : a.status === "CONFIRMED_MOVE"
-                          ? "Matched confirm tags in public feed."
-                          : "Prior leak signal invalidated.",
-                    impact: a.patternType === "BULL_LEAK" ? "major_positive" : "major_negative",
-                  });
-
-                  if (plan === "pro" && (delta >= 10 || leadChanged)) {
-                    pushToast(`${a.thesisTitle}: insider flow ${oldP}% → ${newP}%`);
-                  }
-                }
-              }
-            }
-          }
+      // Tier behavior (Phase 2 MVP): use probability_suggestion if present; otherwise keep previous behavior empty.
+      if (plan !== "free") {
+        const top = (data ?? [])[0] as { probability_suggestion?: unknown; thesis_id?: unknown } | undefined;
+        const tid = top?.thesis_id ? String(top.thesis_id) : null;
+        const ps = top?.probability_suggestion as { base?: unknown; bull?: unknown; bear?: unknown } | undefined;
+        if (tid && ps && typeof ps.base === "number" && typeof ps.bull === "number" && typeof ps.bear === "number") {
+          const s = { base: ps.base, bull: ps.bull, bear: ps.bear };
+          if (plan === "pro") setInsiderApplied((cur) => ({ ...cur, [tid]: s }));
+          if (plan === "analyst") setInsiderSuggested((cur) => ({ ...cur, [tid]: s }));
         }
       }
     };
 
-    // Run once on enter, then every 5 minutes.
-    run();
-    const t = window.setInterval(run, 300_000);
-    return () => window.clearInterval(t);
-  }, [mergeThesisCb, plan, prefs, pushAlert, pushToast, simActive, userTheses]);
+    void tick();
+    const t = window.setInterval(() => void tick(), 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [plan, simActive]);
 
   useEffect(() => {
     const on = () => setOutcomeEpoch((e) => e + 1);
@@ -434,6 +346,19 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       else next.add(thesisId);
       saveStarred(next);
       return next;
+    });
+
+    // Best-effort: persist star to Supabase for server-side cron scanning (only if signed in).
+    const sb = createSbClient();
+    void sb.auth.getUser().then(({ data }) => {
+      const uid = data.user?.id;
+      if (!uid) return;
+      const willStar = !starredRef.current.has(thesisId);
+      if (willStar) {
+        void sb.from("thesis_stars").upsert({ user_id: uid, thesis_id: thesisId });
+      } else {
+        void sb.from("thesis_stars").delete().eq("user_id", uid).eq("thesis_id", thesisId);
+      }
     });
   }, [openIds]);
 

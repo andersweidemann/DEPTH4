@@ -35,6 +35,7 @@ type FormState = {
   bullInstruments: string;
   bearInstruments: string;
   confirmTags: string;
+  contradictTags: string;
 };
 
 function slugify(s: string) {
@@ -151,6 +152,10 @@ function buildUserThesis(form: FormState): Thesis {
         .split(",")
         .map((s2) => s2.trim())
         .filter(Boolean),
+      contradictTags: form.contradictTags
+        .split(",")
+        .map((s2) => s2.trim())
+        .filter(Boolean),
     },
   };
 }
@@ -180,6 +185,7 @@ function generateDraftFromPrompt(prompt: string): Pick<
   | "bullInstruments"
   | "bearInstruments"
   | "confirmTags"
+  | "contradictTags"
 > {
   const p = prompt.trim();
   const isShort = /\bshort\b|\bweaken\b|\bfade\b|\bdownside\b|\brace\b/i.test(p);
@@ -188,9 +194,13 @@ function generateDraftFromPrompt(prompt: string): Pick<
   const title = p.length ? p.split(".")[0]!.slice(0, 72).trim() : "Untitled thesis";
 
   const tags: string[] = [];
+  const contradict: string[] = [];
   if (/\bceasefire\b|\bpeace\b|\btalks\b/i.test(p)) tags.push("ceasefire", "peace talks");
+  if (/\bceasefire\b|\bpeace\b|\btalks\b/i.test(p)) contradict.push("strikes", "escalation", "talks collapse");
   if (/\bfed\b|\bpivot\b|\brates\b|\bcpi\b/i.test(p)) tags.push("Fed pivot", "rates");
+  if (/\bfed\b|\bpivot\b|\brates\b|\bcpi\b/i.test(p)) contradict.push("sticky inflation", "hawkish hold", "higher for longer");
   if (/\bopec\b|\bbrent\b|\bwti\b|\boil\b/i.test(p)) tags.push("OPEC cuts", "oil");
+  if (/\bopec\b|\bbrent\b|\bwti\b|\boil\b/i.test(p)) contradict.push("output increase", "spare capacity", "demand slowdown");
   if (/\bstimulus\b|\bbill\b|\bpackage\b/i.test(p)) tags.push("stimulus package");
   if (/\btrade deal\b|\btariff\b/i.test(p)) tags.push("trade deal");
 
@@ -227,6 +237,7 @@ function generateDraftFromPrompt(prompt: string): Pick<
     bullInstruments: bullIns.length ? bullIns.join(", ") : "BTC, TLT",
     bearInstruments: bearIns.length ? bearIns.join(", ") : "WTI, ITA",
     confirmTags: tags.length ? Array.from(new Set(tags)).join(", ") : "ceasefire, Fed pivot",
+    contradictTags: contradict.length ? Array.from(new Set(contradict)).join(", ") : "strikes, escalation",
   };
 }
 
@@ -269,6 +280,7 @@ export function CreateThesisModal({
       bullInstruments: "BTC, TLT",
       bearInstruments: "WTI, ITA",
       confirmTags: "ceasefire, peace talks",
+      contradictTags: "strikes, escalation, talks collapse",
     }),
     [],
   );
@@ -652,6 +664,20 @@ export function CreateThesisModal({
                         className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
                       />
                       <p className="mt-1 text-[10px] text-zinc-600">Used to classify moves as confirmed vs unconfirmed.</p>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                        Contradicting headline tags (optional)
+                      </label>
+                      <input
+                        value={form.contradictTags}
+                        onChange={(e) => set("contradictTags", e.target.value)}
+                        placeholder="strikes, escalation, talks collapse"
+                        className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                      />
+                      <p className="mt-1 text-[10px] text-zinc-600">
+                        Optional tags that would invalidate or contradict this leak interpretation.
+                      </p>
                     </div>
                   </div>
                 </div>

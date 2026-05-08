@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/insider-flow",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/insider-flow-baselines",
+      "schedule": "0 21 * * 1-5"
+    }
+  ]
+}
+

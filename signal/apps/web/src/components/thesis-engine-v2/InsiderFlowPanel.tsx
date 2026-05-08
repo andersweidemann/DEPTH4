@@ -44,6 +44,12 @@ export function InsiderFlowPanel({
 
   const anomalies = useMemo(() => live?.insiderFlowAnomalies ?? [], [live?.insiderFlowAnomalies]);
   const latest = anomalies[0] ?? null;
+  const invalidationCopy = (reason?: string) => {
+    if (!reason) return "Invalidated.";
+    if (reason.startsWith("contradicting_headline")) return "Invalidated by contradicting headline.";
+    if (reason.startsWith("price_reversal")) return "Invalidated by price reversal.";
+    return "Invalidated.";
+  };
 
   const canSeeLog = planGte(plan, "analyst");
   const canRealtime = planGte(plan, "pro");
@@ -124,7 +130,9 @@ export function InsiderFlowPanel({
                       {latest.patternType === "BULL_LEAK" ? "Bull-leak anomaly" : "Bear-leak anomaly"} ·{" "}
                       {latest.status === "UNCONFIRMED_LEAK" ? "Unconfirmed leak" : latest.status === "CONFIRMED_MOVE" ? "Confirmed move" : "Invalidated"}
                     </p>
-                    <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{latest.notes}</p>
+                    <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+                      {latest.status === "INVALIDATED" ? invalidationCopy(latest.statusReason) : latest.notes}
+                    </p>
                     <div className="mt-3 grid gap-2">
                       {latest.instrumentsMoved.slice(0, 5).map((x) => (
                         <div key={x.symbol} className="flex items-center justify-between text-[11px]">
@@ -169,6 +177,9 @@ export function InsiderFlowPanel({
                           {a.patternType === "BULL_LEAK" ? "Bull leak" : "Bear leak"} ·{" "}
                           {a.status === "UNCONFIRMED_LEAK" ? "Unconfirmed" : a.status === "CONFIRMED_MOVE" ? "Confirmed" : "Invalidated"}
                         </p>
+                        {a.status === "INVALIDATED" ? (
+                          <p className="mt-0.5 text-[11px] text-zinc-500">{invalidationCopy(a.statusReason)}</p>
+                        ) : null}
                       </div>
                     ))}
                   </div>
