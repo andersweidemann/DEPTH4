@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
-import { isBetaEmailAllowed, betaBlockedRedirectUrl } from "@/lib/beta";
 import { normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
 
 const PUBLIC_PREFIXES = [
@@ -70,11 +69,6 @@ export async function middleware(req: NextRequest) {
     u.pathname = "/login";
     u.searchParams.set("next", pathname);
     return NextResponse.redirect(u);
-  }
-
-  if (!isBetaEmailAllowed(user.email)) {
-    await s.auth.signOut();
-    return NextResponse.redirect(betaBlockedRedirectUrl(req.nextUrl.origin, pathname));
   }
 
   return res;

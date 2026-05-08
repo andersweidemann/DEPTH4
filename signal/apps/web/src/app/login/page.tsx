@@ -37,8 +37,6 @@ function LoginPageInner() {
   const sp = useSearchParams();
   const next = useMemo(() => safeAppPath(sp.get("next") || "/dashboard"), [sp]);
   const supa = useMemo(() => createClient(), []);
-  const betaBlocked = useMemo(() => sp.get("beta") === "1", [sp]);
-  const requestEmail = process.env.NEXT_PUBLIC_BETA_REQUEST_EMAIL || "support@depth4.example";
 
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -149,15 +147,6 @@ function LoginPageInner() {
           <p className="mt-3 max-w-md text-[13px] leading-relaxed text-zinc-300">
             Access your macro theses, live probability updates, and trade review.
           </p>
-          {betaBlocked ? (
-            <div className="mt-5 max-w-md bg-zinc-950/35 p-4 ring-1 ring-white/[0.08]">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Private beta</p>
-              <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">
-                DEPTH4 is currently invitation-only. If you have an invite, sign in with the invited email.
-              </p>
-              <p className="mt-2 text-[11px] text-zinc-500">Request access: {requestEmail}</p>
-            </div>
-          ) : null}
         </div>
 
         <div className="lg:col-span-7">
