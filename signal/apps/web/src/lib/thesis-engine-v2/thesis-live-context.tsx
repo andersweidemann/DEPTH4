@@ -36,8 +36,20 @@ const STAR_KEY = "depth4.v2.starred.v1";
 const MAX_TICKER = 14;
 const MAX_ALERTS = 20;
 const PREF_KEY = "depth4.v2.notify.prefs.v1";
+const LIVE_EVIDENCE_POLL_MS = 20_000;
 
 type NotifyPref = "any" | "major" | "consequence" | "mute";
+
+export type ThesisEvidenceLogRow = {
+  id: string;
+  createdAt: number;
+  thesisId: string;
+  eventType: string;
+  description: string;
+  probabilityBefore: { base: number; bull: number; bear: number } | null;
+  probabilityAfter: { base: number; bull: number; bear: number } | null;
+  metadata: Record<string, unknown> | undefined;
+};
 
 export type ThesisAlertEntry = {
   id: string;
@@ -122,6 +134,45 @@ function newAlertId(): string {
   return `al-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+function resolveThesisTitle(thesisId: string): string {
+  const sys = MOCK_THESES.find((t) => t.id === thesisId);
+  if (sys) return sys.title;
+  const u = loadUserTheses().find((t) => t.id === thesisId);
+  if (u) return u.title;
+  return "Thesis";
+}
+
+function baseThesisForId(thesisId: string): Thesis | undefined {
+  return MOCK_THESES.find((t) => t.id === thesisId) ?? loadUserTheses().find((t) => t.id === thesisId);
+}
+
+function scenarioProbPatchFromDb(baseThesis: Thesis, p: { base: number; bull: number; bear: number }): Partial<Thesis> {
+  const o = baseThesis.scenarioOverrides;
+  return {
+    scenarioOverrides: {
+      base: {
+        probability: p.base,
+        confirmation: o?.base?.confirmation ?? "",
+        marketConsequence: o?.base?.marketConsequence ?? "",
+      },
+      bull: {
+        probability: p.bull,
+        confirmation: o?.bull?.confirmation ?? "",
+        marketConsequence: o?.bull?.marketConsequence ?? "",
+      },
+      bear: {
+        probability: p.bear,
+        confirmation: o?.bear?.confirmation ?? "",
+        marketConsequence: o?.bear?.marketConsequence ?? "",
+      },
+    },
+  };
+}
+
+function leadScenarioOf(p: { base: number; bull: number; bear: number }) {
+  return (["base", "bull", "bear"] as const).reduce((best, k) => (p[k] > p[best] ? k : best), "base");
+}
+
 type Toast = { id: string; message: string } | null;
 
 type Ctx = {
@@ -160,6 +211,9 @@ type Ctx = {
   insiderFlowScenarioSuggestion: (thesisId: string) => { base: number; bull: number; bear: number } | null;
   applyInsiderFlowSuggestion: (thesisId: string) => void;
   dismissInsiderFlowSuggestion: (thesisId: string) => void;
+
+  /** Recent thesis evidence rows from Supabase (news / server updates). */
+  evidenceLog: ThesisEvidenceLogRow[];
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -178,6 +232,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname() ?? "";
   const simActive = pathname === "/theses" || pathname.startsWith("/theses/");
   const { plan } = useV2Plan();
+  const mockTicksEnabled = process.env.NEXT_PUBLIC_THESIS_MOCK_TICKS === "1";
 
   // Avoid hydration mismatches: read sessionStorage only after mount.
   const [starred, setStarred] = useState<Set<string>>(() => new Set());
@@ -193,6 +248,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [insiderFlowAnomalies, setInsiderFlowAnomalies] = useState<InsiderFlowAnomaly[]>([]);
   const [insiderApplied, setInsiderApplied] = useState<Record<string, { base: number; bull: number; bear: number }>>({});
   const [insiderSuggested, setInsiderSuggested] = useState<Record<string, { base: number; bull: number; bear: number }>>({});
+  const [evidenceLog, setEvidenceLog] = useState<ThesisEvidenceLogRow[]>([]);
 
   const scenarioRef = useRef(
     new Map<string, { base: number; bull: number; bear: number; lead: "base" | "bull" | "bear" }>(),
@@ -204,6 +260,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   starredRef.current = starred;
   const openIdsRef = useRef(openIds);
   openIdsRef.current = openIds;
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
+
+  const evidenceBootRef = useRef(false);
+  const evidenceHighWaterRef = useRef(0);
+
+  const starredKey = useMemo(() => Array.from(starred).sort().join(","), [starred]);
 
   const mergeThesisCb = useCallback(
     (t: Thesis) => applyManualOutcome(mergeThesis(t, overrides[t.id])),
@@ -261,6 +324,156 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       setOutToast((cur) => (cur?.id === tid ? null : cur));
     }, 6200);
   }, []);
+
+  useEffect(() => {
+    evidenceBootRef.current = false;
+  }, [starredKey]);
+
+  useEffect(() => {
+    if (!simActive) return;
+    const sb = createSbClient();
+    let cancelled = false;
+
+    const parseProb = (p: unknown): { base: number; bull: number; bear: number } | null => {
+      if (!p || typeof p !== "object") return null;
+      const o = p as Record<string, unknown>;
+      const b = o.base;
+      const bu = o.bull;
+      const be = o.bear;
+      if (typeof b === "number" && typeof bu === "number" && typeof be === "number") return { base: b, bull: bu, bear: be };
+      return null;
+    };
+
+    const tick = async () => {
+      const ids = Array.from(starredRef.current);
+      if (!ids.length) {
+        if (!cancelled) setEvidenceLog([]);
+        return;
+      }
+
+      const { data } = await sb
+        .from("thesis_evidence_log")
+        .select("id,created_at,thesis_id,event_type,description,probability_before,probability_after,metadata")
+        .in("thesis_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(80);
+
+      if (cancelled) return;
+
+      const rows: ThesisEvidenceLogRow[] =
+        (data ?? []).map((r: { [k: string]: unknown }) => ({
+          id: String(r.id),
+          createdAt: Date.parse(String(r.created_at)) || Date.now(),
+          thesisId: String(r.thesis_id),
+          eventType: String(r.event_type || ""),
+          description: String(r.description || ""),
+          probabilityBefore: parseProb(r.probability_before),
+          probabilityAfter: parseProb(r.probability_after),
+          metadata: r.metadata && typeof r.metadata === "object" ? (r.metadata as Record<string, unknown>) : undefined,
+        })) ?? [];
+
+      setEvidenceLog(rows);
+
+      if (!evidenceBootRef.current) {
+        evidenceBootRef.current = true;
+        evidenceHighWaterRef.current = rows.reduce((m, r) => Math.max(m, r.createdAt), Date.now());
+        return;
+      }
+
+      const hw = evidenceHighWaterRef.current;
+      const fresh = rows.filter((r) => r.createdAt > hw).sort((a, b) => a.createdAt - b.createdAt);
+
+      for (const r of fresh) {
+        if (!starredRef.current.has(r.thesisId)) continue;
+        const pref = prefsRef.current[r.thesisId] ?? "major";
+        if (pref === "mute") continue;
+
+        const title = resolveThesisTitle(r.thesisId);
+        const signalLevel = typeof r.metadata?.signal_level === "number" ? r.metadata.signal_level : 0;
+
+        if (r.probabilityAfter) {
+          const bt = baseThesisForId(r.thesisId);
+          if (bt) {
+            setOverrides((o) => ({
+              ...o,
+              [r.thesisId]: { ...(o[r.thesisId] ?? {}), ...scenarioProbPatchFromDb(bt, r.probabilityAfter!) },
+            }));
+          }
+        }
+
+        if (r.probabilityBefore && r.probabilityAfter) {
+          const before = r.probabilityBefore;
+          const after = r.probabilityAfter;
+          const deltas: Array<{ k: "base" | "bull" | "bear"; d: number }> = (["base", "bull", "bear"] as const).map((k) => ({
+            k,
+            d: after[k] - before[k],
+          }));
+          deltas.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+          const top = deltas[0]!;
+          const oldLead = leadScenarioOf(before);
+          const newLead = leadScenarioOf(after);
+          const leadChanged = oldLead !== newLead;
+          const bigMove = Math.abs(top.d) >= 5;
+          const scenarioLabel = leadChanged ? newLead : top.k;
+          const oldP = before[scenarioLabel];
+          const newP = after[scenarioLabel];
+
+          const should =
+            pref === "any"
+              ? Math.abs(top.d) >= 2 || leadChanged
+              : pref === "consequence"
+                ? leadChanged && newLead === "bear"
+                : bigMove || leadChanged;
+
+          if (!should) continue;
+
+          const consequenceText =
+            scenarioLabel === "bull"
+              ? "Accelerated path to targets"
+              : scenarioLabel === "bear"
+                ? "Exit / reduce per advisory"
+                : "Base trade plan remains operative";
+
+          pushAlert({
+            thesisId: r.thesisId,
+            thesisTitle: title,
+            type: "probability_change",
+            scenario: scenarioLabel,
+            oldProbability: oldP,
+            newProbability: newP,
+            confirmText: `${scenarioLabel === "bull" ? "Bull" : scenarioLabel === "bear" ? "Bear" : "Base"} case ${oldP}% → ${newP}%`,
+            consequenceText: `Consequence: ${consequenceText}.`,
+            impact: scenarioLabel === "bear" ? "major_negative" : scenarioLabel === "bull" ? "major_positive" : "neutral",
+          });
+
+          if (bigMove || (leadChanged && scenarioLabel !== "base")) {
+            pushToast(`${title}: ${scenarioLabel} ${oldP}% → ${newP}%`);
+          }
+        } else {
+          const should = pref === "any" || (pref === "major" && signalLevel >= 4);
+          if (!should) continue;
+
+          pushAlert({
+            thesisId: r.thesisId,
+            thesisTitle: title,
+            type: "system",
+            confirmText: r.description || "Evidence update",
+            consequenceText: r.eventType ? `Type: ${r.eventType}` : "",
+            impact: "neutral",
+          });
+        }
+      }
+
+      evidenceHighWaterRef.current = Math.max(hw, ...rows.map((r) => r.createdAt));
+    };
+
+    void tick();
+    const t = window.setInterval(() => void tick(), LIVE_EVIDENCE_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(t);
+    };
+  }, [pushAlert, pushToast, simActive, starredKey]);
 
   useEffect(() => {
     // Phase 2: read anomalies from Supabase (persistent log) instead of client-side detection.
@@ -461,7 +674,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!simActive) return;
+    if (!simActive || !mockTicksEnabled) return;
     const stream = createMockThesisStream();
     return stream.subscribe((ev) => {
       if (ev.kind !== "mock_tick") return;
@@ -565,7 +778,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         setTickerItems((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
       }
     });
-  }, [simActive, pushAlert, mergeThesisCb, prefs, pushToast]);
+  }, [mockTicksEnabled, simActive, pushAlert, mergeThesisCb, prefs, pushToast]);
 
   const value = useMemo<Ctx>(() => {
     void outcomeEpoch;
@@ -595,6 +808,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       insiderFlowScenarioSuggestion,
       applyInsiderFlowSuggestion,
       dismissInsiderFlowSuggestion,
+      evidenceLog,
     };
   },
     [
@@ -623,6 +837,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       insiderFlowScenarioSuggestion,
       applyInsiderFlowSuggestion,
       dismissInsiderFlowSuggestion,
+      evidenceLog,
       outcomeEpoch,
     ],
   );

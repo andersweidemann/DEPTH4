@@ -125,6 +125,11 @@ export function ThesisDetailClient({
     return { ...bundle, thesis: thesisLive };
   }, [bundle, thesisLive]);
 
+  const liveEvidence = useMemo(() => {
+    if (!bundle || !liveOpt) return [];
+    return liveOpt.evidenceLog.filter((r) => r.thesisId === bundle.thesis.id);
+  }, [bundle, liveOpt]);
+
   const readyCount = useMemo(() => MOCK_THESES.filter((t) => t.status === "ready").length, []);
   const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
 
@@ -454,6 +459,38 @@ export function ThesisDetailClient({
         </section>
 
         <TradePlanCard thesis={thesis} />
+        {liveEvidence.length > 0 ? (
+          <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
+            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Live evidence</h2>
+            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+              Server-matched news developments for this thesis. Informational only — not investment advice.
+            </p>
+            <ul className="mt-4 space-y-3">
+              {liveEvidence.slice(0, 24).map((r) => (
+                <li key={r.id} className="border-b border-white/[0.05] pb-3 last:border-0 last:pb-0">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">{r.eventType}</span>
+                    <span className="text-[10px] tabular-nums text-zinc-500">
+                      {new Date(r.createdAt).toLocaleString([], {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[12px] text-zinc-200">{r.description}</p>
+                  {r.probabilityBefore && r.probabilityAfter ? (
+                    <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
+                      Scenarios · Base {r.probabilityBefore.base}%→{r.probabilityAfter.base}% · Bull {r.probabilityBefore.bull}%→
+                      {r.probabilityAfter.bull}% · Bear {r.probabilityBefore.bear}%→{r.probabilityAfter.bear}%
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <EvidenceTimeline items={evidence} />
         {/* Insider Flow row (thesis-aware) */}
         {insider?.latest ? (
