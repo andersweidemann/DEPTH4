@@ -40,6 +40,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Cron hooks (cron-job.org, Vercel cron, etc.): no session — routes validate CRON_SECRET / INSIDER_FLOW_CRON_SECRET only.
+  if (pathname === "/api/cron" || pathname.startsWith("/api/cron/")) {
+    return NextResponse.next();
+  }
+
   const lower = pathname.toLowerCase();
   for (const prefix of LEGACY_REDIRECTS) {
     if (lower === prefix || lower.startsWith(`${prefix}/`)) {

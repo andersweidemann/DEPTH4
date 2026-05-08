@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getDailyBars, getIntraday5mBars } from "@/lib/market-data";
@@ -42,11 +43,8 @@ function hourKey(tsMs: number, tz: "America/New_York" | "UTC") {
 }
 
 export async function GET(req: NextRequest) {
-  const secret = (process.env.INSIDER_FLOW_CRON_SECRET ?? "").trim();
-  if (secret) {
-    const got = (req.headers.get("x-insider-flow-secret") ?? "").trim();
-    if (!got || got !== secret) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
+  const deny = assertCronSecret(req);
+  if (deny) return deny;
 
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);

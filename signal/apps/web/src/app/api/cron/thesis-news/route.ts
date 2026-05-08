@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -115,27 +116,14 @@ function normSym(s: string) {
     .toUpperCase();
 }
 
-function assertCron(req: NextRequest): NextResponse | null {
-  const secrets = [process.env.INSIDER_FLOW_CRON_SECRET, process.env.CRON_SECRET]
-    .map((s) => (s ?? "").trim())
-    .filter(Boolean);
-  if (!secrets.length) return null;
-  const got = (req.headers.get("x-insider-flow-secret") ?? "").trim();
-  const auth = (req.headers.get("authorization") ?? "").trim();
-  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-  const ok = secrets.some((s) => s === got || s === bearer);
-  if (!ok) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  return null;
-}
-
 export async function GET(req: NextRequest) {
-  const deny = assertCron(req);
+  const deny = assertCronSecret(req);
   if (deny) return deny;
   return runThesisNews(req);
 }
 
 export async function POST(req: NextRequest) {
-  const deny = assertCron(req);
+  const deny = assertCronSecret(req);
   if (deny) return deny;
   return runThesisNews(req);
 }

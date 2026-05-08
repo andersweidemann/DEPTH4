@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { detectInsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/detect";
 import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/types";
@@ -228,14 +229,8 @@ function shouldInvalidateOnReversal(args: {
 }
 
 export async function GET(req: NextRequest) {
-  // Minimal protection for cron: allow if no secret set (local), else require header match.
-  const secret = (process.env.INSIDER_FLOW_CRON_SECRET ?? "").trim();
-  if (secret) {
-    const got = (req.headers.get("x-insider-flow-secret") ?? "").trim();
-    if (!got || got !== secret) {
-      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-    }
-  }
+  const deny = assertCronSecret(req);
+  if (deny) return deny;
 
   const nowMs = Date.now();
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);

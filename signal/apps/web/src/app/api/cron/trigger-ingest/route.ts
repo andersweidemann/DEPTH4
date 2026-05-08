@@ -1,19 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { assertCronSecret } from "@/lib/cron-auth";
 
 export const runtime = "nodejs";
-
-function assertCron(req: NextRequest): NextResponse | null {
-  const secrets = [process.env.INSIDER_FLOW_CRON_SECRET, process.env.CRON_SECRET]
-    .map((s) => (s ?? "").trim())
-    .filter(Boolean);
-  if (!secrets.length) return null;
-  const got = (req.headers.get("x-insider-flow-secret") ?? "").trim();
-  const auth = (req.headers.get("authorization") ?? "").trim();
-  const bearer = auth.toLowerCase().startsWith("bearer ") ? auth.slice(7).trim() : "";
-  const ok = secrets.some((s) => s === got || s === bearer);
-  if (!ok) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  return null;
-}
 
 async function runTriggerIngest() {
   const apiBase = (process.env.DEPTH4_API_BASE_URL || "").trim().replace(/\/$/, "");
@@ -45,13 +33,13 @@ async function runTriggerIngest() {
 }
 
 export async function GET(req: NextRequest) {
-  const deny = assertCron(req);
+  const deny = assertCronSecret(req);
   if (deny) return deny;
   return runTriggerIngest();
 }
 
 export async function POST(req: NextRequest) {
-  const deny = assertCron(req);
+  const deny = assertCronSecret(req);
   if (deny) return deny;
   return runTriggerIngest();
 }
