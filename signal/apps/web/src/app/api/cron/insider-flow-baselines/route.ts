@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
-import { getDailyBars } from "@/lib/market-data";
+import { getDailyBars, getIntraday5mBars } from "@/lib/market-data";
 
 export const runtime = "nodejs";
 
@@ -24,6 +24,21 @@ function pctChange(a: number, b: number) {
 
 function isAlwaysOnInstrument(symbol: string) {
   return symbol.includes("/");
+}
+
+function median(xs: number[]) {
+  const a = xs.filter((x) => Number.isFinite(x)).slice().sort((x, y) => x - y);
+  if (!a.length) return 0;
+  const mid = Math.floor(a.length / 2);
+  if (a.length % 2) return a[mid]!;
+  return (a[mid - 1]! + a[mid]!) / 2;
+}
+
+function hourKey(tsMs: number, tz: "America/New_York" | "UTC") {
+  const parts = new Intl.DateTimeFormat("en-US", { timeZone: tz, hour: "2-digit", hour12: false }).formatToParts(new Date(tsMs));
+  const hh = parts.find((p) => p.type === "hour")?.value ?? "";
+  const n = Number(hh);
+  return Number.isFinite(n) ? String(n) : "0";
 }
 
 export async function GET(req: NextRequest) {
@@ -67,13 +82,12 @@ export async function GET(req: NextRequest) {
 
   const all = Array.from(instruments);
   let updated = 0;
+  let api_calls = 0;
 
   for (const sym of all) {
-    // Skip baseline for always-on instruments in this MVP if TwelveData daily series isn't meaningful.
-    // (You can remove this if you want daily baselines for crypto/FX too.)
-    if (isAlwaysOnInstrument(sym)) continue;
-
+    // Volatility baseline (daily bars).
     const bars = await getDailyBars(sym);
+    api_calls += 1;
     if (bars.length < 20) continue;
 
     const closes = bars.map((b) => b.close).filter((x) => Number.isFinite(x));
@@ -81,9 +95,23 @@ export async function GET(req: NextRequest) {
     for (let i = 1; i < closes.length; i++) rets.push(pctChange(closes[i - 1]!, closes[i]!));
     const vol30d = std(rets.slice(-30)) || std(rets) || 0.0001;
 
-    // Volume-by-hour baseline is computed from intraday in a fuller version.
-    // MVP: write empty object; main cron will fallback if missing.
+    // Intraday volume-by-hour baseline (median 5-min bar volume grouped by hour).
+    // - Stocks/ETFs: ET timezone (hours 9..15 mostly; 9:30 maps to hour 9)
+    // - 24/7 instruments: UTC timezone (hours 0..23)
+    const tz = isAlwaysOnInstrument(sym) ? ("UTC" as const) : ("America/New_York" as const);
+    const intra = await getIntraday5mBars(sym, 5000);
+    api_calls += 1;
+    const buckets: Record<string, number[]> = {};
+    for (const b of intra) {
+      const k = hourKey(b.tsMs, tz);
+      if (!buckets[k]) buckets[k] = [];
+      buckets[k]!.push(b.volume || 0);
+    }
     const avg_volume_by_hour: Record<string, number> = {};
+    for (const [k, xs] of Object.entries(buckets)) {
+      const m = median(xs);
+      if (m > 0) avg_volume_by_hour[k] = m;
+    }
 
     await admin
       .from("instrument_baselines")
@@ -100,6 +128,6 @@ export async function GET(req: NextRequest) {
     updated += 1;
   }
 
-  return NextResponse.json({ ok: true, instruments_considered: all.length, updated });
+  return NextResponse.json({ ok: true, instruments_considered: all.length, updated, api_calls });
 }
 

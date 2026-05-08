@@ -310,3 +310,7 @@ export async function getDailyBars(symbol: string) {
   return fetchTwelveDataBars(normalizeSymbol(symbol), "1day", 60);
 }
 
+export async function getIntraday5mBars(symbol: string, outputsize = 5000) {
+  return fetchTwelveDataBars(normalizeSymbol(symbol), "5min", outputsize);
+}
+
