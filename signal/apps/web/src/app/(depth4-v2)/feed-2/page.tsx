@@ -11,20 +11,38 @@ export const metadata: Metadata = {
 
 export default function Feed2Page() {
   const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
+  const activeCount = MOCK_THESES.filter((t) => t.status === "active").length;
   const liveLine = `${MOCK_THESES.length} theses tracked · ${readyCount} ready to trade · last update 2 minutes ago`;
 
   return (
     <>
       <AppHeader active="feed" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
-      <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
-        <h1 className="text-lg font-semibold tracking-tight text-zinc-100">Feed</h1>
-        <p className="mt-3 max-w-xl text-[12px] leading-relaxed text-zinc-500">
-          Incoming macro signals. DEPTH4 matches these into active theses or proposes new ones.
-        </p>
-        <div className="mt-10 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
-          {MOCK_FEED_SIGNALS.map((item) => (
-            <FeedSignalCard key={item.id} item={item} />
-          ))}
+      <main className="mx-auto max-w-5xl px-5 pb-20 pt-10">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+          <section>
+            <h1 className="text-lg font-semibold tracking-tight text-zinc-100">Feed</h1>
+            <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-zinc-500">
+              Incoming macro signals. DEPTH4 matches these into active theses or proposes new ones.
+            </p>
+            <div className="mt-10 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
+              {MOCK_FEED_SIGNALS.map((item) => (
+                <FeedSignalCard key={item.id} item={item} />
+              ))}
+            </div>
+          </section>
+
+          <aside className="hidden lg:block">
+            <div className="rounded-lg border border-white/[0.06] bg-zinc-900/15 px-4 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Active theses</p>
+              <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
+                {activeCount} active · {readyCount} ready
+              </p>
+              <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+                The Feed prioritizes items that are linked to active narratives. Unlinked items will be matchable once
+                thesis creation and routing are fully wired.
+              </p>
+            </div>
+          </aside>
         </div>
       </main>
     </>

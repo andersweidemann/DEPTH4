@@ -203,7 +203,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="mt-6">
-                <Link href="/theses" className="text-[12px] font-semibold text-amber-200/90 hover:text-amber-100">
+                <Link href="/theses" className="text-[12px] font-semibold text-zinc-300 hover:text-zinc-100">
                   Explore the live theses dashboard →
                 </Link>
               </div>
@@ -220,7 +220,7 @@ export default function HomePage() {
             <div className="lg:col-span-7">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {[
-                  ["Free", "For exploring the thesis engine", "—"],
+                  ["Free", "For exploring the thesis engine", "$0"],
                   ["Analyst", "Position linking + full thesis tracking", "$29/mo"],
                   ["Pro", "Publish + community + leaderboard", "$79/mo"],
                 ].map(([name, desc, price]) => (
@@ -232,7 +232,7 @@ export default function HomePage() {
                 ))}
               </div>
               <div className="mt-6">
-                <Link href="/pricing" className="text-[12px] font-semibold text-amber-200/90 hover:text-amber-100">
+                <Link href="/pricing" className="text-[12px] font-semibold text-zinc-300 hover:text-zinc-100">
                   See full pricing →
                 </Link>
               </div>

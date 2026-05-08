@@ -19,7 +19,8 @@ export function LegalFooter({ variant = "default" }: { variant?: "default" | "mi
       <div className="mx-auto max-w-5xl px-4 py-8">
         <div className="text-xs leading-relaxed text-zinc-500">
           <div className="mb-4">
-            <Depth4Wordmark size="md" showTagline />
+            <Depth4Wordmark size="md" />
+            <p className="mt-1 text-[11px] text-zinc-600">Your macro thesis engine</p>
           </div>
           <p className="text-zinc-500">{FOOTER_DISCLAIMER}</p>
           <p className="mt-2 text-zinc-600">

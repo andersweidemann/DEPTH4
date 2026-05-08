@@ -13,6 +13,7 @@ import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-th
 import { canUse } from "@/lib/thesis-engine-v2/plan";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
+import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 
 type AssetClass = "all" | "equity" | "rates" | "fx" | "commodities" | "crypto";
 type SortKey = "recent" | "probability" | "biggest_move";
@@ -121,9 +122,11 @@ export function ThesesDashboardClient({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-            Analyst feature
-          </span>
+          <Tooltip label="Creating theses requires an Analyst plan or above" side="top">
+            <span className="cursor-help text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+              Analyst feature
+            </span>
+          </Tooltip>
           <button
             type="button"
             className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"

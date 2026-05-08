@@ -10,7 +10,6 @@ import { StatusBadge } from "./StatusBadge";
 import { ThesisStarButton } from "./ThesisStarButton";
 import { Tooltip } from "./Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
-import { MispricingTooltipContent } from "./MispricingTooltipContent";
 
 export function ThesisCard({
   thesis,
@@ -114,9 +113,17 @@ export function ThesisCard({
         <div className="min-w-0 flex-1">
           <ProbabilityBar value={thesis.probability} />
         </div>
-        <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
-          <span className="text-[10px] tabular-nums text-zinc-500">score {mispricing.score}</span>
-        </Tooltip>
+        <div className="flex items-center gap-1 text-[10px] tabular-nums text-zinc-500">
+          <span>score {mispricing.score}</span>
+          <Tooltip label="Signal strength score based on thesis confidence, recency, and evidence count" side="top">
+            <span
+              aria-label="Score info"
+              className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-sm text-[10px] font-semibold text-zinc-400 ring-1 ring-white/[0.08] hover:text-zinc-200"
+            >
+              ?
+            </span>
+          </Tooltip>
+        </div>
       </div>
       <div className="mt-3 space-y-1.5 border-t border-white/[0.04] pt-3 text-[11px] leading-snug text-zinc-500">
         <p>

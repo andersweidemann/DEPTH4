@@ -25,7 +25,7 @@ function BookRiskDisclaimer() {
         You are solely responsible for all trading decisions and risk management.
       </p>
       <div className="mt-3">
-        <Link href="/risk-disclosure" className="text-sm font-medium text-amber-500/90 hover:text-amber-400">
+        <Link href="/risk-disclosure" className="text-sm font-medium text-zinc-300 hover:text-zinc-100">
           See full Risk Disclosure →
         </Link>
       </div>
@@ -265,7 +265,7 @@ export function BookClient({
             <li key={w.id} className="rounded-lg bg-zinc-900/25 px-4 py-3 shadow-sm ring-1 ring-white/[0.03]">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <span className="font-mono text-sm text-zinc-200">{w.symbol}</span>
-                <Link href={`/theses/${w.thesisSlug}`} className="text-[11px] font-medium text-amber-500/85 hover:text-amber-400">
+                <Link href={`/theses/${w.thesisSlug}`} className="text-[11px] font-medium text-zinc-300 hover:text-zinc-100">
                   {w.thesisTitle}
                 </Link>
               </div>

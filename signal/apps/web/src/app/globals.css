@@ -6,6 +6,8 @@
 .dark {
   --background: #09090b;
   --foreground: #fafafa;
+  --accent-amber: #f59e0b;
+  --accent-red: #e8473f;
 }
 
 body {
