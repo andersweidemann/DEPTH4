@@ -6,7 +6,6 @@ import { Activity, FileText, LayoutList, ListOrdered } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { FeedItemFourLayer } from "@/components/feed/FeedItemFourLayer";
 import { demoAraghchi } from "@/lib/demoFeedViewModels";
-import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 import { BackButton } from "@/components/brand/BackButton";
 
 const briefMd = `## Overnight
@@ -50,7 +49,6 @@ export function DemoPage() {
         <div className="flex items-center gap-2">
           <BackButton fallbackHref="/" label="Back" className="px-2 py-1 text-[12px]" />
           <div className="text-sm">
-            <Depth4Wordmark size="sm" />
             <span className="ml-2 text-amber-200 text-xs font-medium border border-amber-600/50 rounded px-1.5 py-0.5 bg-amber-950/60">Demo</span>
           </div>
         </div>

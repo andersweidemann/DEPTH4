@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __DEPTH4_LOGO_COUNTS__: Map<string, number> | undefined;
+}
 
 export function Depth4Wordmark({
   href = "/",
@@ -16,6 +23,34 @@ export function Depth4Wordmark({
   showTagline?: boolean;
   align?: "left" | "center";
 }) {
+  /**
+   * IMPORTANT:
+   * Logo should only appear in AppHeader/Navbar component. Do not render logo in page content.
+   *
+   * Dev guard: warn if a route renders multiple logos (exception: public landing page "/" may render hero logo).
+   */
+  const pathname = usePathname();
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    if (!pathname) return;
+    const store = globalThis.__DEPTH4_LOGO_COUNTS__ ?? (globalThis.__DEPTH4_LOGO_COUNTS__ = new Map<string, number>());
+    const prev = store.get(pathname) ?? 0;
+    const next = prev + 1;
+    store.set(pathname, next);
+    if (pathname !== "/" && next > 1) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[DEPTH4] Duplicate logo detected on "${pathname}". Keep the logo only in AppHeader/PublicTopBar.`,
+      );
+    }
+    return () => {
+      const cur = store.get(pathname) ?? 0;
+      const dec = Math.max(0, cur - 1);
+      if (dec === 0) store.delete(pathname);
+      else store.set(pathname, dec);
+    };
+  }, [pathname]);
+
   const h =
     size === "sm" ? "h-[24px]" : size === "lg" ? "h-[32px] sm:h-[34px]" : "h-[28px] sm:h-[30px]";
 
