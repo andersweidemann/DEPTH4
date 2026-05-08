@@ -129,7 +129,7 @@ export default function Onboarding() {
         se(augmentMissingSchemaMessage(doneErr.message));
         return;
       }
-      r.replace("/dashboard");
+      r.replace("/theses");
     } catch (x) {
       se(augmentMissingSchemaMessage(x instanceof Error ? x.message : "Could not finish onboarding"));
     } finally {

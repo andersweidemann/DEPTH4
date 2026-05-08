@@ -13,8 +13,8 @@ export async function POST(req: NextRequest) {
   const s = await stripe.checkout.sessions.create({
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
-    success_url: b.successUrl || `${req.nextUrl.origin}/dashboard?upgraded=1`,
-    cancel_url: b.cancelUrl || `${req.nextUrl.origin}/dashboard?tab=feed`,
+    success_url: b.successUrl || `${req.nextUrl.origin}/theses?upgraded=1`,
+    cancel_url: b.cancelUrl || `${req.nextUrl.origin}/theses`,
     allow_promotion_codes: true,
     customer_email: b.email,
   });

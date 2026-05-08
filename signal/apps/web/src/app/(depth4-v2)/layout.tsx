@@ -4,7 +4,7 @@ import { Depth4V2Shell } from "@/components/thesis-engine-v2/Depth4V2Shell";
 
 /**
  * Layout shell for DEPTH4 2.0 prototype routes only.
- * Does not wrap /dashboard or other 1.0 pages.
+ * Does not wrap legacy 1.0 pages.
  */
 export default function Depth4V2Layout({ children }: { children: ReactNode }) {
   return (

@@ -13,7 +13,7 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const u = new URL(request.url);
   const code = u.searchParams.get("code");
-  const n = safeAppPath(u.searchParams.get("next") || "/dashboard");
+  const n = safeAppPath(u.searchParams.get("next") || "/theses");
   const redirectUrl = new URL(n, request.url);
 
   const res = NextResponse.redirect(redirectUrl);

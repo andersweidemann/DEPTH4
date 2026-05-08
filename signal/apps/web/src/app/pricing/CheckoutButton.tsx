@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 export function CheckoutButton({
   priceId,
   label,
-  successPath = "/dashboard?upgraded=1",
+  successPath = "/theses?upgraded=1",
   cancelPath = "/pricing",
 }: {
   priceId: string;

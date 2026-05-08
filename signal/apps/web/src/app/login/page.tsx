@@ -35,7 +35,7 @@ export default function LoginPage() {
 function LoginPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const next = useMemo(() => safeAppPath(sp.get("next") || "/dashboard"), [sp]);
+  const next = useMemo(() => safeAppPath(sp.get("next") || "/theses"), [sp]);
   const supa = useMemo(() => createClient(), []);
 
   const [email, setEmail] = useState("");
