@@ -10,6 +10,8 @@ export function PromotedMacroEventCard({
   thesisSlugById: Map<string, string>;
 }) {
   const { row, reasoning, headline, source, publishedLabel } = card;
+  const anchorDiffers =
+    headline.trim().length > 0 && headline.trim().toLowerCase() !== reasoning.event_summary.trim().toLowerCase();
 
   return (
     <article className="border-b border-white/[0.05] py-5 last:border-0 transition-colors hover:bg-white/[0.02] sm:-mx-1 sm:rounded-lg sm:px-3">
@@ -20,12 +22,20 @@ export function PromotedMacroEventCard({
           Promoted narrative
         </span>
       </div>
-      <h2 className="mt-2 text-[14px] font-semibold leading-snug text-zinc-100">{headline}</h2>
+      <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">What happened</p>
+      <h2 className="mt-1 text-[14px] font-semibold leading-snug text-zinc-100">{reasoning.event_summary}</h2>
+      {anchorDiffers ? (
+        <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-zinc-600" title={headline}>
+          Anchor headline · {headline}
+        </p>
+      ) : null}
       <div className="mt-3">
         <ConfidenceMeter reasoning={reasoning} />
       </div>
-      <p className="mt-3 line-clamp-3 text-[13px] leading-relaxed text-zinc-400">{reasoning.reasoning_summary}</p>
-      <p className="mt-2 line-clamp-2 text-[12px] italic leading-relaxed text-zinc-600">{reasoning.mispricing_hypothesis}</p>
+      <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why it matters</p>
+      <p className="mt-1 line-clamp-3 text-[13px] leading-relaxed text-zinc-300">{reasoning.reasoning_summary}</p>
+      <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Market may be missing</p>
+      <p className="mt-1 line-clamp-3 text-[12px] italic leading-relaxed text-zinc-500">{reasoning.mispricing_hypothesis}</p>
       {reasoning.affected_theses.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {reasoning.affected_theses.map((tid) => {

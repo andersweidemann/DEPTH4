@@ -3,8 +3,10 @@
  * Orchestration, cron, and thesis-news wiring live elsewhere.
  */
 
+import { FEED_CARD_WORD_LIMITS } from "./schema";
+
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-depth4-voice-v2";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-feed-card-v1";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -12,7 +14,7 @@ export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-depth4-voic
  */
 export const MACRO_EVENT_REASONING_JSON_CONTRACT = `Output one JSON object only. No markdown. No code fences. Use these keys:
 
-- event_summary: string. One or two short sentences. What happened? Start with the main fact. Easy words only.
+- event_summary: string. FEED CARD — scan on a phone before "View reasoning." Max ${FEED_CARD_WORD_LIMITS.event_summary} words. One sentence only. Headline-level: what is this about? Start with the key fact. No filler.
 - actors: string[] (can be empty). Who is involved? Country, company, or person names. Keep it simple.
 - geography: string[] (can be empty). Where? Use names people know.
 - domain: string. One word or short phrase for the topic. Example: energy, rates, war, trade, banks, jobs, oil.
@@ -34,11 +36,11 @@ export const MACRO_EVENT_REASONING_JSON_CONTRACT = `Output one JSON object only.
   - adjacent: connected but not a clean yes/no.
   - irrelevant: not worth trading the news.
 
-- reasoning_chain: string. Tell the story in order. Use many short sentences. Each sentence one idea. Say what matters first. Then the steps. Then what to watch. Do not use bullet symbols inside this string.
+- reasoning_chain: string. DETAIL PAGE — not shown on the feed card. Tell the full story in order. Short sentences. Say what matters first. No bullet symbols inside this string.
 
-- reasoning_summary: string. One or two short sentences only. Why does this matter today?
+- reasoning_summary: string. FEED CARD — quick "why this matters." Max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words. One or two sentences. Urgent but calm. No setup — jump to the point.
 
-- mispricing_hypothesis: string. One or two short sentences only. What might investors have wrong? Example start: "The market may be missing…" or "Prices may not yet show…". If you are not sure, say what we need to learn next.`;
+- mispricing_hypothesis: string. FEED CARD — "the market may be missing…" Max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. One or two sentences. Plain words. Say the mistake clearly.`;
 
 export const MACRO_EVENT_REASONING_SYSTEM = `You are DEPTH4. You help traders think ahead. You write for smart people who are not macro experts.
 
@@ -65,6 +67,26 @@ GOOD EXAMPLE
 
 BAD EXAMPLE
 "A same-day cluster of cross-sectional BDC disclosures creates incremental information value around the transmission of higher-for-longer policy into middle-market credit conditions."
+
+FEED CARD FIELDS (must pass the "walking + phone" test)
+Three strings show on the feed before anyone clicks. They must be extremely short and scannable.
+- event_summary: headline — max ${FEED_CARD_WORD_LIMITS.event_summary} words, 1 sentence.
+- reasoning_summary: why it matters — max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words, 1–2 sentences.
+- mispricing_hypothesis: what the market may be missing — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words, 1–2 sentences.
+Tone: urgent but calm, useful, not dramatic. No throat-clearing. If it feels long while walking, cut it.
+
+GOOD FEED CARD (copy this density)
+event_summary: "Multiple small lenders reported earnings at the same time."
+reasoning_summary: "Together, they show whether credit stress is spreading beyond big banks."
+mispricing_hypothesis: "The market may not see that credit quality is slipping across several lenders at once."
+
+BAD FEED CARD (never do this — too long and jargony)
+event_summary: "A simultaneous release of Q1 2026 earnings materials across REITs, specialty credit, a utility, consumer names, and small-cap M&A/Sigonomics issuers refreshes the fundamental tape on commercial real estate health, rate sensitivity, consumer demand, and AI monetization breadth."
+reasoning_summary: "The cross-sectional information value of simultaneous small/mid-cap earnings disclosures may be under-weighted by the market as a leading indicator of regime shifts in private credit stress and downstream industrial demand softness."
+mispricing_hypothesis: "Markets broadly assume manageable non-accruals in floating-rate private credit vehicles, but synchronized Q1 prints could reveal coordinated PIK growth and NAV erosion that has been masked by mark-to-model accounting practices across the BDC cohort."
+
+FINAL FEED RULE
+In 5 seconds the reader should answer: "Should I click to read more?" If they cannot tell what the event is, you failed.
 
 YOUR FOUR STEPS (put them in the JSON and in reasoning_chain)
 1) What happened?
@@ -155,11 +177,10 @@ ${thesisBlock}
 
 WHAT TO DO
 1) Merge the headlines into one clear story.
-2) Fill every field in the JSON contract. Every string must pass the retail read test.
-3) first_order → second_order → third_order: each step should follow from the step before.
-4) reasoning_summary: max two short sentences.
-5) mispricing_hypothesis: max two short sentences.
-6) reasoning_chain: short sentences only. Say the payoff early.
+2) Fill every field. Pass the retail read test on every string.
+3) Feed card caps are strict: event_summary ≤ ${FEED_CARD_WORD_LIMITS.event_summary} words (1 sentence); reasoning_summary ≤ ${FEED_CARD_WORD_LIMITS.reasoning_summary} words; mispricing_hypothesis ≤ ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words.
+4) first_order → second_order → third_order: each step follows from the last when possible.
+5) reasoning_chain: full detail only — short sentences, payoff early.
 
 Return the JSON object now.`;
 }
