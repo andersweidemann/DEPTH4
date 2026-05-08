@@ -156,14 +156,12 @@ export function CreateThesisModal({
       }}
     >
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[200] bg-black/55" />
+        <Dialog.Overlay className="fixed inset-0 z-[9998] bg-black/55" />
         <Dialog.Content
           className={cn(
-            // Mobile: fullscreen sheet. Desktop: centered modal.
-            "fixed inset-0 z-[201] w-full max-w-none translate-x-0 translate-y-0",
-            "rounded-none border-0 bg-[#0c0c0e]",
-            "sm:left-1/2 sm:top-1/2 sm:inset-auto sm:w-[92vw] sm:max-w-2xl sm:-translate-x-1/2 sm:-translate-y-1/2",
-            "sm:rounded-none sm:ring-1 sm:ring-white/[0.04]",
+            // NOTE: Keep this as a centered modal on all breakpoints so it’s always visibly distinct from the page.
+            "fixed left-1/2 top-1/2 z-[9999] w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2",
+            "bg-[#0c0c0e] ring-1 ring-white/[0.08]",
             "focus:outline-none",
           )}
           aria-describedby={undefined}
