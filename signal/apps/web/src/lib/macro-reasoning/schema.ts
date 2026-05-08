@@ -21,9 +21,9 @@ export const macroEventReasoningSchema = z.object({
 
   confidence: z.number().min(0).max(1),
 
-  first_order_effects: z.array(z.string()).default([]),
-  second_order_effects: z.array(z.string()).default([]),
-  third_order_effects: z.array(z.string()).default([]),
+  first_order_effects: z.array(z.string().min(1)).min(1),
+  second_order_effects: z.array(z.string().min(1)).min(1),
+  third_order_effects: z.array(z.string().min(1)).min(1),
 
   impacted_assets: z.array(z.string()).default([]),
   impacted_sectors: z.array(z.string()).default([]),
