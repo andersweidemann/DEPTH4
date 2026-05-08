@@ -27,6 +27,19 @@ export type MockThesisTickResult = {
   thesisId: string;
   patch: Partial<Thesis>;
   pulseThesisId: string;
+  scenario?: {
+    base: number;
+    bull: number;
+    bear: number;
+    lead: "base" | "bull" | "bear";
+  };
+  scenarioDelta?: {
+    scenario: "base" | "bull" | "bear";
+    oldProbability: number;
+    newProbability: number;
+    confirmText: string;
+    consequenceText: string;
+  };
   alert?: {
     thesisId: string;
     thesisTitle: string;
@@ -91,6 +104,29 @@ export function runMockThesisTick(args: {
 
   const next = mergeThesis(prev, patch);
   const probDelta = next.probability - prev.probability;
+
+  // Scenario distribution (demo): derived from conviction with a bit of noise.
+  // This powers the notification center and can later be replaced by a real scenario model.
+  const noise = () => Math.floor((random() - 0.5) * 7); // ~[-3..+3]
+  let bull = clamp(Math.round(next.probability * 0.55) + noise(), 10, 75);
+  let bear = clamp(Math.round((100 - next.probability) * 0.45) + noise(), 5, 70);
+  let baseCase = 100 - bull - bear;
+  if (baseCase < 10) {
+    const take = 10 - baseCase;
+    const takeBull = Math.min(take, Math.max(0, bull - 10));
+    bull -= takeBull;
+    bear -= Math.max(0, take - takeBull);
+    baseCase = 100 - bull - bear;
+  }
+  if (baseCase > 80) {
+    const spill = baseCase - 80;
+    bull += Math.floor(spill / 2);
+    bear += spill - Math.floor(spill / 2);
+    baseCase = 100 - bull - bear;
+  }
+
+  const scenario = { base: baseCase, bull, bear } as const;
+  const lead = (["base", "bull", "bear"] as const).reduce((best, k) => (scenario[k] > scenario[best] ? k : best), "base");
 
   const thesisAwareLine = invalidated
     ? "Invalidation conditions are now in play — treat the thesis as broken until re-tested."
@@ -162,6 +198,7 @@ export function runMockThesisTick(args: {
     thesisId: base.id,
     patch,
     pulseThesisId: base.id,
+    scenario: { ...scenario, lead },
     alert,
     toastMessage,
     tickerItem,

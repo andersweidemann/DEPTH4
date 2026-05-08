@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
@@ -32,6 +32,21 @@ import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-contex
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 
+function notifyLabel(p: "any" | "major" | "consequence" | "mute") {
+  switch (p) {
+    case "any":
+      return "Any change";
+    case "major":
+      return "Major changes";
+    case "consequence":
+      return "Consequence only";
+    case "mute":
+      return "Mute";
+    default:
+      return "Major changes";
+  }
+}
+
 export function ThesisDetailClient({
   slug,
   layout = "page",
@@ -46,6 +61,17 @@ export function ThesisDetailClient({
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => getThesisDetail(slug) ?? null);
   const [openPos, setOpenPos] = useState(false);
   const [bookPulse, setBookPulse] = useState(0);
+  const [alertsMenuOpen, setAlertsMenuOpen] = useState(false);
+  const alertsMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!alertsMenuOpen) return;
+    const onDoc = (e: MouseEvent) => {
+      if (!alertsMenuRef.current?.contains(e.target as Node)) setAlertsMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [alertsMenuOpen]);
 
   useEffect(() => {
     const sys = getThesisDetail(slug);
@@ -245,6 +271,65 @@ export function ThesisDetailClient({
               }
               onClick={() => liveOpt.toggleStar(thesis.id)}
             />
+          ) : null}
+          {liveOpt ? (
+            <div ref={alertsMenuRef} className="relative">
+              {(() => {
+                const pref = liveOpt.getNotifyPref(thesis.id);
+                const disabled = !liveStarred;
+                const label = notifyLabel(pref);
+                return (
+                  <>
+                    <button
+                      type="button"
+                      className={cn(
+                        "rounded-md px-2.5 py-2 text-[10px] font-semibold uppercase tracking-wide ring-1",
+                        disabled
+                          ? "cursor-not-allowed bg-zinc-900/20 text-zinc-600 ring-white/[0.06]"
+                          : "bg-zinc-900/30 text-zinc-300 ring-white/[0.08] hover:bg-zinc-900/50 hover:text-zinc-100",
+                        pref === "mute" && !disabled && "text-zinc-400",
+                      )}
+                      disabled={disabled}
+                      onClick={() => setAlertsMenuOpen((v) => !v)}
+                      title={disabled ? "Star this thesis to receive probability alerts." : "Alert sensitivity"}
+                    >
+                      Alerts · {label} ▾
+                    </button>
+                    {alertsMenuOpen && !disabled ? (
+                      <div className="absolute left-0 top-full z-[120] mt-2 w-52 rounded-none bg-[#141416] ring-1 ring-white/[0.08]">
+                        {(
+                          [
+                            ["any", "Any change"],
+                            ["major", "Major changes"],
+                            ["consequence", "Consequence only"],
+                            ["mute", "Mute"],
+                          ] as const
+                        ).map(([k, lab]) => (
+                          <button
+                            key={k}
+                            type="button"
+                            className={cn(
+                              "flex w-full items-center justify-between px-3 py-2 text-left text-[11px] text-zinc-200 hover:bg-zinc-900/60",
+                              pref === k && "bg-zinc-900/40",
+                            )}
+                            onClick={() => {
+                              liveOpt.setNotifyPref(thesis.id, k);
+                              setAlertsMenuOpen(false);
+                            }}
+                          >
+                            <span>{lab}</span>
+                            {pref === k ? <span className="text-[10px] font-semibold text-amber-200/90">Selected</span> : null}
+                          </button>
+                        ))}
+                        <div className="border-t border-white/[0.06] px-3 py-2 text-[10px] leading-snug text-zinc-500">
+                          Starred theses only.
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                );
+              })()}
+            </div>
           ) : null}
           {/* Gating is handled inline on intent actions; avoid static “feature tier” labels here. */}
         </div>

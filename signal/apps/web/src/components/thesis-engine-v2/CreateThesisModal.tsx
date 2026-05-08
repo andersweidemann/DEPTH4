@@ -7,17 +7,29 @@ import { cn } from "@/lib/utils";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
 type FormState = {
+  mode: "choice" | "ai" | "review" | "manual";
+  aiPrompt: string;
   title: string;
-  thesisStatement: string;
   asset: string;
-  marketMisread: string;
-  trigger: string;
-  invalidation: string;
-  horizon: string;
-  probability: string; // percent string
-  entry: string;
+  direction: "long" | "short";
+  whyNow: string;
+  whatsUnpriced: string;
+  entrySetup: string;
   stop: string;
   target: string;
+  thesisStatement: string;
+  horizon: string;
+  probability: string; // percent string
+  // Scenario fields
+  baseProb: string;
+  baseConfirms: string;
+  baseConsequence: string;
+  bullProb: string;
+  bullConfirms: string;
+  bullConsequence: string;
+  bearProb: string;
+  bearConfirms: string;
+  bearConsequence: string;
 };
 
 function slugify(s: string) {
@@ -56,8 +68,8 @@ function buildUserThesis(form: FormState): Thesis {
   const nowId = `user-${Date.now().toString(36)}`;
   const asset = form.asset.trim().toUpperCase();
 
-  const tradeLine = form.entry || form.stop || form.target
-    ? `Entry ${form.entry || "—"} · Stop ${form.stop || "—"} · Target ${form.target || "—"}`
+  const tradeLine = form.entrySetup || form.stop || form.target
+    ? `Entry ${form.entrySetup || "—"} · Stop ${form.stop || "—"} · Target ${form.target || "—"}`
     : "Optional setup pending — define entry/stop/targets when trigger compresses.";
 
   return {
@@ -66,7 +78,7 @@ function buildUserThesis(form: FormState): Thesis {
     title: title || "Untitled thesis",
     thesisStatement: form.thesisStatement.trim(),
     asset: asset || "—",
-    direction: "watch",
+    direction: form.direction,
     probability: p || 50,
     status: p >= 65 ? "ready" : p >= 50 ? "active" : "watching",
     probabilityRationale:
@@ -75,14 +87,14 @@ function buildUserThesis(form: FormState): Thesis {
 
     hiddenDriver: "User thesis — driver defined by your framing; DEPTH4 will infer supporting drivers from incoming signals.",
     likelyPath: "Signals accumulate → trigger clarity improves → the market catches up → the trade resolves into targets or invalidation.",
-    marketMisread: form.marketMisread.trim(),
+    marketMisread: form.whatsUnpriced.trim(),
     tradeExpression: `Cleanest expression: ${asset || "asset"} — ${tradeLine}`,
 
-    whyNow: "You flagged an idea with a tradeable horizon — DEPTH4 begins monitoring immediately.",
-    whatsUnpriced: form.marketMisread.trim(),
-    trigger: form.trigger.trim(),
+    whyNow: form.whyNow.trim(),
+    whatsUnpriced: form.whatsUnpriced.trim(),
+    trigger: form.entrySetup.trim(),
     trade: tradeLine,
-    invalidation: form.invalidation.trim(),
+    invalidation: form.bearConfirms.trim(),
     horizon: form.horizon.trim(),
     advisoryAction: p >= 65 ? "enter" : p >= 50 ? "hold" : "watch",
     lastUpdated: "Just now",
@@ -98,10 +110,81 @@ function buildUserThesis(form: FormState): Thesis {
     },
     theme: "user",
 
-    entryZone: form.entry.trim() || undefined,
+    entryZone: form.entrySetup.trim() || undefined,
     stop: form.stop.trim() || undefined,
     target1: form.target.trim() || undefined,
     target2: undefined,
+
+    scenarioOverrides: {
+      base: {
+        probability: clamp(Number.parseInt(form.baseProb || "0", 10) || 0, 0, 100),
+        confirmation: form.baseConfirms.trim(),
+        marketConsequence: form.baseConsequence.trim(),
+      },
+      bull: {
+        probability: clamp(Number.parseInt(form.bullProb || "0", 10) || 0, 0, 100),
+        confirmation: form.bullConfirms.trim(),
+        marketConsequence: form.bullConsequence.trim(),
+      },
+      bear: {
+        probability: clamp(Number.parseInt(form.bearProb || "0", 10) || 0, 0, 100),
+        confirmation: form.bearConfirms.trim(),
+        marketConsequence: form.bearConsequence.trim(),
+      },
+    },
+  };
+}
+
+function generateDraftFromPrompt(prompt: string): Pick<
+  FormState,
+  | "title"
+  | "asset"
+  | "direction"
+  | "whyNow"
+  | "whatsUnpriced"
+  | "entrySetup"
+  | "stop"
+  | "target"
+  | "thesisStatement"
+  | "probability"
+  | "horizon"
+  | "baseProb"
+  | "baseConfirms"
+  | "baseConsequence"
+  | "bullProb"
+  | "bullConfirms"
+  | "bullConsequence"
+  | "bearProb"
+  | "bearConfirms"
+  | "bearConsequence"
+> {
+  const p = prompt.trim();
+  const isShort = /\bshort\b|\bweaken\b|\bfade\b|\bdownside\b|\brace\b/i.test(p);
+  const assetMatch = p.match(/\b([A-Z]{2,6}(?:USD)?)\b/);
+  const asset = (assetMatch?.[1] ?? "—").toUpperCase();
+  const title = p.length ? p.split(".")[0]!.slice(0, 72).trim() : "Untitled thesis";
+
+  return {
+    title: title || "Untitled thesis",
+    asset,
+    direction: isShort ? "short" : "long",
+    whyNow: "Catalyst window is opening — market is still positioned for the old regime.",
+    whatsUnpriced: "Market is pricing the headline, not the second-order consequence.",
+    entrySetup: "Wait for the confirm (headline + price reaction). Enter on follow-through / retest.",
+    stop: "Invalidation level — if the confirm fails, stand down.",
+    target: "Mean reprice toward fair value / next liquidity pocket.",
+    thesisStatement: p.length ? p : "Describe your thesis in plain English, then generate a structured draft.",
+    probability: "58",
+    horizon: "2–8 weeks",
+    baseProb: "40",
+    baseConfirms: "Trend continues with noisy headlines.",
+    baseConsequence: "Base trade plan remains operative.",
+    bullProb: "35",
+    bullConfirms: "Catalyst confirms direction early.",
+    bullConsequence: "Accelerated path to targets.",
+    bearProb: "25",
+    bearConfirms: "Invalidation triggers hit.",
+    bearConsequence: "Exit / reduce per advisory.",
   };
 }
 
@@ -116,18 +199,30 @@ export function CreateThesisModal({
 }) {
   const initial: FormState = useMemo(
     () => ({
-      title: "Clarity Act passes, not priced into BTCUSD",
+      mode: "choice",
+      aiPrompt:
+        "Peace talks reduce gold's war premium, but spot still reflects too much geopolitical risk.",
+      title: "War premium fades — Gold downside",
       thesisStatement:
-        "If the Clarity Act advances meaningfully through Congress, BTCUSD rerates higher because regulatory clarity is still underpriced.",
-      asset: "BTCUSD",
-      marketMisread: "Market still treats US crypto legislation as low-probability noise.",
-      trigger: "Committee approval / leadership support / floor scheduling",
-      invalidation: "Bill stalls politically or hostile amendments destroy market relevance",
+        "If geopolitics de-escalates, gold's war premium comes out faster than current positioning implies.",
+      asset: "XAUUSD",
+      direction: "short",
+      whyNow: "Talk-track is shifting; optionality is still priced for escalation.",
+      whatsUnpriced: "Spot still reflects too much tail-risk premium vs. the new information set.",
+      entrySetup: "Enter on failed bounce / lower-high after de-escalation headline confirms.",
+      stop: "Re-escalation signal or price reclaim invalidates the fade.",
+      target: "Reprice toward pre-premium range / next support shelf.",
       horizon: "2–8 weeks",
       probability: "61",
-      entry: "",
-      stop: "",
-      target: "",
+      baseProb: "40",
+      baseConfirms: "Trend continues with noisy headlines.",
+      baseConsequence: "Base trade plan remains operative.",
+      bullProb: "35",
+      bullConfirms: "Catalyst confirms direction early.",
+      bullConsequence: "Accelerated path to targets.",
+      bearProb: "25",
+      bearConfirms: "Invalidation triggers hit.",
+      bearConsequence: "Exit / reduce per advisory.",
     }),
     [],
   );
@@ -140,12 +235,18 @@ export function CreateThesisModal({
 
   const canSubmit =
     form.title.trim() &&
-    form.thesisStatement.trim() &&
     form.asset.trim() &&
-    form.marketMisread.trim() &&
-    form.trigger.trim() &&
-    form.invalidation.trim() &&
-    form.horizon.trim();
+    form.thesisStatement.trim() &&
+    form.whyNow.trim() &&
+    form.whatsUnpriced.trim() &&
+    form.entrySetup.trim() &&
+    form.horizon.trim() &&
+    form.baseConfirms.trim() &&
+    form.baseConsequence.trim() &&
+    form.bullConfirms.trim() &&
+    form.bullConsequence.trim() &&
+    form.bearConfirms.trim() &&
+    form.bearConsequence.trim();
 
   return (
     <Dialog.Root
@@ -170,7 +271,7 @@ export function CreateThesisModal({
             <div>
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Create new thesis</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-                Private for now — public publishing and leaderboard coming later.
+                Turn a rough macro idea into a structured thesis.
               </p>
             </div>
             <Dialog.Close
@@ -184,121 +285,285 @@ export function CreateThesisModal({
           <div className="h-px w-full bg-white/[0.06]" aria-hidden />
 
           <div className="h-[calc(100dvh-132px)] overflow-y-auto px-5 py-4 sm:max-h-[70vh] sm:h-auto">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Thesis title
-                </label>
-                <input
-                  value={form.title}
-                  onChange={(e) => set("title", e.target.value)}
-                  className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] sm:py-2 sm:text-[12px]"
-                />
+            {form.mode === "choice" ? (
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  className="rounded-none border border-amber-500/25 bg-amber-500/10 px-4 py-4 text-left ring-1 ring-amber-500/20 hover:bg-amber-500/15"
+                  onClick={() => set("mode", "ai")}
+                >
+                  <p className="text-[12px] font-semibold text-amber-200">Write with AI</p>
+                  <p className="mt-1 text-[11px] text-zinc-400">Describe the idea. DEPTH4 drafts the thesis + scenarios.</p>
+                </button>
+                <button
+                  type="button"
+                  className="rounded-none border border-white/[0.08] bg-zinc-900/30 px-4 py-4 text-left ring-1 ring-white/[0.06] hover:bg-zinc-900/45"
+                  onClick={() => set("mode", "manual")}
+                >
+                  <p className="text-[12px] font-semibold text-zinc-200">Start manually</p>
+                  <p className="mt-1 text-[11px] text-zinc-500">Fill the structured fields yourself.</p>
+                </button>
               </div>
+            ) : null}
 
-              <div className="sm:col-span-2">
+            {form.mode === "ai" ? (
+              <div className="grid gap-3">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Thesis statement
-                </label>
-                <textarea
-                  value={form.thesisStatement}
-                  onChange={(e) => set("thesisStatement", e.target.value)}
-                  rows={3}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Asset / ticker</label>
-                <input
-                  value={form.asset}
-                  onChange={(e) => set("asset", e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 font-mono text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                />
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Confidence / starting probability
-                </label>
-                <div className="mt-2 flex items-center gap-2">
-                  <input
-                    value={form.probability}
-                    onChange={(e) => set("probability", e.target.value)}
-                    className="w-28 rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                    inputMode="numeric"
-                  />
-                  <span className="text-[11px] text-zinc-500">%</span>
-                </div>
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Why the market hasn&apos;t caught up yet
+                  Describe your thesis in plain English
                 </label>
                 <textarea
-                  value={form.marketMisread}
-                  onChange={(e) => set("marketMisread", e.target.value)}
-                  rows={2}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                  value={form.aiPrompt}
+                  onChange={(e) => set("aiPrompt", e.target.value)}
+                  rows={6}
+                  className="w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[14px] leading-relaxed text-zinc-200 placeholder:text-zinc-600"
+                  placeholder="Example: Peace talks reduce gold's war premium, but spot still reflects too much geopolitical risk."
                 />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Key trigger</label>
-                <textarea
-                  value={form.trigger}
-                  onChange={(e) => set("trigger", e.target.value)}
-                  rows={2}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Invalidation</label>
-                <textarea
-                  value={form.invalidation}
-                  onChange={(e) => set("invalidation", e.target.value)}
-                  rows={2}
-                  className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Time horizon</label>
-                <input
-                  value={form.horizon}
-                  onChange={(e) => set("horizon", e.target.value)}
-                  className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Optional trade setup
+                <p className="text-[11px] text-zinc-500">
+                  Example: Peace talks reduce gold&apos;s war premium, but spot still reflects too much geopolitical risk.
                 </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                  <input
-                    value={form.entry}
-                    onChange={(e) => set("entry", e.target.value)}
-                    placeholder="Entry"
-                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                  />
-                  <input
-                    value={form.stop}
-                    onChange={(e) => set("stop", e.target.value)}
-                    placeholder="Stop"
-                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                  />
-                  <input
-                    value={form.target}
-                    onChange={(e) => set("target", e.target.value)}
-                    placeholder="Target"
-                    className="w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
-                  />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
+                    onClick={() => {
+                      const draft = generateDraftFromPrompt(form.aiPrompt);
+                      setForm((cur) => ({ ...cur, ...draft, mode: "review" }));
+                    }}
+                    disabled={!form.aiPrompt.trim()}
+                  >
+                    Generate thesis draft
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500"
+                    onClick={() => set("mode", "choice")}
+                  >
+                    Back
+                  </button>
                 </div>
               </div>
-            </div>
+            ) : null}
+
+            {form.mode === "manual" || form.mode === "review" ? (
+              <div className="grid gap-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Thesis title</label>
+                    <input
+                      value={form.title}
+                      onChange={(e) => set("title", e.target.value)}
+                      className="mt-2 w-full rounded-lg bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 ring-1 ring-white/[0.06] sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Asset / ticker</label>
+                    <input
+                      value={form.asset}
+                      onChange={(e) => set("asset", e.target.value)}
+                      className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 font-mono text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Direction</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        type="button"
+                        className={cn(
+                          "rounded-md px-3 py-2 text-[11px] font-semibold ring-1",
+                          form.direction === "long"
+                            ? "bg-emerald-500/15 text-emerald-200 ring-emerald-500/25"
+                            : "bg-zinc-900/30 text-zinc-300 ring-white/[0.06] hover:bg-zinc-900/45",
+                        )}
+                        onClick={() => set("direction", "long")}
+                      >
+                        Long
+                      </button>
+                      <button
+                        type="button"
+                        className={cn(
+                          "rounded-md px-3 py-2 text-[11px] font-semibold ring-1",
+                          form.direction === "short"
+                            ? "bg-red-500/15 text-red-200 ring-red-500/25"
+                            : "bg-zinc-900/30 text-zinc-300 ring-white/[0.06] hover:bg-zinc-900/45",
+                        )}
+                        onClick={() => set("direction", "short")}
+                      >
+                        Short
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Why now</label>
+                    <textarea
+                      value={form.whyNow}
+                      onChange={(e) => set("whyNow", e.target.value)}
+                      rows={2}
+                      className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">What&apos;s unpriced</label>
+                    <textarea
+                      value={form.whatsUnpriced}
+                      onChange={(e) => set("whatsUnpriced", e.target.value)}
+                      rows={2}
+                      className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Entry setup</label>
+                    <textarea
+                      value={form.entrySetup}
+                      onChange={(e) => set("entrySetup", e.target.value)}
+                      rows={2}
+                      className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Stop</label>
+                    <input
+                      value={form.stop}
+                      onChange={(e) => set("stop", e.target.value)}
+                      className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Target</label>
+                    <input
+                      value={form.target}
+                      onChange={(e) => set("target", e.target.value)}
+                      className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Thesis title-line (plain English)</label>
+                    <textarea
+                      value={form.thesisStatement}
+                      onChange={(e) => set("thesisStatement", e.target.value)}
+                      rows={3}
+                      className="mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] leading-relaxed text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Starting probability</label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        value={form.probability}
+                        onChange={(e) => set("probability", e.target.value)}
+                        className="w-28 rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                        inputMode="numeric"
+                      />
+                      <span className="text-[11px] text-zinc-500">%</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Time horizon</label>
+                    <input
+                      value={form.horizon}
+                      onChange={(e) => set("horizon", e.target.value)}
+                      className="mt-2 w-full rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-3 text-[16px] text-zinc-200 placeholder:text-zinc-600 sm:py-2 sm:text-[12px]"
+                    />
+                  </div>
+                </div>
+
+                <div className="h-px w-full bg-white/[0.06]" aria-hidden />
+
+                <div className="grid gap-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Scenarios</p>
+
+                  <div className="grid gap-3 rounded-none border border-white/[0.06] bg-zinc-900/20 p-3">
+                    <p className="text-[11px] font-semibold text-zinc-200">Base case</p>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <input
+                        value={form.baseProb}
+                        onChange={(e) => set("baseProb", e.target.value)}
+                        className="rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        inputMode="numeric"
+                        placeholder="Probability %"
+                      />
+                      <textarea
+                        value={form.baseConfirms}
+                        onChange={(e) => set("baseConfirms", e.target.value)}
+                        className="sm:col-span-2 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        rows={2}
+                        placeholder="Confirms"
+                      />
+                      <textarea
+                        value={form.baseConsequence}
+                        onChange={(e) => set("baseConsequence", e.target.value)}
+                        className="sm:col-span-3 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        rows={2}
+                        placeholder="Consequence"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 rounded-none border border-white/[0.06] bg-zinc-900/20 p-3">
+                    <p className="text-[11px] font-semibold text-zinc-200">Bull case</p>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <input
+                        value={form.bullProb}
+                        onChange={(e) => set("bullProb", e.target.value)}
+                        className="rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        inputMode="numeric"
+                        placeholder="Probability %"
+                      />
+                      <textarea
+                        value={form.bullConfirms}
+                        onChange={(e) => set("bullConfirms", e.target.value)}
+                        className="sm:col-span-2 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        rows={2}
+                        placeholder="Confirms"
+                      />
+                      <textarea
+                        value={form.bullConsequence}
+                        onChange={(e) => set("bullConsequence", e.target.value)}
+                        className="sm:col-span-3 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        rows={2}
+                        placeholder="Consequence"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 rounded-none border border-white/[0.06] bg-zinc-900/20 p-3">
+                    <p className="text-[11px] font-semibold text-zinc-200">Bear case</p>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <input
+                        value={form.bearProb}
+                        onChange={(e) => set("bearProb", e.target.value)}
+                        className="rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        inputMode="numeric"
+                        placeholder="Probability %"
+                      />
+                      <textarea
+                        value={form.bearConfirms}
+                        onChange={(e) => set("bearConfirms", e.target.value)}
+                        className="sm:col-span-2 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        rows={2}
+                        placeholder="Confirms"
+                      />
+                      <textarea
+                        value={form.bearConsequence}
+                        onChange={(e) => set("bearConsequence", e.target.value)}
+                        className="sm:col-span-3 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
+                        rows={2}
+                        placeholder="Consequence"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-4">

@@ -6,10 +6,11 @@ import type { V2Plan } from "@/lib/thesis-engine-v2/plan";
 const V2_PLAN_KEY = "depth4.v2.plan.v1";
 
 export function loadV2Plan(): V2Plan {
-  if (typeof window === "undefined") return "free";
+  if (typeof window === "undefined") return "analyst";
   const raw = window.sessionStorage.getItem(V2_PLAN_KEY);
   if (raw === "analyst" || raw === "pro" || raw === "creator" || raw === "free") return raw;
-  return "free";
+  // Demo default: keep the app fully interactive unless a plan is explicitly set.
+  return "analyst";
 }
 
 export function saveV2Plan(plan: V2Plan) {
@@ -22,7 +23,7 @@ export function saveV2Plan(plan: V2Plan) {
 }
 
 export function useV2Plan() {
-  const [plan, setPlan] = useState<V2Plan>("free");
+  const [plan, setPlan] = useState<V2Plan>("analyst");
 
   useEffect(() => {
     setPlan(loadV2Plan());

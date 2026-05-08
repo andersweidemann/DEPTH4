@@ -55,6 +55,13 @@ export type Thesis = {
   stop?: string;
   target1?: string;
   target2?: string;
+
+  /** Optional user-authored scenario framing (used for user theses). */
+  scenarioOverrides?: {
+    base: { probability: number; confirmation: string; marketConsequence: string };
+    bull: { probability: number; confirmation: string; marketConsequence: string };
+    bear: { probability: number; confirmation: string; marketConsequence: string };
+  };
 };
 
 export type ThesisEvidence = {

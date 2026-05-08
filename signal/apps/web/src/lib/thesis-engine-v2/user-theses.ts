@@ -83,6 +83,34 @@ function mkEvidence(thesis: Thesis): ThesisEvidence[] {
 }
 
 function mkScenarios(thesis: Thesis): ThesisScenario[] {
+  if (thesis.scenarioOverrides) {
+    return [
+      {
+        id: `${thesis.id}-sc-base`,
+        thesisId: thesis.id,
+        label: "Base case",
+        probability: thesis.scenarioOverrides.base.probability,
+        confirmation: thesis.scenarioOverrides.base.confirmation,
+        marketConsequence: thesis.scenarioOverrides.base.marketConsequence,
+      },
+      {
+        id: `${thesis.id}-sc-bull`,
+        thesisId: thesis.id,
+        label: "Bull case",
+        probability: thesis.scenarioOverrides.bull.probability,
+        confirmation: thesis.scenarioOverrides.bull.confirmation,
+        marketConsequence: thesis.scenarioOverrides.bull.marketConsequence,
+      },
+      {
+        id: `${thesis.id}-sc-bear`,
+        thesisId: thesis.id,
+        label: "Bear case",
+        probability: thesis.scenarioOverrides.bear.probability,
+        confirmation: thesis.scenarioOverrides.bear.confirmation,
+        marketConsequence: thesis.scenarioOverrides.bear.marketConsequence,
+      },
+    ];
+  }
   return [
     {
       id: `${thesis.id}-sc-base`,

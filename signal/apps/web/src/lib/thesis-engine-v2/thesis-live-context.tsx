@@ -30,15 +30,49 @@ import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types"
 const STAR_KEY = "depth4.v2.starred.v1";
 const MAX_TICKER = 14;
 const MAX_ALERTS = 20;
+const PREF_KEY = "depth4.v2.notify.prefs.v1";
+
+type NotifyPref = "any" | "major" | "consequence" | "mute";
 
 export type ThesisAlertEntry = {
   id: string;
   createdAt: number;
   thesisId: string;
   thesisTitle: string;
-  body: string;
+  type: "probability_change" | "consequence_change" | "invalidation" | "system";
+  scenario?: "base" | "bull" | "bear";
+  oldProbability?: number;
+  newProbability?: number;
+  confirmText: string;
+  consequenceText: string;
+  read: boolean;
   impact: ThesisAlertImpact;
 };
+
+function loadPrefs(): Record<string, NotifyPref> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.sessionStorage.getItem(PREF_KEY);
+    const j = raw ? (JSON.parse(raw) as unknown) : null;
+    if (!j || typeof j !== "object") return {};
+    const out: Record<string, NotifyPref> = {};
+    for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
+      if (v === "any" || v === "major" || v === "consequence" || v === "mute") out[k] = v;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function savePrefs(next: Record<string, NotifyPref>) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(PREF_KEY, JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+}
 
 function loadStarred(): Set<string> {
   if (typeof window === "undefined") return new Set();
@@ -101,13 +135,18 @@ type Ctx = {
   /** Active (not dismissed) alerts — drives the nav badge. */
   unreadAlertCount: number;
   dismissAlert: (id: string) => void;
-  /** Clears every alert from the tray (explicit acknowledge-all). */
-  dismissAllAlerts: () => void;
+  /** Marks every alert as read (explicit acknowledge-all). */
+  markAllRead: () => void;
+  /** Marks every alert as read (called when opening bell). */
+  markReadOnOpen: () => void;
   pulseKey: (thesisId: string) => number;
   outToast: Toast;
   dismissToast: () => void;
   /** Show a transient toast message (6s). */
   pushToast: (message: string) => void;
+  /** Per-thesis notification preference (reduce noise). */
+  getNotifyPref: (thesisId: string) => NotifyPref;
+  setNotifyPref: (thesisId: string, pref: NotifyPref) => void;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -135,6 +174,11 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [pulseMap, setPulseMap] = useState<Record<string, number>>({});
   const [outToast, setOutToast] = useState<Toast>(null);
   const [outcomeEpoch, setOutcomeEpoch] = useState(0);
+  const [prefs, setPrefs] = useState<Record<string, NotifyPref>>({});
+
+  const scenarioRef = useRef(
+    new Map<string, { base: number; bull: number; bear: number; lead: "base" | "bull" | "bear" }>(),
+  );
 
   const overridesRef = useRef(overrides);
   overridesRef.current = overrides;
@@ -146,6 +190,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setStarred(loadStarred());
     setOpenIds(openPositionThesisIds());
+    setPrefs(loadPrefs());
   }, []);
 
   useEffect(() => {
@@ -192,11 +237,12 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     [overrides, starred, openIds],
   );
 
-  const pushAlert = useCallback((a: Omit<ThesisAlertEntry, "id" | "createdAt">) => {
+  const pushAlert = useCallback((a: Omit<ThesisAlertEntry, "id" | "createdAt" | "read">) => {
     const entry: ThesisAlertEntry = {
       ...a,
       id: newAlertId(),
       createdAt: Date.now(),
+      read: false,
     };
     setAlerts((cur) => [entry, ...cur].slice(0, MAX_ALERTS));
   }, []);
@@ -209,24 +255,19 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       setPulseMap((m) => ({ ...m, [thesisId]: (m[thesisId] ?? 0) + 1 }));
 
       if (status !== null) {
-        const eff = starredRef.current.has(thesisId) || openIdsRef.current.has(thesisId);
+        const eff = starredRef.current.has(thesisId);
         const human = status === "resolved" ? "Resolved" : "Invalidated";
         const line =
           status === "resolved"
             ? "You marked this thesis resolved — optional context only unless you reopen the idea."
             : "You marked this thesis invalidated — stand down on new risk from this thread until you rebuild the case.";
-        const body = [
-          thesisTitle,
-          line,
-          `Thesis impact: ${human.toLowerCase()} (manual).`,
-          `Check Book for open or closed lines linked to this thesis.`,
-          `Stance: Exit / stand down on new risk from this thread.`,
-        ].join("\n");
         if (eff) {
           pushAlert({
             thesisId,
             thesisTitle,
-            body,
+            type: status === "invalidated" ? "invalidation" : "system",
+            confirmText: line,
+            consequenceText: "Exit / reduce per advisory.",
             impact: status === "invalidated" ? "invalidated" : "neutral",
           });
           const tid = newAlertId();
@@ -244,8 +285,12 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     setAlerts((cur) => cur.filter((x) => x.id !== id));
   }, []);
 
-  const dismissAllAlerts = useCallback(() => {
-    setAlerts([]);
+  const markAllRead = useCallback(() => {
+    setAlerts((cur) => cur.map((x) => ({ ...x, read: true })));
+  }, []);
+
+  const markReadOnOpen = useCallback(() => {
+    setAlerts((cur) => cur.map((x) => (x.read ? x : { ...x, read: true })));
   }, []);
 
   const syncOpenIdsFromBook = useCallback(() => {
@@ -261,7 +306,16 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     }, 6200);
   }, []);
 
-  const unreadAlertCount = useMemo(() => alerts.length, [alerts]);
+  const unreadAlertCount = useMemo(() => alerts.filter((a) => !a.read).length, [alerts]);
+
+  const getNotifyPref = useCallback((thesisId: string): NotifyPref => prefs[thesisId] ?? "major", [prefs]);
+  const setNotifyPref = useCallback((thesisId: string, pref: NotifyPref) => {
+    setPrefs((cur) => {
+      const next = { ...cur, [thesisId]: pref };
+      savePrefs(next);
+      return next;
+    });
+  }, []);
 
   const pulseKey = useCallback(
     (thesisId: string) => pulseMap[thesisId] ?? 0,
@@ -283,10 +337,71 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         mockTheses: MOCK_THESES,
         overrides: overridesRef.current,
         hasManualOutcome: (id) => !!getThesisOutcome(id),
-        isSubscribed: (id) => starredRef.current.has(id) || openIdsRef.current.has(id),
+        isSubscribed: (id) => starredRef.current.has(id),
         random: Math.random,
       });
       if (!tick) return;
+
+      // Scenario probability notifications (meaningful shifts only).
+      if (tick.scenario) {
+        // Starred-only rule: never generate notifications for unstarred theses.
+        if (!starredRef.current.has(tick.thesisId)) {
+          scenarioRef.current.set(tick.thesisId, tick.scenario);
+          return;
+        }
+        const prevS = scenarioRef.current.get(tick.thesisId);
+        scenarioRef.current.set(tick.thesisId, tick.scenario);
+        if (prevS) {
+          const pref = prefs[tick.thesisId] ?? "major";
+          if (pref !== "mute") {
+            const deltas: Array<{ k: "base" | "bull" | "bear"; d: number }> = (["base", "bull", "bear"] as const).map((k) => ({
+              k,
+              d: tick.scenario![k] - prevS[k],
+            }));
+            deltas.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+            const top = deltas[0]!;
+            const leadChanged = prevS.lead !== tick.scenario.lead;
+            const bigMove = Math.abs(top.d) >= 5;
+
+            const should =
+              pref === "any"
+                ? Math.abs(top.d) >= 2 || leadChanged
+                : pref === "consequence"
+                  ? leadChanged && tick.scenario.lead === "bear"
+                  : bigMove || leadChanged;
+
+            if (should) {
+              const scenarioLabel = leadChanged ? tick.scenario.lead : top.k;
+              const oldP = prevS[scenarioLabel];
+              const newP = tick.scenario[scenarioLabel];
+              const consequenceText =
+                scenarioLabel === "bull"
+                  ? "Accelerated path to targets"
+                  : scenarioLabel === "bear"
+                    ? "Exit / reduce per advisory"
+                    : "Base trade plan remains operative";
+
+              const thesisTitle = mergeThesisCb(MOCK_THESES.find((t) => t.id === tick.thesisId)!).title;
+              pushAlert({
+                thesisId: tick.thesisId,
+                thesisTitle,
+                type: "probability_change",
+                scenario: scenarioLabel,
+                oldProbability: oldP,
+                newProbability: newP,
+                confirmText: `${scenarioLabel === "bull" ? "Bull" : scenarioLabel === "bear" ? "Bear" : "Base"} case ${oldP}% → ${newP}%`,
+                consequenceText: `Consequence: ${consequenceText}.`,
+                impact:
+                  scenarioLabel === "bear" ? "major_negative" : scenarioLabel === "bull" ? "major_positive" : "neutral",
+              });
+
+              if (bigMove || (leadChanged && scenarioLabel !== "base")) {
+                pushToast(`${thesisTitle}: ${scenarioLabel} ${oldP}% → ${newP}%`);
+              }
+            }
+          }
+        }
+      }
 
       setOverrides((o) => ({
         ...o,
@@ -295,7 +410,14 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       setPulseMap((m) => ({ ...m, [tick.pulseThesisId]: (m[tick.pulseThesisId] ?? 0) + 1 }));
 
       if (tick.alert) {
-        pushAlert(tick.alert);
+        pushAlert({
+          thesisId: tick.alert.thesisId,
+          thesisTitle: tick.alert.thesisTitle,
+          type: tick.alert.impact === "invalidated" ? "invalidation" : "system",
+          confirmText: tick.alert.body.split("\n")[1] ?? "Update received.",
+          consequenceText: tick.alert.body.split("\n").slice(-1)[0] ?? "",
+          impact: tick.alert.impact,
+        });
       }
 
       if (tick.toastMessage) {
@@ -310,7 +432,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         setTickerItems((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
       }
     });
-  }, [simActive, pushAlert]);
+  }, [simActive, pushAlert, mergeThesisCb, prefs, pushToast]);
 
   const value = useMemo<Ctx>(() => {
     void outcomeEpoch;
@@ -327,11 +449,14 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       alerts,
       unreadAlertCount,
       dismissAlert,
-      dismissAllAlerts,
+      markAllRead,
+      markReadOnOpen,
       pulseKey,
       outToast,
       dismissToast,
       pushToast,
+      getNotifyPref,
+      setNotifyPref,
     };
   },
     [
@@ -347,11 +472,14 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       alerts,
       unreadAlertCount,
       dismissAlert,
-      dismissAllAlerts,
+      markAllRead,
+      markReadOnOpen,
       pulseKey,
       outToast,
       dismissToast,
       pushToast,
+      getNotifyPref,
+      setNotifyPref,
       outcomeEpoch,
     ],
   );

@@ -96,6 +96,7 @@ export function OpenPositionModal({
             "bg-[#0c0c0e] ring-1 ring-white/[0.08]",
             "focus:outline-none",
           )}
+          aria-label="Open position"
           aria-describedby={undefined}
         >
           <div className="flex items-start justify-between gap-4 px-5 py-4">

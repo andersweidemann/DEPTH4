@@ -1,23 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
+import Link from "next/link";
 
 export function ThesisAlertsBell() {
-  const { alerts, unreadAlertCount, dismissAlert, dismissAllAlerts } = useThesisLive();
+  const { alerts, unreadAlertCount, dismissAlert, markAllRead, markReadOnOpen } = useThesisLive();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const [filter, setFilter] = useState<"all" | "probability" | "trade" | "system">("all");
+
+  const filtered = useMemo(() => {
+    if (filter === "all") return alerts;
+    if (filter === "probability") return alerts.filter((a) => a.type === "probability_change");
+    if (filter === "trade") return alerts.filter((a) => a.type === "consequence_change" || a.type === "invalidation");
+    return alerts.filter((a) => a.type === "system");
+  }, [alerts, filter]);
 
   useEffect(() => {
     if (!open) return;
+    markReadOnOpen();
     const onDoc = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener("mousedown", onDoc);
     return () => document.removeEventListener("mousedown", onDoc);
-  }, [open]);
+  }, [open, markReadOnOpen]);
 
   return (
     <div ref={rootRef} className="relative">
@@ -44,26 +54,54 @@ export function ThesisAlertsBell() {
           )}
         >
           <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Thesis updates</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Alerts</p>
             {alerts.length > 0 ? (
               <button
                 type="button"
-                className="shrink-0 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-amber-200/90 hover:bg-zinc-900/60"
-                onClick={() => dismissAllAlerts()}
+                className="shrink-0 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-300 hover:bg-zinc-900/60 hover:text-zinc-100"
+                onClick={() => markAllRead()}
               >
                 Mark all read
               </button>
             ) : null}
           </div>
+          <div className="flex items-center gap-1 border-b border-white/[0.06] px-2 py-2">
+            {(
+              [
+                ["all", "All"],
+                ["probability", "Probability"],
+                ["trade", "Trade"],
+                ["system", "System"],
+              ] as const
+            ).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setFilter(k)}
+                className={cn(
+                  "rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                  filter === k ? "bg-zinc-900/60 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="max-h-[min(70vh,24rem)] overflow-y-auto">
-            {alerts.length === 0 ? (
-              <p className="px-3 py-4 text-[12px] text-zinc-500">No alerts in your tray. Star a thesis or open a position to subscribe.</p>
+            {filtered.length === 0 ? (
+              <div className="px-3 py-4 text-[12px] text-zinc-500">
+                <p className="text-zinc-400">No alerts yet.</p>
+                <p className="mt-1">Star a thesis to get probability-change alerts here.</p>
+              </div>
             ) : (
-              alerts.map((a, i) => (
+              filtered.map((a, i) => (
                 <div
                   key={a.id}
                   data-testid={i === 0 ? "thesis-alert-row" : undefined}
-                  className="group relative border-b border-white/[0.04] border-l-2 border-l-amber-500/45 bg-zinc-900/20 pl-3 pr-2 py-3 last:border-0"
+                  className={cn(
+                    "group relative border-b border-white/[0.04] bg-zinc-900/20 pl-3 pr-2 py-3 last:border-0",
+                    !a.read && "border-l-2 border-l-amber-500/55",
+                  )}
                 >
                   <div className="absolute right-1 top-2">
                     <button
@@ -77,10 +115,22 @@ export function ThesisAlertsBell() {
                       <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  <p className="pr-9 whitespace-pre-wrap text-[11px] leading-relaxed text-zinc-300">{a.body}</p>
-                  <p className="mt-2 text-[10px] tabular-nums text-zinc-600">
-                    {new Date(a.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </p>
+                  <div className="pr-9">
+                    <p className="text-[11px] font-semibold leading-snug text-zinc-200">{a.thesisTitle}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-zinc-300">{a.confirmText}</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{a.consequenceText}</p>
+                    <div className="mt-2 flex items-center justify-between gap-2">
+                      <p className="text-[10px] tabular-nums text-zinc-600">
+                        {new Date(a.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                      <Link
+                        href={`/theses/${encodeURIComponent(a.thesisId)}`}
+                        className="text-[10px] font-semibold text-zinc-400 hover:text-zinc-200"
+                      >
+                        View thesis →
+                      </Link>
+                    </div>
+                  </div>
                 </div>
               ))
             )}
