@@ -106,6 +106,8 @@ type Ctx = {
   pulseKey: (thesisId: string) => number;
   outToast: Toast;
   dismissToast: () => void;
+  /** Show a transient toast message (6s). */
+  pushToast: (message: string) => void;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -251,6 +253,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const dismissToast = useCallback(() => setOutToast(null), []);
+  const pushToast = useCallback((message: string) => {
+    const tid = newAlertId();
+    setOutToast({ id: tid, message });
+    window.setTimeout(() => {
+      setOutToast((cur) => (cur?.id === tid ? null : cur));
+    }, 6200);
+  }, []);
 
   const unreadAlertCount = useMemo(() => alerts.length, [alerts]);
 
@@ -322,6 +331,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       pulseKey,
       outToast,
       dismissToast,
+      pushToast,
     };
   },
     [
@@ -341,6 +351,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       pulseKey,
       outToast,
       dismissToast,
+      pushToast,
       outcomeEpoch,
     ],
   );

@@ -5,15 +5,12 @@ import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
 import { ThesisTableRow } from "@/components/thesis-engine-v2/ThesisTableRow";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
-import { UpgradeModal } from "@/components/thesis-engine-v2/UpgradeModal";
 import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDrawer";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
-import { canUse } from "@/lib/thesis-engine-v2/plan";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
-import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
-import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
+import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 
 type AssetClass = "all" | "equity" | "rates" | "fx" | "commodities" | "crypto";
 type SortKey = "recent" | "probability" | "biggest_move";
@@ -49,10 +46,9 @@ export function ThesesDashboardClient({
   initialDrawerSlug?: string | null;
 }) {
   const live = useThesisLive();
-  const { plan } = useV2Plan();
+  const requireFeature = useRequireFeature();
   const [open, setOpen] = useState(false);
   const [userTheses, setUserTheses] = useState<Thesis[]>([]);
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [show, setShow] = useState<"all" | "ready" | "starred">("all");
   const [assetClass, setAssetClass] = useState<AssetClass>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
@@ -122,20 +118,11 @@ export function ThesesDashboardClient({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Tooltip label="Creating theses requires an Analyst plan or above" side="top">
-            <span className="cursor-help text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-              Analyst feature
-            </span>
-          </Tooltip>
           <button
             type="button"
             className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
             onClick={() => {
-              if (!canUse(plan, "createPrivateTheses")) {
-                setUpgradeOpen(true);
-                return;
-              }
-              setOpen(true);
+              requireFeature("createPrivateTheses", "new-thesis", () => setOpen(true));
             }}
           >
             + New thesis
@@ -322,16 +309,6 @@ export function ThesesDashboardClient({
         onCreate={(t) => {
           const next = upsertUserThesis(t);
           setUserTheses(next);
-        }}
-      />
-
-      <UpgradeModal
-        open={upgradeOpen}
-        onOpenChange={setUpgradeOpen}
-        requiredPlan="analyst"
-        featureLabel="Create private theses"
-        onUpgraded={() => {
-          setOpen(true);
         }}
       />
 

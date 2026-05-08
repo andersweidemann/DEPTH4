@@ -7,9 +7,14 @@ import { Check } from "lucide-react";
 import { useMemo, useState } from "react";
 import { TIER_OFFERS } from "@/lib/tier";
 import { PublicTopBar } from "@/components/brand/PublicTopBar";
+import { useSearchParams } from "next/navigation";
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
+  const sp = useSearchParams();
+  const recommended = (sp.get("recommended") || "").toLowerCase();
+  const source = sp.get("source") || "";
+  const recoTier = recommended === "pro" || recommended === "analyst" ? recommended : "";
 
   const annualNote = useMemo(() => "Annual pricing reflects 2 months free.", []);
 
@@ -43,6 +48,12 @@ export default function PricingPage() {
           <p className="text-zinc-400 max-w-2xl mx-auto text-sm leading-relaxed">
             Start free. Upgrade when you&apos;re ready to create your own theses, publish them, or turn your track record into revenue.
           </p>
+          {recoTier ? (
+            <p className="mx-auto max-w-2xl text-[12px] leading-relaxed text-zinc-500">
+              Recommended: <span className="text-zinc-200">{recoTier === "analyst" ? "Analyst" : "Pro"}</span>
+              {source ? <span className="text-zinc-600"> · triggered from “{source}”</span> : null}
+            </p>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-zinc-400">
           <button
@@ -93,7 +104,12 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          <div className="rounded-2xl border-2 border-amber-500/40 bg-zinc-900/80 p-6 flex flex-col text-left relative overflow-hidden">
+          <div
+            className={cn(
+              "rounded-2xl border-2 bg-zinc-900/80 p-6 flex flex-col text-left relative overflow-hidden",
+              recoTier === "analyst" ? "border-amber-500/60" : "border-amber-500/40",
+            )}
+          >
             <span className="absolute top-3 right-3 text-[10px] font-bold uppercase bg-amber-500 text-zinc-950 px-2 py-0.5 rounded">
               {TIER_OFFERS.analyst.badge}
             </span>
@@ -118,7 +134,12 @@ export default function PricingPage() {
             </Link>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 flex flex-col text-left">
+          <div
+            className={cn(
+              "rounded-2xl border bg-zinc-900/60 p-6 flex flex-col text-left",
+              recoTier === "pro" ? "border-amber-500/30" : "border-zinc-800",
+            )}
+          >
             <h2 className="text-lg font-semibold text-zinc-200">{TIER_OFFERS.pro.name}</h2>
             <p className="text-3xl font-bold mt-2 text-zinc-50">
               {billing === "yearly" ? TIER_OFFERS.pro.priceYearly : TIER_OFFERS.pro.priceMonthly}
