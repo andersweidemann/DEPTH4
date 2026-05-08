@@ -6,7 +6,7 @@
 import { FEED_CARD_WORD_LIMITS } from "./schema";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-feed-card-v1";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-feed-card-v2";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -14,16 +14,20 @@ export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-feed-card-v
  */
 export const MACRO_EVENT_REASONING_JSON_CONTRACT = `Output one JSON object only. No markdown. No code fences. Use these keys:
 
-- event_summary: string. FEED CARD — scan on a phone before "View reasoning." Max ${FEED_CARD_WORD_LIMITS.event_summary} words. One sentence only. Headline-level: what is this about? Start with the key fact. No filler.
+LENGTH SPLIT (read this first)
+- Strict word caps apply ONLY to these three feed-preview fields (shown before "View reasoning"): event_summary, reasoning_summary, mispricing_hypothesis.
+- All other text fields may be fuller: reasoning_chain, first_order_effects, second_order_effects, third_order_effects, domain, direction_of_change, etc. Those are for the detail page — keep them clear, but do not squeeze them into feed-card length.
+
+- event_summary: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.event_summary} words. Exactly 1 sentence. Answers "what is this?" in ~5 seconds on mobile. If it feels long while walking, shorten it.
 - actors: string[] (can be empty). Who is involved? Country, company, or person names. Keep it simple.
 - geography: string[] (can be empty). Where? Use names people know.
 - domain: string. One word or short phrase for the topic. Example: energy, rates, war, trade, banks, jobs, oil.
 - direction_of_change: string. Are things getting better or worse for risk? Tighter or looser? Up or down? Say it simply.
 - confidence: number from 0 to 1. How sure are you, based only on the text? Not a string.
 
-- first_order_effects: string[] (must have at least one item). What is the first real-world change? One short sentence per item.
-- second_order_effects: string[] (must have at least one item). What happens next because of that? One short sentence per item.
-- third_order_effects: string[] (must have at least one item). What happens after that? One short sentence per item. Do not just repeat headline words.
+- first_order_effects: string[] (must have at least one item). DETAIL PAGE — can be detailed. What is the first real-world change? One idea per array item; full causal clarity beats brevity.
+- second_order_effects: string[] (must have at least one item). DETAIL PAGE — can be detailed. What follows from first_order?
+- third_order_effects: string[] (must have at least one item). DETAIL PAGE — can be detailed. What follows next? Do not just repeat headline words.
 
 - impacted_assets: string[] (can be empty). What to watch? Tickers or simple names. Example: oil, gold, 10-year yield.
 - impacted_sectors: string[] (can be empty). Which parts of the market? Example: energy, tech, banks.
@@ -36,11 +40,11 @@ export const MACRO_EVENT_REASONING_JSON_CONTRACT = `Output one JSON object only.
   - adjacent: connected but not a clean yes/no.
   - irrelevant: not worth trading the news.
 
-- reasoning_chain: string. DETAIL PAGE — not shown on the feed card. Tell the full story in order. Short sentences. Say what matters first. No bullet symbols inside this string.
+- reasoning_chain: string. DETAIL PAGE ONLY — not shown on the feed card. Full causal chain; short sentences; say what matters first. Length is not capped like the feed fields. No bullet symbols inside this string.
 
-- reasoning_summary: string. FEED CARD — quick "why this matters." Max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words. One or two sentences. Urgent but calm. No setup — jump to the point.
+- reasoning_summary: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words. 1–2 sentences. "Why should I click?" Urgent but calm; no setup.
 
-- mispricing_hypothesis: string. FEED CARD — "the market may be missing…" Max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. One or two sentences. Plain words. Say the mistake clearly.`;
+- mispricing_hypothesis: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. 1–2 sentences. Plain "market may be missing…" line. Mobile test: cut until easy to scan while walking.`;
 
 export const MACRO_EVENT_REASONING_SYSTEM = `You are DEPTH4. You help traders think ahead. You write for smart people who are not macro experts.
 
@@ -68,12 +72,13 @@ GOOD EXAMPLE
 BAD EXAMPLE
 "A same-day cluster of cross-sectional BDC disclosures creates incremental information value around the transmission of higher-for-longer policy into middle-market credit conditions."
 
-FEED CARD FIELDS (must pass the "walking + phone" test)
-Three strings show on the feed before anyone clicks. They must be extremely short and scannable.
-- event_summary: headline — max ${FEED_CARD_WORD_LIMITS.event_summary} words, 1 sentence.
-- reasoning_summary: why it matters — max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words, 1–2 sentences.
-- mispricing_hypothesis: what the market may be missing — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words, 1–2 sentences.
-Tone: urgent but calm, useful, not dramatic. No throat-clearing. If it feels long while walking, cut it.
+FEED CARD SUMMARY (strict length — ONLY these three keys)
+The feed shows event_summary, reasoning_summary, and mispricing_hypothesis before "View reasoning." Nothing else from the JSON is used as the teaser blurb.
+- event_summary: max ${FEED_CARD_WORD_LIMITS.event_summary} words, 1 sentence — headline-level "what happened."
+- reasoning_summary: max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words, 1–2 sentences — "why this matters."
+- mispricing_hypothesis: max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words, 1–2 sentences — "what the market may be missing."
+Do NOT apply these word caps to reasoning_chain or to first_order_effects / second_order_effects / third_order_effects — those stay detailed for the detail page.
+Tone: urgent but calm, useful, not dramatic. No throat-clearing. Mobile test: if it feels too long while walking, cut shorter.
 
 GOOD FEED CARD (copy this density)
 event_summary: "Multiple small lenders reported earnings at the same time."
@@ -177,10 +182,11 @@ ${thesisBlock}
 
 WHAT TO DO
 1) Merge the headlines into one clear story.
-2) Fill every field. Pass the retail read test on every string.
-3) Feed card caps are strict: event_summary ≤ ${FEED_CARD_WORD_LIMITS.event_summary} words (1 sentence); reasoning_summary ≤ ${FEED_CARD_WORD_LIMITS.reasoning_summary} words; mispricing_hypothesis ≤ ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words.
-4) first_order → second_order → third_order: each step follows from the last when possible.
-5) reasoning_chain: full detail only — short sentences, payoff early.
+2) Fill every field. Plain English everywhere.
+3) Feed teaser ONLY — hard caps on exactly three fields: event_summary ≤ ${FEED_CARD_WORD_LIMITS.event_summary} words (1 sentence); reasoning_summary ≤ ${FEED_CARD_WORD_LIMITS.reasoning_summary} words (1–2 sentences); mispricing_hypothesis ≤ ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words (1–2 sentences). Goal: "Should I click?" answered in ~5 seconds on a phone.
+4) Detail page — no feed word caps on reasoning_chain or on first_order_effects, second_order_effects, third_order_effects; keep those informative and step-by-step.
+5) Chain first_order → second_order → third_order so each step follows from the prior when possible.
+6) reasoning_chain: full story for after they click; payoff early, short sentences.
 
 Return the JSON object now.`;
 }
