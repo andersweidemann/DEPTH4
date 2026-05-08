@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeAppPath } from "@/lib/app-paths";
@@ -24,6 +24,23 @@ function passwordMeetsRules(pw: string) {
 }
 
 export default function SignupPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-dvh bg-[#0c0c0e] text-zinc-100 antialiased">
+          <PublicTopBar backHref="/" backLabel="Back" />
+          <div className="mx-auto max-w-6xl px-5 py-12">
+            <p className="text-[12px] text-zinc-500">Loading…</p>
+          </div>
+        </div>
+      }
+    >
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = useMemo(() => safeAppPath(sp.get("next") || "/onboarding"), [sp]);

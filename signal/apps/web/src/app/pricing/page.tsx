@@ -4,12 +4,29 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { TIER_OFFERS } from "@/lib/tier";
 import { PublicTopBar } from "@/components/brand/PublicTopBar";
 import { useSearchParams } from "next/navigation";
 
 export default function PricingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-dvh bg-zinc-950 text-zinc-100">
+          <PublicTopBar backHref="/" />
+          <main className="mx-auto max-w-5xl px-4 py-12">
+            <p className="text-[12px] text-zinc-500">Loading…</p>
+          </main>
+        </div>
+      }
+    >
+      <PricingPageInner />
+    </Suspense>
+  );
+}
+
+function PricingPageInner() {
   const [billing, setBilling] = useState<"monthly" | "yearly">("monthly");
   const sp = useSearchParams();
   const recommended = (sp.get("recommended") || "").toLowerCase();

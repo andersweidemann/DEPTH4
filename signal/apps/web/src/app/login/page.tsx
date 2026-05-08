@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { safeAppPath } from "@/lib/app-paths";
@@ -15,6 +15,23 @@ function isValidEmail(s: string) {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-dvh bg-[#0c0c0e] text-zinc-100 antialiased">
+          <PublicTopBar backHref="/" backLabel="Back" />
+          <div className="mx-auto max-w-6xl px-5 py-12">
+            <p className="text-[12px] text-zinc-500">Loading…</p>
+          </div>
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = useMemo(() => safeAppPath(sp.get("next") || "/dashboard"), [sp]);
