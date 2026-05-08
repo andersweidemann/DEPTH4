@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
-import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 export const metadata: Metadata = {
   title: "DEPTH4 — Your macro thesis engine",
@@ -16,10 +15,8 @@ export default function HomePage() {
       <header className="border-b border-white/[0.06]">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
           <div className="flex items-center gap-3">
-            <Depth4Wordmark size="sm" />
-            <span className="hidden text-[10px] font-medium uppercase tracking-[2.5px] text-zinc-600 lg:inline">
-              Your macro thesis engine
-            </span>
+            <span className="text-[12px] font-semibold tracking-tight text-zinc-100">DEPTH4</span>
+            <span className="hidden text-[11px] text-zinc-500 sm:inline">Macro thesis engine</span>
           </div>
           <nav className="flex items-center gap-2 text-[12px]">
             <Link href="/demo" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">
@@ -48,7 +45,7 @@ export default function HomePage() {
         {/* HERO */}
         <section className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 pb-14 pt-12 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-6">
-            <Depth4Wordmark size="lg" align="left" className="text-zinc-100" />
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-50 md:text-5xl">
               Your macro thesis engine
             </h1>
@@ -174,12 +171,6 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
-                <p className="text-[12px] font-semibold text-zinc-100">Insider Flow — tape before the headline</p>
-                <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
-                  See when Level 3 is leaking: unusual price/volume moves in your mapped instruments before Level 1 confirms it.
-                </p>
-              </div>
             </div>
           </div>
         </section>
@@ -205,56 +196,6 @@ export default function HomePage() {
                   </p>
                 </div>
                 <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <p className="text-[12px] font-semibold text-zinc-100">See the leak before the headline</p>
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-200/80">Insider Flow Detector</span>
-                  </div>
-                  <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
-                    Detect when your thesis is moving markets before the news confirms it. When unusual volume and price moves
-                    match your scenario, you see it immediately — and probabilities can adjust.
-                  </p>
-                  <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
-                    Most traders react to headlines. DEPTH4 shows you when the tape is already pricing your thesis.
-                  </p>
-                  <div className="mt-3 grid gap-2 bg-[#0c0c0e] p-3 ring-1 ring-white/[0.06]">
-                    <div className="flex items-center justify-between text-[11px] text-zinc-400">
-                      <span className="font-semibold text-zinc-200">Radar</span>
-                      <span className="text-teal-200/90">Bull leak · Unconfirmed</span>
-                    </div>
-                    <div className="grid gap-1 text-[11px] text-zinc-400">
-                      <p className="text-zinc-200">Fed pivot delayed — TLT weakness</p>
-                      <p className="text-zinc-500">TLT −3.2% · 5.0× vol · no matching headline yet</p>
-                    </div>
-                    <div className="mt-2 grid gap-1 text-[11px] text-zinc-400">
-                      <p className="text-zinc-500">Scenario shift</p>
-                      <div className="grid gap-1">
-                        <div className="flex items-center justify-between">
-                          <span>Bear</span>
-                          <span className="tabular-nums text-zinc-200">20% → 35%</span>
-                        </div>
-                        <div className="h-1 w-full bg-white/[0.06]">
-                          <div className="h-1 bg-amber-500/70" style={{ width: "35%" }} />
-                        </div>
-                      </div>
-                      <p className="text-zinc-600">Evidence log: “Insider flow detected … → Bear case +15pts”</p>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    <Link
-                      href="/signup?next=/theses"
-                      className={cn(
-                        buttonVariants({ size: "sm" }),
-                        "rounded-md bg-amber-500 px-3 text-zinc-950 hover:bg-amber-400",
-                      )}
-                    >
-                      Start tracking
-                    </Link>
-                    <Link href="/pricing" className="text-[12px] font-semibold text-zinc-300 hover:text-zinc-100">
-                      See tiers →
-                    </Link>
-                  </div>
-                </div>
-                <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
                   <p className="text-[12px] font-semibold text-zinc-100">Position linking & review</p>
                   <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
                     Link trades to theses so monitoring, alerts, and post-trade review stay connected to the narrative.
@@ -262,7 +203,7 @@ export default function HomePage() {
                 </div>
               </div>
               <div className="mt-6">
-                <Link href="/theses" className="text-[12px] font-semibold text-zinc-300 hover:text-zinc-100">
+                <Link href="/theses" className="text-[12px] font-semibold text-amber-200/90 hover:text-amber-100">
                   Explore the live theses dashboard →
                 </Link>
               </div>
@@ -279,7 +220,7 @@ export default function HomePage() {
             <div className="lg:col-span-7">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                 {[
-                  ["Free", "For exploring the thesis engine", "$0"],
+                  ["Free", "For exploring the thesis engine", "—"],
                   ["Analyst", "Position linking + full thesis tracking", "$29/mo"],
                   ["Pro", "Publish + community + leaderboard", "$79/mo"],
                 ].map(([name, desc, price]) => (
@@ -291,7 +232,7 @@ export default function HomePage() {
                 ))}
               </div>
               <div className="mt-6">
-                <Link href="/pricing" className="text-[12px] font-semibold text-zinc-300 hover:text-zinc-100">
+                <Link href="/pricing" className="text-[12px] font-semibold text-amber-200/90 hover:text-amber-100">
                   See full pricing →
                 </Link>
               </div>
