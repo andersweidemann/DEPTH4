@@ -17,7 +17,6 @@ type DbNewsRow = {
   body_text?: unknown;
   source?: unknown;
   published_at?: unknown;
-  created_at?: unknown;
   signal_level?: unknown;
   category?: unknown;
   region?: unknown;
@@ -40,7 +39,6 @@ function parseNewsRows(data: unknown): NewsEventRow[] {
       body_text: r.body_text == null ? null : String(r.body_text),
       source: r.source == null ? null : String(r.source),
       published_at: r.published_at == null ? null : String(r.published_at),
-      created_at: r.created_at == null ? null : String(r.created_at),
       signal_level: Number.isFinite(sl) ? Math.min(4, Math.max(1, Math.round(sl))) : 1,
       category: r.category == null ? null : String(r.category),
       region: r.region == null ? null : String(r.region),
@@ -66,13 +64,14 @@ async function runThesisDiscovery() {
   const opts = getDefaultClusteringOptions();
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
 
+  // `news_events` has no `created_at` in repo migrations; see `20240425120000_initial.sql`.
+  // Order: signal (news-moving first) → wall time when known → stable id for null published_at tail.
   const { data: rawNews, error: newsErr } = await admin
     .from("news_events")
-    .select(
-      "id,headline,body_text,source,published_at,created_at,signal_level,category,region,affected_sectors,affected_tickers",
-    )
-    // Prefer ingest time so rows with null published_at are not sorted to the tail of a large cap.
-    .order("created_at", { ascending: false })
+    .select("id,headline,body_text,source,published_at,signal_level,category,region,affected_sectors,affected_tickers")
+    .order("signal_level", { ascending: false })
+    .order("published_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(1200);
 
   if (newsErr) {

@@ -1,13 +1,23 @@
 import { createHash } from "node:crypto";
 
-/** Raw row shape from `public.news_events` (service-role read). */
+/**
+ * `public.news_events` columns used by Phase 2 (see `20240425120000_initial.sql`).
+ * There is no ingest `created_at` / `inserted_at` column in the canonical schema; do not select it.
+ *
+ * Time semantics for clustering:
+ * - **Ordering (DB fetch):** `signal_level` desc, then `published_at` desc, then `id` desc (stable tail).
+ * - **Rolling window:** `effectiveEventMs(ev, nowMs)` = parsed `published_at` when set, else `nowMs`
+ *   (cron run clock) so undated rows remain eligible inside `[now - window, now]` when they appear
+ *   in the capped fetch.
+ * - **Recency / title hint / sort within code:** same `effectiveEventMs` so null `published_at` does
+ *   not drop events from the window or push them to epoch.
+ */
 export type NewsEventRow = {
   id: string;
   headline: string;
   body_text?: string | null;
   source?: string | null;
   published_at?: string | null;
-  created_at?: string | null;
   signal_level: number;
   category?: string | null;
   region?: string | null;
@@ -183,12 +193,11 @@ function sectorsFromEvent(ev: NewsEventRow): Set<string> {
   );
 }
 
-function eventAtMs(ev: NewsEventRow): number {
+/** Monotonic-ish instant for windowing and sorting; see file header for `published_at` null rules. */
+function effectiveEventMs(ev: NewsEventRow, nowMs: number): number {
   const p = ev.published_at ? Date.parse(ev.published_at) : NaN;
   if (Number.isFinite(p)) return p;
-  const c = ev.created_at ? Date.parse(ev.created_at) : NaN;
-  if (Number.isFinite(c)) return c;
-  return Date.now();
+  return nowMs;
 }
 
 export type NarrativeCluster = {
@@ -216,7 +225,7 @@ function computeSignalScore(events: NewsEventRow[], nowMs: number): number {
   const n = events.length;
   const avgSig = events.reduce((s, e) => s + Math.min(4, Math.max(1, e.signal_level || 1)), 0) / n / 4;
   const sources = new Set(events.map((e) => (e.source ?? "").trim()).filter(Boolean)).size;
-  const newest = Math.max(...events.map(eventAtMs));
+  const newest = Math.max(...events.map((e) => effectiveEventMs(e, nowMs)));
   const ageH = (nowMs - newest) / 3_600_000;
   const recency = ageH <= 6 ? 1 : ageH <= 12 ? 0.85 : ageH <= 24 ? 0.65 : 0.45;
 
@@ -227,8 +236,8 @@ function computeSignalScore(events: NewsEventRow[], nowMs: number): number {
   return Math.round(Math.min(100, countPart + signalPart + diversityPart + recencyPart));
 }
 
-function titleHintFrom(events: NewsEventRow[]): string {
-  const sorted = [...events].sort((a, b) => eventAtMs(b) - eventAtMs(a));
+function titleHintFrom(events: NewsEventRow[], nowMs: number): string {
+  const sorted = [...events].sort((a, b) => effectiveEventMs(b, nowMs) - effectiveEventMs(a, nowMs));
   const h = sorted[0]?.headline?.trim() || "Emerging narrative";
   return h.length > 160 ? `${h.slice(0, 157)}…` : h;
 }
@@ -311,7 +320,7 @@ function newClusterFromEvent(ev: NewsEventRow): NarrativeCluster {
 function finalizeCluster(c: NarrativeCluster, nowMs: number, o: ClusteringOptions): NarrativeCluster {
   c.memberIds = Array.from(new Set(c.memberIds));
   c.events = Array.from(new Map(c.events.map((e) => [e.id, e])).values());
-  c.titleHint = titleHintFrom(c.events);
+  c.titleHint = titleHintFrom(c.events, nowMs);
   c.signalScore = computeSignalScore(c.events, nowMs);
   c.fingerprint = fingerprintForSortedIds(c.memberIds);
   c.passesPromotionGate =
@@ -339,7 +348,7 @@ export function clusterNewsEvents(events: NewsEventRow[], nowMs: number, opts?: 
   const sorted = [...events].sort((a, b) => {
     const sb = Math.min(4, Math.max(1, b.signal_level || 1)) - Math.min(4, Math.max(1, a.signal_level || 1));
     if (sb !== 0) return sb;
-    return eventAtMs(b) - eventAtMs(a);
+    return effectiveEventMs(b, nowMs) - effectiveEventMs(a, nowMs);
   });
 
   const clusters: NarrativeCluster[] = [];
@@ -361,7 +370,7 @@ export function clusterNewsEvents(events: NewsEventRow[], nowMs: number, opts?: 
 export function filterEventsInWindow(events: NewsEventRow[], nowMs: number, windowHours: number): NewsEventRow[] {
   const start = nowMs - windowHours * 3_600_000;
   return events.filter((e) => {
-    const t = eventAtMs(e);
+    const t = effectiveEventMs(e, nowMs);
     return t >= start && t <= nowMs;
   });
 }
