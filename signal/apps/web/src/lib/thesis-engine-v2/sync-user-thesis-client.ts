@@ -11,6 +11,7 @@ export async function putUserThesisToSupabase(thesis: Thesis): Promise<PutUserTh
 
   const r = await fetch("/api/user/theses", {
     method: "PUT",
+    credentials: "include",
     headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
     body: JSON.stringify({ thesis }),
   });

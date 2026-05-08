@@ -28,6 +28,12 @@ export type Thesis = {
   probability: number;
   status: ThesisStatus;
   probabilityRationale: string;
+  /**
+   * Client/session lane hint (mock + sessionStorage). Not the same as DB `public.theses.thesis_origin`.
+   *
+   * Phase 5 follow-up: align with DB enum `user | seeded_system | ai_generated` (e.g. map seeded catalog +
+   * AI-discovered rows explicitly) before Discovered / fork UI ships.
+   */
   origin?: "system" | "user";
 
   // causal framework

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
+import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
@@ -35,16 +36,32 @@ export async function PUT(req: NextRequest) {
   if (!url || !anon) return NextResponse.json({ ok: false, error: "supabase_env_missing" }, { status: 500 });
 
   const token = bearerToken(req);
-  if (!token) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
-  const sb = createSupabaseJsClient(url, anon, {
-    auth: { persistSession: false },
-    global: { headers: { Authorization: `Bearer ${token}` } },
-  });
+  /**
+   * RLS on `public.theses` requires `auth.uid()` on PostgREST requests. A plain anon client with only
+   * `global.headers.Authorization` does not always attach the JWT to the database REST layer the
+   * same way `@supabase/ssr` cookie sessions do — inserts then run as `anon` and fail WITH CHECK.
+   * Prefer the cookie-bound server client (same session as middleware); fall back to Bearer-bound
+   * client only when there is no cookie session but a valid access token is supplied.
+   */
+  const cookieSb = await createCookieSupabaseClient();
+  const { data: cookieAuth, error: cookieAuthErr } = await cookieSb.auth.getUser();
+  let sb = cookieSb;
+  let user = cookieAuth.user;
 
-  const { data: userRes, error: userErr } = await sb.auth.getUser();
-  const user = userRes.user;
-  if (userErr || !user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  if ((!user || cookieAuthErr) && token) {
+    const bearerSb = createSupabaseJsClient(url, anon, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
+    const { data: bearerAuth, error: bearerErr } = await bearerSb.auth.getUser(token);
+    if (!bearerErr && bearerAuth.user) {
+      sb = bearerSb;
+      user = bearerAuth.user;
+    }
+  }
+
+  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
   const body = (await req.json().catch(() => null)) as { thesis?: unknown } | null;
   const thesis = body?.thesis;
@@ -58,16 +75,19 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "system_thesis_readonly" }, { status: 403 });
   }
 
-  const row = {
+  const nowIso = new Date().toISOString();
+  const baseRow = {
     id: thesis.id,
     title: thesis.title,
     status: thesis.status,
+    thesis_origin: "user" as const,
     scenario_probabilities: scenarioProbabilitiesForDb(thesis),
     insider_flow: normalizeInsiderFlowForDb(thesis.insiderFlow),
     slug: thesis.slug,
     owner_user_id: user.id,
-    updated_at: new Date().toISOString(),
+    updated_at: nowIso,
   };
+  const insertRow = { ...baseRow, created_at: nowIso };
 
   const { data: existing, error: selErr } = await sb.from("theses").select("id,owner_user_id").eq("id", thesis.id).maybeSingle();
 
@@ -81,10 +101,10 @@ export async function PUT(req: NextRequest) {
     if (!owner) {
       return NextResponse.json({ ok: false, error: "system_thesis_readonly" }, { status: 403 });
     }
-    const { error: upErr } = await sb.from("theses").update(row).eq("id", thesis.id).eq("owner_user_id", user.id);
+    const { error: upErr } = await sb.from("theses").update(baseRow).eq("id", thesis.id).eq("owner_user_id", user.id);
     if (upErr) return NextResponse.json({ ok: false, error: upErr.message }, { status: 400 });
   } else {
-    const { error: insErr } = await sb.from("theses").insert(row);
+    const { error: insErr } = await sb.from("theses").insert(insertRow);
     if (insErr) return NextResponse.json({ ok: false, error: insErr.message }, { status: 400 });
   }
 
