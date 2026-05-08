@@ -27,14 +27,14 @@ export function StatusBadge({ status, showHint = false }: { status: ThesisStatus
     <Tooltip label={TOOLTIP[status]}>
       <span
         className={cn(
-          "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide",
-          // Limit filled pills to: valid/invalid/pending. Everything else is text-only.
-          status === "ready" && "bg-amber-500/12 text-amber-200 ring-1 ring-amber-500/25", // valid
-          status === "invalidated" && "bg-red-500/10 text-red-200/95 ring-1 ring-red-500/25", // invalid
-          status === "forming" && "bg-zinc-900/50 text-zinc-200 ring-1 ring-white/[0.08]", // pending
+          "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
+          // Text-only: avoid decorative filled pills.
+          status === "ready" && "text-zinc-300",
           status === "active" && "text-zinc-300",
-          status === "watching" && "text-zinc-400",
-          status === "resolved" && "text-zinc-400",
+          status === "watching" && "text-zinc-500",
+          status === "forming" && "text-zinc-600",
+          status === "resolved" && "text-zinc-500",
+          status === "invalidated" && "text-red-300/90",
         )}
       >
         {COPY[status]}

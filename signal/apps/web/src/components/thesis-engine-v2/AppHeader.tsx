@@ -57,6 +57,9 @@ export function AppHeader({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Depth4Wordmark href="/theses" size="md" className="leading-none" />
+              <span className="hidden text-[10px] font-medium uppercase tracking-[2.5px] text-zinc-600 lg:inline">
+                Your macro thesis engine
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-2">

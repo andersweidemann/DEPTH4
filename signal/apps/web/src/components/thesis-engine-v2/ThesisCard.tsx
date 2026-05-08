@@ -88,7 +88,7 @@ export function ThesisCard({
           <DirectionBadge direction={thesis.direction} />
           <StatusBadge status={thesis.status} />
           {entrySetupValid && (
-            <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200/90">
+            <span className="inline-flex items-center rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-emerald-200 ring-1 ring-emerald-500/20">
               Entry setup valid
             </span>
           )}

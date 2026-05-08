@@ -153,8 +153,8 @@ export function UpgradeModal({
                 </a>
               ) : (
                 <Link
-                  href="/pricing"
-                  className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
+                  href="/help"
+                  className="min-h-11 rounded-md border border-white/[0.10] bg-transparent px-4 py-2.5 text-[14px] font-semibold text-zinc-200 hover:bg-white/[0.05] sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
                 >
                   {secondaryLabel ?? secondary}
                 </Link>

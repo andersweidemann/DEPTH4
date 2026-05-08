@@ -59,6 +59,20 @@ export function PositionRow({
         ? `${position.unrealizedPnlNumeric >= 0 ? "+" : ""}${position.unrealizedPnlNumeric.toFixed(2)}`
         : (position.currentPnl ?? "—")
       : position.realizedPnl ?? position.currentPnl ?? "—";
+  const pnlTone =
+    typeof position.unrealizedPnlNumeric === "number" && !Number.isNaN(position.unrealizedPnlNumeric)
+      ? position.unrealizedPnlNumeric >= 0
+        ? "text-emerald-300/95"
+        : "text-red-300/95"
+      : typeof position.realizedPnlNumeric === "number" && !Number.isNaN(position.realizedPnlNumeric)
+        ? position.realizedPnlNumeric >= 0
+          ? "text-emerald-300/95"
+          : "text-red-300/95"
+        : pnlDisplay.trim().startsWith("+")
+          ? "text-emerald-300/95"
+          : pnlDisplay.trim().startsWith("-")
+            ? "text-red-300/95"
+            : "text-zinc-200";
 
   return (
     <>
@@ -67,7 +81,7 @@ export function PositionRow({
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <p className="text-[12px] font-semibold leading-snug text-zinc-100">
-                <Link href={thesisLink} className="text-amber-200/95 hover:text-amber-100">
+                <Link href={thesisLink} className="text-zinc-100 hover:text-white">
                   {thesisMeta.title}
                 </Link>
               </p>
@@ -118,7 +132,7 @@ export function PositionRow({
             </div>
             <div className="sm:col-span-2">
               <span className="text-zinc-600">{position.tradeStatus === "open" ? "Unrealized PnL · " : "Realized PnL · "}</span>
-              <span className="font-mono text-zinc-200">{pnlDisplay}</span>
+              <span className={`font-mono ${pnlTone}`}>{pnlDisplay}</span>
             </div>
             {!isOpen && position.closedAt ? (
               <div className="sm:col-span-2 text-[10px] text-zinc-600">

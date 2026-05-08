@@ -66,45 +66,55 @@ export function ThesisTableRow({
         }
       }}
       className={cn(
-        "grid grid-cols-[1fr_76px_92px_96px_44px] items-center gap-2 px-3 py-1.5 text-left",
-        "border-b border-white/[0.05] hover:bg-zinc-900/25",
+        "grid grid-cols-1 gap-2 px-3 py-4 text-left",
+        "border-b border-white/[0.05] hover:bg-white/[0.02]",
         selected && "bg-zinc-900/45",
         pulseKey && pulseKey > 0 && "animate-[thesis-pulse_0.85s_ease-out_1]",
       )}
     >
-      <div className="min-w-0">
-        <p className="truncate text-[12px] font-medium text-zinc-100">{thesis.title}</p>
-      </div>
-
-      <div className="text-right">
-        <div className="text-[12px] font-semibold tabular-nums text-amber-200/90">
-          <Tooltip label="Likelihood estimate based on current evidence">
-            <span>{thesis.probability}%</span>
-          </Tooltip>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="truncate text-[14px] font-semibold text-zinc-100">{thesis.title}</p>
+            <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500">{thesis.direction}</span>
+            <Tooltip label={STATUS_TOOLTIP[thesis.status]}>
+              <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", pill.className)}>{pill.label}</span>
+            </Tooltip>
+          </div>
+          <p className="mt-1 line-clamp-1 text-[12px] text-zinc-500">
+            Why now: {thesis.whyNow || thesis.thesisStatement || "—"}
+          </p>
         </div>
-        <div className="mt-0.5 text-[10px] tabular-nums text-zinc-500">
-          <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
-            <span>score {mispricing.score}</span>
-          </Tooltip>
+
+        <div className="flex flex-shrink-0 items-center gap-6">
+          <div className="min-w-[140px] text-right">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-[1px] bg-white/10">
+                <div className="h-full bg-amber-400/90" style={{ width: `${Math.max(0, Math.min(100, thesis.probability))}%` }} />
+              </div>
+              <Tooltip label="Likelihood estimate based on current evidence">
+                <span className="text-[12px] font-semibold tabular-nums text-zinc-300">{thesis.probability}%</span>
+              </Tooltip>
+            </div>
+            <div className="mt-1 text-[10px] tabular-nums text-zinc-600">
+              <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+                <span>score {mispricing.score}</span>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="hidden text-right font-mono text-[11px] tabular-nums text-zinc-600 sm:block">{thesis.lastUpdated}</div>
+
+          <div className="flex justify-end">
+            <ThesisStarButton
+              size="sm"
+              filled={starred}
+              disabled={starDisabled}
+              title={starDisabled ? "Star unavailable" : starred ? "Starred — alerts on" : "Star — subscribe to alerts"}
+              onClick={onToggleStar}
+            />
+          </div>
         </div>
-      </div>
-
-      <div className="flex justify-end">
-        <Tooltip label={STATUS_TOOLTIP[thesis.status]}>
-          <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", pill.className)}>{pill.label}</span>
-        </Tooltip>
-      </div>
-
-      <div className="text-right font-mono text-[11px] tabular-nums text-zinc-500">{thesis.lastUpdated}</div>
-
-      <div className="flex justify-end">
-        <ThesisStarButton
-          size="sm"
-          filled={starred}
-          disabled={starDisabled}
-          title={starDisabled ? "Star unavailable" : starred ? "Starred — alerts on" : "Star — subscribe to alerts"}
-          onClick={onToggleStar}
-        />
       </div>
     </div>
   );

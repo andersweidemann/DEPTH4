@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ThesisCard } from "@/components/thesis-engine-v2/ThesisCard";
 import { ThesisTableRow } from "@/components/thesis-engine-v2/ThesisTableRow";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
@@ -202,35 +201,26 @@ export function ThesesDashboardClient({
           <div className="mt-3 bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-500">
             No Ready or Active theses match the current filters.
           </div>
-        ) : focusTop.length === 1 ? (
-          <div className="mt-3">
-            <ThesisCard
-              thesis={focusTop[0]}
-              variant="primary"
-              selectedSlug={drawerSlug}
-              pulseKey={live.pulseKey(focusTop[0].id)}
-              onSelect={(s) => setDrawerSlug(s)}
-            />
-          </div>
         ) : (
-          <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-12">
-            <div className="md:col-span-7">
-              <ThesisCard
-                thesis={focusTop[0]}
-                variant="primary"
-                selectedSlug={drawerSlug}
-                pulseKey={live.pulseKey(focusTop[0].id)}
-                onSelect={(s) => setDrawerSlug(s)}
-              />
+          <div className="mt-3 bg-zinc-900/20">
+            <div className="hidden grid-cols-[1fr_76px_92px_96px_44px] gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 sm:grid">
+              <span>Thesis</span>
+              <span className="text-right">Prob</span>
+              <span className="text-right">Status</span>
+              <span className="text-right">Update</span>
+              <span className="text-right">Star</span>
             </div>
-            <div className="grid gap-3 md:col-span-5">
-              {focusTop.slice(1).map((t) => (
-                <ThesisCard
+            <div className="mt-1 grid gap-0">
+              {focusTop.map((t) => (
+                <ThesisTableRow
                   key={t.id}
                   thesis={t}
-                  selectedSlug={drawerSlug}
+                  selected={drawerSlug === t.slug}
                   pulseKey={live.pulseKey(t.id)}
-                  onSelect={(s) => setDrawerSlug(s)}
+                  starred={live.isEffectivelyStarred(t.id)}
+                  starDisabled={!!live.starDisabledReason(t.id)}
+                  onToggleStar={() => live.toggleStar(t.id)}
+                  onSelect={() => setDrawerSlug(t.slug)}
                 />
               ))}
             </div>

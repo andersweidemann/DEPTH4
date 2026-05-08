@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 const FOOTER_DISCLAIMER = [
   "DEPTH4 is a macro analysis and information tool, not personalized investment advice.",
@@ -16,6 +17,12 @@ export function LegalFooter({ variant = "default" }: { variant?: "default" | "mi
       ].join(" ")}
     >
       <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mb-4 flex items-center justify-center gap-3">
+          <Depth4Wordmark href="/" size="sm" align="center" />
+          <span className="hidden text-[10px] font-medium uppercase tracking-[2.5px] text-zinc-600 sm:inline">
+            Your macro thesis engine
+          </span>
+        </div>
         <div className="text-xs leading-relaxed text-zinc-500">
           <p className="text-zinc-500">{FOOTER_DISCLAIMER}</p>
           <p className="mt-2 text-zinc-600">

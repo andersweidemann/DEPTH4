@@ -120,18 +120,35 @@ export function BookPagePerformanceBoard({ stats }: { stats: SessionBookStats })
         </div>
       </div>
 
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="rounded-none bg-zinc-950/35 px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Closed trades</p>
+          <p className="mt-1 text-5xl font-semibold tabular-nums tracking-tight text-zinc-50 sm:text-6xl">
+            {stats.closedTradeCount}
+          </p>
+          <p className="mt-1 text-[11px] text-zinc-600">Full exits only</p>
+        </div>
+        <div className="rounded-none bg-zinc-950/35 px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Win rate</p>
+          <p className={cn("mt-1 text-5xl font-semibold tabular-nums tracking-tight sm:text-6xl", hasClosed ? "text-zinc-50" : "text-zinc-600")}>
+            {stats.winRateStr}
+          </p>
+          <p className="mt-1 text-[11px] text-zinc-600">Closed · decisive</p>
+        </div>
+      </div>
+
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         <StatCell label="Open positions" value={stats.openCount} />
-        <StatCell label="Closed trades" value={stats.closedTradeCount} sub="Full user exits" />
         <StatCell label="Realized PnL" value={stats.realizedStr} valueClassName={bookStatTone(stats.realizedStr)} />
         <StatCell label="Unrealized PnL" value={stats.unrealizedStr} valueClassName={bookStatTone(stats.unrealizedStr)} />
-        <StatCell label="Win rate" value={stats.winRateStr} sub="Closed · decisive" />
         <StatCell
           label="Avg return"
           value={stats.avgReturnStr}
           sub="Per closed trade"
           valueClassName={bookStatTone(stats.avgReturnStr)}
         />
+        <StatCell label="Best close" value={stats.bestClosedStr} valueClassName={bookStatTone(stats.bestClosedStr)} />
+        <StatCell label="Worst close" value={stats.worstClosedStr} valueClassName={bookStatTone(stats.worstClosedStr)} />
       </div>
 
       <div className="mt-2.5 grid grid-cols-1 gap-2 pt-2.5 sm:grid-cols-2 lg:grid-cols-4">

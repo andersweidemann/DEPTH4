@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { PublicTopBar } from "@/components/brand/PublicTopBar";
+import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 
 function isValidEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
@@ -131,9 +132,17 @@ function LoginPageInner() {
 
   return (
     <div className="min-h-dvh bg-[#0c0c0e] text-zinc-100 antialiased">
-      <PublicTopBar backHref="/" backLabel="Back" />
+      <PublicTopBar backHref="/" backLabel="Back" showTagline />
       <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 py-12 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-5">
+          <div className="mt-2 flex justify-center lg:hidden">
+            <div className="text-center">
+              <Depth4Wordmark size="lg" align="center" />
+              <span className="mt-1 block text-[10px] font-medium uppercase tracking-[2.5px] text-zinc-600">
+                Your macro thesis engine
+              </span>
+            </div>
+          </div>
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-zinc-50">Log in</h1>
           <p className="mt-3 max-w-md text-[13px] leading-relaxed text-zinc-300">
             Access your macro theses, live probability updates, and trade review.

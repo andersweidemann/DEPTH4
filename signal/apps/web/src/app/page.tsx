@@ -17,6 +17,9 @@ export default function HomePage() {
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-5">
           <div className="flex items-center gap-3">
             <Depth4Wordmark size="sm" />
+            <span className="hidden text-[10px] font-medium uppercase tracking-[2.5px] text-zinc-600 lg:inline">
+              Your macro thesis engine
+            </span>
           </div>
           <nav className="flex items-center gap-2 text-[12px]">
             <Link href="/demo" className="px-2 py-1 text-zinc-400 hover:text-zinc-200">
@@ -45,7 +48,7 @@ export default function HomePage() {
         {/* HERO */}
         <section className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 pb-14 pt-12 lg:grid-cols-12 lg:gap-12">
           <div className="lg:col-span-6">
-            <Depth4Wordmark size="lg" showTagline align="left" className="text-zinc-100" />
+            <Depth4Wordmark size="lg" align="left" className="text-zinc-100" />
             <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-50 md:text-5xl">
               Your macro thesis engine
             </h1>

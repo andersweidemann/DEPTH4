@@ -10,11 +10,13 @@ export function PublicTopBar({
   backLabel = "Back",
   right,
   className,
+  showTagline = false,
 }: {
   backHref?: string;
   backLabel?: string;
   right?: ReactNode;
   className?: string;
+  showTagline?: boolean;
 }) {
   return (
     <header className={cn("border-b border-white/[0.06]", className)}>
@@ -22,6 +24,11 @@ export function PublicTopBar({
         <div className="flex items-center gap-2">
           <BackButton fallbackHref={backHref} label={backLabel} />
           <Depth4Wordmark size="sm" />
+          {showTagline ? (
+            <span className="hidden text-[10px] font-medium uppercase tracking-[2.5px] text-zinc-600 sm:inline">
+              Your macro thesis engine
+            </span>
+          ) : null}
         </div>
         {right ? <div className="flex items-center gap-2">{right}</div> : null}
       </div>
