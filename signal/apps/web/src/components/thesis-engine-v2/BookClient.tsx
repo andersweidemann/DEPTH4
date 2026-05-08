@@ -7,7 +7,7 @@ import { BookPagePerformanceBoard } from "@/components/thesis-engine-v2/BookSess
 import { PositionRow } from "@/components/thesis-engine-v2/PositionRow";
 import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
-import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
+import { DEPTH4_POSITIONS_CHANGED, loadPositions, savePositions } from "@/lib/thesis-engine-v2/positions-store";
 import { MOCK_THESES, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { Position, ResolvedThesisRecord, WatchlistIdea } from "@/lib/thesis-engine-v2/types";
@@ -73,6 +73,76 @@ export function BookClient({
   }, [refreshFromStore]);
 
   useEffect(() => {
+    const cur = loadPositions();
+    if (cur.length) return;
+
+    const now = new Date();
+    const isoDaysAgo = (d: number) => new Date(now.getTime() - d * 24 * 60 * 60 * 1000).toISOString();
+
+    const demo: Position[] = [
+      {
+        id: "demo-book-1",
+        symbol: "RTX",
+        side: "long",
+        linkedThesisId: "th-defense",
+        thesisStatus: "resolved",
+        tradeStatus: "closed",
+        openedAt: isoDaysAgo(90),
+        closedAt: isoDaysAgo(0),
+        entryPrice: 130,
+        exitPrice: 148,
+        size: 100,
+        closeReason: "target_hit",
+        realizedPnlNumeric: 13.8,
+        realizedPnl: "+13.8%",
+        recommendation: "exit",
+        probability: 64,
+        latestUpdate: "Illustrative close recorded to populate Book performance metrics.",
+      },
+      {
+        id: "demo-book-2",
+        symbol: "XAUUSD",
+        side: "short",
+        linkedThesisId: "th-gold",
+        thesisStatus: "ready",
+        tradeStatus: "closed",
+        openedAt: isoDaysAgo(14),
+        closedAt: isoDaysAgo(0),
+        entryPrice: 3291,
+        exitPrice: 3312,
+        size: 1,
+        closeReason: "manual_exit",
+        realizedPnlNumeric: -0.6,
+        realizedPnl: "-0.6%",
+        recommendation: "exit",
+        probability: 67,
+        latestUpdate: "Illustrative close recorded to populate Book performance metrics.",
+      },
+      {
+        id: "demo-book-3",
+        symbol: "TLT",
+        side: "short",
+        linkedThesisId: "th-tlt",
+        thesisStatus: "forming",
+        tradeStatus: "closed",
+        openedAt: isoDaysAgo(5),
+        closedAt: isoDaysAgo(0),
+        entryPrice: 95,
+        exitPrice: 89,
+        size: 200,
+        closeReason: "target_hit",
+        realizedPnlNumeric: 6.3,
+        realizedPnl: "+6.3%",
+        recommendation: "exit",
+        probability: 54,
+        latestUpdate: "Illustrative close recorded to populate Book performance metrics.",
+      },
+    ];
+
+    savePositions(demo);
+  }, []);
+
+  useEffect(() => {
     const onPos = () => refreshFromStore();
     window.addEventListener(DEPTH4_POSITIONS_CHANGED, onPos);
     return () => window.removeEventListener(DEPTH4_POSITIONS_CHANGED, onPos);
@@ -107,9 +177,8 @@ export function BookClient({
     <>
       <BookRiskDisclaimer />
 
-      <h1 className="text-lg font-semibold tracking-tight text-zinc-100">Book</h1>
       <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
-        Your positions, tracked against live macro theses. Session-only until backend wiring.
+        Your positions, tracked against live macro theses. Positions sync when you log in.
       </p>
 
       <BookPagePerformanceBoard stats={stats} />

@@ -69,7 +69,7 @@ export default function PricingPage() {
           </button>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
           <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6 flex flex-col text-left">
             <h2 className="text-lg font-semibold text-zinc-200">{TIER_OFFERS.free.name}</h2>
             <p className="text-3xl font-bold mt-2 text-zinc-50">{TIER_OFFERS.free.priceMonthly}</p>
@@ -142,31 +142,6 @@ export default function PricingPage() {
               Choose Pro
             </Link>
           </div>
-
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 flex flex-col text-left">
-            <h2 className="text-lg font-semibold text-zinc-200">{TIER_OFFERS.creator.name}</h2>
-            <p className="text-3xl font-bold mt-2 text-zinc-50">
-              {billing === "yearly" ? TIER_OFFERS.creator.priceYearly : TIER_OFFERS.creator.priceMonthly}
-            </p>
-            <p className="text-sm text-zinc-400 mt-2">{TIER_OFFERS.creator.description}</p>
-            <ul className="mt-4 space-y-2.5 text-sm text-zinc-200 flex-1">
-              {TIER_OFFERS.creator.features.map((t) => (
-                <li key={t} className="flex gap-2">
-                  <Check className="h-4 w-4 text-zinc-500 shrink-0 mt-0.5" />
-                  {t}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href="/signup?next=/onboarding"
-              className={cn(
-                buttonVariants({ variant: "secondary" }),
-                "mt-6 w-full justify-center bg-zinc-800 text-zinc-200 border border-zinc-700",
-              )}
-            >
-              Choose Creator
-            </Link>
-          </div>
         </div>
 
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 sm:p-6">
@@ -181,28 +156,25 @@ export default function PricingPage() {
                   <th className="py-2 pr-4">Free</th>
                   <th className="py-2 pr-4">Analyst</th>
                   <th className="py-2 pr-4">Pro</th>
-                  <th className="py-2">Creator</th>
+                  {/* Creator tier hidden for now */}
                 </tr>
               </thead>
               <tbody className="text-[12px] text-zinc-300">
                 {[
-                  ["System theses access", "Limited", "Full", "Full", "Full"],
-                  ["Create private theses", "—", "✓", "✓", "✓"],
-                  ["Live probability updates", "Limited", "✓", "✓", "✓"],
-                  ["Evidence timeline", "Limited", "✓", "✓", "✓"],
-                  ["Email alerts", "Limited", "✓", "✓", "✓"],
-                  ["Publish theses publicly", "—", "—", "✓", "✓"],
-                  ["Leaderboard ranking", "—", "—", "✓", "✓"],
-                  ["Thesis analytics", "—", "—", "✓", "✓"],
-                  ["Monetization (revenue share)", "—", "—", "—", "✓"],
-                  ["API access", "—", "—", "—", "✓"],
-                ].map(([cap, a, b, c, d]) => (
+                  ["System theses access", "Limited", "Full", "Full"],
+                  ["Create private theses", "—", "✓", "✓"],
+                  ["Live probability updates", "Limited", "✓", "✓"],
+                  ["Evidence timeline", "Limited", "✓", "✓"],
+                  ["Email alerts", "Limited", "✓", "✓"],
+                  ["Publish theses publicly", "—", "—", "✓"],
+                  ["Leaderboard ranking", "—", "—", "✓"],
+                  ["Thesis analytics", "—", "—", "✓"],
+                ].map(([cap, a, b, c]) => (
                   <tr key={cap} className="border-t border-zinc-800">
                     <td className="py-2 pr-4 text-zinc-400">{cap}</td>
                     <td className="py-2 pr-4">{a}</td>
                     <td className="py-2 pr-4">{b}</td>
                     <td className="py-2 pr-4">{c}</td>
-                    <td className="py-2">{d}</td>
                   </tr>
                 ))}
               </tbody>

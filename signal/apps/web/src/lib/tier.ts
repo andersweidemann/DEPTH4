@@ -41,7 +41,7 @@ export const TIER_OFFERS = {
       "Create private theses",
       "Full thesis tracking + advisory log",
       "Exports",
-      "Unlimited saved theses (dummy)",
+      "Unlimited saved theses",
     ] as const,
   },
   pro: {
@@ -53,7 +53,7 @@ export const TIER_OFFERS = {
       "Publish theses publicly",
       "Leaderboard + public profile/followers",
       "Fork/remix theses",
-      "Community participation (dummy)",
+      "Community participation",
     ] as const,
   },
   creator: {
@@ -65,7 +65,7 @@ export const TIER_OFFERS = {
       "Monetization tools",
       "Creator analytics",
       "API + advanced profile tools",
-      "Priority support (dummy)",
+      "Priority support",
     ] as const,
   },
 } as const;
