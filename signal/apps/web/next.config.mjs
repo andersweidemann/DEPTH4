@@ -8,7 +8,7 @@ const withPWA = withPWAInit({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
-  workboxOptions: { disableDevLogs: true },
+  workboxOptions: { disableDevLogs: true, importScripts: ["/sw-push.js"] },
 });
 
 /** @type {import('next').NextConfig} */

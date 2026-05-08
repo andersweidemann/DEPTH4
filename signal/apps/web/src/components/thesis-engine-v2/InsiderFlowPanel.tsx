@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
+import { createClient } from "@/lib/supabase/client";
 
 function planGte(a: string, b: string) {
   const order = ["free", "analyst", "pro", "creator"];
@@ -41,6 +42,7 @@ export function InsiderFlowPanel({
   const rootRef = useRef<HTMLDivElement>(null);
   const { plan } = useV2Plan();
   const live = useThesisLiveOptional();
+  const sb = useMemo(() => createClient(), []);
 
   const anomalies = useMemo(() => live?.insiderFlowAnomalies ?? [], [live?.insiderFlowAnomalies]);
   const latest = anomalies[0] ?? null;
@@ -53,6 +55,18 @@ export function InsiderFlowPanel({
 
   const canSeeLog = planGte(plan, "analyst");
   const canRealtime = planGte(plan, "pro");
+  const fmtDelta = (ms: number) => {
+    const m = Math.max(0, Math.round(ms / 60000));
+    if (m < 60) return `${m}m`;
+    const h = Math.floor(m / 60);
+    const rem = m % 60;
+    return `${h}h ${rem}m`;
+  };
+  const confidence = (z: number, volMult: number) => {
+    const zN = Math.min(3, Math.max(0, Math.abs(z)));
+    const vN = Math.min(6, Math.max(0, volMult));
+    return Math.round((zN / 3) * 55 + (vN / 6) * 45);
+  };
 
   const visible = useMemo(() => {
     if (!latest) return { hasRecent: false, recentCount: 0 };
@@ -80,6 +94,42 @@ export function InsiderFlowPanel({
   }, [open, onClose]);
 
   if (!open) return null;
+
+  async function enablePush() {
+    const { data: { session } } = await sb.auth.getSession();
+    const tok = session?.access_token;
+    if (!tok) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (typeof Notification === "undefined") return;
+
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return;
+
+    // Ensure SW is ready (next-pwa registers /sw.js automatically).
+    const reg = await navigator.serviceWorker.ready;
+    const vapid = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "").trim();
+    if (!vapid) return;
+
+    const toUint8 = (base64String: string) => {
+      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const rawData = atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+      return outputArray;
+    };
+
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: toUint8(vapid),
+    });
+
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      body: JSON.stringify(sub),
+    });
+  }
 
   return (
     <div className="fixed inset-0 z-[140] flex justify-end" role="dialog" aria-modal="true" aria-label="Insider Flow Detector">
@@ -134,14 +184,26 @@ export function InsiderFlowPanel({
                       {latest.status === "INVALIDATED" ? invalidationCopy(latest.statusReason) : latest.notes}
                     </p>
                     <div className="mt-3 grid gap-2">
-                      {latest.instrumentsMoved.slice(0, 5).map((x) => (
-                        <div key={x.symbol} className="flex items-center justify-between text-[11px]">
-                          <span className="font-mono text-zinc-300">{x.symbol}</span>
-                          <span className="tabular-nums text-zinc-400">
-                            {(x.return_15m * 100).toFixed(2)}% · {x.volume_multiple.toFixed(1)}x · z {x.z_score.toFixed(2)}
-                          </span>
-                        </div>
-                      ))}
+                      {latest.instrumentsMoved.slice(0, 5).map((x) => {
+                        const c = confidence(x.z_score, x.volume_multiple);
+                        return (
+                          <div key={x.symbol} className="grid gap-1">
+                            <div className="flex items-center justify-between text-[11px]">
+                              <span className="font-mono text-zinc-300">{x.symbol}</span>
+                              <span className="tabular-nums text-zinc-400">
+                                {(x.return_15m * 100).toFixed(2)}% · {x.volume_multiple.toFixed(1)}x · z {x.z_score.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="h-1 w-full overflow-hidden rounded-full bg-zinc-800/80">
+                              <div
+                                className={cn("h-full rounded-full", c >= 80 ? "bg-emerald-500/80" : c >= 55 ? "bg-amber-500/80" : "bg-rose-500/70")}
+                                style={{ width: `${c}%` }}
+                                aria-hidden
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                     <div className="mt-3 flex items-center justify-between gap-2">
                       <Link
@@ -177,6 +239,11 @@ export function InsiderFlowPanel({
                           {a.patternType === "BULL_LEAK" ? "Bull leak" : "Bear leak"} ·{" "}
                           {a.status === "UNCONFIRMED_LEAK" ? "Unconfirmed" : a.status === "CONFIRMED_MOVE" ? "Confirmed" : "Invalidated"}
                         </p>
+                        {a.status === "CONFIRMED_MOVE" && a.confirmedHeadlineAt ? (
+                          <p className="mt-0.5 text-[11px] text-emerald-300/90">
+                            ✅ Confirmed {fmtDelta(a.confirmedHeadlineAt - a.createdAt)} later
+                          </p>
+                        ) : null}
                         {a.status === "INVALIDATED" ? (
                           <p className="mt-0.5 text-[11px] text-zinc-500">{invalidationCopy(a.statusReason)}</p>
                         ) : null}
@@ -192,6 +259,22 @@ export function InsiderFlowPanel({
         <div className="border-t border-white/[0.06] px-4 py-3 text-[11px] text-zinc-600">
           {canSeeLog ? "Analyst: 7-day log enabled." : "Free: 24h indicator only."}{" "}
           {canRealtime ? "Pro: realtime alerts enabled." : null}
+          {plan === "pro" ? (
+            <button
+              type="button"
+              className="ml-2 text-[11px] font-semibold text-amber-200/90 hover:text-amber-100"
+              onClick={() => void enablePush()}
+            >
+              Enable push →
+            </button>
+          ) : (
+            <Link
+              href="/pricing?source=push-notifications&recommended=pro"
+              className="ml-2 text-[11px] font-semibold text-amber-200/90 hover:text-amber-100"
+            >
+              Push alerts (Pro) →
+            </Link>
+          )}
         </div>
       </aside>
     </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
-import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getDailyBars, getIntraday5mBars } from "@/lib/market-data";
 
 export const runtime = "nodejs";
@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
   if (!url || !anon || !service) {
     return NextResponse.json({ ok: false, error: "Supabase env missing" }, { status: 500 });
   }
-  const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } });
+  const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
 
   // Only refresh baselines for instruments that appear in STARRED theses.
   const { data: starredRows } = await admin.from("thesis_stars").select("thesis_id").limit(5000);

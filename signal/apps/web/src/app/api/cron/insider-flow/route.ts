@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { detectInsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/detect";
 import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/types";
-import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getMarketSnapshotsBatch } from "@/lib/market-data";
 import type { TwelveBatchResult } from "@/lib/market-data";
 import { buildMockMarketSnapshot } from "@/lib/thesis-engine-v2/insider-flow/mock-market";
 import type { InstrumentFlowSnapshot } from "@/lib/thesis-engine-v2/insider-flow/types";
+import webpush from "web-push";
 
 export const runtime = "nodejs";
 
@@ -93,6 +94,71 @@ function sign(x: number) {
   return x > 0 ? 1 : x < 0 ? -1 : 0;
 }
 
+function getVapid() {
+  const pub = (process.env.VAPID_PUBLIC_KEY ?? "").trim();
+  const priv = (process.env.VAPID_PRIVATE_KEY ?? "").trim();
+  const email = (process.env.VAPID_EMAIL ?? "").trim();
+  if (!pub || !priv || !email) return null;
+  return { pub, priv, email };
+}
+
+async function pushToUsers(args: {
+  admin: SupabaseClient;
+  userIds: string[];
+  payload: { title: string; body: string; url: string; tag: string };
+}) {
+  const { admin, userIds, payload } = args;
+  if (!userIds.length) return { attempted: 0, sent: 0, removed: 0 };
+
+  const v = getVapid();
+  if (!v) return { attempted: 0, sent: 0, removed: 0 };
+  webpush.setVapidDetails(v.email, v.pub, v.priv);
+
+  const { data: subs } = await admin
+    .from("push_subscriptions")
+    .select("id,user_id,endpoint,p256dh,auth")
+    .in("user_id", userIds)
+    .limit(5000);
+
+  const rows =
+    (subs ?? []).map((r: { id?: unknown; user_id?: unknown; endpoint?: unknown; p256dh?: unknown; auth?: unknown }) => ({
+      id: String(r.id ?? ""),
+      userId: String(r.user_id ?? ""),
+      endpoint: String(r.endpoint ?? ""),
+      p256dh: String(r.p256dh ?? ""),
+      auth: String(r.auth ?? ""),
+    })) ?? [];
+
+  let attempted = 0;
+  let sent = 0;
+  let removed = 0;
+
+  for (const s of rows) {
+    if (!s.endpoint || !s.p256dh || !s.auth) continue;
+    attempted += 1;
+    try {
+      await webpush.sendNotification(
+        {
+          endpoint: s.endpoint,
+          keys: { p256dh: s.p256dh, auth: s.auth },
+        },
+        JSON.stringify(payload),
+      );
+      sent += 1;
+    } catch (e: unknown) {
+      const statusCode = typeof (e as { statusCode?: unknown }).statusCode === "number"
+        ? (e as { statusCode: number }).statusCode
+        : null;
+      if (statusCode === 410 || statusCode === 404) {
+        await admin.from("push_subscriptions").delete().eq("id", s.id);
+        removed += 1;
+      }
+    }
+  }
+
+  return { attempted, sent, removed };
+}
+
 function shouldInvalidateOnReversal(args: {
   patternType: "BULL_LEAK" | "BEAR_LEAK";
   originalR15BySymbol: Record<string, number>;
@@ -149,7 +215,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } });
+  // Cast to an untyped client so newly added tables don't break builds before types are regenerated.
+  const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
 
   // STARRED-ONLY scan: find which thesis IDs are starred by any user.
   const { data: starredRows } = await admin.from("thesis_stars").select("thesis_id").limit(5000);
@@ -305,6 +372,9 @@ export async function GET(req: NextRequest) {
   let deduped = 0;
   let updated_confirmed = 0;
   let updated_invalidated = 0;
+  let push_attempted = 0;
+  let push_sent = 0;
+  let push_removed = 0;
 
   if (anomalies.length) {
     // Deduplicate: skip if similar anomaly already exists recently for the thesis.
@@ -371,11 +441,76 @@ export async function GET(req: NextRequest) {
 
     deduped = anomalies.length - toInsert.length;
 
-    await admin
+    const { data: inserted } = await admin
       .from("flow_anomalies")
       .insert(toInsert)
+      .select("id,thesis_id,thesis_title,pattern_type,status,probability_suggestion,created_at")
       .throwOnError();
     written = toInsert.length;
+
+    // Evidence log (server-side persistence) for inserted anomalies.
+    const insRows =
+      (inserted ?? []).map((r: { id?: unknown; thesis_id?: unknown; created_at?: unknown; probability_suggestion?: unknown; pattern_type?: unknown }) => {
+        const anomalyId = String(r.id ?? "");
+        const thesisId = String(r.thesis_id ?? "");
+        const t = theses.find((x) => x.id === thesisId);
+        const priorRaw = t?.scenario_probabilities ?? null;
+        const prior = {
+          base: typeof priorRaw?.base === "number" ? priorRaw.base : 40,
+          bull: typeof priorRaw?.bull === "number" ? priorRaw.bull : 35,
+          bear: typeof priorRaw?.bear === "number" ? priorRaw.bear : 25,
+        };
+        const after = r.probability_suggestion && typeof r.probability_suggestion === "object" ? r.probability_suggestion : null;
+        const pt = String(r.pattern_type ?? "");
+        const desc = `Insider flow detected (${pt}). Probability suggestion stored.`;
+        return {
+          thesis_id: thesisId,
+          event_type: "insider_flow",
+          description: desc,
+          probability_before: prior,
+          probability_after: after,
+          metadata: { anomaly_id: anomalyId },
+          dedupe_key: `if:${anomalyId}:insider_flow`,
+        };
+      }) ?? [];
+    if (insRows.length) {
+      await admin.from("thesis_evidence_log").upsert(insRows, { onConflict: "dedupe_key" });
+    }
+
+    // Push notifications (Pro only): notify users who starred the thesis and have a subscription.
+    const insertedRows = (inserted ?? []) as Array<{ id: string; thesis_id: string; thesis_title: string; pattern_type: string }>;
+    if (insertedRows.length) {
+      const tids = Array.from(new Set(insertedRows.map((r) => String(r.thesis_id ?? "")).filter(Boolean)));
+      const { data: starRows } = await admin.from("thesis_stars").select("user_id,thesis_id").in("thesis_id", tids).limit(10000);
+      const starPairs =
+        (starRows ?? []).map((r: { user_id?: unknown; thesis_id?: unknown }) => ({
+          userId: String(r.user_id ?? ""),
+          thesisId: String(r.thesis_id ?? ""),
+        })) ?? [];
+      const userIds = Array.from(new Set(starPairs.map((p) => p.userId).filter(Boolean)));
+      const { data: users } = await admin.from("users").select("id,tier,notification_preferences").in("id", userIds).limit(5000);
+      const proIds = new Set(
+        (users ?? [])
+          .filter((u: { id?: unknown; tier?: unknown; notification_preferences?: unknown }) => String(u.tier ?? "") === "pro")
+          .map((u: { id?: unknown }) => String(u.id ?? "")),
+      );
+
+      for (const a of insertedRows) {
+        const thId = String(a.thesis_id ?? "");
+        const watchers = starPairs.filter((p) => p.thesisId === thId).map((p) => p.userId).filter((id) => proIds.has(id));
+        if (!watchers.length) continue;
+        const payload = {
+          title: "Insider Flow Detected",
+          body: `${a.thesis_title}: ${a.pattern_type === "BULL_LEAK" ? "Bull leak" : "Bear leak"} (new signal)`,
+          url: `/theses/${encodeURIComponent(thId)}`,
+          tag: `anomaly-${String(a.id ?? "")}`,
+        };
+        const res = await pushToUsers({ admin, userIds: watchers, payload });
+        push_attempted += res.attempted;
+        push_sent += res.sent;
+        push_removed += res.removed;
+      }
+    }
   }
 
   // Follow-up: promote UNCONFIRMED_LEAK → CONFIRMED_MOVE if confirm-tags show up after.
@@ -437,6 +572,17 @@ export async function GET(req: NextRequest) {
             .eq("id", row.id)
             .throwOnError();
           updated_invalidated += 1;
+
+          await admin.from("thesis_evidence_log").upsert(
+            {
+              thesis_id: tid,
+              event_type: "insider_flow_invalidated",
+              description: "Anomaly invalidated by contradicting headline.",
+              metadata: { anomaly_id: row.id, matched_tags: bestContradict.matched },
+              dedupe_key: `if:${row.id}:invalidated`,
+            },
+            { onConflict: "dedupe_key" },
+          );
         } else {
           await admin
             .from("flow_anomalies")
@@ -449,6 +595,17 @@ export async function GET(req: NextRequest) {
             .eq("id", row.id)
             .throwOnError();
           updated_confirmed += 1;
+
+          await admin.from("thesis_evidence_log").upsert(
+            {
+              thesis_id: tid,
+              event_type: "insider_flow_confirmed",
+              description: "Anomaly confirmed by headline after initial leak.",
+              metadata: { anomaly_id: row.id, matched_tags: bestConfirm.matched },
+              dedupe_key: `if:${row.id}:confirmed`,
+            },
+            { onConflict: "dedupe_key" },
+          );
         }
         continue;
       }
@@ -465,6 +622,16 @@ export async function GET(req: NextRequest) {
           .eq("id", row.id)
           .throwOnError();
         updated_invalidated += 1;
+        await admin.from("thesis_evidence_log").upsert(
+          {
+            thesis_id: tid,
+            event_type: "insider_flow_invalidated",
+            description: "Anomaly invalidated by contradicting headline.",
+            metadata: { anomaly_id: row.id, matched_tags: bestContradict.matched },
+            dedupe_key: `if:${row.id}:invalidated`,
+          },
+          { onConflict: "dedupe_key" },
+        );
         continue;
       }
 
@@ -480,6 +647,16 @@ export async function GET(req: NextRequest) {
           .eq("id", row.id)
           .throwOnError();
         updated_confirmed += 1;
+        await admin.from("thesis_evidence_log").upsert(
+          {
+            thesis_id: tid,
+            event_type: "insider_flow_confirmed",
+            description: "Anomaly confirmed by headline after initial leak.",
+            metadata: { anomaly_id: row.id, matched_tags: bestConfirm.matched },
+            dedupe_key: `if:${row.id}:confirmed`,
+          },
+          { onConflict: "dedupe_key" },
+        );
       }
     }
   }
@@ -558,6 +735,17 @@ export async function GET(req: NextRequest) {
           .eq("id", row.id)
           .throwOnError();
         updated_invalidated += 1;
+
+        await admin.from("thesis_evidence_log").upsert(
+          {
+            thesis_id: String(row.thesis_id),
+            event_type: "insider_flow_invalidated",
+            description: "Anomaly invalidated by price reversal.",
+            metadata: { anomaly_id: row.id },
+            dedupe_key: `if:${row.id}:invalidated`,
+          },
+          { onConflict: "dedupe_key" },
+        );
       }
     }
   }
@@ -576,6 +764,9 @@ export async function GET(req: NextRequest) {
     updated_invalidated,
     twelve_rate_limit: rate,
     twelve_credits_used: creditsUsed,
+    push_attempted,
+    push_sent,
+    push_removed,
   });
 }
 
