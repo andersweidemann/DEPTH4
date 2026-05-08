@@ -4,8 +4,7 @@ import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { MacroReasoningDetail } from "@/components/macro-reasoning/MacroReasoningDetail";
-import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
-import { MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { createClient } from "@/lib/supabase/server";
 import { fetchReasoningByNewsEventId, parseReasoningPayload } from "@/lib/feed/promoted-macro-events";
 import { fetchThesisSlugMap } from "@/lib/feed/thesis-slugs";
@@ -39,14 +38,7 @@ export default async function FeedEventReasoningPage({ params }: Props) {
   if (!user) {
     return (
       <>
-        <AppHeader
-          active="feed"
-          liveLine={thesesLiveLine(
-            MOCK_THESES.filter((t) => t.status === "ready").length,
-            MOCK_THESES.length,
-          )}
-          alertsSlot={<ThesisAlertsBell />}
-        />
+        <AppHeader active="feed" liveLine={thesesLiveHeaderNeutral()} alertsSlot={<ThesisAlertsBell />} />
         <main className="mx-auto max-w-3xl px-5 pb-20 pt-10">
           <p className="text-[13px] text-zinc-400">
             Sign in to view macro reasoning.{" "}
@@ -69,11 +61,9 @@ export default async function FeedEventReasoningPage({ params }: Props) {
   const news = pr.news;
   const headline = news?.headline?.trim() ?? pr.parsed.event_summary;
 
-  const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
-
   return (
     <>
-      <AppHeader active="feed" liveLine={thesesLiveLine(readyCount, MOCK_THESES.length)} alertsSlot={<ThesisAlertsBell />} />
+      <AppHeader active="feed" liveLine={thesesLiveHeaderNeutral()} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-3xl px-5 pb-24 pt-8">
         <nav className="mb-8 text-[12px] text-zinc-500">
           <Link href="/feed-2" className="text-zinc-400 hover:text-zinc-200">

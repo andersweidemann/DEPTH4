@@ -4,8 +4,8 @@ import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { FeedSignalCard } from "@/components/thesis-engine-v2/FeedSignalCard";
 import { PromotedMacroEventCard } from "@/components/macro-reasoning/PromotedMacroEventCard";
-import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
-import { MOCK_FEED_SIGNALS, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
+import { MOCK_FEED_SIGNALS } from "@/lib/thesis-engine-v2/mock-data";
 import { createClient } from "@/lib/supabase/server";
 import {
   fetchPromotedMacroReasoningRows,
@@ -20,9 +20,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Feed2Page() {
-  const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
-  const activeCount = MOCK_THESES.filter((t) => t.status === "active").length;
-  const liveLine = thesesLiveLine(readyCount, MOCK_THESES.length);
+  const liveLine = thesesLiveHeaderNeutral();
 
   const supabase = await createClient();
   const {
@@ -110,13 +108,13 @@ export default async function Feed2Page() {
 
           <aside className="hidden lg:block">
             <div className="rounded-lg border border-white/[0.06] bg-zinc-900/15 px-4 py-4">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Active theses</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Feed context</p>
               <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
-                {activeCount} active · {readyCount} ready
+                Promoted narratives use live <span className="text-zinc-300">event_reasoning</span> when available. Star
+                theses to pull matching evidence into alerts and the live ticker.
               </p>
               <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
-                The feed surfaces headlines that map cleanly to a thesis first. Unlinked items are shown when no system
-                thesis is a clear match yet.
+                Thesis readiness counts are shown on the Live theses grid, not inferred here.
               </p>
             </div>
           </aside>

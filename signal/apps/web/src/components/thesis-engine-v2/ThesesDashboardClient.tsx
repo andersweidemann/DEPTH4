@@ -6,7 +6,7 @@ import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDrawer";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
-import { getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
+import { sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
@@ -14,6 +14,10 @@ import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 
 type AssetClass = "all" | "equity" | "rates" | "fx" | "commodities" | "crypto";
 type SortKey = "recent" | "probability" | "biggest_move";
+
+function leadScenarioOf(p: { base: number; bull: number; bear: number }) {
+  return (["base", "bull", "bear"] as const).reduce((best, k) => (p[k] > p[best] ? k : best), "base");
+}
 
 function parseRelativeMinutes(s: string): number {
   const t = (s || "").toLowerCase().trim();
@@ -63,17 +67,21 @@ export function ThesesDashboardClient({
   const liveSorted = useMemo(() => live.sortPinnedFirst(sorted), [live, sorted]);
   const moveBySlug = useMemo(() => {
     const m = new Map<string, number>();
+    const latestByThesisId = new Map<string, (typeof live.evidenceLog)[number]>();
+    for (const r of live.evidenceLog) {
+      if (!latestByThesisId.has(r.thesisId)) latestByThesisId.set(r.thesisId, r);
+    }
     for (const t of liveSorted) {
-      const b = getThesisDetail(t.slug);
-      const ev = b?.evidence?.[0];
-      if (!ev) {
+      const row = latestByThesisId.get(t.id);
+      if (!row?.probabilityBefore || !row?.probabilityAfter) {
         m.set(t.slug, 0);
         continue;
       }
-      m.set(t.slug, Math.abs(ev.probabilityAfter - ev.probabilityBefore));
+      const lead = leadScenarioOf(row.probabilityAfter);
+      m.set(t.slug, Math.abs(row.probabilityAfter[lead] - row.probabilityBefore[lead]));
     }
     return m;
-  }, [liveSorted]);
+  }, [live.evidenceLog, liveSorted]);
 
   const filtered = useMemo(() => {
     let list = liveSorted;
@@ -257,13 +265,7 @@ export function ThesesDashboardClient({
 
       <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Monitor</h2>
-            <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
-              Watching and forming theses stay visible, but quieter and denser.
-            </p>
-          </div>
-          <div className="hidden text-[11px] text-zinc-600 sm:block">Thesis · Probability · Status · Last update · Star</div>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Monitor</h2>
         </div>
 
         <div className="mt-3 bg-zinc-900/20">

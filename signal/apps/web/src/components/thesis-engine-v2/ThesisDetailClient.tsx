@@ -18,8 +18,8 @@ import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionMod
 import { MispricingAnalysis } from "@/components/thesis-engine-v2/MispricingAnalysis";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
-import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
-import { getThesisDetail, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
+import { getThesisDetail } from "@/lib/thesis-engine-v2/mock-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
 import {
@@ -136,8 +136,7 @@ export function ThesisDetailClient({
     return liveOpt.evidenceLog.filter((r) => r.thesisId === bundle.thesis.id);
   }, [bundle, liveOpt]);
 
-  const readyCount = useMemo(() => MOCK_THESES.filter((t) => t.status === "ready").length, []);
-  const liveLine = useMemo(() => thesesLiveLine(readyCount, MOCK_THESES.length), [readyCount]);
+  const liveLine = useMemo(() => thesesLiveHeaderNeutral(), []);
 
   const scoreRow = (label: string, value: number, max: number) => {
     const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)));

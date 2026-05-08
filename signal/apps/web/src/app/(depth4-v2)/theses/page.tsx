@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { ThesesDashboardClient } from "@/components/thesis-engine-v2/ThesesDashboardClient";
-import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
+import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
 
 export const metadata: Metadata = {
@@ -19,8 +19,7 @@ export default function ThesesDashboardPage({
   const initialDrawerSlug =
     typeof raw === "string" ? raw : Array.isArray(raw) && raw.length ? String(raw[0]) : null;
 
-  const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
-  const liveLine = thesesLiveLine(readyCount, MOCK_THESES.length);
+  const liveLine = thesesLiveHeaderNeutral();
 
   return (
     <>

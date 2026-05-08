@@ -16,6 +16,7 @@ import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-type
 export type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
 import { mergeThesis } from "@/lib/thesis-engine-v2/thesis-merge";
 import { MOCK_LIVE_SIGNAL_TICKER, MOCK_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
+import { thesisMockTicksEnabled } from "@/lib/thesis-engine-v2/production-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import {
   DEPTH4_THESIS_OUTCOMES_CHANGED,
@@ -173,6 +174,61 @@ function leadScenarioOf(p: { base: number; bull: number; bear: number }) {
   return (["base", "bull", "bear"] as const).reduce((best, k) => (p[k] > p[best] ? k : best), "base");
 }
 
+function evidenceRowsToTickerItems(rows: ThesisEvidenceLogRow[], titleForThesisId: (id: string) => string): LiveSignalTickerItem[] {
+  const sorted = [...rows].sort((a, b) => b.createdAt - a.createdAt);
+  const out: LiveSignalTickerItem[] = [];
+  const tsFmt = (ms: number) =>
+    new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+
+  for (const r of sorted) {
+    if (out.length >= MAX_TICKER) break;
+    const timestamp = tsFmt(r.createdAt);
+    const meta = r.metadata ?? {};
+    const sourceRaw = meta.source;
+    const source = typeof sourceRaw === "string" && sourceRaw.trim() ? sourceRaw : "Evidence";
+    const headline = (r.description || "").trim().slice(0, 220) || r.eventType || "Thesis evidence update";
+
+    if (r.probabilityBefore && r.probabilityAfter) {
+      const after = r.probabilityAfter;
+      const before = r.probabilityBefore;
+      const deltas = (["base", "bull", "bear"] as const).map((k) => ({ k, d: after[k] - before[k] }));
+      deltas.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+      const top = deltas[0]!;
+      const oldLead = leadScenarioOf(before);
+      const newLead = leadScenarioOf(after);
+      const leadChanged = oldLead !== newLead;
+      const scenarioLabel = leadChanged ? newLead : top.k;
+      const oldP = before[scenarioLabel];
+      const newP = after[scenarioLabel];
+      const d = newP - oldP;
+      const impact =
+        d >= 5 ? "major_positive" : d >= 2 ? "minor_positive" : d <= -5 ? "major_negative" : d <= -2 ? "minor_negative" : "neutral";
+
+      out.push({
+        id: `ev-${r.id}`,
+        kind: "thesis_update",
+        source,
+        timestamp,
+        headline,
+        thesisName: titleForThesisId(r.thesisId),
+        probabilityBefore: oldP,
+        probabilityAfter: newP,
+        impact,
+      });
+    } else {
+      out.push({
+        id: `ev-${r.id}`,
+        kind: "catalogued",
+        source,
+        timestamp,
+        headline,
+        note: r.eventType || "Update",
+      });
+    }
+  }
+  return out;
+}
+
 type Toast = { id: string; message: string } | null;
 
 type Ctx = {
@@ -236,13 +292,15 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   /** Mock ticker ticks only on thesis routes; DB evidence + Insider Flow poll app-wide (v2 layout). */
   const thesisPageActive = pathname === "/theses" || pathname.startsWith("/theses/");
   const { plan } = useV2Plan();
-  const mockTicksEnabled = process.env.NEXT_PUBLIC_THESIS_MOCK_TICKS === "1";
+  const mockTicksEnabled = thesisMockTicksEnabled();
 
   // Avoid hydration mismatches: read sessionStorage only after mount.
   const [starred, setStarred] = useState<Set<string>>(() => new Set());
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
   const [overrides, setOverrides] = useState<Overrides>({});
-  const [tickerItems, setTickerItems] = useState<LiveSignalTickerItem[]>(() => [...MOCK_LIVE_SIGNAL_TICKER]);
+  const [mockTickerOnly, setMockTickerOnly] = useState<LiveSignalTickerItem[]>(() =>
+    mockTicksEnabled ? [...MOCK_LIVE_SIGNAL_TICKER] : [],
+  );
   const [alerts, setAlerts] = useState<ThesisAlertEntry[]>([]);
   const [pulseMap, setPulseMap] = useState<Record<string, number>>({});
   const [outToast, setOutToast] = useState<Toast>(null);
@@ -278,6 +336,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     openIds.forEach((id) => u.add(id));
     return u.size;
   }, [starred, openIds]);
+
+  const evidenceTickerItems = useMemo(
+    () => evidenceRowsToTickerItems(evidenceLog, resolveThesisTitle),
+    [evidenceLog],
+  );
+
+  const tickerItems = mockTicksEnabled ? mockTickerOnly : evidenceTickerItems;
 
   const mergeThesisCb = useCallback(
     (t: Thesis) => applyManualOutcome(mergeThesis(t, overrides[t.id])),
@@ -837,7 +902,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       }
 
       if (tick.tickerItem) {
-        setTickerItems((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
+        setMockTickerOnly((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
       }
     });
   }, [mockTicksEnabled, thesisPageActive, pushAlert, mergeThesisCb, prefs, pushToast]);

@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { LeaderboardClient } from "@/components/thesis-engine-v2/LeaderboardClient";
-import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
-import { MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Leaderboard",
@@ -11,8 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function LeaderboardPage() {
-  const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
-  const liveLine = thesesLiveLine(readyCount, MOCK_THESES.length);
+  const liveLine = thesesLiveHeaderNeutral();
 
   return (
     <>

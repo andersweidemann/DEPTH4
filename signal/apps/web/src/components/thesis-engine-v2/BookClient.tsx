@@ -139,46 +139,58 @@ export function BookClient({
 
       <section className="mt-14">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Watchlist (no position attached yet)</h2>
-        <ul className="mt-4 space-y-3">
-          {watchlist.map((w) => (
-            <li key={w.id} className="rounded-lg bg-zinc-900/25 px-4 py-3 shadow-sm ring-1 ring-white/[0.03]">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-mono text-sm text-zinc-200">{w.symbol}</span>
-                <Link href={`/theses/${w.thesisSlug}`} className="text-[11px] font-medium text-zinc-300 hover:text-zinc-100">
-                  {w.thesisTitle}
-                </Link>
-              </div>
-              <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{w.note}</p>
-            </li>
-          ))}
-        </ul>
+        {watchlist.length ? (
+          <ul className="mt-4 space-y-3">
+            {watchlist.map((w) => (
+              <li key={w.id} className="rounded-lg bg-zinc-900/25 px-4 py-3 shadow-sm ring-1 ring-white/[0.03]">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-mono text-sm text-zinc-200">{w.symbol}</span>
+                  <Link href={`/theses/${w.thesisSlug}`} className="text-[11px] font-medium text-zinc-300 hover:text-zinc-100">
+                    {w.thesisTitle}
+                  </Link>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{w.note}</p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-4 rounded-lg bg-zinc-900/20 px-4 py-5 text-[12px] text-zinc-500 ring-1 ring-white/[0.04]">
+            No watchlist rows yet. Saved ideas will appear here when watchlist sync ships — not demo tickers.
+          </p>
+        )}
       </section>
 
       <section className="mt-14">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Resolved theses</h2>
-        <div className="mt-4 rounded-lg bg-zinc-900/20 px-4 shadow-sm ring-1 ring-white/[0.03] sm:px-5">
-          {resolved.map((r) => (
-            <div key={r.id} className="grid gap-2 border-b border-white/[0.05] py-4 last:border-0">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-[12px] font-medium text-zinc-200">{r.title}</p>
-                  <p className="mt-1 font-mono text-[11px] text-zinc-500">
-                    {r.asset} · {r.openedDate} → {r.closedDate} · {r.duration}
-                  </p>
+        {resolved.length ? (
+          <div className="mt-4 rounded-lg bg-zinc-900/20 px-4 shadow-sm ring-1 ring-white/[0.03] sm:px-5">
+            {resolved.map((r) => (
+              <div key={r.id} className="grid gap-2 border-b border-white/[0.05] py-4 last:border-0">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-medium text-zinc-200">{r.title}</p>
+                    <p className="mt-1 font-mono text-[11px] text-zinc-500">
+                      {r.asset} · {r.openedDate} → {r.closedDate} · {r.duration}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded bg-zinc-900/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-zinc-300 ring-1 ring-white/[0.06]">
+                      {r.result}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-zinc-900/40 px-2 py-0.5 text-[10px] font-semibold tabular-nums text-zinc-300 ring-1 ring-white/[0.06]">
-                    {r.result}
-                  </span>
-                </div>
+                <p className="text-[11px] text-zinc-500">
+                  <span className="text-zinc-600">Max probability path · </span>
+                  {r.maxProbabilityPath}
+                </p>
               </div>
-              <p className="text-[11px] text-zinc-500">
-                <span className="text-zinc-600">Max probability path · </span>
-                {r.maxProbabilityPath}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-lg bg-zinc-900/20 px-4 py-5 text-[12px] text-zinc-500 ring-1 ring-white/[0.04]">
+            No resolved thesis archive synced yet. Closed lines above reflect this browser session only.
+          </p>
+        )}
       </section>
     </>
   );

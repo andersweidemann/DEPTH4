@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
-import { CommunityThesisCard } from "@/components/thesis-engine-v2/CommunityThesisCard";
-import { thesesLiveLine } from "@/lib/thesis-engine-v2/live-header-copy";
-import { MOCK_COMMUNITY_THESES, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Community",
@@ -11,8 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function CommunityPage() {
-  const readyCount = MOCK_THESES.filter((t) => t.status === "ready").length;
-  const liveLine = thesesLiveLine(readyCount, MOCK_THESES.length);
+  const liveLine = thesesLiveHeaderNeutral();
 
   return (
     <>
@@ -22,16 +19,17 @@ export default function CommunityPage() {
           <div>
             <h1 className="mt-1 text-lg font-semibold tracking-tight text-zinc-100">Community</h1>
             <p className="mt-1 max-w-2xl text-[12px] leading-relaxed text-zinc-500">
-              Published theses from other traders. Follow thinkers with repeatable accuracy.
+              Browse published theses from other traders once community publishing ships.
             </p>
           </div>
-          <p className="text-[11px] text-zinc-600">Upgrade to publish your own theses to the community.</p>
         </div>
 
-        <div className="mt-10 grid gap-4">
-          {MOCK_COMMUNITY_THESES.map((t) => (
-            <CommunityThesisCard key={t.id} item={t} />
-          ))}
+        <div className="mt-10 rounded-lg border border-dashed border-white/[0.08] bg-zinc-900/20 px-5 py-8">
+          <p className="text-[13px] font-medium text-zinc-300">Community feed not live yet</p>
+          <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-zinc-500">
+            Rankings and shared thesis cards will appear here when backed by real profiles and resolutions — no placeholder
+            probabilities or scores.
+          </p>
         </div>
       </main>
     </>
