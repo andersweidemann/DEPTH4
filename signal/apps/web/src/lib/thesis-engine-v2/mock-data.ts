@@ -43,7 +43,8 @@ function withQualification(t: Omit<Thesis, "qualification" | "scores"> & { score
   return { ...(t as Thesis), qualification, scores: { ...t.scores, total } };
 }
 
-const TID = {
+/** Stable IDs shared with `public.theses` (Supabase seed). Do not rename without a DB migration. */
+export const TID = {
   gold: "th-gold",
   hormuz: "th-hormuz",
   opec: "th-opec",
