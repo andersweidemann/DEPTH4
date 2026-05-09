@@ -7,10 +7,12 @@ import { PositionRow } from "@/components/thesis-engine-v2/PositionRow";
 import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
-import { MOCK_THESES, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
+import { MOCK_THESES, thesisMicroLabelById, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
 import {
+  formatThesisMicroLabel,
   getThesisDisplayTitle,
   getThesisMetaDisplayTitle,
+  getThesisMicroLabel,
   normalizeThesisDisplayTitle,
 } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
@@ -68,23 +70,34 @@ export function BookClient({
 
   const thesisMeta = useMemo(() => {
     void metaNonce;
-    const map = new Map<string, { title: string; slug?: string }>();
+    const map = new Map<string, { title: string; slug?: string; microLabel?: string | null }>();
     for (const t of MOCK_THESES) {
-      const db = live?.catalogDbThesisTitles.get(t.id)?.trim();
-      const title = db ? getThesisDisplayTitle({ title: db }) : getThesisDisplayTitle(t);
-      map.set(t.id, { title, slug: t.slug });
+      const dbTitle = live?.catalogDbThesisTitles.get(t.id)?.trim();
+      const dbMicro = live?.catalogDbThesisMicroLabels.get(t.id)?.trim();
+      const title = dbTitle ? getThesisDisplayTitle({ title: dbTitle }) : getThesisDisplayTitle(t);
+      const microLabel = dbMicro ? formatThesisMicroLabel(dbMicro) : getThesisMicroLabel(t);
+      map.set(t.id, { title, slug: t.slug, microLabel: microLabel ?? undefined });
     }
-    for (const t of loadUserTheses()) map.set(t.id, { title: getThesisDisplayTitle(t), slug: t.slug });
+    for (const t of loadUserTheses()) {
+      map.set(t.id, {
+        title: getThesisDisplayTitle(t),
+        slug: t.slug,
+        microLabel: getThesisMicroLabel(t) ?? undefined,
+      });
+    }
     return map;
-  }, [metaNonce, live?.catalogDbThesisTitles]);
+  }, [metaNonce, live?.catalogDbThesisTitles, live?.catalogDbThesisMicroLabels]);
 
   const metaFor = useCallback(
     (p: Position) => {
       const row = thesisMeta.get(p.linkedThesisId);
-      if (row) return { title: getThesisMetaDisplayTitle(row), slug: row.slug };
+      if (row) {
+        return { title: getThesisMetaDisplayTitle(row), slug: row.slug, microLabel: row.microLabel };
+      }
       return {
         title: thesisTitleById(p.linkedThesisId),
         slug: thesisSlugById(p.linkedThesisId),
+        microLabel: thesisMicroLabelById(p.linkedThesisId),
       };
     },
     [thesisMeta],

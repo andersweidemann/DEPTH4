@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailClient";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/mock-data";
 import { getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
-import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { formatThesisMicroLabel, getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 const TRANSITION_MS = 300;
 
@@ -18,11 +18,14 @@ const TRANSITION_MS = 300;
 export function ThesisDetailDrawer({
   slug,
   catalogDisplayTitle,
+  catalogMicroLabel,
   onClose,
 }: {
   slug: string | null;
   /** Merged `Thesis.title` from dashboard (Supabase-backed when signed in). */
   catalogDisplayTitle?: string | null;
+  /** Merged `Thesis.microLabel` from dashboard. */
+  catalogMicroLabel?: string | null;
   onClose: () => void;
 }) {
   const [entered, setEntered] = useState(false);
@@ -92,6 +95,11 @@ export function ThesisDetailDrawer({
     return slug.replace(/-/g, " ");
   })();
 
+  const drawerMicro =
+    formatThesisMicroLabel(catalogMicroLabel) ??
+    formatThesisMicroLabel(getThesisDetail(slug)?.thesis.microLabel) ??
+    formatThesisMicroLabel(getUserThesisBySlug(slug)?.microLabel);
+
   return (
     <div className="fixed inset-0 z-[85] flex justify-end" role="dialog" aria-modal="true" aria-label="Thesis detail">
       <button
@@ -114,7 +122,15 @@ export function ThesisDetailDrawer({
       >
         <div className="flex shrink-0 items-center justify-between gap-3 bg-[#151518] px-4 py-3 sm:px-5">
           <div className="min-w-0 flex-1 pr-2">
-            <p className="truncate text-[12px] font-semibold leading-snug text-zinc-100" title={drawerTitle}>
+            {drawerMicro ? (
+              <p className="truncate text-[10px] font-medium leading-snug text-zinc-500" title={drawerMicro}>
+                {drawerMicro}
+              </p>
+            ) : null}
+            <p
+              className={cn("truncate text-[12px] font-semibold leading-snug text-zinc-100", drawerMicro ? "mt-0.5" : "")}
+              title={drawerTitle}
+            >
               {drawerTitle}
             </p>
             <Link
@@ -138,7 +154,13 @@ export function ThesisDetailDrawer({
         <div className="h-px w-full bg-white/[0.06]" aria-hidden />
 
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
-          <ThesisDetailClient slug={slug} layout="drawer" onClose={requestClose} catalogDisplayTitle={catalogDisplayTitle} />
+          <ThesisDetailClient
+            slug={slug}
+            layout="drawer"
+            onClose={requestClose}
+            catalogDisplayTitle={catalogDisplayTitle}
+            catalogMicroLabel={catalogMicroLabel}
+          />
         </div>
       </aside>
     </div>

@@ -23,6 +23,11 @@ export type Thesis = {
   slug: string;
   /** Canonical display title — mirrors Supabase `public.theses.title` for catalog rows. */
   title: string;
+  /**
+   * Short 3–6 word human label above the title (`public.theses.micro_label` when synced).
+   * No tickers, no factor jargon, not all-caps.
+   */
+  microLabel?: string | null;
   /** Optional one-sentence hook for a ~3-second scan (retail clarity). */
   oneLineSummary?: string;
   thesisStatement: string;
@@ -251,6 +256,8 @@ export type CommunityThesis = {
   id: string;
   thesisSlug: string; // opens /theses/[slug]
   title: string;
+  /** Optional; when set, shown above `title` on cards. */
+  microLabel?: string | null;
   author: string; // e.g. "@macro_maven"
   reputationBadge: string; // e.g. "Top 5% accuracy"
   probability: number;

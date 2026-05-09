@@ -37,15 +37,30 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 
-function withCatalogDisplayTitle(bundle: ThesisDetailBundle, catalogTitle: string | null | undefined): ThesisDetailBundle {
-  const t = (catalogTitle ?? "").trim();
-  if (!t) return bundle;
-  return { ...bundle, thesis: { ...bundle.thesis, title: t } };
+function withCatalogHeader(
+  bundle: ThesisDetailBundle,
+  catalog: { title?: string | null; microLabel?: string | null },
+): ThesisDetailBundle {
+  const t = (catalog.title ?? "").trim();
+  const m = (catalog.microLabel ?? "").trim();
+  if (!t && !m) return bundle;
+  return {
+    ...bundle,
+    thesis: {
+      ...bundle.thesis,
+      ...(t ? { title: t } : {}),
+      ...(m ? { microLabel: m } : {}),
+    },
+  };
 }
 
-function initialBundleForSlug(slug: string, catalogDisplayTitle: string | null | undefined): ThesisDetailBundle | null {
+function initialBundleForSlug(
+  slug: string,
+  catalogDisplayTitle: string | null | undefined,
+  catalogMicroLabel: string | null | undefined,
+): ThesisDetailBundle | null {
   const sys = getThesisDetail(slug);
-  if (sys) return withCatalogDisplayTitle(sys, catalogDisplayTitle);
+  if (sys) return withCatalogHeader(sys, { title: catalogDisplayTitle, microLabel: catalogMicroLabel });
   const ut = getUserThesisBySlug(slug);
   if (ut) return bundleForUserThesis(ut);
   return null;
@@ -71,16 +86,21 @@ export function ThesisDetailClient({
   layout = "page",
   onClose,
   catalogDisplayTitle = null,
+  catalogMicroLabel = null,
 }: {
   slug: string;
   layout?: "page" | "drawer";
   onClose?: () => void;
   /** When set, overrides catalog thesis title with `public.theses.title` (server read). */
   catalogDisplayTitle?: string | null;
+  /** When set, overrides `public.theses.micro_label`. */
+  catalogMicroLabel?: string | null;
 }) {
   const requireFeature = useRequireFeature();
   const liveOpt = useThesisLiveOptional();
-  const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => initialBundleForSlug(slug, catalogDisplayTitle));
+  const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() =>
+    initialBundleForSlug(slug, catalogDisplayTitle, catalogMicroLabel),
+  );
   const [openPos, setOpenPos] = useState(false);
   const [bookPulse, setBookPulse] = useState(0);
   const [alertsMenuOpen, setAlertsMenuOpen] = useState(false);
@@ -98,8 +118,8 @@ export function ThesisDetailClient({
   }, [alertsMenuOpen]);
 
   useEffect(() => {
-    setBundle(initialBundleForSlug(slug, catalogDisplayTitle));
-  }, [slug, catalogDisplayTitle]);
+    setBundle(initialBundleForSlug(slug, catalogDisplayTitle, catalogMicroLabel));
+  }, [slug, catalogDisplayTitle, catalogMicroLabel]);
 
   useEffect(() => {
     if (!bundle) return;

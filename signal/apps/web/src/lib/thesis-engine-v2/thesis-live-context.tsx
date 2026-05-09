@@ -269,6 +269,8 @@ type Ctx = {
 
   /** `public.theses.title` keyed by thesis id (catalog rows), when signed in. */
   catalogDbThesisTitles: ReadonlyMap<string, string>;
+  /** `public.theses.micro_label` keyed by thesis id (catalog rows), when signed in. */
+  catalogDbThesisMicroLabels: ReadonlyMap<string, string>;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -308,6 +310,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [insiderSuggested, setInsiderSuggested] = useState<Record<string, { base: number; bull: number; bear: number }>>({});
   const [evidenceLog, setEvidenceLog] = useState<ThesisEvidenceLogRow[]>([]);
   const [catalogDbThesisTitles, setCatalogDbThesisTitles] = useState(() => new Map<string, string>());
+  const [catalogDbThesisMicroLabels, setCatalogDbThesisMicroLabels] = useState(() => new Map<string, string>());
 
   const scenarioRef = useRef(
     new Map<string, { base: number; bull: number; bear: number; lead: "base" | "bull" | "bear" }>(),
@@ -353,7 +356,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       .then((r) => r.json())
       .then((j: unknown) => {
         if (cancelled) return;
-        const o = j && typeof j === "object" ? (j as { titlesByThesisId?: unknown }).titlesByThesisId : null;
+        const root = j && typeof j === "object" ? (j as Record<string, unknown>) : null;
+        const o = root?.titlesByThesisId;
+        const microObj = root?.microLabelsByThesisId;
         const m = new Map<string, string>();
         if (o && typeof o === "object") {
           for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
@@ -361,6 +366,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
           }
         }
         setCatalogDbThesisTitles(m);
+        const mm = new Map<string, string>();
+        if (microObj && typeof microObj === "object") {
+          for (const [k, v] of Object.entries(microObj as Record<string, unknown>)) {
+            if (typeof v === "string" && v.trim()) mm.set(k, v.trim());
+          }
+        }
+        setCatalogDbThesisMicroLabels(mm);
       })
       .catch(() => {});
     return () => {
@@ -969,6 +981,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       evidenceLog,
       insiderFlowWatchedCount,
       catalogDbThesisTitles,
+      catalogDbThesisMicroLabels,
     };
   },
     [
@@ -1000,6 +1013,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       evidenceLog,
       insiderFlowWatchedCount,
       catalogDbThesisTitles,
+      catalogDbThesisMicroLabels,
       outcomeEpoch,
     ],
   );

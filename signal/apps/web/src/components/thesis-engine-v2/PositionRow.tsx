@@ -6,7 +6,7 @@ import { ClosePositionModal } from "@/components/thesis-engine-v2/ClosePositionM
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
 import { closePosition } from "@/lib/thesis-engine-v2/positions-store";
 import type { Position, TradeStatus } from "@/lib/thesis-engine-v2/types";
-import { getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { ThesisHeadingStack } from "@/components/thesis-engine-v2/ThesisHeadingStack";
 import { StatusBadge } from "./StatusBadge";
 
 function fmtMaybe(n?: number) {
@@ -47,7 +47,7 @@ export function PositionRow({
   onBookChange,
 }: {
   position: Position;
-  thesisMeta: { title: string; slug?: string };
+  thesisMeta: { title: string; slug?: string; microLabel?: string | null };
   manageable?: boolean;
   onBookChange?: () => void;
 }) {
@@ -81,11 +81,13 @@ export function PositionRow({
         <div>
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <p className="text-[12px] font-semibold leading-snug text-zinc-100">
-                <Link href={thesisLink} className="text-zinc-100 hover:text-white">
-                  {getThesisMetaDisplayTitle(thesisMeta)}
-                </Link>
-              </p>
+              <Link href={thesisLink} className="block text-zinc-100 hover:text-white">
+                <ThesisHeadingStack
+                  thesis={{ title: thesisMeta.title, microLabel: thesisMeta.microLabel }}
+                  titleAs="h2"
+                  titleClassName="text-[12px] font-semibold leading-snug"
+                />
+              </Link>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="font-mono text-[11px] font-medium text-zinc-300">{position.symbol}</span>
                 <span

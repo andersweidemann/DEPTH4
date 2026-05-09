@@ -11,7 +11,7 @@ import type {
   WatchlistIdea,
 } from "./types";
 import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";
-import { getThesisDisplayTitle } from "./thesis-display-title";
+import { formatThesisMicroLabel, getThesisDisplayTitle } from "./thesis-display-title";
 
 function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
@@ -53,6 +53,7 @@ export const MOCK_THESES: Thesis[] = [
     id: TID.gold,
     slug: "war-peace-gold-short",
     title: "Sell GLD because peace progress will continue within weeks",
+    microLabel: "War risk keeps gold bid",
     oneLineSummary:
       "Sell gold into the peace drift: talks are moving but spot still prices a big war scare.",
     thesisStatement:
@@ -115,6 +116,7 @@ export const MOCK_THESES: Thesis[] = [
     id: TID.hormuz,
     slug: "strait-hormuz-oil-long",
     title: "Buy USO because Hormuz chokepoint risk will spike within weeks",
+    microLabel: "Gulf routes keep oil on edge",
     oneLineSummary:
       "Buy oil before the headline: the strait is fragile but flat crude still sleeps on a one-off shock.",
     thesisStatement:
@@ -177,6 +179,7 @@ export const MOCK_THESES: Thesis[] = [
     id: TID.opec,
     slug: "opec-unity-fracturing",
     title: "Buy USO because OPEC will hold prices if US shale slows this quarter",
+    microLabel: "Oil supply unity cracking",
     oneLineSummary:
       "Buy oil if US rigs roll: OPEC needs the money and will keep barrels tight while shale stumbles.",
     thesisStatement:
@@ -235,6 +238,7 @@ export const MOCK_THESES: Thesis[] = [
     id: TID.tlt,
     slug: "fed-pivot-delayed-tlt-weakness",
     title: "Sell TLT because Fed cuts will land later than futures price this year",
+    microLabel: "Rates stay higher for longer",
     oneLineSummary:
       "Sell long bonds: futures still bet on early cuts while the Fed sounds higher-for-longer.",
     thesisStatement:
@@ -297,6 +301,7 @@ export const MOCK_THESES: Thesis[] = [
     id: TID.defense,
     slug: "us-defense-repricing-rtx-lmt",
     title: "Buy RTX because Pentagon awards will firm backlog this quarter",
+    microLabel: "Wars drive steady defense spend",
     oneLineSummary:
       "Buy defense primes: contracts are lining up but the stock still prices last year’s doubt.",
     thesisStatement:
@@ -359,6 +364,7 @@ export const MOCK_THESES: Thesis[] = [
     id: TID.qqq,
     slug: "ai-capex-squeeze-qqq-rotation",
     title: "Don't buy more QQQ yet because AI spending will hit margins this earnings season",
+    microLabel: "AI costs before AI profits",
     oneLineSummary:
       "Don't add to QQQ yet: many companies will feel the cost of AI spending in earnings before the profits show up, and the index hides that risk.",
     thesisStatement:
@@ -438,6 +444,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     id: TID.copper,
     slug: "china-stimulus-copper-long",
     title: "Buy HG because China stimulus will speed up again within months",
+    microLabel: "China's build-out lifts copper",
     oneLineSummary:
       "Buy copper: Beijing is turning the dial while HG still prices slow China.",
     thesisStatement:
@@ -500,6 +507,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     id: TID.euTech,
     slug: "eu-tech-crackdown-megacap",
     title: "Sell META because EU platform rules will bite within months",
+    microLabel: "Ad machine funding AI dreams",
     oneLineSummary:
       "Sell META into EU enforcement: fines were priced; behavior rules were not.",
     thesisStatement:
@@ -966,6 +974,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-1",
     thesisSlug: "china-stimulus-copper-long",
+    microLabel: "China's build-out lifts copper",
     title: "Buy HG because China stimulus will speed up again within months",
     author: "@macro_maven",
     reputationBadge: "Top 10% accuracy",
@@ -978,6 +987,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-2",
     thesisSlug: "opec-unity-fracturing",
+    microLabel: "Oil supply unity cracking",
     title: "Buy USO because OPEC will hold prices if US shale slows this quarter",
     author: "@vol_hunter",
     reputationBadge: "12-month win rate: 73%",
@@ -990,6 +1000,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-3",
     thesisSlug: "fed-pivot-delayed-tlt-weakness",
+    microLabel: "Rates stay higher for longer",
     title: "Sell TLT because Fed cuts will land later than futures price this year",
     author: "@rates_trader",
     reputationBadge: "Top 5% accuracy",
@@ -1002,6 +1013,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-4",
     thesisSlug: "eu-tech-crackdown-megacap",
+    microLabel: "Ad machine funding AI dreams",
     title: "Sell META because EU platform rules will bite within months",
     author: "@credit_bull",
     reputationBadge: "Top 20% accuracy",
@@ -1252,6 +1264,12 @@ export function thesisTitleById(id: string): string {
 
 export function thesisSlugById(id: string): string | undefined {
   return MOCK_THESES.find((t) => t.id === id)?.slug;
+}
+
+/** Micro-label for catalog mock theses; null when absent. */
+export function thesisMicroLabelById(id: string): string | null {
+  const t = MOCK_THESES.find((x) => x.id === id);
+  return t ? formatThesisMicroLabel(t.microLabel) : null;
 }
 
 export function thesisStatusById(id: string) {

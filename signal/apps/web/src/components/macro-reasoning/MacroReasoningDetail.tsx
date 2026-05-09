@@ -6,7 +6,8 @@ import { tickerQuoteUrl } from "@/components/macro-reasoning/ticker-link";
 import { parseReasoningChainLevels } from "@/lib/macro-reasoning/reasoning-chain-levels";
 import { thesisRelationDisplay } from "@/lib/macro-reasoning/thesis-relation-copy";
 import type { ThesisMeta } from "@/lib/feed/thesis-slugs";
-import { getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { getThesisMetaDisplayTitle, getThesisMetaMicroLabel } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { cn } from "@/lib/utils";
 
 function EffectList({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
@@ -81,14 +82,20 @@ export function MacroReasoningDetail({
           const primaryId = reasoning.affected_theses[0];
           const primaryMeta = primaryId ? thesisMetaById.get(primaryId) : null;
           if (!primaryMeta) return null;
+          const primaryMicro = getThesisMetaMicroLabel(primaryMeta);
           return (
             <div className="rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Thesis</p>
               <Link
                 href={`/theses/${primaryMeta.slug}`}
-                className="mt-2 block text-[14px] font-semibold leading-snug text-zinc-100 underline-offset-2 hover:text-white hover:underline"
+                className="mt-2 block underline-offset-2 hover:text-white hover:underline"
               >
-                {getThesisMetaDisplayTitle(primaryMeta)}
+                {primaryMicro ? (
+                  <span className="block text-[11px] font-medium leading-snug text-zinc-500">{primaryMicro}</span>
+                ) : null}
+                <span className={cn("block text-[14px] font-semibold leading-snug text-zinc-100", primaryMicro ? "mt-0.5" : "")}>
+                  {getThesisMetaDisplayTitle(primaryMeta)}
+                </span>
               </Link>
             </div>
           );
@@ -238,14 +245,20 @@ export function MacroReasoningDetail({
             {reasoning.affected_theses.map((id) => {
               const tm = thesisMetaById.get(id);
               if (tm) {
+                const linkMicro = getThesisMetaMicroLabel(tm);
                 return (
                   <li key={id}>
                     <Link
                       href={`/theses/${tm.slug}`}
                       className="inline-flex min-h-11 max-w-full flex-col rounded-md border border-white/[0.1] bg-zinc-900/40 px-3 py-2 text-left text-[12px] text-zinc-200 underline-offset-2 hover:border-[#E8473F]/35 hover:text-white hover:underline sm:min-h-0 sm:py-1.5"
                     >
-                      <span className="font-medium text-zinc-100">{getThesisMetaDisplayTitle(tm)}</span>
-                      <span className="font-mono text-[10px] text-zinc-500">{tm.slug}</span>
+                      {linkMicro ? (
+                        <span className="text-[10px] font-medium leading-snug text-zinc-500">{linkMicro}</span>
+                      ) : null}
+                      <span className={cn("font-medium text-zinc-100", linkMicro ? "mt-0.5" : "")}>
+                        {getThesisMetaDisplayTitle(tm)}
+                      </span>
+                      <span className="mt-0.5 font-mono text-[10px] text-zinc-500">{tm.slug}</span>
                     </Link>
                   </li>
                 );

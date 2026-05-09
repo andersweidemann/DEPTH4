@@ -12,7 +12,7 @@ import {
   toPromotedCardModel,
   type PromotedCardModel,
 } from "@/lib/feed/promoted-macro-events";
-import { fetchThesisMetaMap } from "@/lib/feed/thesis-slugs";
+import { fetchThesisMetaMap, type ThesisMeta } from "@/lib/feed/thesis-slugs";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Feed",
@@ -28,7 +28,7 @@ export default async function Feed2Page() {
   } = await supabase.auth.getUser();
 
   let promotedCards: PromotedCardModel[] = [];
-  let thesisMetaById = new Map<string, { slug: string; title: string }>();
+  let thesisMetaById = new Map<string, ThesisMeta>();
 
   if (user) {
     const rows = await fetchPromotedMacroReasoningRows(supabase);

@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { cn } from "@/lib/utils";
 import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { ThesisHeadingStack } from "@/components/thesis-engine-v2/ThesisHeadingStack";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { DirectionBadge } from "./DirectionBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
@@ -73,15 +74,16 @@ export function ThesisCard({
       >
         <div className="min-w-0 flex-1">
           <Tooltip label={getThesisDisplayTitle(thesis)} side="top">
-            <h2
-              title={getThesisDisplayTitle(thesis)}
-              className={cn(
-                "te2-clamp-2 break-words font-semibold leading-snug tracking-tight text-zinc-100 group-hover:text-amber-100/95",
-                primary ? "text-[14px] sm:text-[15px]" : "text-[13px]",
-              )}
-            >
-              {getThesisDisplayTitle(thesis)}
-            </h2>
+            <div className="min-w-0">
+              <ThesisHeadingStack
+                thesis={thesis}
+                titleAs="h2"
+                titleClassName={cn(
+                  "te2-clamp-2 break-words group-hover:text-amber-100/95",
+                  primary ? "text-[14px] sm:text-[15px]" : "text-[13px]",
+                )}
+              />
+            </div>
           </Tooltip>
           <p className={cn("mt-1.5 font-mono text-zinc-500", primary ? "text-[11px]" : "text-[11px]")}>{thesis.asset}</p>
         </div>

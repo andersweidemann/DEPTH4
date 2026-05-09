@@ -24,3 +24,17 @@ export function normalizeThesisDisplayTitle(raw: string | null | undefined): str
   const t = (raw ?? "").trim();
   return t || "Thesis";
 }
+
+/** 3–6 word line above the trade sentence; absent/whitespace → hide in UI. */
+export function formatThesisMicroLabel(microLabel: string | null | undefined): string | null {
+  const s = (microLabel ?? "").trim();
+  return s ? s : null;
+}
+
+export function getThesisMicroLabel(thesis: Pick<Thesis, "microLabel">): string | null {
+  return formatThesisMicroLabel(thesis.microLabel);
+}
+
+export function getThesisMetaMicroLabel(meta: { microLabel?: string | null }): string | null {
+  return formatThesisMicroLabel(meta.microLabel);
+}

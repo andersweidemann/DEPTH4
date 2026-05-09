@@ -1,7 +1,9 @@
 import Link from "next/link";
 import type { PromotedCardModel } from "@/lib/feed/promoted-macro-events";
+import type { ThesisMeta } from "@/lib/feed/thesis-slugs";
 import { ConfidenceMeter } from "@/components/macro-reasoning/ConfidenceMeter";
-import { getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { getThesisMetaDisplayTitle, getThesisMetaMicroLabel } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { cn } from "@/lib/utils";
 
 type Relation = PromotedCardModel["reasoning"]["thesis_relation"];
 
@@ -60,13 +62,14 @@ export function PromotedMacroEventCard({
   thesisMetaById,
 }: {
   card: PromotedCardModel;
-  thesisMetaById: Map<string, { slug: string; title: string }>;
+  thesisMetaById: Map<string, ThesisMeta>;
 }) {
   const { row, reasoning, headline, source, publishedLabel } = card;
   const anchorDiffers =
     headline.trim().length > 0 && headline.trim().toLowerCase() !== reasoning.event_summary.trim().toLowerCase();
   const primaryThesisId = reasoning.affected_theses[0] ?? null;
   const primaryMeta = primaryThesisId ? thesisMetaById.get(primaryThesisId) ?? null : null;
+  const primaryMicro = primaryMeta ? getThesisMetaMicroLabel(primaryMeta) : null;
   const chip = relationChip(reasoning.thesis_relation);
   const hasImpactedAssets = Array.isArray(reasoning.impacted_assets) && reasoning.impacted_assets.length > 0;
   const hasTradeImplication = Boolean((reasoning.trade_implication || "").trim());
@@ -96,10 +99,20 @@ export function PromotedMacroEventCard({
           {primaryMeta ? (
             <Link
               href={`/theses/${primaryMeta.slug}`}
-              className="mt-1 block min-w-0 truncate text-[14px] font-semibold leading-snug text-zinc-100 underline-offset-2 hover:text-white hover:underline"
+              className="mt-1 block min-w-0 underline-offset-2 hover:text-white hover:underline"
               title={getThesisMetaDisplayTitle(primaryMeta)}
             >
-              {getThesisMetaDisplayTitle(primaryMeta)}
+              {primaryMicro ? (
+                <span className="block truncate text-[11px] font-medium leading-snug text-zinc-500">{primaryMicro}</span>
+              ) : null}
+              <span
+                className={cn(
+                  "block truncate text-[14px] font-semibold leading-snug text-zinc-100",
+                  primaryMicro ? "mt-0.5" : "",
+                )}
+              >
+                {getThesisMetaDisplayTitle(primaryMeta)}
+              </span>
             </Link>
           ) : (
             <p className="mt-1 text-[13px] font-medium leading-snug text-zinc-400">No linked thesis yet</p>
