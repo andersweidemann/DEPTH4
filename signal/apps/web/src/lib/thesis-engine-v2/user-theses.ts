@@ -172,7 +172,7 @@ export function bundleForUserThesis(thesis: Thesis): ThesisDetailBundle {
     scenarios: mkScenarios(thesis),
     advisoryLog: mkAdvisoryLog(thesis),
     relatedAssets: [
-      { symbol: thesis.asset, note: "Primary expression" },
+      { symbol: thesis.asset, note: "Primary chart" },
       { symbol: "SPY", note: "Risk proxy" },
       { symbol: "UUP", note: "USD check" },
     ],

@@ -1,182 +1,150 @@
 ---
-description: DEPTH4 — thesis & narrative voice (retail display, L1–L4 cascade, time-bound, no model talk)
+description: DEPTH4 — global retail writing constitution (thesis, scenarios, feed, prompts; no model talk)
 globs: signal/apps/web/**/*.{ts,tsx}
 alwaysApply: false
 ---
 
-# DEPTH4 global writing — theses and narratives
+# DEPTH4 global writing — retail voice constitution
 
 **Product:** thesis engine for **unpriced scenarios** and **how evidence moves probability over time**.
 
-## GLOBAL RULE — THE QQQ / AI CAPEX THESIS IS THE TEMPLATE FOR EVERY THESIS
+**Code source of truth (keep in sync):**
 
-The QQQ / AI capex rewrite is **not** a one-off. **Every** catalog thesis (gold, oil, OPEC, TLT, credit, defense, China, regulation, and any system-generated thesis) must use the **same** structure and Iran-brief voice.
+- `signal/apps/web/src/lib/thesis-engine-v2/depth4-retail-voice-constitution.ts` — `DEPTH4_RETAIL_VOICE_TEST`, `DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM` (injected into macro LLM system prompts).
+- `signal/apps/web/src/lib/thesis-engine-v2/thesis-book-template.ts` — thesis book snippet + Supabase `body` JSON rules.
+- `signal/apps/web/src/lib/macro-reasoning/prompts.ts` — macro / promoted narrative prompts.
 
-1. **CLEAR TRADE THESIS** — `[Buy/Sell/Don't add / Don't buy more … yet] [ticker] because [future event] will happen within [time window] due to [cause], probability [N%].` No vague “avoid.” No unexplained “AI capex,” “dispersion risk,” “beta,” “quality,” “duration” — plain English or define once in-line.
-2. **L1–L4 (`thesisCascade`) — GLOBAL: plain retail English only**  
-   **L1 — CONFIRMED (TODAY):** what is already true in tape or data; no predictions.  
-   **L2 — THIS WEEK / QUARTER:** what to watch in the current earnings or news window; first place the thesis may show in headlines or price.  
-   **L3 — THIS YEAR:** how the trade plays out over the next 1–3 quarters; winners vs losers for the **named asset**.  
-   **L4 — 2026 BACKDROP:** structural tilt for **all** DEPTH4 theses this year — background bias, not a far-future essay.  
-   **Rules:** 1–3 short sentences per level; **one main new idea per level**; never restate the hero title; name ticker and driver. Write so a smart non-professional can **visualize** the idea.  
-   **Banned in L1–L4:** dispersion, index diversification, basket reprices cleanly, cash conversion, equity books, beta, duration, regime, setup (noun), convexity, expression (jargon), cross-sectional, transmission, mosaic, dislocation, incremental filler, path dependency, factor-speak, or internal risk-report tone.  
-   **Positive pattern:** canonical QQQ block in `thesis-book-template.ts` (AI costs before profits). **Never imitate** long-winded hedge-fund lines (e.g. “index diversification blurs single-name margin signals… dispersion… basket reprices cleanly”). Same ladder for GLD, USO, TLT, RTX, HG, META, and any new catalog thesis.
-3. **MARKET EDGE** — `whatsUnpriced` / misread tone: what the crowd misses; why DEPTH4 sees it first (clusters, levels, policy). No slogans (“dispersion risk is underpriced”). Use concrete lines (“the index hides the gap…”, “traders see oil up but not the food/fertilizer follow-through…”).
-4. **TRIGGER / TRADE / EXIT / TIME STOP** — always: observable **trigger**; **trade** names tickers + rotate/hedge actions; **invalidation** proves the thesis wrong; **`timeStop`** downgrades if the trigger never fires on schedule.
-5. **LANGUAGE** — Iran brief: short sentences; ban consultant jargon; clear bull/bear/neutral and what to do.
-6. **IMPLEMENTATION** — Canonical copy patterns live in `signal/apps/web/src/lib/thesis-engine-v2/thesis-book-template.ts`; macro prompts inject the snippet when linking to catalog titles; mock catalog theses in `mock-data.ts` must stay aligned.
-
-## Every thesis must answer (six checks)
-
-1. **What position?** **Say it in plain English:** Buy, Sell, **Don’t buy more yet**, **Don’t add**, Short — not vague lines like “Avoid QQQ adds” (unclear: hold? trim? never buy?).
-2. **What future event?** A specific outcome, not a vibe.
-3. **Why will it happen?** Plain-English cause; define jargon once (e.g. **AI-related spending (chips, data centers, staff)** instead of unexplained “AI capex”).
-4. **When?** Time-bound window or catalyst (earnings season, dated print, weeks count).
-5. **Four-level cascade** — see **two** frameworks below (thesis **book** vs **event narrative**).
-6. **What does the market miss?** The edge in plain words — often **cluster evidence**, not one ticker in isolation.
+This applies to **everything user-facing** DEPTH4 writes or displays: thesis titles, micro-labels, body sections, L1–L4, scenarios, market edge / what’s unpriced, trigger / trade / invalidation / time stop, feed teasers, promoted narratives, drawer summaries, assistant summaries, assessment / risk, **and any fallback or mock string**.
 
 ---
 
-## Display title (UI, retail)
+## 1) Canonical voice
+
+- Short, direct, human, plain; readable in ~3 seconds.
+- What is happening, why it matters, what to do.
+- Sharp market headline or trader note for a **smart non-professional**.
+- **Not:** hedge-fund memo, bank strategist note, consultant deck, placeholder template, internal product copy.
+
+---
+
+## 2) DEPTH4 RETAIL VOICE TEST (do not use “Iran-style” shorthand)
+
+Before finalizing any user-facing line, ask:
+
+1. Could a smart retail trader understand this instantly?
+2. Does it sound like a clear market headline, not a PM memo?
+3. Does it say what happened / why it matters / what to do in plain words?
+4. Does it avoid hedge-fund or consultant vocabulary?
+5. Could it be read aloud naturally without sounding robotic?
+
+If any answer is **no**, rewrite.
+
+---
+
+## 3) Language — prefer / avoid
+
+**Prefer:** “money is still expensive”, “the stock still trades like…”, “the market is missing…”, “a few winners carry the story”, “owning the whole index hides the cracks”, “contracts lock in future work”, “future work pipeline”, profits, margins, cash flow, debt, weaker names, small caps, wait, buy, sell, trim, stand down.
+
+**Avoid or replace** (unless defined in plain words in the same sentence): dispersion, index diversification, basket repricing / reprices cleanly, convexity, beta, duration, regime, setup (trade noun), expression (jargon), book bias, equity books, **variant read / variant perception**, sell-side models, backlog math, cash conversion, conversion quality, time compression, flow story, and any sentence that sounds like a hedge-fund note.
+
+Say **“the edge”** or **“what the market hasn’t priced yet”** — not “variant read.”
+
+---
+
+## 4) One job per block
+
+- **Micro-label:** 3–6 words; human; memorable; no ticker; no jargon.
+- **Hero title:** only full thesis sentence — `[Buy/Sell/Don't add …] [asset] because [event] within [window] due to [cause].`
+- **One-line summary:** optional hook; not a duplicate hero.
+- **L1–L4:** facts → near window → year payout → 2026 backdrop; plain language; one main new idea per level (see thesis book + QQQ exemplar).
+- **What’s unpriced:** the edge, **once**.
+- **Trigger / trade / invalidation / time stop:** each **once**, observable.
+- **Why thesis exists:** framing only; do not repeat hero / edge / trade blocks.
+- **Risk factors:** new words; never paste invalidation again.
+- **Scenarios:** thesis-specific; name **asset + driver**. **Banned** generic lines: “Trend continues with noisy headlines”, “Catalyst confirms direction early”, “Base trade plan remains operative”, “Invalidation triggers hit”, “Accelerated path to targets.”
+
+Do **not** repeat the same sentence or idea across blocks.
+
+---
+
+## 5) Feed / scan layer
+
+Feed is a **scan** layer: headline → strengthens or weakens a thesis → open if you care. Short teaser only; **no** thesis paragraphs in feed fields.
+
+---
+
+## 6) QQQ / AI capex as structural template
+
+Every catalog thesis uses the **same** ladder and retail bar as the QQQ AI-cost template — see `DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM` for the canonical `thesisCascade` shape and anti-patterns.
+
+---
+
+## 7) Six checks (every thesis)
+
+1. Position in plain English (Buy / Sell / Don’t add / Don’t buy more yet — not vague “avoid”).
+2. Specific future event.
+3. Plain cause (define “AI-related spending (chips, data centers, staff)” etc. once).
+4. Time-bound window or catalyst.
+5. L1–L4 cascade (book page) or event `reasoning_chain` (promoted narrative) — both retail-only.
+6. What the market misses — the edge, plain words.
+
+---
+
+## 8) Display title & statement
 
 `[Buy / Sell / Don’t add / Don’t buy more … yet] [ticker] because [future event] will happen [within time window]`
 
-Examples:
-
-- Buy GLD because war escalation will continue  
-- Sell IWM because credit stress will spread  
-- Don’t buy more QQQ yet because AI spending will hit margins this earnings season  
-
-(Tickers preferred; spell out the action so a novice knows **exactly** what to do.)
-
-**Optional `oneLineSummary` (thesis page):** one sentence, ~3-second scan — what they should *get* before the full `thesisStatement`. Example: *Don’t add to QQQ yet: many companies will feel the cost of AI spending in earnings before the profits show up, and the index hides that risk.*
-
-## Full thesis statement (longer copy)
-
-`[Action] [asset] because [event Y] will happen [within time window] due to [cause Z], probability [N%]`
-
-Examples:
-
-- Buy GLD because conflict escalation will continue because diplomatic tracks are stalled and hardliners control decisions, probability 68%, window: before the next major talks deadline  
-- Sell IWM because credit stress will spread because the Fed won’t cut soon enough and loan quality is slipping, probability 55%, catalyst: next three weeks of lender earnings  
-- Buy TLT because rate cuts will land sooner than priced because labor is softening faster than headlines, probability 42%, catalyst: May payroll + FOMC  
-
-## Probability updates
-
-`New evidence moves the probability from [old%] to [new%] because [what changed]`  
-
-Or: `Stays at [N%] — [why nothing moved]`
-
-(Event narratives may also use: *This event moves the probability from…*)
+Full statement adds cause + probability + timing where needed.
 
 ---
 
-## Four-level reasoning — two frameworks
+## 9) Four-level reasoning — two surfaces
 
-### A) Thesis **book** page (`thesisCascade` on `Thesis`)
+### A) Thesis page — `thesisCascade` on `Thesis`
 
-| Level | Scope | Job |
-|-------|--------|-----|
-| **L1** | Confirmed **today** | Facts only — no forward calls. |
-| **L2** | **This week / quarter** | Earnings/news window; first headline or price tell. |
-| **L3** | **This year** | Payout path 1–3 quarters; what it means for the **named** ETF or stock. |
-| **L4** | **2026 backdrop** | Year-wide bias (expensive money, energy spare capacity, regulation, etc.) — one clear theme, plain words. |
+| Level | Job |
+|-------|-----|
+| **L1** | Facts now only |
+| **L2** | Watch this week / quarter |
+| **L3** | How the trade pays this year for the named asset |
+| **L4** | 2026 backdrop for all DEPTH4 work |
 
-All four levels must pass the **plain-language** and **banned-term** rules in section 2 above; see `DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM` for the QQQ exemplar and anti-patterns.
+### B) Promoted event — `reasoning_chain` in macro JSON
 
-### B) Promoted **event narrative** (`reasoning_chain` in macro JSON)
+Uses LEVEL 1–4 headers per `prompts.ts` contract; same retail voice and banned list.
 
-| Level | Scope | Job |
-|-------|--------|-----|
-| **L1** | Confirmed now | Cluster facts. |
-| **L2** | Days to **~4 weeks** | Near-term tape; tickers. |
-| **L3** | **1–3 months** | Cascades, policy, credit. |
-| **L4** | Backdrop **this year** | Book-wide bias. |
-
-**Implementation (narratives / JSON):**
-
-- `reasoning_chain` walks **all four** levels with the **exact** headers the product expects (see `prompts.ts`).
-- `impacted_assets`: map to levels, e.g. `L2 — TLT`, `L3 — HYG`, `L4 — GLD`.
-- `mispricing_hypothesis`: say which level the market is underweighting — **often L3 or L4** (the second/third-order story).
-
-**Think wider:** the edge is usually **L3–L4**, not the obvious L1–L2.  
-*Example (Hormuz-style):* L1 chokepoint risk confirmed → L2 oil spikes (often priced) → L3 fertilizer / routes / planting-season knock-ons (often **not** priced) → L4 inflation and sector bias into this year’s book — **action now** tied to observable catalysts, not “call me in 2028.”
-
-### Thesis rewrite checklist (A–F)
-
-- **A — Thesis line:** action + ticker + event + **time window** + cause + **probability** in plain English.  
-- **B — L1–L4:** fill `thesisCascade` with **concrete** lines; **2–3 short sentences per level**; one idea per sentence.  
-- **C — Edge / mispricing:** say why **DEPTH4 is ahead** (e.g. reads **clusters** of prints, not one stock alone).  
-- **D — Trigger:** dated or countable (e.g. “two earnings weeks in a row with …”).  
-- **E — Trade block:** what to do **when the trigger hits**; **exit / invalidation** when the edge is dead; optional **`timeStop`** (e.g. downgrade if the trigger never fires in two earnings seasons). Entry / stop / targets when directional.  
-- **F — Voice:** Iran brief — short, active, confident; ban consultant phrases (“dispersion risk at the index level” → “the index hides the gap between winners and losers”; “cut beta / favor quality” → “own fewer risky growth names and more strong cash-flow names”).
+**Implementation:** `reasoning_chain` exact headers; `impacted_assets` with `L2 — TLT` style prefixes; `mispricing_hypothesis` often L3–L4.
 
 ---
 
-## Time-horizon constraint
+## 10) Time horizon
 
-**Allowed**
-
-- **IMMEDIATE:** days–2 weeks — event-driven.  
-- **SHORT-TERM:** 2 weeks–3 months — trend confirmation.  
-- **MEDIUM-TERM:** 3–6 months max — structural shift **with** near-term proof points.
-
-**Banned**
-
-- “Eventually” theses, multi-year-only structural plays **without** a near-term catalyst, long-term “value” opinions, open-ended “business model broken” with no dates.
-
-**Required**
-
-- Specific time window (or dated catalyst).  
-- Observable proof that can **confirm or kill** the thesis within **6 months**.
+**Allowed:** days–2w event; 2w–3mo trend; 3–6mo with near-term proof.  
+**Banned:** “eventually”, multi-year-only without a catalyst, vague long-term value.  
+**Required:** window or dated catalyst; proof within **six months**.
 
 ---
 
-## Global language rules
+## 11) Event narrative & UI
 
-1. **Novice-first:** ~15–20 word sentences, everyday words, **active voice**, conclusion first.  
-2. **Direction:** Bullish / bearish / neutral (or clearer plain phrasing).  
-3. **Action:** Buy / sell / add / trim / wait / watch **[specific print or ticker]**.  
-4. **Assets:** tickers (QQQ, TLT, GLD, HYG, IWM, USO…) — not “risk assets” or “duration” alone.  
-5. **Probability:** current % and change in points when updating.  
-6. **Jargon:** translate in the same sentence (e.g. convexity → how sensitive bond **prices** are to rate moves).  
-7. **Banned consultant phrasing** — use plain alternatives:  
-   rotation → money moving from X to Y · setup → trade opportunity · regime → market shift · adjacent signal → related evidence · cross-sectional → several companies together · transmission → how X affects Y · convexity → price sensitivity · mosaic → pieces of evidence · dislocation → price gap · incremental → additional · coordinated → happening together · non-linear → accelerating / hard to predict · path dependency → past choices limiting options now  
-8. **Naming:** internal **slug** + retail **display title**; **UI shows display title.**  
-9. **Never mention the model:** no LLM, Claude, Opus, AI-generated, model-ranked — present as **DEPTH4**.  
-10. **Scannable:** short headers, 2–3 sentence paragraphs, bullets where useful, **most important first**.
-
-**Voice:** sharp trade call to a smart beginner — **not** a hedge fund memo, consultant deck, or academic paper. **Direct. Clear. Actionable. Confident.** (Iran-brief density.)
+- **Thesis trade line:** full retail sentence + when + probability.
+- **Trade implication:** exactly **Bullish** OR **Bearish** OR **Neutral**; tickers; action.
+- **Relation chips:** sentence case; no raw **adjacent** enum shown as a harsh pill (see product notes in codebase).
 
 **Brand tokens (UI):** accent `#E8473F`, background `#111110`, text `#ffffff` / `#888888`.
 
 ---
 
-## Event narrative page (promoted cluster)
+## 12) Final QA before ship
 
-**Must surface:** linked thesis, unpriced event, probability + update, **four-level chain**, trade implication with **specific** action, watchlist by level.
-
-### Card copy
-
-- **Thesis (`thesis_trade_line`):** full statement format above + **when** + probability.  
-- **Probability update:** *This event moves…* or *New evidence moves…*; or *Stays at…*  
-- **Trade implication:** `[Bullish/Bearish/Neutral] for [tickers]. [What to do now].`
-
-### Detail page order (UX)
-
-What happened → Thesis → Probability update → Trade implication → Confidence → Why it matters → Market may be missing → Four-level causal chain → Watch → linked theses → effect lists.
-
-### Promoted feed card (UI)
-
-- Do **not** show the raw enum **adjacent** or an **ADJACENT** pill. Omit the relation chip for adjacent rows, or use a small **Related signal** kicker only when there is no `trade_implication` yet.
-- Lead with the trade read in plain text — no **"Implication:"** prefix next to a relation label.
-- Relation chips for other states use sentence case (**Confirms thesis**, **Challenges thesis**), not all-caps.
+- Sounds like DEPTH4, not a mock?
+- Retail trader gets it in one pass?
+- No leftover internal / banned jargon?
+- No block so generic it could fit any thesis?
+- No duplicate sentence across the same page?
 
 ---
 
-## Related code
+## 13) Never mention the machinery
 
-- Thesis book template (LLM + docs): `signal/apps/web/src/lib/thesis-engine-v2/thesis-book-template.ts`  
-- Macro contract: `signal/apps/web/src/lib/macro-reasoning/prompts.ts`  
-- Parser for LEVEL headers: `signal/apps/web/src/lib/macro-reasoning/reasoning-chain-levels.ts`  
-- Production UI data guardrails: `signal/apps/web/src/lib/thesis-engine-v2/production-data.ts`
+No LLM, model, Claude, Opus, or “AI-generated” in user-facing copy — present as **DEPTH4**.

@@ -6,7 +6,7 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
  * **Single purpose per field** (global contract — same as `Thesis` in `types.ts`):
  * - Prefer top-level columns for `title` / `micro_label`; body may mirror them for AI round-trips.
  * - `thesis_statement` / `title`: the hero trade sentence appears **once** here (not again in why / cascade).
- * - `whats_unpriced`: the variant read (“what the market hasn’t priced”) **once**; leave `market_misread` empty or omit.
+ * - `whats_unpriced`: what the market hasn’t priced yet / the edge — **once**, plain words; leave `market_misread` empty or omit.
  * - `trigger`, `trade`, `invalidation`, `time_stop`: each appears **once** in its own block.
  * - `why_thesis_exists`: 3–4 short paragraphs, framing only (see mock catalog), no paste of hero / trigger / trade.
  * - `risk_factors`: summarizes risks and **references** invalidation (“see Invalidation”), never duplicates full stand-down text.

@@ -21,7 +21,7 @@ export type ThesisQualificationScores = {
 /**
  * DEPTH4 thesis **book** — canonical narrative fields (mock, `public.theses.body` JSON, or AI output).
  * **Single purpose:** do not paste the same idea into multiple blocks. Hero sentence lives in `title` /
- * `thesisStatement` only; edge / misread once in `whatsUnpriced` (keep `marketMisread` empty when folded);
+ * `thesisStatement` only; what the market has not priced yet (the edge) once in `whatsUnpriced` (keep `marketMisread` empty when folded);
  * `trigger`, `trade`, `invalidation`, `timeStop` each once; `whyThesisExists` is framing only (3–4 short
  * paragraphs). `riskFactors` summarizes and references Invalidation, never duplicates full stand-down text.
  */

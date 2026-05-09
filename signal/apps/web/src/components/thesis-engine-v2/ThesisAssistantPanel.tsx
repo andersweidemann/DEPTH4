@@ -35,36 +35,36 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
 
   const mapping =
     t.status === "invalidated"
-      ? "Invalidation conditions appear to have been triggered according to the thesis framework."
+      ? "Invalidation looks live — stand down and re-read the tape before sizing again."
       : t.status === "resolved"
-        ? "The thesis is marked resolved; new entries may not be the intended behavior of this framework."
+        ? "This thesis is marked resolved; fresh adds may not fit the same story."
         : t.status === "watching" || t.status === "forming"
-          ? "Setup conditions do not yet appear met according to the thesis framework."
+          ? "Your trigger is not satisfied yet — watch the Trigger block, not the headline alone."
           : t.status === "ready" && !hasOpenBook
-            ? "Entry conditions appear to be met according to the thesis framework, but independent verification still matters."
+            ? "Trigger looks closer to met — still verify price, liquidity, and your own plan."
             : t.status === "ready" && hasOpenBook
-              ? "Thesis conditions appear intact based on current state, with an open Book position linked."
+              ? "Trigger lane still open and you have a Book line on — watch invalidation and size."
               : hasOpenBook
-                ? "A Book position is open against this thesis; the thesis state can be monitored for changes and invalidation risk."
-                : "The thesis is active; conditions may support monitoring for follow-through and invalidation signals.";
+                ? "Book position is open on this name — track invalidation and any probability slide."
+                : "Thesis is active — watch follow-through vs what would break the story.";
 
   const invalidationRef =
-    "If invalidation conditions in the Invalidation block appear, treat the thesis as broken until re-tested; probability should fall sharply when that happens.";
-  const levelsRef = t.entryZone ? "Entry, stop, and targets live in Trade plan." : "Trade plan may omit levels until you define them.";
+    "If the Invalidation block prints, treat the thesis as broken until you re-test it; odds should drop hard when that happens.";
+  const levelsRef = t.entryZone ? "Entry, stop, and targets sit in Trade plan." : "Add levels to Trade plan when you have them.";
   const triggerGateLine =
     t.status === "watching" || t.status === "forming"
-      ? "Setup conditions do not yet appear met until the gate in Trigger is satisfied (see Trigger)."
+      ? "Wait for the Trigger gate before acting — the page says what \"live\" means."
       : t.status === "ready"
-        ? "Conditions are closer to met; still verify Trigger, Trade, and Trade plan on your own process."
-        : "Use Trigger as the live gate against tape.";
+        ? "Closer to live — still cross-check Trigger, Trade, and Trade plan yourself."
+        : "Use Trigger as the live gate vs price.";
 
   if (question === "changed") {
     return {
-      assessment: "The thesis framework indicates the most recent change is driven by the latest evidence update.",
+      assessment: "The latest evidence row is what moved the probability print.",
       context: `${statusLine} ${lastUpdateLine}`,
       considerations:
-        "A second confirming update within a short window may strengthen confidence. A contradictory headline, muted price response, or probability reversal may weaken the setup.",
-      riskFactors: `${invalidationRef} Also watch headline-driven reversals and correlated shocks that override the path.`,
+        "Back-to-back confirming headlines can add conviction. One ugly headline, dead price, or a sharp probability cut can kill the read fast.",
+      riskFactors: `${invalidationRef} Watch headline whipsaws and shocks outside your written story.`,
     };
   }
 
@@ -73,28 +73,28 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
       assessment: mapping,
       context: `${statusLine} ${triggerGateLine} ${levelsRef}`,
       considerations:
-        "Confirm that price behavior aligns with the thesis narrative and that liquidity and timing fit your plan — without restating the trade line here.",
-      riskFactors: `${invalidationRef} Add failed breakouts, sudden volatility, or news that contradicts the core driver.`,
+        "Price has to agree with the story — and your size has to fit how you trade liquidity and time.",
+      riskFactors: `${invalidationRef} Add failed breaks, sudden vol, and news that breaks the core driver.`,
     };
   }
 
   if (question === "risk") {
     return {
-      assessment: "Invalidation is the canonical stand-down reference; risk factors summarize what sits outside that box.",
-      context: `${statusLine} Use Trigger and Trade for action gates; use Trade plan for numeric levels.`,
+      assessment: "Invalidation is your hard stop story; everything else is extra weather.",
+      context: `${statusLine} Trigger and Trade are your action gates; Trade plan holds the numbers.`,
       considerations:
-        "Risk shifts as probability and evidence move. Stable probability with constructive tape may reduce fragility; a drifting lower probability often raises it.",
-      riskFactors: `${invalidationRef} Beyond that, watch gaps, liquidity air-pockets, and shocks that invalidate the path even before your written invalidation prints.`,
+        "Risk rises when odds slide on good tape, or when odds stay high but price goes the wrong way.",
+      riskFactors: `${invalidationRef} Also gaps, thin liquidity, and shocks that kill the path before your written invalidation.`,
     };
   }
 
   if (question === "simple") {
     return {
-      assessment: "In plain terms, this thesis is a structured hypothesis about what could move the market and how it might play out.",
+      assessment: "Plain English: this is a timed bet on what happens next to a named asset, and what proves you wrong.",
       context: `${statusLine} ${lastUpdateLine}`,
       considerations:
-        "The framework becomes more actionable when Trigger is clear and price behavior lines up with Trade plan. Mixed evidence or falling probability usually weakens the read.",
-      riskFactors: `${invalidationRef} Fast headlines and whipsaws remain common failure modes.`,
+        "It gets actionable when Trigger is obvious and price follows. Mixed evidence or falling odds usually weakens the edge.",
+      riskFactors: `${invalidationRef} Headline reversals and chop are the usual tripwires.`,
     };
   }
 
@@ -103,8 +103,8 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
     assessment: mapping,
     context: `${statusLine} ${lastUpdateLine}`,
     considerations:
-      "Check whether the driver still matches incoming evidence, whether Trigger is still the right gate, and whether tape behavior matches Trade — not whether to repeat the headline thesis line here.",
-    riskFactors: `${invalidationRef} Also monitor probability deterioration and contradictory catalysts.`,
+      "Ask: does the driver still match the tape? Is Trigger still the right gate? Does price agree with Trade — without repeating the hero line here.",
+    riskFactors: `${invalidationRef} Watch probability bleed and catalysts that contradict the story.`,
   };
 }
 

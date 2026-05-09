@@ -35,7 +35,7 @@ A. Simple, concrete words. Allowed examples: index, earnings, margins, cash flow
 B. Explain so a reader can **visualize** the idea (e.g. "Owning everything hides which stocks are cracking first." / "Borrowing is still expensive, so weak balance sheets get hit first."). No internal shorthand that needs a bank background.
 C. Do **not** restate the hero title line; each level adds something new.
 
-**Banned in L1–L4** (rewrite in plain English): dispersion, index diversification, basket reprices cleanly, cash conversion, equity books, beta, duration, regime, setup (as noun), convexity, expression (as trade jargon), cross-sectional, transmission, mosaic, dislocation, incremental (as filler), path dependency, factor jargon, or any phrase that sounds like an internal risk report.
+**Banned in L1–L4 and all user-facing thesis fields** (rewrite in plain English): dispersion, index diversification, basket repricing / reprices cleanly, cash conversion, conversion quality, equity books, book bias, beta, duration, regime, setup (as noun), convexity, expression (as trade jargon), variant read / variant perception, sell-side models, backlog math, time compression, flow story, cross-sectional, transmission, mosaic, dislocation, incremental (as filler), path dependency, factor jargon, or any phrase that sounds like an internal risk report.
 
 **NOT ALLOWED (never imitate this tone in any level):**
 - "Index diversification blurs single-name margin signals until earnings cluster; dispersion shows up before the basket reprices cleanly."
@@ -57,7 +57,7 @@ Money is still expensive. Companies that throw off steady cash can fund AI and e
 
 3) MARKET EDGE (whatsUnpriced / misread tone): what the crowd misses; why DEPTH4 sees it first (clusters, levels, policy path) — no empty slogans.
 4) TRIGGER / TRADE / EXIT / TIME STOP: observable trigger; trade names tickers and actions; invalidation states what proves you wrong; time stop if thesis never fires on schedule (e.g. two quarters / two earnings seasons).
-5) IRAN BRIEF: short direct sentences; ban consultant deck speak.
+5) DEPTH4 retail voice: short direct sentences; pass the DEPTH4 RETAIL VOICE TEST (see depth4-retail-voice-constitution module, injected with macro prompts); ban consultant deck speak.
 
 CANONICAL ONE-LINE (QQQ — 3-second scan shape for any thesis)
 "${DEPTH4_CANONICAL_QQQ_ONE_LINE}"
@@ -75,10 +75,10 @@ DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO D
   A. Instruct explicitly: write **all four** levels in plain language for a **smart non-professional**. Do **not** use hedge-fund or bank jargon (e.g. dispersion, index diversification, basket repricing, cash conversion, equity books, beta, duration, regime, setup as trade noun, expression as jargon).
   B. Prefer short, concrete sentences that name the **actual asset** and **driver** (ticker, earnings window, policy, routes, etc.).
   C. Use the **CANONICAL thesisCascade (QQQ)** block in the THESIS BOOK snippet above as the **positive pattern** — same rhythm and specificity; swap in the correct asset and thesis mechanics.
-  D. **One new idea per level:** L1 = today’s facts only · L2 = what to watch this week / this earnings window · L3 = how the trade plays out over the year for the named asset · L4 = structural bias for 2026 across the DEPTH4 book. No hero-title clone; no second copy of whats_unpriced.
+  D. **One new idea per level:** L1 = today’s facts only · L2 = what to watch this week / this earnings window · L3 = how the trade plays out over the year for the named asset · L4 = structural bias for 2026 across all DEPTH4 theses. No hero-title clone; no second copy of whats_unpriced.
   E. Facts → near window → payout path → structural bias; **plain retail English only**. See THESIS BOOK for banned list and NOT ALLOWED examples.
 
-- **whats_unpriced**: ONE block for the variant read / "what the market hasn't priced." Fold legacy misread here; leave **market_misread** empty or omit.
+- **whats_unpriced**: ONE block for the edge — **what the market hasn't priced yet** — in plain words (do not use "variant read" / "variant perception"). Fold legacy misread here; leave **market_misread** empty or omit.
 - **trigger** / **trade** / **invalidation** / **time_stop**: each appears **once** in its own field. **trade** = actions in words; numeric entry/stop/targets live in entry_zone / stop / target fields, not repeated as a second trade essay.
 - **why_thesis_exists**: 3–4 short paragraphs, framing ONLY (why the lens exists). Reference "see Trigger / Trade / Invalidation" instead of pasting them.
 - **risk_factors**: summarize; **reference** Invalidation ("see Invalidation") — never paste the full invalidation block again.

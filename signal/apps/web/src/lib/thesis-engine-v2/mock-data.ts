@@ -6,6 +6,7 @@ import type {
   ResolvedThesisRecord,
   Thesis,
   ThesisDetailBundle,
+  ThesisScenario,
   LiveSignalTickerItem,
   TrackRecordMetrics,
   WatchlistIdea,
@@ -86,7 +87,7 @@ export const MOCK_THESES: Thesis[] = [
 
     whyNow: "Peace odds crossed the line where gold should fade — but the metal has not repriced yet.",
     whatsUnpriced:
-      "Flows still lean on a fat tail-war scenario even as engagement holds and escalation thins. The variant read is that premium can leak week by week long before a signing ceremony — desks update slowly, so the gap can persist until the calendar proves it wrong.",
+      "Flows still lean on a fat tail-war scenario even as engagement holds and escalation thins. The edge is that premium can leak week by week long before a signing ceremony — desks update slowly, so the gap can persist until the calendar proves it wrong.",
     trigger:
       "Two calm geopolitical weeks in a row: no new kinetic strikes, plus at least two credible progress headlines, while oil and VIX stay contained.",
     trade:
@@ -218,7 +219,7 @@ export const MOCK_THESES: Thesis[] = [
 
     whyNow: "Data is starting to show shale fatigue while OPEC keeps the story tight.",
     whatsUnpriced:
-      "Headlines chase OPEC rhetoric, yet rig counts and shale capex guides already imply a tighter US swing than equity flow models assume. The variant read is both can be true: disciplined OPEC plus slower shale equals a higher floor without a crisis.",
+      "Headlines chase OPEC rhetoric, yet rig counts and shale capex guides already imply a tighter US swing than equity flow models assume. The edge is both can be true: disciplined OPEC plus slower shale equals a higher floor without a crisis.",
     trigger:
       "Two consecutive weekly rig-count misses AND at least two named US producers guide shale capex lower on calls.",
     trade:
@@ -250,7 +251,7 @@ export const MOCK_THESES: Thesis[] = [
     title: "Sell TLT because Fed cuts will land later than futures price this year",
     microLabel: "Rates stay higher for longer",
     whyThesisExists:
-      "Bonds price a path of cuts; the Fed still sounds like it wants proof inflation is dead, not wishful thinking.\n\nThis thesis exists because services and payrolls can keep the first cut drifting right while TLT trades like the dovish pivot is imminent.\n\nData windows and execution sit in Trigger / Trade / Trade plan — here we only explain the policy-vs-curve wedge.\n\nDEPTH4 treats it as a cycle mismatch: when prints disagree with the curve, duration reprices first.",
+      "Bonds price a path of cuts; the Fed still sounds like it wants proof inflation is dead, not wishful thinking.\n\nThis thesis exists because services and payrolls can keep the first cut drifting right while TLT trades like the dovish pivot is imminent.\n\nData windows and execution sit in Trigger / Trade / Trade plan — here we only explain the policy-vs-curve wedge.\n\nDEPTH4 treats it as a cycle mismatch: when prints disagree with the curve, long Treasury prices move first.",
     oneLineSummary:
       "Sell long bonds: futures still bet on early cuts while the Fed sounds higher-for-longer.",
     thesisStatement:
@@ -260,7 +261,7 @@ export const MOCK_THESES: Thesis[] = [
     probability: 61,
     status: "active",
     probabilityRationale:
-      "Payrolls and CPI still print firm enough that the dots and futures disagree — duration is carrying the dovish scenario.",
+      "Payrolls and CPI still print firm enough that the dots and futures disagree — TLT is still carrying the dovish scenario too early.",
 
     thesisCascade: {
       l1Confirmed:
@@ -280,7 +281,7 @@ export const MOCK_THESES: Thesis[] = [
 
     whyNow: "The next two prints can move the first-cut date fast — bond longs are early.",
     whatsUnpriced:
-      "The curve still leans on the Fed cutting to support risk assets, while guidance sounds focused on inflation persistence. The variant read is that CPI, payrolls, and tone can stay mutually firm longer than TLT’s price implies.",
+      "The curve still leans on the Fed cutting to support risk assets, while guidance sounds focused on inflation persistence. The edge is that CPI, payrolls, and tone can stay mutually firm longer than TLT’s price implies.",
     trigger:
       "Hot CPI or hot payrolls OR three Fed speakers in one week push back hard on near-term cuts — any one fires the trade.",
     trade:
@@ -316,7 +317,7 @@ export const MOCK_THESES: Thesis[] = [
     title: "Buy RTX because Pentagon awards will firm backlog this quarter",
     microLabel: "Wars drive steady defense spend",
     whyThesisExists:
-      "Defense is a flow story: budgets turn into line-item awards long before cable news explains the EPS impact.\n\nThis thesis exists because primes can re-rate on backlog visibility while generalists still price political noise as the whole story.\n\nAwards, calls, and levels live elsewhere on the page — here is only why visibility can lead price.\n\nDEPTH4 tracks it as industrial cash conversion: when appropriations move, models are usually late, not early.",
+      "Defense is a dollars-in-motion story: budgets turn into line-item awards long before cable news explains the profit impact.\n\nThis thesis exists because primes can re-rate when backlog shows up in filings while TV still argues politics as the whole story.\n\nAwards, calls, and levels live elsewhere on the page — here is only why visibility can lead price.\n\nDEPTH4 tracks it plainly: when Congress moves money, Wall Street is usually late, not early, to mark the work already booked.",
     oneLineSummary:
       "Buy defense primes: contracts are lining up but the stock still prices last year’s doubt.",
     thesisStatement:
@@ -332,21 +333,21 @@ export const MOCK_THESES: Thesis[] = [
       l1Confirmed:
         "Defense budgets are set higher and Pentagon language points to accelerated awards. RTX order book is already rising in filings.",
       l2ThisQuarter:
-        "Named awards can hit the tape in weeks; the stock can move before sell-side models fully refresh backlog math.",
+        "Named awards can hit the tape in weeks; the stock can move before published forecasts fully catch the new backlog.",
       l3ThisYear:
         "As booked work turns into revenue and margins in forecasts, primes that execute pull away from laggards that cannot ship.",
       l4Backdrop2026:
         "NATO scale and industrial policy keep defense dollars sticky — that tailwind sits behind defense names across the book all year.",
     },
 
-    hiddenDriver: "Cash is moving from appropriations into contracts faster than sell-side models assume.",
+    hiddenDriver: "Cash is moving from appropriations into contracts faster than published forecasts assume.",
     likelyPath: "Award headlines stack → backlog line rises → guidance firms → stock closes the valuation gap.",
     marketMisread: "",
     tradeExpression: "Buy RTX into award flow; stop if a flagship program slips.",
 
     whyNow: "Award dates are close enough that the next press release can gap the stock.",
     whatsUnpriced:
-      "Screens overweight politics chatter while award calendars and supply checks already say backlog is building. The variant read is that EPS models are high relative to booked work that is already in motion.",
+      "Screens overweight politics chatter while award calendars and supply checks already say backlog is building. The edge is that profit forecasts look high relative to booked work that is already in motion.",
     trigger:
       "At least two named missile-defense awards to RTX/LMT AND management affirms supply chain stability on the call.",
     trade:
@@ -494,7 +495,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
 
     whyNow: "Policy tone flipped while HG is still priced for no help.",
     whatsUnpriced:
-      "PMI headlines dominate, yet credit impulse and bonded inventory already imply a firmer restock path than spot implies. The variant read is funds still anchor to property fear while the stimulus lever is turning — copper is late, not early, to that stack.",
+      "PMI headlines dominate, yet credit impulse and bonded inventory already imply a firmer restock path than spot implies. The edge is funds still anchor to property fear while the stimulus lever is turning — copper is late, not early, to that stack.",
     trigger:
       "Two consecutive inventory draws in Shanghai bonded stocks AND a confirming credit impulse print in the same month.",
     trade:
@@ -560,7 +561,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
 
     whyNow: "Enforcement is entering the binding phase — that is when shorts pay.",
     whatsUnpriced:
-      "US flow still prices EU risk as a settled check while remedy language already forces product changes that hit attach rates and ad load. The variant read is EPS models are high relative to ongoing compliance and revenue mechanics shifts — not relative to the last fine headline alone.",
+      "US flow still prices EU risk as a settled check while remedy language already forces product changes that hit attach rates and ad load. The edge is profit forecasts look high relative to ongoing compliance and revenue mechanics shifts — not relative to the last fine headline alone.",
     trigger:
       "Published binding remedy that forces product change OR two weeks of EU daily fines with no legal stay.",
     trade:
@@ -627,6 +628,198 @@ export function getThesisBySlug(slug: string): Thesis | undefined {
   return MOCK_THESES.find((t) => t.slug === slug);
 }
 
+/** Per-thesis scenario copy — no generic “trend continues” placeholders (retail voice constitution). */
+function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario[] {
+  const { slug, id } = thesis;
+  const sym = thesis.asset;
+
+  const row = (
+    sc: 1 | 2 | 3,
+    label: ThesisScenario["label"],
+    probability: number,
+    confirmation: string,
+    marketConsequence: string,
+  ): ThesisScenario => ({
+    id: `${slug}-sc${sc}`,
+    thesisId: id,
+    label,
+    probability,
+    confirmation,
+    marketConsequence,
+  });
+
+  switch (slug) {
+    case "strait-hormuz-oil-long":
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          "Gulf headlines stay hot but there is no verified strait closure yet; crude hangs in a range.",
+          "Hold USO small until freight, insurance, or policy confirms the jump window.",
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          "Verified friction on the route or a sharp benchmark freight spike within days.",
+          "USO can gap up — add only with a hard stop and a plan for headline gaps.",
+        ),
+        row(3, "Bear case", 25, "Official stand-down plus a week of calm shipping quotes.", "Exit the Hormuz jump-risk long."),
+      ];
+    case "opec-unity-fracturing":
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          "US rigs slip slowly while OPEC keeps tough talk; oil drifts higher without a crisis.",
+          "Grind USO higher in steps; add size only after rig data and cartel language align.",
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          "Back-to-back weak rig prints and OPEC holds quota discipline on the tape.",
+          "USO extends toward the upper targets in your trade plan.",
+        ),
+        row(3, "Bear case", 25, "Rigs re-accelerate or quota cheating shows up in headlines.", "Stand down the slow-shale / OPEC story."),
+      ];
+    case "fed-pivot-delayed-tlt-weakness":
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          "Inflation and jobs prints stay choppy; TLT whipsaws around the first-cut debate.",
+          "Keep TLT short tactical; only add after a clean hot-print pack.",
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          "Core CPI cools twice and payrolls soften — the Fed gets room to ease sooner.",
+          "Cover the TLT short; the late-cut trade is wrong.",
+        ),
+        row(
+          3,
+          "Bear case",
+          25,
+          "Hot CPI or hawkish Fed push — the market moves the first cut later again.",
+          "Add to the TLT short on strength; yields lead the repricing.",
+        ),
+      ];
+    case "us-defense-repricing-rtx-lmt":
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          "Awards trickle in; RTX tracks the market while backlog lines creep up.",
+          "Accumulate RTX on dips; wait for filing lines to confirm the award path.",
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          "Two named awards hit plus stable supply commentary on the call.",
+          "RTX presses toward the upper targets in your plan.",
+        ),
+        row(3, "Bear case", 25, "Major program slip or funding pulled from the line.", "Cut the defense long fast."),
+      ];
+    case "ai-capex-squeeze-qqq-rotation":
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          "Mixed margin guides; QQQ ranges while mega-caps absorb AI spend headlines.",
+          "Stay on watch; no new broad QQQ adds until your trigger is clearly live.",
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          "Broad AI revenue beats and margins hold while spend stays high.",
+          "Stand down the watch thesis; the index is handling the spend better than feared.",
+        ),
+        row(
+          3,
+          "Bear case",
+          25,
+          "Several non-leader QQQ names cut margin guides on AI spend in the same earnings window.",
+          "Treat as live: trim QQQ adds, tilt toward cash-heavy leaders or hedges per plan.",
+        ),
+      ];
+    case "china-stimulus-copper-long":
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          "Beijing talks stimulus but Shanghai bonded stocks do not draw yet.",
+          "Hold a small HG line; wait for inventory plus credit to confirm together.",
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          "Two draws in bonded stocks and a confirming credit impulse in the same month.",
+          "HG extends toward your restock targets on China impulse.",
+        ),
+        row(3, "Bear case", 25, "Property panic headlines or a sharp USD funding spike returns.", "Cover the HG long."),
+      ];
+    case "eu-tech-crackdown-megacap":
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          "EU legal headlines chop META while remedies grind through courts.",
+          "Keep the short tactical and tight to your invalidation.",
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          "Court stay or settlement removes real product limits on ads and apps.",
+          "Cover the META short — regulation bite is off the table.",
+        ),
+        row(
+          3,
+          "Bear case",
+          25,
+          "Binding remedy forces product change or daily fines stick without a stay.",
+          "META derates on revenue mechanics; add to the short only if your plan allows.",
+        ),
+      ];
+    default:
+      return [
+        row(
+          1,
+          "Base case",
+          40,
+          `Drivers for ${sym} stay two-way; no clean break on the next few prints.`,
+          `Hold or scale per your trade plan until ${sym} gives a clear yes/no.`,
+        ),
+        row(
+          2,
+          "Bull case",
+          35,
+          `Your upside case for ${sym} shows up early in data and price — not just headlines.`,
+          `Press toward targets; trail risk per invalidation.`,
+        ),
+        row(
+          3,
+          "Bear case",
+          25,
+          `Your stated invalidation for ${sym} prints — thesis is wrong on timing or direction.`,
+          `Stand down: trim or exit per advisory.`,
+        ),
+      ];
+  }
+}
+
 /** Rich static detail for flagship thesis; others use `defaultDetail`. */
 export const MOCK_DETAIL_EXTRA: Record<string, Omit<ThesisDetailBundle, "thesis">> = {
   "war-peace-gold-short": {
@@ -640,7 +833,7 @@ export const MOCK_DETAIL_EXTRA: Record<string, Omit<ThesisDetailBundle, "thesis"
         impact: "major_positive",
         probabilityBefore: 54,
         probabilityAfter: 67,
-        interpretation: "Peace process momentum reduces tail-risk bid for bullion.",
+        interpretation: "Peace process momentum cuts the war-risk bid on gold.",
       },
       {
         id: "ev-2",
@@ -672,7 +865,7 @@ export const MOCK_DETAIL_EXTRA: Record<string, Omit<ThesisDetailBundle, "thesis"
         label: "Base case",
         probability: 45,
         confirmation: "Talks continue without escalation; data calm.",
-        marketConsequence: "Gold drifts lower; vol mean-reverts.",
+        marketConsequence: "GLD and spot drift lower as calm stacks; day-to-day swings shrink.",
       },
       {
         id: "sc-u",
@@ -696,7 +889,7 @@ export const MOCK_DETAIL_EXTRA: Record<string, Omit<ThesisDetailBundle, "thesis"
         id: "u1",
         thesisId: TID.gold,
         timestamp: "23m ago",
-        text: "Probability crossed 55% — entry setup valid.",
+        text: "Probability crossed 55% — entry window valid.",
       },
       {
         id: "u2",
@@ -712,7 +905,7 @@ export const MOCK_DETAIL_EXTRA: Record<string, Omit<ThesisDetailBundle, "thesis"
       },
     ],
     relatedAssets: [
-      { symbol: "XAUUSD", note: "Primary expression" },
+      { symbol: "XAUUSD", note: "Primary chart" },
       { symbol: "GLD", note: "ETF proxy" },
       { symbol: "TLT", note: "Risk-off cross-check" },
       { symbol: "DXY", note: "Dollar pressure valve" },
@@ -748,32 +941,7 @@ function defaultDetail(slug: string): ThesisDetailBundle {
         interpretation: "Market coiled — needs confirmation from fundamentals.",
       },
     ],
-    scenarios: [
-      {
-        id: `${slug}-sc1`,
-        thesisId: thesis.id,
-        label: "Base case",
-        probability: 40,
-        confirmation: "Trend continues with noisy headlines.",
-        marketConsequence: "Base trade plan remains operative.",
-      },
-      {
-        id: `${slug}-sc2`,
-        thesisId: thesis.id,
-        label: "Bull case",
-        probability: 35,
-        confirmation: "Catalyst confirms direction early.",
-        marketConsequence: "Accelerated path to targets.",
-      },
-      {
-        id: `${slug}-sc3`,
-        thesisId: thesis.id,
-        label: "Bear case",
-        probability: 25,
-        confirmation: "Invalidation triggers hit.",
-        marketConsequence: "Exit / reduce per advisory.",
-      },
-    ],
+    scenarios: catalogDefaultScenariosForThesis(thesis),
     advisoryLog: [
       {
         id: `${slug}-a1`,
@@ -832,11 +1000,11 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     source: "WSJ",
     timestamp: "32m ago",
     headline: "Fed officials caution on cutting too soon",
-    summary: "Front-end yields tick higher; duration underperforms.",
+    summary: "Front-end yields tick higher; long bond prices lag again.",
     linkedThesisSlug: "fed-pivot-delayed-tlt-weakness",
     linkedThesisTitle: "Sell TLT because Fed cuts will land later than futures price this year",
     linkedThesisMicroLabel: "Rates stay higher for longer",
-    thesisImpact: "Adds evidence to delayed Fed cuts.",
+    thesisImpact: "Adds evidence to delayed Fed cuts; long bond prices stay under pressure.",
   },
   {
     id: "f4",
@@ -1171,11 +1339,11 @@ export const MOCK_POSITIONS: Position[] = [
     size: 20,
     stopLoss: 95.2,
     takeProfit: 88,
-    notes: "Short-duration tactical line.",
+    notes: "Short swing on bonds.",
     currentPnl: "—",
     recommendation: "reduce",
     probability: 61,
-    latestUpdate: "Pivot timeline pushed — duration remains vulnerable.",
+    latestUpdate: "Pivot timeline pushed — long bonds stay vulnerable.",
   },
   {
     id: "p4",

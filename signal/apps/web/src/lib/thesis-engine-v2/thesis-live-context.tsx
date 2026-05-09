@@ -598,10 +598,10 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
           const consequenceText =
             scenarioLabel === "bull"
-              ? "Accelerated path to targets"
+              ? "Faster path to your stated targets — stay disciplined on size."
               : scenarioLabel === "bear"
-                ? "Exit / reduce per advisory"
-                : "Base trade plan remains operative";
+                ? "Stand down: trim or exit per your invalidation plan."
+                : "Middle path holds — keep the trade plan you already set.";
 
           pushAlert({
             thesisId: r.thesisId,
@@ -903,10 +903,10 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
               const newP = tick.scenario[scenarioLabel];
               const consequenceText =
                 scenarioLabel === "bull"
-                  ? "Accelerated path to targets"
+                  ? "Faster path to your stated targets — stay disciplined on size."
                   : scenarioLabel === "bear"
-                    ? "Exit / reduce per advisory"
-                    : "Base trade plan remains operative";
+                    ? "Stand down: trim or exit per your invalidation plan."
+                    : "Middle path holds — keep the trade plan you already set.";
 
               const thesisTitle = resolveThesisDisplayTitle(tick.thesisId);
               pushAlert({
