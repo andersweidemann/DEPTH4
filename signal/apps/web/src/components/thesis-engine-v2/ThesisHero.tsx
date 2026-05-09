@@ -64,10 +64,12 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
         </p>
       ) : null}
       <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-zinc-400">{thesis.thesisStatement}</p>
-      <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
-        <span className="text-zinc-500">Market misread · </span>
-        {thesis.marketMisread}
-      </p>
+      {thesis.marketMisread.trim() ? (
+        <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
+          <span className="text-zinc-500">Market misread · </span>
+          {thesis.marketMisread}
+        </p>
+      ) : null}
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs text-zinc-500">{thesis.asset}</span>
         <DirectionBadge direction={thesis.direction} />

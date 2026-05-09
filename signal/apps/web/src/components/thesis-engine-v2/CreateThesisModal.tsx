@@ -78,6 +78,10 @@ function buildUserThesis(form: FormState): Thesis {
   const tradeLine = form.entrySetup || form.stop || form.target
     ? `Entry ${form.entrySetup || "—"} · Stop ${form.stop || "—"} · Target ${form.target || "—"}`
     : "Optional setup pending — define entry/stop/targets when trigger compresses.";
+  const tradeProse =
+    form.entrySetup || form.stop || form.target
+      ? "Express the view using the levels in Trade plan once the gate in Trigger is observable; adjust sizing as evidence updates — keep numbers out of this sentence."
+      : "Optional setup pending — define levels in Trade plan when trigger compresses.";
 
   return {
     id: nowId,
@@ -94,13 +98,13 @@ function buildUserThesis(form: FormState): Thesis {
 
     hiddenDriver: "User thesis — driver defined by your framing; DEPTH4 will infer supporting drivers from incoming signals.",
     likelyPath: "Signals accumulate → trigger clarity improves → the market catches up → the trade resolves into targets or invalidation.",
-    marketMisread: form.whatsUnpriced.trim(),
+    marketMisread: "",
     tradeExpression: `Cleanest expression: ${asset || "asset"} — ${tradeLine}`,
 
     whyNow: form.whyNow.trim(),
     whatsUnpriced: form.whatsUnpriced.trim(),
     trigger: form.entrySetup.trim(),
-    trade: tradeLine,
+    trade: tradeProse,
     invalidation: form.bearConfirms.trim(),
     horizon: form.horizon.trim(),
     advisoryAction: p >= 65 ? "enter" : p >= 50 ? "hold" : "watch",

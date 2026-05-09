@@ -2,16 +2,16 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { StatusBadge } from "./StatusBadge";
 
 export function TradePlanCard({ thesis }: { thesis: Thesis }) {
-  const explainer =
-    thesis.entryZone || thesis.stop || thesis.target1
-      ? `Entry: ${thesis.entryZone ?? "—"} | Stop-loss: ${thesis.stop ?? "—"} | Target: ${thesis.target2 ?? thesis.target1 ?? "—"}`
-      : null;
   return (
     <section className="rounded-none bg-zinc-900/25 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Trade plan</h2>
         <StatusBadge status={thesis.status} />
       </div>
+      <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+        Numbers only — see <span className="font-medium text-zinc-400">Trade</span> above for what to do when your setup
+        fires.
+      </p>
       <dl className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>
           <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Entry zone</dt>
@@ -38,14 +38,6 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
           <dd className="mt-1 text-sm capitalize text-zinc-200">{thesis.advisoryAction}</dd>
         </div>
       </dl>
-      <p className="mt-4 border-t border-white/[0.04] pt-4 font-mono text-[11px] leading-relaxed text-zinc-400">
-        {thesis.trade}
-      </p>
-      {explainer && (
-        <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-          {explainer}
-        </p>
-      )}
     </section>
   );
 }

@@ -48,9 +48,15 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
                 ? "A Book position is open against this thesis; the thesis state can be monitored for changes and invalidation risk."
                 : "The thesis is active; conditions may support monitoring for follow-through and invalidation signals.";
 
-  const invalidationLine = `Invalidation would occur if: ${t.invalidation}`;
-  const entryZoneLine = t.entryZone ? `Entry zone (thesis-defined): ${t.entryZone}.` : "Entry zone: not specified in this thesis.";
-  const triggerLine = `Trigger (thesis-defined): ${t.trigger}`;
+  const invalidationRef =
+    "If invalidation conditions in the Invalidation block appear, treat the thesis as broken until re-tested; probability should fall sharply when that happens.";
+  const levelsRef = t.entryZone ? "Entry, stop, and targets live in Trade plan." : "Trade plan may omit levels until you define them.";
+  const triggerGateLine =
+    t.status === "watching" || t.status === "forming"
+      ? "Setup conditions do not yet appear met until the gate in Trigger is satisfied (see Trigger)."
+      : t.status === "ready"
+        ? "Conditions are closer to met; still verify Trigger, Trade, and Trade plan on your own process."
+        : "Use Trigger as the live gate against tape.";
 
   if (question === "changed") {
     return {
@@ -58,28 +64,27 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
       context: `${statusLine} ${lastUpdateLine}`,
       considerations:
         "A second confirming update within a short window may strengthen confidence. A contradictory headline, muted price response, or probability reversal may weaken the setup.",
-      riskFactors: `${invalidationLine} Headline-driven reversals and regime shifts are key risks to monitor.`,
+      riskFactors: `${invalidationRef} Also watch headline-driven reversals and correlated shocks that override the path.`,
     };
   }
 
   if (question === "entry") {
     return {
       assessment: mapping,
-      context: `${statusLine} ${entryZoneLine} ${triggerLine}`,
+      context: `${statusLine} ${triggerGateLine} ${levelsRef}`,
       considerations:
-        "Confirm that the trigger is observable and that price behavior aligns with the thesis narrative. Consider whether liquidity, volatility, and timing make the setup coherent within your plan.",
-      riskFactors: `${invalidationLine} Consider monitoring for failed breakouts, sudden volatility, or news that contradicts the core driver.`,
+        "Confirm that price behavior aligns with the thesis narrative and that liquidity and timing fit your plan — without restating the trade line here.",
+      riskFactors: `${invalidationRef} Add failed breakouts, sudden volatility, or news that contradicts the core driver.`,
     };
   }
 
   if (question === "risk") {
     return {
-      assessment: "The thesis framework highlights invalidation conditions and adverse scenarios as the primary risk reference points.",
-      context: `${statusLine} ${invalidationLine}`,
+      assessment: "Invalidation is the canonical stand-down reference; risk factors summarize what sits outside that box.",
+      context: `${statusLine} Use Trigger and Trade for action gates; use Trade plan for numeric levels.`,
       considerations:
-        "Risk may change as probability shifts and as new evidence arrives. A stable probability with constructive price response may reduce thesis fragility; a drift lower may increase it.",
-      riskFactors:
-        "Monitor for conditions that directly contradict the thesis driver, plus sudden gaps, liquidity events, or correlated shocks that can override the thesis path.",
+        "Risk shifts as probability and evidence move. Stable probability with constructive tape may reduce fragility; a drifting lower probability often raises it.",
+      riskFactors: `${invalidationRef} Beyond that, watch gaps, liquidity air-pockets, and shocks that invalidate the path even before your written invalidation prints.`,
     };
   }
 
@@ -88,8 +93,8 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
       assessment: "In plain terms, this thesis is a structured hypothesis about what could move the market and how it might play out.",
       context: `${statusLine} ${lastUpdateLine}`,
       considerations:
-        "The framework becomes more actionable when a clear trigger appears and price behavior aligns with the described entry zone. The setup may weaken if evidence turns mixed or probability falls.",
-      riskFactors: `${invalidationLine} Unexpected news and fast reversals are common failure modes for narrative theses.`,
+        "The framework becomes more actionable when Trigger is clear and price behavior lines up with Trade plan. Mixed evidence or falling probability usually weakens the read.",
+      riskFactors: `${invalidationRef} Fast headlines and whipsaws remain common failure modes.`,
     };
   }
 
@@ -98,8 +103,8 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
     assessment: mapping,
     context: `${statusLine} ${lastUpdateLine}`,
     considerations:
-      "Consider whether the thesis driver is still valid, whether the trigger is clearly defined, and whether price action supports the narrative. A confirming sequence of evidence may strengthen; contradictions may weaken.",
-    riskFactors: `${invalidationLine} Consider monitoring for adverse price moves, probability deterioration, and contradictory catalysts.`,
+      "Check whether the driver still matches incoming evidence, whether Trigger is still the right gate, and whether tape behavior matches Trade — not whether to repeat the headline thesis line here.",
+    riskFactors: `${invalidationRef} Also monitor probability deterioration and contradictory catalysts.`,
   };
 }
 

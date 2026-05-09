@@ -440,24 +440,34 @@ export function ThesisDetailClient({
 
         <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why this thesis exists</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">What&apos;s really driving this</p>
-              <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.hiddenDriver}</p>
+          {thesis.whyThesisExists?.trim() ? (
+            <div className="mt-4 max-w-prose space-y-3">
+              {thesis.whyThesisExists
+                .split(/\n\n+/)
+                .map((p) => p.trim())
+                .filter(Boolean)
+                .map((para, i) => (
+                  <p key={i} className="text-[12px] leading-relaxed text-zinc-300">
+                    {para}
+                  </p>
+                ))}
             </div>
-            <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">What happens next</p>
-              <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.likelyPath}</p>
+          ) : (
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">What&apos;s really driving this</p>
+                <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.hiddenDriver}</p>
+              </div>
+              <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">What happens next</p>
+                <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.likelyPath}</p>
+              </div>
+              <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4 sm:col-span-2">
+                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">Best way to trade it</p>
+                <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.tradeExpression}</p>
+              </div>
             </div>
-            <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">Market misread</p>
-              <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.marketMisread}</p>
-            </div>
-            <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">Best way to trade it</p>
-              <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.tradeExpression}</p>
-            </div>
-          </div>
+          )}
           <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">
             <span className="text-zinc-600">Probability rationale · </span>
             {thesis.probabilityRationale}

@@ -31,6 +31,12 @@ export type Thesis = {
   /** Optional one-sentence hook for a ~3-second scan (retail clarity). */
   oneLineSummary?: string;
   thesisStatement: string;
+  /**
+   * Optional 3–4 short paragraphs for “Why this thesis exists” (catalog + rich user drafts).
+   * Separate paragraphs with a blank line (`\\n\\n`). When absent, the detail page falls back
+   * to driver / path / trade-expression cards without duplicating Market misread.
+   */
+  whyThesisExists?: string;
   asset: string;
   direction: "long" | "short" | "watch";
   probability: number;
