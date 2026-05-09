@@ -5,8 +5,8 @@ import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell
 import { FeedSignalCard } from "@/components/thesis-engine-v2/FeedSignalCard";
 import { PromotedMacroEventCard } from "@/components/macro-reasoning/PromotedMacroEventCard";
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
-import { MOCK_FEED_SIGNALS } from "@/lib/thesis-engine-v2/mock-data";
 import { createClient } from "@/lib/supabase/server";
+import { fetchRecentNewsFeedSignals } from "@/lib/feed/recent-news-feed";
 import {
   fetchPromotedMacroReasoningRows,
   toPromotedCardModel,
@@ -36,6 +36,8 @@ export default async function Feed2Page() {
     const thesisIds = promotedCards.flatMap((c) => c.reasoning.affected_theses);
     thesisMetaById = await fetchThesisMetaMap(supabase, thesisIds);
   }
+
+  const recentNewsSignals = await fetchRecentNewsFeedSignals(supabase, 24);
 
   return (
     <>
@@ -96,25 +98,34 @@ export default async function Feed2Page() {
               </div>
             ) : null}
 
-            {!user ? (
-              <div className={promotedCards.length > 0 ? "mt-12" : "mt-10"}>
-                <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Demo signals</h2>
-                <p className="mt-1 mb-4 text-[11px] text-zinc-600">Layout preview only — not connected to live news.</p>
+            <div className={promotedCards.length > 0 ? "mt-12" : "mt-10"}>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Latest headlines</h2>
+              <p className="mt-1 mb-4 max-w-xl text-[12px] leading-relaxed text-zinc-600">
+                Pulled live from <span className="text-zinc-400">news_events</span> as your ingest pipeline writes them.
+                Thesis links appear when promoted reasoning maps a cluster.
+              </p>
+              {recentNewsSignals.length > 0 ? (
                 <div className="rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
-                  {MOCK_FEED_SIGNALS.map((item) => (
+                  {recentNewsSignals.map((item) => (
                     <FeedSignalCard key={item.id} item={item} />
                   ))}
                 </div>
-              </div>
-            ) : null}
+              ) : (
+                <div className="rounded-lg border border-dashed border-white/[0.08] bg-zinc-900/15 px-4 py-6 text-[12px] text-zinc-500">
+                  No wire headlines in the database yet — run ingest so <span className="text-zinc-400">news_events</span>{" "}
+                  fills.
+                </div>
+              )}
+            </div>
           </section>
 
           <aside className="hidden lg:block">
             <div className="rounded-lg border border-white/[0.06] bg-zinc-900/15 px-4 py-4">
               <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Feed context</p>
               <p className="mt-2 text-[12px] leading-relaxed text-zinc-400">
-                Promoted narratives use live <span className="text-zinc-300">event_reasoning</span> when available. Star
-                theses to pull matching evidence into alerts and the live ticker.
+                Promoted narratives use live <span className="text-zinc-300">event_reasoning</span> when available. The
+                headline list reads <span className="text-zinc-300">news_events</span> directly. Star theses to pull
+                matching evidence into alerts and the live ticker.
               </p>
               <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
                 Thesis readiness counts are shown on the Live theses grid, not inferred here.

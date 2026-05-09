@@ -65,7 +65,7 @@ CANONICAL ONE-LINE (QQQ — 3-second scan shape for any thesis)
 
 /**
  * When writing or updating `public.theses.body` (or a full `Thesis` JSON for discovery / admin),
- * enforce the same single-purpose fields as the web `Thesis` type and mock catalog.
+ * enforce the same single-purpose fields as the web `Thesis` type and the shipped catalog baseline.
  */
 export const DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM = `
 DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO DUPLICATION

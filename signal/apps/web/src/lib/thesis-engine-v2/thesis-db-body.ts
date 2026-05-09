@@ -8,7 +8,7 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
  * - `thesis_statement` / `title`: the hero trade sentence appears **once** here (not again in why / cascade).
  * - `whats_unpriced`: what the market hasn’t priced yet / the edge — **once**, plain words; leave `market_misread` empty or omit.
  * - `trigger`, `trade`, `invalidation`, `time_stop`: each appears **once** in its own block.
- * - `why_thesis_exists`: 3–4 short paragraphs, framing only (see mock catalog), no paste of hero / trigger / trade.
+ * - `why_thesis_exists`: 3–4 short paragraphs, framing only (see baseline catalog in `catalog-data.ts`), no paste of hero / trigger / trade.
  * - `risk_factors`: summarizes risks and **references** invalidation (“see Invalidation”), never duplicates full stand-down text.
  *
  * Use **snake_case** keys in stored JSON; this module maps to `Thesis` camelCase.
@@ -49,7 +49,7 @@ function str(v: unknown): string | undefined {
   return t ? t : undefined;
 }
 
-/** Merge `public.theses.body` into a client `Thesis` (catalog mock or user baseline). */
+/** Merge `public.theses.body` into a client `Thesis` (catalog baseline or user-authored baseline). */
 export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
   if (!body || typeof body !== "object" || Array.isArray(body)) return normalizeThesisNarrativeFields(thesis);
   const o = body as Record<string, unknown>;

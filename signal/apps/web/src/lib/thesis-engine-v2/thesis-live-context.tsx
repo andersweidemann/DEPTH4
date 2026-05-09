@@ -10,22 +10,17 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { usePathname } from "next/navigation";
 import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
 
 export type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
-import { mergeThesis } from "@/lib/thesis-engine-v2/thesis-merge";
-import { MOCK_LIVE_SIGNAL_TICKER, MOCK_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
-import { thesisMockTicksEnabled } from "@/lib/thesis-engine-v2/production-data";
+import { mergeThesis, type ThesisOverrides } from "@/lib/thesis-engine-v2/thesis-merge";
+import { CATALOG_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import {
   DEPTH4_THESIS_OUTCOMES_CHANGED,
   getThesisOutcome,
   setThesisOutcome,
 } from "@/lib/thesis-engine-v2/thesis-outcomes-store";
-import { createMockThesisStream } from "@/lib/thesis-engine-v2/thesis-mock-stream";
-import { runMockThesisTick } from "@/lib/thesis-engine-v2/thesis-mock-tick";
-import type { Overrides } from "@/lib/thesis-engine-v2/thesis-mock-tick";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
@@ -137,7 +132,7 @@ function newAlertId(): string {
 }
 
 function baseThesisForId(thesisId: string): Thesis | undefined {
-  return MOCK_THESES.find((t) => t.id === thesisId) ?? loadUserTheses().find((t) => t.id === thesisId);
+  return CATALOG_THESES.find((t) => t.id === thesisId) ?? loadUserTheses().find((t) => t.id === thesisId);
 }
 
 function scenarioProbPatchFromDb(baseThesis: Thesis, p: { base: number; bull: number; bear: number }): Partial<Thesis> {
@@ -273,6 +268,8 @@ type Ctx = {
   catalogDbThesisMicroLabels: ReadonlyMap<string, string>;
   /** `public.theses.body` JSON keyed by thesis id (catalog rows), when signed in. */
   catalogDbThesisBodies: ReadonlyMap<string, unknown>;
+  /** `public.theses.slug` keyed by thesis id (catalog rows), when signed in. */
+  catalogDbThesisSlugs: ReadonlyMap<string, string>;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -288,19 +285,12 @@ export function useThesisLiveOptional(): Ctx | null {
 }
 
 export function ThesisLiveProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname() ?? "";
-  /** Mock ticker ticks only on thesis routes; DB evidence + Insider Flow poll app-wide (v2 layout). */
-  const thesisPageActive = pathname === "/theses" || pathname.startsWith("/theses/");
   const { plan } = useV2Plan();
-  const mockTicksEnabled = thesisMockTicksEnabled();
 
   // Avoid hydration mismatches: read sessionStorage only after mount.
   const [starred, setStarred] = useState<Set<string>>(() => new Set());
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
-  const [overrides, setOverrides] = useState<Overrides>({});
-  const [mockTickerOnly, setMockTickerOnly] = useState<LiveSignalTickerItem[]>(() =>
-    mockTicksEnabled ? [...MOCK_LIVE_SIGNAL_TICKER] : [],
-  );
+  const [overrides, setOverrides] = useState<ThesisOverrides>({});
   const [alerts, setAlerts] = useState<ThesisAlertEntry[]>([]);
   const [pulseMap, setPulseMap] = useState<Record<string, number>>({});
   const [outToast, setOutToast] = useState<Toast>(null);
@@ -314,10 +304,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [catalogDbThesisTitles, setCatalogDbThesisTitles] = useState(() => new Map<string, string>());
   const [catalogDbThesisMicroLabels, setCatalogDbThesisMicroLabels] = useState(() => new Map<string, string>());
   const [catalogDbThesisBodies, setCatalogDbThesisBodies] = useState(() => new Map<string, unknown>());
-
-  const scenarioRef = useRef(
-    new Map<string, { base: number; bull: number; bear: number; lead: "base" | "bull" | "bear" }>(),
-  );
+  const [catalogDbThesisSlugs, setCatalogDbThesisSlugs] = useState(() => new Map<string, string>());
 
   const overridesRef = useRef(overrides);
   overridesRef.current = overrides;
@@ -344,7 +331,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     (thesisId: string) => {
       const db = catalogDbThesisTitles.get(thesisId)?.trim();
       if (db) return getThesisDisplayTitle({ title: db });
-      const sys = MOCK_THESES.find((t) => t.id === thesisId);
+      const sys = CATALOG_THESES.find((t) => t.id === thesisId);
       if (sys) return getThesisDisplayTitle(sys);
       const u = loadUserTheses().find((t) => t.id === thesisId);
       if (u) return getThesisDisplayTitle(u);
@@ -363,6 +350,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         const o = root?.titlesByThesisId;
         const microObj = root?.microLabelsByThesisId;
         const bodiesObj = root?.bodiesByThesisId;
+        const slugsObj = root?.slugsByThesisId;
         const m = new Map<string, string>();
         if (o && typeof o === "object") {
           for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
@@ -384,6 +372,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
           }
         }
         setCatalogDbThesisBodies(bm);
+        const sm = new Map<string, string>();
+        if (slugsObj && typeof slugsObj === "object") {
+          for (const [k, v] of Object.entries(slugsObj as Record<string, unknown>)) {
+            if (typeof v === "string" && v.trim()) sm.set(k, v.trim());
+          }
+        }
+        setCatalogDbThesisSlugs(sm);
       })
       .catch(() => {});
     return () => {
@@ -396,7 +391,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     [evidenceLog, resolveThesisDisplayTitle],
   );
 
-  const tickerItems = mockTicksEnabled ? mockTickerOnly : evidenceTickerItems;
+  const tickerItems = evidenceTickerItems;
 
   const mergeThesisCb = useCallback(
     (t: Thesis) => applyManualOutcome(mergeThesis(t, overrides[t.id])),
@@ -854,113 +849,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     return () => window.clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    if (!thesisPageActive || !mockTicksEnabled) return;
-    const stream = createMockThesisStream();
-    return stream.subscribe((ev) => {
-      if (ev.kind !== "mock_tick") return;
-      setOpenIds(openPositionThesisIds());
-      const tick = runMockThesisTick({
-        mockTheses: MOCK_THESES,
-        overrides: overridesRef.current,
-        hasManualOutcome: (id) => !!getThesisOutcome(id),
-        isSubscribed: (id) => starredRef.current.has(id),
-        random: Math.random,
-      });
-      if (!tick) return;
-
-      // Scenario probability notifications (meaningful shifts only).
-      if (tick.scenario) {
-        // Starred-only rule: never generate notifications for unstarred theses.
-        if (!starredRef.current.has(tick.thesisId)) {
-          scenarioRef.current.set(tick.thesisId, tick.scenario);
-          return;
-        }
-        const prevS = scenarioRef.current.get(tick.thesisId);
-        scenarioRef.current.set(tick.thesisId, tick.scenario);
-        if (prevS) {
-          const pref = prefs[tick.thesisId] ?? "major";
-          if (pref !== "mute") {
-            const deltas: Array<{ k: "base" | "bull" | "bear"; d: number }> = (["base", "bull", "bear"] as const).map((k) => ({
-              k,
-              d: tick.scenario![k] - prevS[k],
-            }));
-            deltas.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
-            const top = deltas[0]!;
-            const leadChanged = prevS.lead !== tick.scenario.lead;
-            const bigMove = Math.abs(top.d) >= 5;
-
-            const should =
-              pref === "any"
-                ? Math.abs(top.d) >= 2 || leadChanged
-                : pref === "consequence"
-                  ? leadChanged && tick.scenario.lead === "bear"
-                  : bigMove || leadChanged;
-
-            if (should) {
-              const scenarioLabel = leadChanged ? tick.scenario.lead : top.k;
-              const oldP = prevS[scenarioLabel];
-              const newP = tick.scenario[scenarioLabel];
-              const consequenceText =
-                scenarioLabel === "bull"
-                  ? "Faster path to your stated targets — stay disciplined on size."
-                  : scenarioLabel === "bear"
-                    ? "Stand down: trim or exit per your invalidation plan."
-                    : "Middle path holds — keep the trade plan you already set.";
-
-              const thesisTitle = resolveThesisDisplayTitle(tick.thesisId);
-              pushAlert({
-                thesisId: tick.thesisId,
-                thesisTitle,
-                type: "probability_change",
-                scenario: scenarioLabel,
-                oldProbability: oldP,
-                newProbability: newP,
-                confirmText: `${scenarioLabel === "bull" ? "Bull" : scenarioLabel === "bear" ? "Bear" : "Base"} case ${oldP}% → ${newP}%`,
-                consequenceText: `Consequence: ${consequenceText}.`,
-                impact:
-                  scenarioLabel === "bear" ? "major_negative" : scenarioLabel === "bull" ? "major_positive" : "neutral",
-              });
-
-              if (bigMove || (leadChanged && scenarioLabel !== "base")) {
-                pushToast(`${thesisTitle}: ${scenarioLabel} ${oldP}% → ${newP}%`);
-              }
-            }
-          }
-        }
-      }
-
-      setOverrides((o) => ({
-        ...o,
-        [tick.thesisId]: { ...(o[tick.thesisId] ?? {}), ...tick.patch },
-      }));
-      setPulseMap((m) => ({ ...m, [tick.pulseThesisId]: (m[tick.pulseThesisId] ?? 0) + 1 }));
-
-      if (tick.alert) {
-        pushAlert({
-          thesisId: tick.alert.thesisId,
-          thesisTitle: tick.alert.thesisTitle,
-          type: tick.alert.impact === "invalidated" ? "invalidation" : "system",
-          confirmText: tick.alert.body.split("\n")[1] ?? "Update received.",
-          consequenceText: tick.alert.body.split("\n").slice(-1)[0] ?? "",
-          impact: tick.alert.impact,
-        });
-      }
-
-      if (tick.toastMessage) {
-        const tid = newAlertId();
-        setOutToast({ id: tid, message: tick.toastMessage });
-        window.setTimeout(() => {
-          setOutToast((cur) => (cur?.id === tid ? null : cur));
-        }, 6200);
-      }
-
-      if (tick.tickerItem) {
-        setMockTickerOnly((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
-      }
-    });
-  }, [mockTicksEnabled, thesisPageActive, pushAlert, mergeThesisCb, prefs, pushToast, resolveThesisDisplayTitle]);
-
   const value = useMemo<Ctx>(() => {
     void outcomeEpoch;
     return {
@@ -994,6 +882,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       catalogDbThesisTitles,
       catalogDbThesisMicroLabels,
       catalogDbThesisBodies,
+      catalogDbThesisSlugs,
     };
   },
     [
@@ -1027,6 +916,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       catalogDbThesisTitles,
       catalogDbThesisMicroLabels,
       catalogDbThesisBodies,
+      catalogDbThesisSlugs,
       outcomeEpoch,
     ],
   );

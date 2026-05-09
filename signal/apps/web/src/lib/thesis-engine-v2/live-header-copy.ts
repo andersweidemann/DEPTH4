@@ -1,6 +1,6 @@
 /**
  * Safe default when ready/total counts are not loaded from the same backend as the grid.
- * Avoids implying catalog/mock rows are a live fleet statistic.
+ * Avoids implying catalog baseline rows are a live fleet statistic.
  */
 export function thesesLiveHeaderNeutral(): string {
   return "Macro thesis workspace";

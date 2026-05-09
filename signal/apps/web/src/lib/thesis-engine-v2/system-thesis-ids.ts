@@ -1,4 +1,4 @@
-/** IDs must match `public.theses` seed and v2 mock data. Do not rename without a DB migration. */
+/** IDs must match `public.theses` seed and `catalog-data.ts` baseline. Do not rename without a DB migration. */
 export const SYSTEM_THESIS_IDS = {
   gold: "th-gold",
   hormuz: "th-hormuz",

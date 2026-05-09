@@ -1,5 +1,5 @@
 import type { Thesis, ThesisDetailBundle, ThesisEvidence, ThesisScenario, ThesisUpdate } from "@/lib/thesis-engine-v2/types";
-import { getThesisBySlug, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { catalogSlugForSystemThesisId, RESERVED_CATALOG_SLUGS } from "@/lib/thesis-engine-v2/catalog-slugs";
 import { normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
 
 const USER_THESES_KEY = "depth4.v2.user_theses.v1";
@@ -29,7 +29,7 @@ export function loadUserTheses(): Thesis[] {
   if (typeof window === "undefined") return [];
   const s = safeParse(window.sessionStorage.getItem(USER_THESES_KEY));
   // avoid collisions with system slugs
-  return s.theses.filter((t) => !getThesisBySlug(t.slug)).map(normalizeThesisStatus);
+  return s.theses.filter((t) => !RESERVED_CATALOG_SLUGS.has(t.slug)).map(normalizeThesisStatus);
 }
 
 export function saveUserTheses(theses: Thesis[]) {
@@ -55,38 +55,25 @@ export function getUserThesisBySlug(slug: string): Thesis | undefined {
 
 /** Route param for `/theses/[slug]` — system catalog + session user theses. */
 export function resolveThesisDetailSlug(thesisId: string): string {
-  const sys = MOCK_THESES.find((t) => t.id === thesisId);
-  if (sys) return sys.slug;
+  const catalogSlug = catalogSlugForSystemThesisId(thesisId);
+  if (catalogSlug) return catalogSlug;
   const u = loadUserTheses().find((t) => t.id === thesisId);
   return u?.slug ?? thesisId;
 }
 
 function mkEvidence(thesis: Thesis): ThesisEvidence[] {
-  // Seed a small plausible evidence stack for new user theses.
-  const p0 = Math.max(25, Math.round(thesis.probability - 10));
-  const p1 = Math.max(25, Math.round(thesis.probability - 4));
+  const p0 = Math.max(25, Math.round(thesis.probability - 4));
   return [
     {
       id: `${thesis.id}-ev-1`,
       thesisId: thesis.id,
       source: "DEPTH4",
       timestamp: "Created · now",
-      headline: "User thesis created",
+      headline: "User thesis saved",
       impact: "neutral",
       probabilityBefore: p0,
-      probabilityAfter: p1,
-      interpretation: "Baseline framing captured; DEPTH4 begins monitoring signal flow against the trigger.",
-    },
-    {
-      id: `${thesis.id}-ev-2`,
-      thesisId: thesis.id,
-      source: "Reuters",
-      timestamp: "Catalogued · +12m",
-      headline: "Committee calendar indicates upcoming window",
-      impact: "minor_positive",
-      probabilityBefore: p1,
       probabilityAfter: thesis.probability,
-      interpretation: "Timing compression improves; thesis edges closer to tradeable conditions.",
+      interpretation: "Baseline saved — evidence fills in as headlines and your starred book update.",
     },
   ];
 }

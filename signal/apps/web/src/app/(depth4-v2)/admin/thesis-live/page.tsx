@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { MOCK_THESES, TID } from "@/lib/thesis-engine-v2/mock-data";
+import { CATALOG_THESES, TID } from "@/lib/thesis-engine-v2/catalog-data";
 import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 type ApiRow = {
@@ -54,11 +54,11 @@ function useAdminGate(sb: ReturnType<typeof createClient>) {
 export default function ThesisLiveAdminPage() {
   const sb = useMemo(() => createClient(), []);
   const { denied, ready, email } = useAdminGate(sb);
-  const [rows, setRows] = useState<(ApiRow & { inUiMock: boolean })[]>([]);
+  const [rows, setRows] = useState<(ApiRow & { inUiCatalog: boolean })[]>([]);
   const [totals, setTotals] = useState<{ evidenceRows: number; starRows: number; thesisRows: number } | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
-  const uiIds = useMemo(() => new Set(MOCK_THESES.map((t) => t.id)), []);
+  const uiIds = useMemo(() => new Set(CATALOG_THESES.map((t) => t.id)), []);
   const systemTidSet = useMemo(() => new Set<string>(Object.values(TID)), []);
 
   useEffect(() => {
@@ -76,19 +76,19 @@ export default function ThesisLiveAdminPage() {
       const seen = new Set(data.rows.map((r) => r.id));
       const merged = data.rows.map((r) => ({
         ...r,
-        inUiMock: uiIds.has(r.id),
+        inUiCatalog: uiIds.has(r.id),
       }));
       for (const id of Array.from(systemTidSet)) {
         if (seen.has(id)) continue;
         merged.push({
           id,
           title: "(missing in public.theses)",
-          slug: MOCK_THESES.find((t) => t.id === id)?.slug ?? null,
+          slug: CATALOG_THESES.find((t) => t.id === id)?.slug ?? null,
           status: "—",
           evidenceCount: 0,
           starredUsers: 0,
           inDb: false,
-          inUiMock: true,
+          inUiCatalog: true,
         });
       }
       merged.sort((a, b) => {
@@ -179,7 +179,7 @@ export default function ThesisLiveAdminPage() {
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] text-zinc-400">{r.id}</td>
                   <td className="px-3 py-2">{r.inDb ? "Yes" : "No"}</td>
-                  <td className="px-3 py-2">{r.inUiMock ? "Yes" : "—"}</td>
+                  <td className="px-3 py-2">{r.inUiCatalog ? "Yes" : "—"}</td>
                   <td className="px-3 py-2 tabular-nums">{r.evidenceCount}</td>
                   <td className="px-3 py-2 tabular-nums">{r.starredUsers}</td>
                   <td className="px-3 py-2">

@@ -115,7 +115,7 @@ ALTER TABLE public.thesis_evidence_log
   FOREIGN KEY (thesis_id) REFERENCES public.theses (id) ON DELETE CASCADE;
 
 -- =============================================================================
--- 5) Seed system theses (IDs must match signal/apps/web mock-data.ts `TID`)
+-- 5) Seed system theses (IDs must match signal/apps/web catalog-data.ts `TID`)
 -- =============================================================================
 INSERT INTO public.theses (id, title, status, scenario_probabilities, insider_flow, slug, updated_at)
 VALUES

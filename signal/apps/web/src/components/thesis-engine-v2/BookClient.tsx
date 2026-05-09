@@ -7,7 +7,9 @@ import { PositionRow } from "@/components/thesis-engine-v2/PositionRow";
 import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
-import { MOCK_THESES, thesisMicroLabelById, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
+import { thesisMicroLabelById, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/catalog-data";
+import { SYSTEM_THESIS_IDS } from "@/lib/thesis-engine-v2/system-thesis-ids";
+import { CATALOG_SLUG_BY_SYSTEM_ID } from "@/lib/thesis-engine-v2/catalog-slugs";
 import {
   formatThesisMicroLabel,
   getThesisDisplayTitle,
@@ -71,12 +73,13 @@ export function BookClient({
   const thesisMeta = useMemo(() => {
     void metaNonce;
     const map = new Map<string, { title: string; slug?: string; microLabel?: string | null }>();
-    for (const t of MOCK_THESES) {
-      const dbTitle = live?.catalogDbThesisTitles.get(t.id)?.trim();
-      const dbMicro = live?.catalogDbThesisMicroLabels.get(t.id)?.trim();
-      const title = dbTitle ? getThesisDisplayTitle({ title: dbTitle }) : getThesisDisplayTitle(t);
-      const microLabel = dbMicro ? formatThesisMicroLabel(dbMicro) : getThesisMicroLabel(t);
-      map.set(t.id, { title, slug: t.slug, microLabel: microLabel ?? undefined });
+    for (const id of Object.values(SYSTEM_THESIS_IDS)) {
+      const dbTitle = live?.catalogDbThesisTitles.get(id)?.trim();
+      const dbMicro = live?.catalogDbThesisMicroLabels.get(id)?.trim();
+      const slug = live?.catalogDbThesisSlugs.get(id)?.trim() || CATALOG_SLUG_BY_SYSTEM_ID[id];
+      const title = dbTitle ? getThesisDisplayTitle({ title: dbTitle }) : "Catalog thesis";
+      const microLabel = dbMicro ? formatThesisMicroLabel(dbMicro) : null;
+      map.set(id, { title, slug, microLabel: microLabel ?? undefined });
     }
     for (const t of loadUserTheses()) {
       map.set(t.id, {
@@ -86,7 +89,7 @@ export function BookClient({
       });
     }
     return map;
-  }, [metaNonce, live?.catalogDbThesisTitles, live?.catalogDbThesisMicroLabels]);
+  }, [metaNonce, live?.catalogDbThesisTitles, live?.catalogDbThesisMicroLabels, live?.catalogDbThesisSlugs]);
 
   const metaFor = useCallback(
     (p: Position) => {

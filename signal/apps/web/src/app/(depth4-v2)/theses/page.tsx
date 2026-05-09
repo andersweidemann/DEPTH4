@@ -3,7 +3,7 @@ import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { ThesesDashboardClient } from "@/components/thesis-engine-v2/ThesesDashboardClient";
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
-import { MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { CATALOG_THESES } from "@/lib/thesis-engine-v2/catalog-data";
 import { createClient } from "@/lib/supabase/server";
 import {
   fetchCatalogThesisTitleRows,
@@ -28,7 +28,7 @@ export default async function ThesesDashboardPage({
 
   const supabase = await createClient();
   const titleRows = await fetchCatalogThesisTitleRows(supabase);
-  const systemTheses = mergeCatalogThesesWithDbTitles(MOCK_THESES, titleRows);
+  const systemTheses = mergeCatalogThesesWithDbTitles(CATALOG_THESES, titleRows);
 
   return (
     <>

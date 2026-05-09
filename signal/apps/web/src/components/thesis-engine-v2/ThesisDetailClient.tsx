@@ -20,7 +20,7 @@ import { MispricingAnalysis } from "@/components/thesis-engine-v2/MispricingAnal
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
-import { getThesisDetail } from "@/lib/thesis-engine-v2/mock-data";
+import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
 import {
@@ -96,7 +96,7 @@ export function ThesisDetailClient({
   catalogDisplayTitle?: string | null;
   /** When set, overrides `public.theses.micro_label`. */
   catalogMicroLabel?: string | null;
-  /** When set, merges `public.theses.body` JSON over mock narrative fields. */
+  /** When set, merges `public.theses.body` JSON over baseline narrative fields from `catalog-data`. */
   catalogBody?: unknown | null;
 }) {
   const requireFeature = useRequireFeature();

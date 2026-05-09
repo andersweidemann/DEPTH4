@@ -10,5 +10,5 @@ When changing `signal/apps/web` UI that signed-in users see:
 
 1. **Never** hardcode or imply live market prices, spot levels, indices, or FX prints unless wired to a real data provider.
 2. **Never** show mock/sample probabilities, thesis readiness fleet counts, win rates, follower counts, or leaderboard ranks as if live — use empty states or `thesesLiveHeaderNeutral()` until the backing query exists.
-3. **Live signal ticker**: Production defaults to **`thesis_evidence_log`** via `ThesisLiveProvider` (starred ∪ open-book scope). Mock seed/stream only when `NEXT_PUBLIC_THESIS_MOCK_TICKS=1`.
+3. **Live signal ticker**: Uses **`thesis_evidence_log`** via `ThesisLiveProvider` (starred ∪ open-book scope). There is no mock ticker path in the app.
 4. Prefer **empty or “not live yet”** over plausible dummy numbers. See `src/lib/thesis-engine-v2/production-data.ts` for the shared checklist.

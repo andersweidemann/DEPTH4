@@ -19,7 +19,7 @@ export type ThesisQualificationScores = {
 };
 
 /**
- * DEPTH4 thesis **book** — canonical narrative fields (mock, `public.theses.body` JSON, or AI output).
+ * DEPTH4 thesis **book** — canonical narrative fields (shipped catalog baseline, `public.theses.body` JSON, or AI output).
  * **Single purpose:** do not paste the same idea into multiple blocks. Hero sentence lives in `title` /
  * `thesisStatement` only; what the market has not priced yet (the edge) once in `whatsUnpriced` (keep `marketMisread` empty when folded);
  * `trigger`, `trade`, `invalidation`, `timeStop` each once; `whyThesisExists` is framing only (3–4 short
@@ -51,7 +51,7 @@ export type Thesis = {
   status: ThesisStatus;
   probabilityRationale: string;
   /**
-   * Client/session lane hint (mock + sessionStorage). Not the same as DB `public.theses.thesis_origin`.
+   * Client/session lane hint (system vs user via sessionStorage). Not the same as DB `public.theses.thesis_origin`.
    *
    * Phase 5 follow-up: align with DB enum `user | seeded_system | ai_generated` (e.g. map seeded catalog +
    * AI-discovered rows explicitly) before Discovered / fork UI ships.

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailClient";
-import { getThesisDetail } from "@/lib/thesis-engine-v2/mock-data";
+import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { formatThesisMicroLabel, getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 

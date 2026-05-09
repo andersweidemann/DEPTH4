@@ -26,7 +26,11 @@ export async function fetchCatalogThesisTitleRows(supabase: SupabaseClient): Pro
   return (data as CatalogThesisTitleRow[]).filter((r) => typeof r.id === "string" && typeof r.title === "string");
 }
 
-/** Prefer Supabase `title` / `micro_label` / `body` when present; keep mock fallbacks otherwise. */
+/**
+ * Prefer Supabase `title` / `micro_label` / `body` when present; keep in-app baseline fallbacks otherwise.
+ *
+ * @param theses — shipped catalog baseline (`CATALOG_THESES` from `catalog-data.ts`).
+ */
 export function mergeCatalogThesesWithDbTitles(theses: Thesis[], rows: CatalogThesisTitleRow[]): Thesis[] {
   const byId = new Map<string, CatalogThesisTitleRow>();
   for (const r of rows) {

@@ -6,7 +6,7 @@ import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDrawer";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
-import { sortThesesForDashboard } from "@/lib/thesis-engine-v2/mock-data";
+import { sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";

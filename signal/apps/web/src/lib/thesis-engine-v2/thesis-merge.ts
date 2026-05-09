@@ -1,6 +1,9 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
 
+/** Client patches from evidence log / Insider Flow — merged onto catalog thesis rows. */
+export type ThesisOverrides = Record<string, Partial<Thesis>>;
+
 export function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
 }
