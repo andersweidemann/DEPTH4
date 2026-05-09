@@ -13,7 +13,14 @@ alwaysApply: false
 The QQQ / AI capex rewrite is **not** a one-off. **Every** catalog thesis (gold, oil, OPEC, TLT, credit, defense, China, regulation, and any system-generated thesis) must use the **same** structure and Iran-brief voice.
 
 1. **CLEAR TRADE THESIS** — `[Buy/Sell/Don't add / Don't buy more … yet] [ticker] because [future event] will happen within [time window] due to [cause], probability [N%].` No vague “avoid.” No unexplained “AI capex,” “dispersion risk,” “beta,” “quality,” “duration” — plain English or define once in-line.
-2. **L1–L4 (`thesisCascade`)** — **L1** confirmed today · **L2** this week / this quarter (near window) · **L3** this year (1–3 quarters; flows, winners vs losers) · **L4** structural bias for the **current year** for all DEPTH4 theses (funding, energy, small caps, etc.). Same ladder for war/gold, OPEC, Fed/TLT, credit, any macro book.
+2. **L1–L4 (`thesisCascade`) — GLOBAL: plain retail English only**  
+   **L1 — CONFIRMED (TODAY):** what is already true in tape or data; no predictions.  
+   **L2 — THIS WEEK / QUARTER:** what to watch in the current earnings or news window; first place the thesis may show in headlines or price.  
+   **L3 — THIS YEAR:** how the trade plays out over the next 1–3 quarters; winners vs losers for the **named asset**.  
+   **L4 — 2026 BACKDROP:** structural tilt for **all** DEPTH4 theses this year — background bias, not a far-future essay.  
+   **Rules:** 1–3 short sentences per level; **one main new idea per level**; never restate the hero title; name ticker and driver. Write so a smart non-professional can **visualize** the idea.  
+   **Banned in L1–L4:** dispersion, index diversification, basket reprices cleanly, cash conversion, equity books, beta, duration, regime, setup (noun), convexity, expression (jargon), cross-sectional, transmission, mosaic, dislocation, incremental filler, path dependency, factor-speak, or internal risk-report tone.  
+   **Positive pattern:** canonical QQQ block in `thesis-book-template.ts` (AI costs before profits). **Never imitate** long-winded hedge-fund lines (e.g. “index diversification blurs single-name margin signals… dispersion… basket reprices cleanly”). Same ladder for GLD, USO, TLT, RTX, HG, META, and any new catalog thesis.
 3. **MARKET EDGE** — `whatsUnpriced` / misread tone: what the crowd misses; why DEPTH4 sees it first (clusters, levels, policy). No slogans (“dispersion risk is underpriced”). Use concrete lines (“the index hides the gap…”, “traders see oil up but not the food/fertilizer follow-through…”).
 4. **TRIGGER / TRADE / EXIT / TIME STOP** — always: observable **trigger**; **trade** names tickers + rotate/hedge actions; **invalidation** proves the thesis wrong; **`timeStop`** downgrades if the trigger never fires on schedule.
 5. **LANGUAGE** — Iran brief: short sentences; ban consultant jargon; clear bull/bear/neutral and what to do.
@@ -70,10 +77,12 @@ Or: `Stays at [N%] — [why nothing moved]`
 
 | Level | Scope | Job |
 |-------|--------|-----|
-| **L1** | Confirmed **today** | What is already true (facts, spend, policy in motion). |
-| **L2** | **This week / this quarter** | Near window: headlines, earnings season slice, first tape move. |
-| **L3** | **This year** | How the trade pays out; index vs single names. |
-| **L4** | **2026 backdrop** | How this shapes **every** DEPTH4 thesis (capital cost, winners/losers) — bias, not a 2028 fantasy. |
+| **L1** | Confirmed **today** | Facts only — no forward calls. |
+| **L2** | **This week / quarter** | Earnings/news window; first headline or price tell. |
+| **L3** | **This year** | Payout path 1–3 quarters; what it means for the **named** ETF or stock. |
+| **L4** | **2026 backdrop** | Year-wide bias (expensive money, energy spare capacity, regulation, etc.) — one clear theme, plain words. |
+
+All four levels must pass the **plain-language** and **banned-term** rules in section 2 above; see `DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM` for the QQQ exemplar and anti-patterns.
 
 ### B) Promoted **event narrative** (`reasoning_chain` in macro JSON)
 

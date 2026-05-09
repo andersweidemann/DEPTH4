@@ -10,7 +10,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v6";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v7";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -132,6 +132,7 @@ EVENT NARRATIVE RULES (detail page)
 
 GLOBAL THESIS ALIGNMENT
 - Every output should reflect the six thesis checks: position, future event, cause, when (time-bound), L1–L4 cascade, what the market misses.
+- When your reasoning touches **catalog thesis** language or you echo **thesis_cascade** style: use the same **plain retail English** as the THESIS BOOK snippet — no hedge-fund jargon in any level (dispersion, beta, duration, regime, basket repricing, cash conversion, equity books, etc.); follow the **QQQ canonical L1–L4** shape for rhythm and concreteness.
 - Known theses use retail display titles: "[Buy/Sell/Don't add …] [ticker] because [event] will happen [time window]" — directional, no ALL-CAPS theme labels (not "OPEC UNITY — VOL").
 - When affected_theses is non-empty, reasoning_summary and thesis_trade_line should match that pattern and the same intent as the stub title (mirror **Don't add** / **Don't buy more** wording when the catalog title uses it).
 - trade_implication: one clear side (Bullish OR Bearish OR Neutral only), tickers, action — Iran-brief confidence, not hedge-fund hedge words.

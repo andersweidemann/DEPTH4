@@ -72,11 +72,11 @@ export const MOCK_THESES: Thesis[] = [
       l1Confirmed:
         "Talks are live and both sides keep showing up. Escalation headlines have thinned versus last month.",
       l2ThisQuarter:
-        "If oil and equities stay orderly, safe-haven bids fade headline-by-headline over the next few weeks — watch funding and ETF flows, not spot alone.",
+        "If oil and equities stay orderly, gold’s safe-haven bid can leak week by week — watch GLD and ETF flows, not spot alone, over the next few weeks.",
       l3ThisYear:
-        "As the path holds, hedges roll off gradually and duration of emergency bids shortens; the tape reprices how much insurance it needs to carry.",
+        "As calm weeks stack, funds slowly shrink war hedges on GLD long before any final treaty — the tape adjusts how much fear premium it pays to hold.",
       l4Backdrop2026:
-        "Lower tail risk versus the last two years shifts baseline demand away from perpetual hedges — that backdrop shows up across geopolitics and rates books.",
+        "Tail risk is lower than the last two years, so portfolios need less permanent insurance in gold — that background makes the peace fade easier across geopolitics and rates theses this year.",
     },
 
     hiddenDriver: "Real diplomacy is moving faster than the price of gold admits.",
@@ -140,9 +140,9 @@ export const MOCK_THESES: Thesis[] = [
       l2ThisQuarter:
         "Verified friction reroutes cargoes first; benchmark freight can gap inside a week while headline traders are still debating intent.",
       l3ThisYear:
-        "A sustained security scare reprices spare-capacity assumptions globally; liquid ETFs capture the first repricing leg.",
+        "A sustained security scare tightens how much spare shipping and oil capacity markets assume exists; USO catches the first sharp repricing leg.",
       l4Backdrop2026:
-        "Underspend on spare oil capacity keeps chokepoint sensitivity high — that structural bid shows up across macro energy books.",
+        "The world still runs thin on spare oil capacity — chokepoint sensitivity stays high all year, and that shows up in every energy thesis on the book.",
     },
 
     hiddenDriver: "One incident at the chokepoint hits millions of barrels per day — price cannot stay sleepy if it happens.",
@@ -206,9 +206,9 @@ export const MOCK_THESES: Thesis[] = [
       l2ThisQuarter:
         "Soft rig prints plus trimmed producer capex guides tighten the US swing barrel without needing a headline war.",
       l3ThisYear:
-        "If US adds fewer marginal barrels while OPEC holds, flat price can grind higher on modest demand — expression stays liquid via USO.",
+        "If US adds fewer marginal barrels while OPEC holds, oil can grind higher on modest demand — USO stays the simple, liquid way to play the floor.",
       l4Backdrop2026:
-        "Scarce spare capacity keeps pricing power with producers — that macro bias shows up across DEPTH4 energy work.",
+        "Spare capacity is thin — producers keep pricing power, and that bias runs through every oil thesis we track this year.",
     },
 
     hiddenDriver: "OPEC needs cash; American shale is the only big source that can swing fast.",
@@ -266,11 +266,11 @@ export const MOCK_THESES: Thesis[] = [
       l1Confirmed:
         "Fed speakers keep pushing back on cuts and core inflation is not falling in a straight line. Futures still show cuts starting sooner than the dots.",
       l2ThisQuarter:
-        "The next CPI-plus-payroll window can shift the priced first-cut date; long duration is the first place that reprices.",
+        "The next CPI-plus-payroll window can shift when the market prices the first cut; long Treasury prices are the first place that reprices.",
       l3ThisYear:
-        "If cuts drift into next year, price discovery lower in bonds continues until the curve matches a slower easing path.",
+        "If the first cut drifts toward next year, long bonds keep searching for a lower level until the curve matches a slower easing path.",
       l4Backdrop2026:
-        "Funding stays tighter than equity hopes until inflation truly breaks — that bias threads through macro books.",
+        "Borrowing costs stay stiff until inflation really breaks — that background shows up across rates and risk theses on the book this year.",
     },
 
     hiddenDriver: "Services prices and jobs are too firm for the Fed to validate the cut path the curve already built.",
@@ -332,11 +332,11 @@ export const MOCK_THESES: Thesis[] = [
       l1Confirmed:
         "Defense budgets are set higher and Pentagon language points to accelerated awards. RTX order book is already rising in filings.",
       l2ThisQuarter:
-        "Named awards can hit the tape in weeks; tape reprices before sell-side models fully refresh backlog math.",
+        "Named awards can hit the tape in weeks; the stock can move before sell-side models fully refresh backlog math.",
       l3ThisYear:
-        "Backlog converts to cash-flow visibility; execution-heavy primes separate from laggards on conversion quality.",
+        "As booked work turns into revenue and margins in forecasts, primes that execute pull away from laggards that cannot ship.",
       l4Backdrop2026:
-        "NATO and industrial policy keep defense spend sticky — that backdrop supports geopolitical book bias.",
+        "NATO scale and industrial policy keep defense dollars sticky — that tailwind sits behind defense names across the book all year.",
     },
 
     hiddenDriver: "Cash is moving from appropriations into contracts faster than sell-side models assume.",
@@ -382,7 +382,7 @@ export const MOCK_THESES: Thesis[] = [
     title: "Don't buy more QQQ yet because AI spending will hit margins this earnings season",
     microLabel: "AI costs before AI profits",
     whyThesisExists:
-      "Mega-caps still sell AI as a smooth growth curve, but the next few quarters are really about who pays for the build-out before the revenue line proves out.\n\nEarnings are the honest clock: one soft margin guide is noise; several names telling the same spend story in the same window is a pattern the basket averages away.\n\nThis thesis exists to track dispersion risk while QQQ still trades like a single bet — so you are not surprised when the tape splits cash-flow leaders from high-capex laggards.\n\nDEPTH4 uses it as a watch lens: sizing and hedges stay in Trade and Trade plan; you only act when Trigger says the cluster is live.",
+      "Mega-caps still sell AI as a smooth growth curve, but the next few quarters are really about who pays for the build-out before the revenue line proves out.\n\nEarnings are the honest clock: one soft margin guide is noise; several names telling the same spend story in the same window is a pattern the index smooths over.\n\nThis thesis exists to track how differently QQQ names behave on AI spend while QQQ still trades like one bet — so you are not surprised when the tape splits cash-flow leaders from high-capex laggards.\n\nDEPTH4 uses it as a watch lens: sizing and hedges stay in Trade and Trade plan; you only act when Trigger says the cluster is live.",
     oneLineSummary:
       "Don't add to QQQ yet: many companies will feel the cost of AI spending in earnings before the profits show up, and the index hides that risk.",
     thesisStatement:
@@ -398,11 +398,11 @@ export const MOCK_THESES: Thesis[] = [
       l1Confirmed:
         "AI-related spending is already ramping: chips, data centers, and headcount. Big tech guides show the bill is here, not someday.",
       l2ThisQuarter:
-        "This quarter you get margin pain in earnings before new revenue proves out. One soft guide is noise; several in the same two weeks are a pattern.",
+        "In this earnings window, a cluster of margin cuts tied to AI spend is the tell. One soft guide is noise; several in the same two weeks is the pattern.",
       l3ThisYear:
-        "Index diversification blurs single-name margin signals until earnings cluster; dispersion shows up before the basket reprices cleanly.",
+        "Owning the whole index hides which stocks are cracking first. A few clear AI winners will carry the story while a long tail of \"AI noise\" names see margins weaken, so broad QQQ is riskier than it looks.",
       l4Backdrop2026:
-        "Expensive capital keeps punishing weak cash conversion first — that bias threads through equity books this year.",
+        "Money is still expensive. Companies that throw off steady cash can fund AI and earn real returns. Weaker or more indebted names have to spend just to keep up and get punished faster when profits slip.",
     },
 
     hiddenDriver: "Companies are spending fast on AI before the extra profit shows up in the numbers.",
@@ -480,11 +480,11 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
       l1Confirmed:
         "Beijing is verbally back-stopping growth and early credit reads are no longer collapsing. That is a policy turn, not a rumor.",
       l2ThisQuarter:
-        "Restocking and infrastructure bids hit industrial metals first; HG often leads a broader China rerating window.",
+        "Restocking and infrastructure bids hit industrial metals first; HG often leads before a broader China rerating shows up in headlines.",
       l3ThisYear:
-        "If impulse sticks, inventories draw globally and copper can grind for several quarters on tight scrap and grid spend.",
+        "If the pulse sticks, warehouses draw globally and copper can grind for several quarters on tight scrap and grid build.",
       l4Backdrop2026:
-        "Grid and commodity spend stay onshoring-friendly — hard-assets bias returns when China impulse is live.",
+        "Grid build and factory reshoring keep real metals demand on the table — when China’s impulse is live, hard assets get a clearer bid all year.",
     },
 
     hiddenDriver: "Credit and fiscal lines are inflecting; copper is the fast read on whether it is real.",
@@ -550,7 +550,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
       l3ThisYear:
         "Margin dollars shrink as product reroutes; the stock derates in steps as guides catch compliance drag.",
       l4Backdrop2026:
-        "Global platform regulation stays a headwind for ad-heavy megacaps — tech books keep that bias explicit.",
+        "Global platform rules stay a headwind for ad-heavy megacaps — that theme sits behind regulation theses on the book this year.",
     },
 
     hiddenDriver: "Behavior rules hit revenue lines; fines were only the opening act.",
