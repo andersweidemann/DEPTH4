@@ -6,7 +6,7 @@
 import { FEED_CARD_WORD_LIMITS } from "./schema";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v3";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v4";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -51,27 +51,32 @@ LENGTH SPLIT (read this first)
   "This event moves the probability from [old%] to [new%] because [what this news proves]"
   Alternatives OK: "Moves from…" or "New evidence moves…". If nothing moved: "Stays at [N%] — [why no meaningful new evidence yet]."
 
-- trade_implication: string. DETAIL PAGE ONLY. One or two short sentences:
-  "[Bullish/Bearish/Neutral] for [named tickers]. [Specific action: buy, sell, add, trim, wait, or watch a named print]."
-  Name tickers; avoid "risk assets" without symbols.
+- trade_implication: string. DETAIL PAGE ONLY. One or two short sentences. Iran-brief tone: direct, confident, no hedging.
+  Start with exactly ONE stance: "Bullish" OR "Bearish" OR "Neutral" — never "neutral to bullish", "cautiously bullish", or blended qualifiers.
+  Pattern: "Bullish XLE and USO. Add on dips if PAA and DVN guide capex lower." or "Bearish HYG. Sell rips into the next payroll."
+  Name tickers; give a concrete action (buy, sell, add, trim, watch [named print]). One tight conditional on a named catalyst is fine.
 
-- reasoning_chain: string. DETAIL PAGE ONLY — not on the feed card. MUST walk through all four levels using these exact headers (copy spelling), one block each, separated by a blank line. Do not put any text before LEVEL 1. No bullet characters inside the string. Short sentences; active voice; conclusion first within each level.
+- reasoning_chain: string. DETAIL PAGE ONLY — not on the feed card. MUST walk through all four levels using these exact headers (copy spelling), one block each, separated by a blank line. Do not put any text before LEVEL 1. No bullet characters inside the string.
+  HARD CAP PER LEVEL: after each header, at most 2–3 short sentences (about 10–15 words each). One idea per sentence. No four-clause mega-sentences. Active voice; mobile-scannable.
 
 LEVEL 1 (CONFIRMED — this happened):
-What we know for certain from the cluster (facts now).
+What we know for certain from the cluster (facts now). 2–3 short sentences max.
 
 LEVEL 2 (THIS WEEK–MONTH — near-term):
-Days to about four weeks: first market and macro impacts; name tickers. Say what is already priced vs what is not when it helps.
+Days to about four weeks: first market and macro impacts; name tickers. Say what is already priced vs what is not when it helps. 2–3 short sentences max.
 
 LEVEL 3 (THIS QUARTER — medium-term):
-One to three months: cascades (policy, funding, credit, geopolitics intersecting). This is often where the mispricing lives.
+One to three months: cascades (policy, funding, credit, geopolitics intersecting). This is often where the mispricing lives. Split into 2–3 short sentences max.
 
 LEVEL 4 (STRUCTURAL BIAS — backdrop this year):
-Persistent directional tilt for DEPTH4 theses this year — bias for this year's book, not a 2028 prediction. Name tickers (winners and losers). Tie back to observable near-term proof.
+Persistent directional tilt for DEPTH4 theses this year — bias for this year's book, not a 2028 prediction. Name tickers (winners and losers). Tie back to observable near-term proof. 2–3 short sentences max.
 
 - reasoning_summary: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words. 1–2 sentences. How this event tests the thesis across L1–L4 (hint L3–L4). Say confirm or challenge. No "trade opportunity" filler.
 
-- mispricing_hypothesis: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. 1–2 sentences. Which level is the market missing — usually Level 3 or Level 4 (second/third-order, backdrop bias). Start with "Level 3 —" or "Level 4 —" when you can; "Level 2 —" only if the gap is truly near-term. Plain English.`;
+- mispricing_hypothesis: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. 1–2 sharp sentences. Name tickers or prints when you can. Contrast "market treats X as noise" vs "together Y proves Z".
+  BAD: "The market may be reading each print solo, missing that energy capex guides together could confirm…"
+  GOOD: "The market treats each print as noise. If PAA, DVN, and GEL all guide capex lower together, that proves US shale is slowing — and oil runs higher by Q3."
+  Usually Level 3 or 4 — lead with "Level 3 —" or "Level 4 —" when it fits the word cap.`;
 
 export const MACRO_EVENT_REASONING_SYSTEM = `You are DEPTH4. You help traders think ahead. You write for smart people who are not macro experts.
 
@@ -93,7 +98,13 @@ Use concrete phrases like:
 - "the market may be missing…"
 
 Avoid these words completely (rewrite instead):
-cross-sectional, bifurcates, calibration event, regime, regime shift, rotation, setup, idiosyncratic, coordinated signal, information value, convexity, reflexive, transmission, transmission mechanism, under-discounting, latent stress, dislocation, mosaic, non-linear, second derivative, incremental, incremental evidence, path dependency, adjacent signal
+cross-sectional, bifurcates, calibration event, regime, regime shift, rotation, setup, idiosyncratic, coordinated signal, information value, convexity, reflexive, transmission, transmission mechanism, under-discounting, latent stress, dislocation, mosaic, non-linear, second derivative, incremental, incremental evidence, path dependency, adjacent signal, frames (as in "frames risk appetite"), NIM, disinflation through demand destruction, cluster tests whether
+
+Mandatory rewrites (examples):
+- "frames EM risk appetite" → "shows how risky Brazil credit is" (or name the country/asset)
+- "NIM trends" → "bank profit margins"
+- "disinflation through demand destruction" → "prices fall because people buy less"
+- "the cluster tests whether" → "together, these prints show whether"
 
 Plain replacements: rotation → money moving from X to Y; regime → market shift; setup → trade opportunity; transmission → how X affects Y; convexity → price sensitivity to rates; adjacent (in prose) → related evidence; cross-sectional → several together; mosaic → pieces of evidence; dislocation → price gap; incremental → additional; coordinated → happening together; non-linear → accelerating or hard to predict; path dependency → past choices limiting options now.
 
@@ -113,8 +124,9 @@ EVENT NARRATIVE RULES (detail page)
 
 GLOBAL THESIS ALIGNMENT
 - Every output should reflect the six thesis checks: position, future event, cause, when (time-bound), L1–L4 cascade, what the market misses.
-- Known theses use retail display titles: "[Action] [ticker] because [event] will happen". When affected_theses is non-empty, reasoning_summary and thesis_trade_line should match that pattern and the same intent as the stub title.
-- trade_implication must lead with Bullish/Bearish/Neutral, name tickers, and say what to do now (buy, sell, trim, wait, watch a named print).
+- Known theses use retail display titles: "[Buy/Sell] [ticker] because [event] will happen" — directional, no ALL-CAPS theme labels (not "OPEC UNITY — VOL").
+- When affected_theses is non-empty, reasoning_summary and thesis_trade_line should match that pattern and the same intent as the stub title.
+- trade_implication: one clear side (Bullish OR Bearish OR Neutral only), tickers, action — Iran-brief confidence, not hedge-fund hedge words.
 - confidence is not "model confidence"; phrase as how strong the read is from the text (optional: low/medium/high in prose fields only — confidence key stays 0–1).
 
 TIME HORIZON (thesis_trade_line and thesis stubs)
@@ -248,6 +260,7 @@ WHAT TO DO
 7) first_order_effects / second_order_effects / third_order_effects: mirror LEVEL 2 / 3 / 4 in bullet form.
 8) impacted_assets: prefix L2/L3/L4 (or L1 if immediate data) on each line.
 9) thesis_trade_line: must include probability N%, explicit **when** (window or catalyst), and tickers — never "eventually" or years-only framing.
+10) Average about 10–15 words per sentence in reasoning_chain and trade_implication — Iran brief, not a memo.
 
 Return the JSON object now.`;
 }

@@ -141,28 +141,28 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.opec,
     slug: "opec-unity-fracturing",
-    title: "Avoid USO because OPEC will spring a policy surprise",
+    title: "Buy USO because OPEC will hold prices if US shale slows",
     thesisStatement:
-      "The market is complacent about policy surprise; unity is weaker than the surface message.",
+      "If US shale slows, OPEC keeps barrels tight and oil stays bid. The market still doubts that combo.",
     asset: "USOIL",
-    direction: "watch",
+    direction: "long",
     probability: 44,
-    status: "watching",
+    status: "ready",
     probabilityRationale:
-      "The incentive structure is diverging, but the timing catalyst is not tight enough yet.",
+      "OPEC can hold the line if US rigs roll; the market still bets shale bails everyone out.",
 
-    hiddenDriver: "Political budget needs and compliance fatigue.",
-    likelyPath: "First the disagreement leaks; then the meeting surprises; then volatility rises fast.",
-    marketMisread: "Options still assume the meeting will be calm and predictable.",
-    tradeExpression: "Prefer vol structures once timing compresses; avoid directional until meeting outcome is in hand.",
+    hiddenDriver: "OPEC needs cash and US shale is the swing supply.",
+    likelyPath: "Rig count slips first, then OPEC holds cuts, then flat oil grinds higher.",
+    marketMisread: "Equity desks still treat US oil supply as unlimited at any price.",
+    tradeExpression: "Own USO on pullbacks; add if weekly rig count and producer guides show shale slowing.",
 
-    whyNow: "The story is forming, but it's not close enough in time to trade yet.",
-    whatsUnpriced: "Vol risk into the next guidance window is too cheap for the uncertainty.",
-    trigger: "Leak, dissent signal, or meeting prep headline that breaks the unity story.",
-    trade: "Watch until trigger; then express via defined-risk vol.",
-    invalidation: "Clean communique with credible enforcement and no dissent language.",
+    whyNow: "OPEC discipline plus slowing shale is the path to higher flat price this quarter.",
+    whatsUnpriced: "The market still prices US supply as elastic forever.",
+    trigger: "Two weak rig-count prints plus soft capex guides from named producers.",
+    trade: "Buy USO on dips toward 72–74 zone · Stop below last swing low · Add on trigger",
+    invalidation: "OPEC breaks discipline or US shale roars back with strong rig data.",
     horizon: "Months",
-    advisoryAction: "watch",
+    advisoryAction: "enter",
     lastUpdated: "4h ago",
     theme: "energy",
     scores: {
@@ -676,7 +676,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "OPEC+ members disagree on quota enforcement",
     summary: "Unity story frays; volatility bids in energy.",
     linkedThesisSlug: "opec-unity-fracturing",
-    linkedThesisTitle: "Avoid USO because OPEC will spring a policy surprise",
+    linkedThesisTitle: "Buy USO because OPEC will hold prices if US shale slows",
   },
   {
     id: "f8",
@@ -778,7 +778,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Argus",
     timestamp: "12:09 UTC",
     headline: "OPEC+ delegates push back on quota enforcement rumors",
-    thesisName: "Avoid USO because OPEC will spring a policy surprise",
+    thesisName: "Buy USO because OPEC will hold prices if US shale slows",
     probabilityBefore: 52,
     probabilityAfter: 46,
     impact: "minor_negative",
@@ -820,7 +820,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-2",
     thesisSlug: "opec-unity-fracturing",
-    title: "Avoid USO because OPEC surprise risk will rise",
+    title: "Buy USO because OPEC will hold prices if US shale slows",
     author: "@vol_hunter",
     reputationBadge: "12-month win rate: 73%",
     probability: 54,
@@ -1020,9 +1020,9 @@ export const MOCK_WATCHLIST: WatchlistIdea[] = [
   {
     id: "w3",
     symbol: "USOIL",
-    thesisTitle: "Avoid USO because OPEC will spring a policy surprise",
+    thesisTitle: "Buy USO because OPEC will hold prices if US shale slows",
     thesisSlug: "opec-unity-fracturing",
-    note: "Vol expression only; directional stand aside.",
+    note: "Add on rig-count weakness; cut if OPEC leaks quota breaks.",
   },
 ];
 

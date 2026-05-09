@@ -2,25 +2,28 @@ import Link from "next/link";
 import type { PromotedCardModel } from "@/lib/feed/promoted-macro-events";
 import { ConfidenceMeter } from "@/components/macro-reasoning/ConfidenceMeter";
 
-function relationLabel(r: PromotedCardModel["reasoning"]["thesis_relation"]) {
+type Relation = PromotedCardModel["reasoning"]["thesis_relation"];
+
+/** No pill for adjacent — avoid "ADJACENT" style labels on the card. */
+function relationChip(r: Relation): { label: string; tone: string } | null {
   switch (r) {
     case "confirm":
-      return { text: "Confirming", tone: "text-emerald-200/90 bg-emerald-500/[0.08] ring-emerald-500/20" };
+      return { label: "Confirms thesis", tone: "text-emerald-200/90 bg-emerald-500/[0.08] ring-emerald-500/20" };
     case "contradict":
-      return { text: "Challenging", tone: "text-red-200/90 bg-red-500/[0.08] ring-red-500/20" };
+      return { label: "Challenges thesis", tone: "text-red-200/90 bg-red-500/[0.08] ring-red-500/20" };
     case "adjacent":
-      return { text: "Adjacent", tone: "text-amber-200/90 bg-amber-500/[0.08] ring-amber-500/20" };
+      return null;
     case "create_new":
-      return { text: "New thesis", tone: "text-zinc-200/80 bg-zinc-500/[0.08] ring-white/[0.08]" };
+      return { label: "New thesis angle", tone: "text-zinc-200/80 bg-zinc-500/[0.08] ring-white/[0.08]" };
     case "irrelevant":
     default:
-      return { text: "Unlinked", tone: "text-zinc-200/70 bg-zinc-500/[0.06] ring-white/[0.08]" };
+      return { label: "Unlinked", tone: "text-zinc-200/70 bg-zinc-500/[0.06] ring-white/[0.08]" };
   }
 }
 
 function implicationLine(args: {
   thesisTitle: string | null;
-  thesisRelation: PromotedCardModel["reasoning"]["thesis_relation"];
+  thesisRelation: Relation;
   impactedAssets: string[];
   directionOfChange: string;
   tradeImplication?: string;
@@ -40,10 +43,10 @@ function implicationLine(args: {
     return `Thesis under pressure. Tighten risk.${watchSuffix}`.trim();
   }
   if (thesisRelation === "adjacent") {
-    return `Connected signal. Could shift the setup.${watchSuffix}`.trim();
+    return `Related signal.${watchSuffix}`.trim();
   }
   if (thesisRelation === "create_new") {
-    return `May be a new thesis.${dir ? ` Direction: ${dir}.` : ""}${watchSuffix}`.trim();
+    return `May be a new thesis.${dir ? ` ${dir}.` : ""}${watchSuffix}`.trim();
   }
   if (thesisRelation === "irrelevant") {
     return `Probably not tradeable.${watchSuffix}`.trim();
@@ -63,8 +66,9 @@ export function PromotedMacroEventCard({
     headline.trim().length > 0 && headline.trim().toLowerCase() !== reasoning.event_summary.trim().toLowerCase();
   const primaryThesisId = reasoning.affected_theses[0] ?? null;
   const primaryMeta = primaryThesisId ? thesisMetaById.get(primaryThesisId) ?? null : null;
-  const rel = relationLabel(reasoning.thesis_relation);
+  const chip = relationChip(reasoning.thesis_relation);
   const hasImpactedAssets = Array.isArray(reasoning.impacted_assets) && reasoning.impacted_assets.length > 0;
+  const hasTradeImplication = Boolean((reasoning.trade_implication || "").trim());
   const implication = implicationLine({
     thesisTitle: primaryMeta?.title ?? null,
     thesisRelation: reasoning.thesis_relation,
@@ -72,6 +76,8 @@ export function PromotedMacroEventCard({
     directionOfChange: reasoning.direction_of_change,
     tradeImplication: reasoning.trade_implication,
   });
+  const isAdjacent = reasoning.thesis_relation === "adjacent";
+  const showRelatedSignalKicker = isAdjacent && !hasTradeImplication;
 
   return (
     <article className="border-b border-white/[0.05] py-5 last:border-0 transition-colors hover:bg-white/[0.02] sm:-mx-1 sm:rounded-lg sm:px-3">
@@ -98,14 +104,17 @@ export function PromotedMacroEventCard({
             <p className="mt-1 text-[13px] font-medium leading-snug text-zinc-400">No linked thesis yet</p>
           )}
         </div>
-        <span className={`rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-wide ring-1 ${rel.tone}`}>
-          {rel.text}
-        </span>
+        {chip ? (
+          <span className={`rounded-full px-3 py-1 text-[10px] font-semibold tracking-wide ring-1 ${chip.tone}`}>
+            {chip.label}
+          </span>
+        ) : null}
       </div>
 
-      <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">
-        <span className="font-semibold text-zinc-200">Implication:</span> {implication}
-      </p>
+      {showRelatedSignalKicker ? (
+        <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Related signal</p>
+      ) : null}
+      <p className={`text-[12px] leading-relaxed text-zinc-300 ${showRelatedSignalKicker ? "mt-1" : "mt-2"}`}>{implication}</p>
 
       <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">What happened</p>
       <h2 className="mt-1 text-[14px] font-semibold leading-snug text-zinc-100">{reasoning.event_summary}</h2>
@@ -120,7 +129,7 @@ export function PromotedMacroEventCard({
       <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why it matters</p>
       <p className="mt-1 line-clamp-3 text-[13px] leading-relaxed text-zinc-300">{reasoning.reasoning_summary}</p>
       <p className="mt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Market may be missing</p>
-      <p className="mt-1 line-clamp-3 text-[12px] italic leading-relaxed text-zinc-500">{reasoning.mispricing_hypothesis}</p>
+      <p className="mt-1 line-clamp-3 text-[12px] leading-relaxed text-zinc-400">{reasoning.mispricing_hypothesis}</p>
 
       <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Affected stocks</p>
       {hasImpactedAssets ? (

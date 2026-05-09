@@ -4,6 +4,7 @@ import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { ConfidenceMeter } from "@/components/macro-reasoning/ConfidenceMeter";
 import { tickerQuoteUrl } from "@/components/macro-reasoning/ticker-link";
 import { parseReasoningChainLevels } from "@/lib/macro-reasoning/reasoning-chain-levels";
+import { thesisRelationDisplay } from "@/lib/macro-reasoning/thesis-relation-copy";
 import type { ThesisMeta } from "@/lib/feed/thesis-slugs";
 
 function EffectList({ title, items }: { title: string; items: string[] }) {
@@ -111,7 +112,7 @@ export function MacroReasoningDetail({
             Direction · <span className="text-zinc-300">{reasoning.direction_of_change}</span>
           </span>
           <span>
-            Thesis relation · <span className="text-zinc-300">{reasoning.thesis_relation.replace(/_/g, " ")}</span>
+            Thesis relation · <span className="text-zinc-300">{thesisRelationDisplay(reasoning.thesis_relation)}</span>
           </span>
         </div>
         {(reasoning.actors.length > 0 || reasoning.geography.length > 0) && (

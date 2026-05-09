@@ -125,6 +125,12 @@ Or: `Stays at [N%] — [why nothing moved]`
 
 What happened → Thesis → Probability update → Trade implication → Confidence → Why it matters → Market may be missing → Four-level causal chain → Watch → linked theses → effect lists.
 
+### Promoted feed card (UI)
+
+- Do **not** show the raw enum **adjacent** or an **ADJACENT** pill. Omit the relation chip for adjacent rows, or use a small **Related signal** kicker only when there is no `trade_implication` yet.
+- Lead with the trade read in plain text — no **"Implication:"** prefix next to a relation label.
+- Relation chips for other states use sentence case (**Confirms thesis**, **Challenges thesis**), not all-caps.
+
 ---
 
 ## Related code
