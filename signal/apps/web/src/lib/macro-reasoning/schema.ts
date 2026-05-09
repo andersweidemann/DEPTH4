@@ -50,8 +50,8 @@ export const macroEventReasoningSchema = z
 
     /**
      * DETAIL PAGE (not feed-capped):
-     * One plain-English trade thesis line including the current probability.
-     * Example: "Buy TLT because rate cuts will come sooner than priced..., probability 42%".
+     * Position, event, cause, **time window / catalyst**, probability; tickers; L1–L4 in reasoning_chain.
+     * Example: "Buy TLT because cuts land sooner than priced because labor is softening, probability 42%; catalyst: May payroll + FOMC."
      */
     thesis_trade_line: z.string().optional().default(""),
 

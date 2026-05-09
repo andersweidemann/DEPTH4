@@ -7,7 +7,7 @@ import { MacroReasoningDetail } from "@/components/macro-reasoning/MacroReasonin
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { createClient } from "@/lib/supabase/server";
 import { fetchReasoningByNewsEventId, parseReasoningPayload } from "@/lib/feed/promoted-macro-events";
-import { fetchThesisSlugMap } from "@/lib/feed/thesis-slugs";
+import { fetchThesisMetaMap } from "@/lib/feed/thesis-slugs";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -57,7 +57,7 @@ export default async function FeedEventReasoningPage({ params }: Props) {
   const pr = parseReasoningPayload(row);
   if (!pr) notFound();
 
-  const thesisSlugById = await fetchThesisSlugMap(supabase, pr.parsed.affected_theses);
+  const thesisMetaById = await fetchThesisMetaMap(supabase, pr.parsed.affected_theses);
   const news = pr.news;
   const headline = news?.headline?.trim() ?? pr.parsed.event_summary;
 
@@ -78,7 +78,7 @@ export default async function FeedEventReasoningPage({ params }: Props) {
         <div className={news?.headline ? "mt-10" : ""}>
           <MacroReasoningDetail
             reasoning={pr.parsed}
-            thesisSlugById={thesisSlugById}
+            thesisMetaById={thesisMetaById}
             meta={{
               model: row.model,
               prompt_version: row.prompt_version,

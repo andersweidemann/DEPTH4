@@ -1,61 +1,134 @@
 ---
-description: DEPTH4 — thesis & narrative voice (retail display, banned jargon, no model talk)
+description: DEPTH4 — thesis & narrative voice (retail display, L1–L4 cascade, time-bound, no model talk)
 globs: signal/apps/web/**/*.{ts,tsx}
 alwaysApply: false
 ---
 
 # DEPTH4 global writing — theses and narratives
 
-Product: thesis engine for **unpriced scenarios** and **probability over time**.
+**Product:** thesis engine for **unpriced scenarios** and **how evidence moves probability over time**.
 
-Every thesis answers: **position**, **future event**, **cause**, **probability**, **what the market misses**.
+## Every thesis must answer (six checks)
+
+1. **What position?** Buy / sell / avoid / wait — name the expression.
+2. **What future event?** A specific outcome, not a vibe.
+3. **Why will it happen?** Plain-English cause.
+4. **When?** Time-bound: **days / weeks / months** (not years). Observable catalyst (print, meeting, deadline).
+5. **What is the four-level cascade?** L1 confirmed → L2 this week–month → L3 this quarter → L4 structural **bias** for this year’s book (not a 2028 forecast).
+6. **What does the market miss?** The mispricing — usually **L3 or L4**, not only the obvious L1–L2 move.
+
+---
 
 ## Display title (UI, retail)
 
-`[Buy/Sell/Avoid/Wait on] [ticker or named asset] because [future event] will happen`
+`[Buy/Sell/Avoid/Wait on] [ticker or clear asset] because [future event] will happen`
 
 Examples:
 
-- Buy GLD because war escalation will continue
-- Sell IWM because credit stress will spread
-- Buy TLT because Fed cuts will come sooner than priced
+- Buy GLD because war escalation will continue  
+- Sell IWM because credit stress will spread  
+- Buy TLT because Fed cuts will come sooner than priced  
+
+(Tickers preferred; “gold” is OK in title if the trade line names **GLD** or **XAU** elsewhere.)
 
 ## Full thesis statement (longer copy)
 
-`[Action] [asset] because [event Y] will happen because of [cause Z], probability [N%]`
+`[Action] [asset] because [event Y] will happen because of [cause Z], probability [N%]`  
+**Plus timing:** same sentence or immediately after — *when* (window or catalyst).
+
+Examples:
+
+- Buy GLD because conflict escalation will continue because diplomatic tracks are stalled and hardliners control decisions, probability 68%, window: before the next major talks deadline  
+- Sell IWM because credit stress will spread because the Fed won’t cut soon enough and loan quality is slipping, probability 55%, catalyst: next three weeks of lender earnings  
+- Buy TLT because rate cuts will land sooner than priced because labor is softening faster than headlines, probability 42%, catalyst: May payroll + FOMC  
 
 ## Probability updates
 
-`New evidence moves the probability from [old%] to [new%] because [what changed]`
+`New evidence moves the probability from [old%] to [new%] because [what changed]`  
 
 Or: `Stays at [N%] — [why nothing moved]`
 
-## Language rules
+(Event narratives may also use: *This event moves the probability from…*)
 
-1. **Novice-first**: smart reader, not an expert; trade obvious in ~10s; short sentences (about 15–20 words); everyday words; **active voice only**.
-2. **Always state direction**: bullish / bearish / neutral; more likely / less likely; probability up / down; buy / sell / avoid / wait.
-3. **Always state action**: buy, sell, add, trim, wait for confirmation, tighten stop, watch [specific thing].
-4. **Name assets with tickers** where possible: QQQ, TLT, GLD, HYG, IWM, USO, etc. Not vague: “risk assets”, “duration”, “the market” as the only label.
-5. **Always state probability**: current `N%`, change in points, and confidence (low / medium / high) when relevant.
-6. **Translate jargon in the same sentence** (e.g. convexity → how sensitive long bond prices are to rate moves).
-7. **Banned consultant phrasing** — replace with plain English:
-   - rotation → money moving from X to Y  
-   - regime → market shift  
-   - setup → trade opportunity  
-   - transmission → how X affects Y  
-   - convexity → price sensitivity (to rates)  
-   - adjacent signal → related evidence  
-   - cross-sectional → several [companies/sectors] together  
-   - mosaic → pieces of evidence  
-   - dislocation → price gap  
-   - incremental → additional  
-   - coordinated → happening together  
-   - non-linear → accelerating / hard to predict  
-   - path dependency → past choices limiting options now  
-8. **Naming**: internal `slug` (e.g. `ai-capex-squeeze-qqq-rotation`) vs **display `title`** (plain sentence above). **UI shows display title only.**
-9. **Never mention the model**: no LLM, Claude, Opus, AI-generated, model-ranked. Present as **DEPTH4** analysis.
-10. **Scannable structure**: short headers; 2–3 sentence paragraphs max; bullets when helpful; **most important point first**.
+---
 
-**Target voice:** sharp trade call from an experienced analyst to a smart beginner — not a hedge fund memo, consultant deck, or academic paper.
+## Four-level reasoning (every thesis **and** every promoted narrative)
 
-**Brand tokens** (when styling UI): accent `#E8473F`, background `#111110`, text `#ffffff` / `#888888`.
+| Level | Scope | Job |
+|-------|--------|-----|
+| **L1 (CONFIRMED)** | Now | What we **know** happened from facts in the cluster or thesis evidence. |
+| **L2 (THIS WEEK–MONTH)** | Days to **~4 weeks** | Near-term market and macro read; name tickers. |
+| **L3 (THIS QUARTER)** | **1–3 months** | Medium-term cascade (policy, funding, geopolitics intersecting). |
+| **L4 (STRUCTURAL BIAS)** | Backdrop **this year** | Persistent tilt for DEPTH4 theses — **bias**, not a multi-year fantasy. Anchor to near-term proof. |
+
+**Implementation (narratives / JSON):**
+
+- `reasoning_chain` walks **all four** levels with the **exact** headers the product expects (see `prompts.ts`).
+- `impacted_assets`: map to levels, e.g. `L2 — TLT`, `L3 — HYG`, `L4 — GLD`.
+- `mispricing_hypothesis`: say which level the market is underweighting — **often L3 or L4** (the second/third-order story).
+
+**Think wider:** the edge is usually **L3–L4**, not the obvious L1–L2.  
+*Example (Hormuz-style):* L1 chokepoint risk confirmed → L2 oil spikes (often priced) → L3 fertilizer / routes / planting-season knock-ons (often **not** priced) → L4 inflation and sector bias into this year’s book — **action now** tied to observable catalysts, not “call me in 2028.”
+
+---
+
+## Time-horizon constraint
+
+**Allowed**
+
+- **IMMEDIATE:** days–2 weeks — event-driven.  
+- **SHORT-TERM:** 2 weeks–3 months — trend confirmation.  
+- **MEDIUM-TERM:** 3–6 months max — structural shift **with** near-term proof points.
+
+**Banned**
+
+- “Eventually” theses, multi-year-only structural plays **without** a near-term catalyst, long-term “value” opinions, open-ended “business model broken” with no dates.
+
+**Required**
+
+- Specific time window (or dated catalyst).  
+- Observable proof that can **confirm or kill** the thesis within **6 months**.
+
+---
+
+## Global language rules
+
+1. **Novice-first:** ~15–20 word sentences, everyday words, **active voice**, conclusion first.  
+2. **Direction:** Bullish / bearish / neutral (or clearer plain phrasing).  
+3. **Action:** Buy / sell / add / trim / wait / watch **[specific print or ticker]**.  
+4. **Assets:** tickers (QQQ, TLT, GLD, HYG, IWM, USO…) — not “risk assets” or “duration” alone.  
+5. **Probability:** current % and change in points when updating.  
+6. **Jargon:** translate in the same sentence (e.g. convexity → how sensitive bond **prices** are to rate moves).  
+7. **Banned consultant phrasing** — use plain alternatives:  
+   rotation → money moving from X to Y · setup → trade opportunity · regime → market shift · adjacent signal → related evidence · cross-sectional → several companies together · transmission → how X affects Y · convexity → price sensitivity · mosaic → pieces of evidence · dislocation → price gap · incremental → additional · coordinated → happening together · non-linear → accelerating / hard to predict · path dependency → past choices limiting options now  
+8. **Naming:** internal **slug** + retail **display title**; **UI shows display title.**  
+9. **Never mention the model:** no LLM, Claude, Opus, AI-generated, model-ranked — present as **DEPTH4**.  
+10. **Scannable:** short headers, 2–3 sentence paragraphs, bullets where useful, **most important first**.
+
+**Voice:** sharp trade call to a smart beginner — **not** a hedge fund memo, consultant deck, or academic paper. **Direct. Clear. Actionable. Confident.** (Iran-brief density.)
+
+**Brand tokens (UI):** accent `#E8473F`, background `#111110`, text `#ffffff` / `#888888`.
+
+---
+
+## Event narrative page (promoted cluster)
+
+**Must surface:** linked thesis, unpriced event, probability + update, **four-level chain**, trade implication with **specific** action, watchlist by level.
+
+### Card copy
+
+- **Thesis (`thesis_trade_line`):** full statement format above + **when** + probability.  
+- **Probability update:** *This event moves…* or *New evidence moves…*; or *Stays at…*  
+- **Trade implication:** `[Bullish/Bearish/Neutral] for [tickers]. [What to do now].`
+
+### Detail page order (UX)
+
+What happened → Thesis → Probability update → Trade implication → Confidence → Why it matters → Market may be missing → Four-level causal chain → Watch → linked theses → effect lists.
+
+---
+
+## Related code
+
+- Macro contract: `signal/apps/web/src/lib/macro-reasoning/prompts.ts`  
+- Parser for LEVEL headers: `signal/apps/web/src/lib/macro-reasoning/reasoning-chain-levels.ts`  
+- Production UI data guardrails: `signal/apps/web/src/lib/thesis-engine-v2/production-data.ts`

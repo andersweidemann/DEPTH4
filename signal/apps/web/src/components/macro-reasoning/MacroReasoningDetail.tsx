@@ -1,7 +1,10 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { ConfidenceMeter } from "@/components/macro-reasoning/ConfidenceMeter";
 import { tickerQuoteUrl } from "@/components/macro-reasoning/ticker-link";
+import { parseReasoningChainLevels } from "@/lib/macro-reasoning/reasoning-chain-levels";
+import type { ThesisMeta } from "@/lib/feed/thesis-slugs";
 
 function EffectList({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
@@ -17,13 +20,36 @@ function EffectList({ title, items }: { title: string; items: string[] }) {
   );
 }
 
+function SectionCard({
+  kicker,
+  title,
+  children,
+  accent,
+}: {
+  kicker: string;
+  title?: string;
+  children: ReactNode;
+  accent?: "brand";
+}) {
+  const border =
+    accent === "brand" ? "border-[#E8473F]/25 bg-[#E8473F]/[0.06]" : "border-white/[0.06] bg-[#111110]";
+  const kickerCls = accent === "brand" ? "text-[#E8473F]" : "text-zinc-500";
+  return (
+    <section className={`rounded-lg border px-4 py-4 md:px-5 ${border}`}>
+      <p className={`text-[10px] font-semibold uppercase tracking-[0.14em] ${kickerCls}`}>{kicker}</p>
+      {title ? <h2 className="mt-1 text-[15px] font-semibold leading-snug text-white">{title}</h2> : null}
+      <div className={title ? "mt-3" : "mt-2"}>{children}</div>
+    </section>
+  );
+}
+
 export function MacroReasoningDetail({
   reasoning,
-  thesisSlugById,
+  thesisMetaById,
   meta,
 }: {
   reasoning: MacroEventReasoning;
-  thesisSlugById: Map<string, string>;
+  thesisMetaById: Map<string, ThesisMeta>;
   meta: { model: string; prompt_version: string; created_at: string };
 }) {
   const fmtMeta = new Date(meta.created_at).toLocaleString(undefined, {
@@ -36,13 +62,18 @@ export function MacroReasoningDetail({
       ? `${reasoning.probability_before_pct}% → ${reasoning.probability_after_pct}%`
       : null;
 
+  const levelBlocks = parseReasoningChainLevels(reasoning.reasoning_chain);
+
   return (
     <div className="space-y-8">
       <header className="space-y-4 border-b border-white/[0.06] pb-8">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Event narrative</p>
-        <h1 className="max-w-prose text-xl font-semibold leading-snug tracking-tight text-white md:text-2xl">
-          {reasoning.event_summary}
-        </h1>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">What happened</p>
+          <h1 className="mt-2 max-w-prose text-xl font-semibold leading-snug tracking-tight text-white md:text-2xl">
+            {reasoning.event_summary}
+          </h1>
+        </div>
 
         {reasoning.thesis_trade_line ? (
           <div className="rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5">
@@ -71,6 +102,7 @@ export function MacroReasoningDetail({
         ) : null}
 
         <ConfidenceMeter reasoning={reasoning} />
+
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
           <span>
             Domain · <span className="text-zinc-300">{reasoning.domain}</span>
@@ -85,12 +117,18 @@ export function MacroReasoningDetail({
         {(reasoning.actors.length > 0 || reasoning.geography.length > 0) && (
           <div className="flex flex-wrap gap-2">
             {reasoning.geography.map((g) => (
-              <span key={g} className="rounded-md border border-white/[0.08] bg-zinc-900/40 px-2 py-0.5 text-[11px] text-zinc-400">
+              <span
+                key={g}
+                className="rounded-md border border-white/[0.08] bg-zinc-900/40 px-2 py-0.5 text-[11px] text-zinc-400"
+              >
                 {g}
               </span>
             ))}
             {reasoning.actors.slice(0, 12).map((a) => (
-              <span key={a} className="rounded-md border border-white/[0.06] bg-[#111110] px-2 py-0.5 text-[11px] text-zinc-500">
+              <span
+                key={a}
+                className="rounded-md border border-white/[0.06] bg-[#111110] px-2 py-0.5 text-[11px] text-zinc-500"
+              >
                 {a}
               </span>
             ))}
@@ -99,31 +137,56 @@ export function MacroReasoningDetail({
         <p className="text-[11px] text-zinc-600">Updated {fmtMeta}</p>
       </header>
 
+      <SectionCard kicker="Why it matters">
+        <p className="max-w-prose text-[14px] leading-relaxed text-zinc-200">{reasoning.reasoning_summary}</p>
+      </SectionCard>
+
       <aside
         className="rounded-lg border border-[#E8473F]/35 bg-[#E8473F]/[0.08] px-4 py-4 md:px-5"
-        aria-label="Mispricing hypothesis"
+        aria-label="Market may be missing"
       >
-        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#E8473F]">Mispricing hypothesis</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#E8473F]">Market may be missing</p>
         <p className="mt-2 max-w-prose text-[14px] leading-relaxed text-zinc-100">{reasoning.mispricing_hypothesis}</p>
       </aside>
 
       <section aria-labelledby="reasoning-chain-heading">
         <h2 id="reasoning-chain-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-          Causal chain
+          Four-level causal chain
         </h2>
-        <div className="mt-4 max-w-prose rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-5 md:px-6 md:py-6">
-          <p className="whitespace-pre-wrap text-[15px] leading-[1.7] text-zinc-200">{reasoning.reasoning_chain}</p>
-        </div>
+        {levelBlocks ? (
+          <ol className="mt-4 space-y-4">
+            {levelBlocks.map((b) => (
+              <li
+                key={`${b.num}-${b.label}`}
+                className="max-w-prose rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5 md:py-5"
+              >
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                  Level {b.num} · {b.label}
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-[15px] leading-[1.7] text-zinc-200">{b.body}</p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div className="mt-4 max-w-prose rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-5 md:px-6 md:py-6">
+            <p className="whitespace-pre-wrap text-[15px] leading-[1.7] text-zinc-200">{reasoning.reasoning_chain}</p>
+          </div>
+        )}
       </section>
 
       {reasoning.impacted_assets.length > 0 ? (
-        <section aria-labelledby="assets-heading">
-          <h2 id="assets-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-            Impacted assets
+        <section aria-labelledby="watch-heading">
+          <h2 id="watch-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            Watch
           </h2>
+          <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+            Tickers and indicators to track against the levels above (L2 ≈ days to ~4 weeks, L3 = this quarter, L4 = backdrop bias this year).
+          </p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {reasoning.impacted_assets.map((sym) => {
-              const href = tickerQuoteUrl(sym);
+              const raw = sym.trim();
+              const tickerToken = raw.replace(/^L\d\s*[—\-–:]\s*/i, "").split(/[\s,]/)[0] ?? raw;
+              const href = tickerQuoteUrl(tickerToken);
               return (
                 <li key={sym}>
                   <a
@@ -159,17 +222,18 @@ export function MacroReasoningDetail({
           <h2 id="theses-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
             Linked theses
           </h2>
-          <ul className="mt-3 flex flex-wrap gap-2">
+          <ul className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
             {reasoning.affected_theses.map((id) => {
-              const slug = thesisSlugById.get(id);
-              if (slug) {
+              const tm = thesisMetaById.get(id);
+              if (tm) {
                 return (
                   <li key={id}>
                     <Link
-                      href={`/theses/${slug}`}
-                      className="inline-flex min-h-11 items-center rounded-md border border-white/[0.1] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200 underline-offset-2 hover:border-[#E8473F]/35 hover:text-white hover:underline sm:min-h-0 sm:py-1.5"
+                      href={`/theses/${tm.slug}`}
+                      className="inline-flex min-h-11 max-w-full flex-col rounded-md border border-white/[0.1] bg-zinc-900/40 px-3 py-2 text-left text-[12px] text-zinc-200 underline-offset-2 hover:border-[#E8473F]/35 hover:text-white hover:underline sm:min-h-0 sm:py-1.5"
                     >
-                      {slug}
+                      <span className="font-medium text-zinc-100">{tm.title}</span>
+                      <span className="font-mono text-[10px] text-zinc-500">{tm.slug}</span>
                     </Link>
                   </li>
                 );
@@ -178,7 +242,7 @@ export function MacroReasoningDetail({
                 <li key={id}>
                   <span
                     title={id}
-                    className="inline-flex rounded-md border border-dashed border-zinc-700 px-2.5 py-1 font-mono text-[11px] text-zinc-500"
+                    className="inline-flex min-h-11 items-center rounded-md border border-dashed border-zinc-700 px-2.5 py-2 font-mono text-[11px] text-zinc-500 sm:min-h-0 sm:py-1.5"
                   >
                     {id.slice(0, 8)}…
                   </span>
@@ -189,14 +253,9 @@ export function MacroReasoningDetail({
         </section>
       ) : null}
 
-      <EffectList title="First-order effects" items={reasoning.first_order_effects} />
-      <EffectList title="Second-order effects" items={reasoning.second_order_effects} />
-      <EffectList title="Third-order effects" items={reasoning.third_order_effects} />
-
-      <section className="border-t border-white/[0.06] pt-6">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Summary</h2>
-        <p className="mt-3 max-w-prose text-[13px] leading-relaxed text-zinc-400">{reasoning.reasoning_summary}</p>
-      </section>
+      <EffectList title="First-order effects (near-term)" items={reasoning.first_order_effects} />
+      <EffectList title="Second-order effects (medium-term)" items={reasoning.second_order_effects} />
+      <EffectList title="Third-order effects (backdrop)" items={reasoning.third_order_effects} />
     </div>
   );
 }
