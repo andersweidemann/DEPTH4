@@ -81,7 +81,7 @@ export function ThesesDashboardClient({
       m.set(t.slug, Math.abs(row.probabilityAfter[lead] - row.probabilityBefore[lead]));
     }
     return m;
-  }, [live.evidenceLog, liveSorted]);
+  }, [live, liveSorted]);
 
   const filtered = useMemo(() => {
     let list = liveSorted;

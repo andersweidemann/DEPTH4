@@ -1246,7 +1246,8 @@ export const MOCK_RESOLVED_THESES: ResolvedThesisRecord[] = [
 ];
 
 export function thesisTitleById(id: string): string {
-  return MOCK_THESES.find((t) => t.id === id)?.title ?? "—";
+  const t = MOCK_THESES.find((x) => x.id === id);
+  return t ? getThesisDisplayTitle(t) : "—";
 }
 
 export function thesisSlugById(id: string): string | undefined {
