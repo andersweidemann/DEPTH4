@@ -8,33 +8,45 @@ alwaysApply: false
 
 **Product:** thesis engine for **unpriced scenarios** and **how evidence moves probability over time**.
 
+## GLOBAL RULE — THE QQQ / AI CAPEX THESIS IS THE TEMPLATE FOR EVERY THESIS
+
+The QQQ / AI capex rewrite is **not** a one-off. **Every** catalog thesis (gold, oil, OPEC, TLT, credit, defense, China, regulation, and any system-generated thesis) must use the **same** structure and Iran-brief voice.
+
+1. **CLEAR TRADE THESIS** — `[Buy/Sell/Don't add / Don't buy more … yet] [ticker] because [future event] will happen within [time window] due to [cause], probability [N%].` No vague “avoid.” No unexplained “AI capex,” “dispersion risk,” “beta,” “quality,” “duration” — plain English or define once in-line.
+2. **L1–L4 (`thesisCascade`)** — **L1** confirmed today · **L2** this week / this quarter (near window) · **L3** this year (1–3 quarters; flows, winners vs losers) · **L4** structural bias for the **current year** for all DEPTH4 theses (funding, energy, small caps, etc.). Same ladder for war/gold, OPEC, Fed/TLT, credit, any macro book.
+3. **MARKET EDGE** — `whatsUnpriced` / misread tone: what the crowd misses; why DEPTH4 sees it first (clusters, levels, policy). No slogans (“dispersion risk is underpriced”). Use concrete lines (“the index hides the gap…”, “traders see oil up but not the food/fertilizer follow-through…”).
+4. **TRIGGER / TRADE / EXIT / TIME STOP** — always: observable **trigger**; **trade** names tickers + rotate/hedge actions; **invalidation** proves the thesis wrong; **`timeStop`** downgrades if the trigger never fires on schedule.
+5. **LANGUAGE** — Iran brief: short sentences; ban consultant jargon; clear bull/bear/neutral and what to do.
+6. **IMPLEMENTATION** — Canonical copy patterns live in `signal/apps/web/src/lib/thesis-engine-v2/thesis-book-template.ts`; macro prompts inject the snippet when linking to catalog titles; mock catalog theses in `mock-data.ts` must stay aligned.
+
 ## Every thesis must answer (six checks)
 
-1. **What position?** Buy / sell / avoid / wait — name the expression.
+1. **What position?** **Say it in plain English:** Buy, Sell, **Don’t buy more yet**, **Don’t add**, Short — not vague lines like “Avoid QQQ adds” (unclear: hold? trim? never buy?).
 2. **What future event?** A specific outcome, not a vibe.
-3. **Why will it happen?** Plain-English cause.
-4. **When?** Time-bound: **days / weeks / months** (not years). Observable catalyst (print, meeting, deadline).
-5. **What is the four-level cascade?** L1 confirmed → L2 this week–month → L3 this quarter → L4 structural **bias** for this year’s book (not a 2028 forecast).
-6. **What does the market miss?** The mispricing — usually **L3 or L4**, not only the obvious L1–L2 move.
+3. **Why will it happen?** Plain-English cause; define jargon once (e.g. **AI-related spending (chips, data centers, staff)** instead of unexplained “AI capex”).
+4. **When?** Time-bound window or catalyst (earnings season, dated print, weeks count).
+5. **Four-level cascade** — see **two** frameworks below (thesis **book** vs **event narrative**).
+6. **What does the market miss?** The edge in plain words — often **cluster evidence**, not one ticker in isolation.
 
 ---
 
 ## Display title (UI, retail)
 
-`[Buy/Sell/Avoid/Wait on] [ticker or clear asset] because [future event] will happen`
+`[Buy / Sell / Don’t add / Don’t buy more … yet] [ticker] because [future event] will happen [within time window]`
 
 Examples:
 
 - Buy GLD because war escalation will continue  
 - Sell IWM because credit stress will spread  
-- Buy TLT because Fed cuts will come sooner than priced  
+- Don’t buy more QQQ yet because AI spending will hit margins this earnings season  
 
-(Tickers preferred; “gold” is OK in title if the trade line names **GLD** or **XAU** elsewhere.)
+(Tickers preferred; spell out the action so a novice knows **exactly** what to do.)
+
+**Optional `oneLineSummary` (thesis page):** one sentence, ~3-second scan — what they should *get* before the full `thesisStatement`. Example: *Don’t add to QQQ yet: many companies will feel the cost of AI spending in earnings before the profits show up, and the index hides that risk.*
 
 ## Full thesis statement (longer copy)
 
-`[Action] [asset] because [event Y] will happen because of [cause Z], probability [N%]`  
-**Plus timing:** same sentence or immediately after — *when* (window or catalyst).
+`[Action] [asset] because [event Y] will happen [within time window] due to [cause Z], probability [N%]`
 
 Examples:
 
@@ -52,14 +64,25 @@ Or: `Stays at [N%] — [why nothing moved]`
 
 ---
 
-## Four-level reasoning (every thesis **and** every promoted narrative)
+## Four-level reasoning — two frameworks
+
+### A) Thesis **book** page (`thesisCascade` on `Thesis`)
 
 | Level | Scope | Job |
 |-------|--------|-----|
-| **L1 (CONFIRMED)** | Now | What we **know** happened from facts in the cluster or thesis evidence. |
-| **L2 (THIS WEEK–MONTH)** | Days to **~4 weeks** | Near-term market and macro read; name tickers. |
-| **L3 (THIS QUARTER)** | **1–3 months** | Medium-term cascade (policy, funding, geopolitics intersecting). |
-| **L4 (STRUCTURAL BIAS)** | Backdrop **this year** | Persistent tilt for DEPTH4 theses — **bias**, not a multi-year fantasy. Anchor to near-term proof. |
+| **L1** | Confirmed **today** | What is already true (facts, spend, policy in motion). |
+| **L2** | **This week / this quarter** | Near window: headlines, earnings season slice, first tape move. |
+| **L3** | **This year** | How the trade pays out; index vs single names. |
+| **L4** | **2026 backdrop** | How this shapes **every** DEPTH4 thesis (capital cost, winners/losers) — bias, not a 2028 fantasy. |
+
+### B) Promoted **event narrative** (`reasoning_chain` in macro JSON)
+
+| Level | Scope | Job |
+|-------|--------|-----|
+| **L1** | Confirmed now | Cluster facts. |
+| **L2** | Days to **~4 weeks** | Near-term tape; tickers. |
+| **L3** | **1–3 months** | Cascades, policy, credit. |
+| **L4** | Backdrop **this year** | Book-wide bias. |
 
 **Implementation (narratives / JSON):**
 
@@ -69,6 +92,15 @@ Or: `Stays at [N%] — [why nothing moved]`
 
 **Think wider:** the edge is usually **L3–L4**, not the obvious L1–L2.  
 *Example (Hormuz-style):* L1 chokepoint risk confirmed → L2 oil spikes (often priced) → L3 fertilizer / routes / planting-season knock-ons (often **not** priced) → L4 inflation and sector bias into this year’s book — **action now** tied to observable catalysts, not “call me in 2028.”
+
+### Thesis rewrite checklist (A–F)
+
+- **A — Thesis line:** action + ticker + event + **time window** + cause + **probability** in plain English.  
+- **B — L1–L4:** fill `thesisCascade` with **concrete** lines; **2–3 short sentences per level**; one idea per sentence.  
+- **C — Edge / mispricing:** say why **DEPTH4 is ahead** (e.g. reads **clusters** of prints, not one stock alone).  
+- **D — Trigger:** dated or countable (e.g. “two earnings weeks in a row with …”).  
+- **E — Trade block:** what to do **when the trigger hits**; **exit / invalidation** when the edge is dead; optional **`timeStop`** (e.g. downgrade if the trigger never fires in two earnings seasons). Entry / stop / targets when directional.  
+- **F — Voice:** Iran brief — short, active, confident; ban consultant phrases (“dispersion risk at the index level” → “the index hides the gap between winners and losers”; “cut beta / favor quality” → “own fewer risky growth names and more strong cash-flow names”).
 
 ---
 
@@ -135,6 +167,7 @@ What happened → Thesis → Probability update → Trade implication → Confid
 
 ## Related code
 
+- Thesis book template (LLM + docs): `signal/apps/web/src/lib/thesis-engine-v2/thesis-book-template.ts`  
 - Macro contract: `signal/apps/web/src/lib/macro-reasoning/prompts.ts`  
 - Parser for LEVEL headers: `signal/apps/web/src/lib/macro-reasoning/reasoning-chain-levels.ts`  
 - Production UI data guardrails: `signal/apps/web/src/lib/thesis-engine-v2/production-data.ts`

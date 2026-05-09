@@ -9,7 +9,7 @@
  * - Header counts (ready/active/total) must come from the same source as the page table,
  *   or use `thesesLiveHeaderNeutral()` until that wiring exists.
  * - Thesis copy (titles, narratives): follow `.cursor/rules/depth4-thesis-narrative-writing.mdc`
- *   — six checks (position, event, cause, when, L1–L4 cascade, mispricing); time-bound inside ~6 months; no model/LLM wording.
+ *   — explicit actions (Buy/Sell/Don’t add…); optional `oneLineSummary` (~3s hook); optional `thesisCascade`; optional `timeStop`; time-bound; no model/LLM wording.
  */
 
 /** Local-only mock probability ticks + mock ticker stream (never enable in production). */

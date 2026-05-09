@@ -22,6 +22,8 @@ export type Thesis = {
   id: string;
   slug: string;
   title: string;
+  /** Optional one-sentence hook for a ~3-second scan (retail clarity). */
+  oneLineSummary?: string;
   thesisStatement: string;
   asset: string;
   direction: "long" | "short" | "watch";
@@ -36,6 +38,17 @@ export type Thesis = {
    */
   origin?: "system" | "user";
 
+  /**
+   * Optional four-level cascade for the thesis **book** (not the same labels as event narratives).
+   * L1 = already true · L2 = this quarter · L3 = this year · L4 = 2026 backdrop for the whole tape.
+   */
+  thesisCascade?: {
+    l1Confirmed: string;
+    l2ThisQuarter: string;
+    l3ThisYear: string;
+    l4Backdrop2026: string;
+  };
+
   // causal framework
   hiddenDriver: string;
   likelyPath: string;
@@ -47,6 +60,8 @@ export type Thesis = {
   trigger: string;
   trade: string;
   invalidation: string;
+  /** Optional: clock on the thesis (e.g. downgrade if trigger never fires in N seasons). */
+  timeStop?: string;
   horizon: string;
   advisoryAction: AdvisoryAction;
   lastUpdated: string;

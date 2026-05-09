@@ -51,27 +51,44 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.gold,
     slug: "war-peace-gold-short",
-    title: "Sell GLD because peace progress will continue",
+    title: "Sell GLD because peace progress will continue within weeks",
+    oneLineSummary:
+      "Sell gold into the peace drift: talks are moving but spot still prices a big war scare.",
     thesisStatement:
-      "De-escalation odds have moved into the tradeable zone; bullion is still priced for escalation tail-risk.",
+      "Sell GLD because peace progress will continue within the next several weeks due to steady talks and fewer escalation headlines, probability 67%.",
     asset: "XAUUSD",
     direction: "short",
     probability: 67,
     status: "ready",
     probabilityRationale:
-      "Peace talk momentum improved, but gold still trades like escalation risk is the base case.",
+      "Headlines cooled but GLD still trades like war is the base case — that gap can close fast on the next good-faith week.",
 
-    hiddenDriver: "This is about actual diplomacy, not just market mood shifting.",
-    likelyPath: "Headlines shift from escalation to steady progress on talks; gold can fall before a final deal is signed.",
-    marketMisread: "The market still prices gold for escalation risk, even though de-escalation odds are rising.",
-    tradeExpression: "Short gold via XAUUSD/GLD; keep invalidation above the local high.",
+    thesisCascade: {
+      l1Confirmed:
+        "Talks are live and both sides keep showing up. Escalation headlines have thinned versus last month.",
+      l2ThisQuarter:
+        "Over the next few weeks, safe-haven bids fade headline-by-headline if oil and equities stay calm. Gold is first to give back fear premium.",
+      l3ThisYear:
+        "If the path holds, money moves out of war hedges and into risk for longer. Bullion loses the bid that held it rich all year.",
+      l4Backdrop2026:
+        "Lower war tail risk versus the last two years shifts the whole tape away from emergency hedges. DEPTH4 carries that bias across geopolitics and rates theses.",
+    },
 
-    whyNow: "The odds of peace talks succeeding are now high enough that gold should be falling — but it hasn't yet.",
-    whatsUnpriced: "The escalation premium is still embedded in spot and short-dated hedges.",
-    trigger: "Second positive headline within 24 hours, and oil/volatility stay calm.",
-    trade: "Short 3285–3295 · Stop 3312 · TP 3180",
-    invalidation: "New kinetic escalation or acceptance above 3312 that holds through the close.",
-    horizon: "Days to weeks",
+    hiddenDriver: "Real diplomacy is moving faster than the price of gold admits.",
+    likelyPath: "Calm headlines stack → funds cut hedge size → GLD drifts down before any final treaty text.",
+    marketMisread: "Desks still model tail war as likely; price still embeds a fat premium.",
+    tradeExpression: "Short GLD / XAUUSD with a hard stop if hot headlines return.",
+
+    whyNow: "Peace odds crossed the line where gold should fade — but the metal has not repriced yet.",
+    whatsUnpriced:
+      "The crowd watches one headline at a time. DEPTH4 watches the stack: fewer incidents + steady talks = premium should bleed this quarter, not after a signing ceremony.",
+    trigger:
+      "Two calm geopolitical weeks in a row: no new kinetic strikes, plus at least two credible progress headlines, while oil and VIX stay contained.",
+    trade: "Short GLD / gold into 3285–3295 · Stop 3312 · Take profit 3220 then 3180",
+    invalidation: "New kinetic strike or GLD closes above 3312 through the weekly close — stand down the short.",
+    timeStop:
+      "If GLD keeps making highs on peaceful headlines for a full quarter, downgrade the thesis — the de-escalation trade is not working on schedule.",
+    horizon: "Days to weeks (first repricing window)",
     advisoryAction: "enter",
     lastUpdated: "23m ago",
     theme: "geopolitics",
@@ -96,27 +113,44 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.hormuz,
     slug: "strait-hormuz-oil-long",
-    title: "Buy USO because Hormuz transit risk will rise",
+    title: "Buy USO because Hormuz chokepoint risk will spike within weeks",
+    oneLineSummary:
+      "Buy oil before the headline: the strait is fragile but flat crude still sleeps on a one-off shock.",
     thesisStatement:
-      "Transit risk is being priced like noise; the distribution has fattened and crude is late to reflect it.",
+      "Buy USO because Hormuz transit risk will spike within weeks due to insurance, routing, and navy warnings, probability 58%.",
     asset: "USOIL",
     direction: "long",
     probability: 58,
     status: "active",
     probabilityRationale:
-      "Chokepoint risk is rising faster than inventory/flow data is normalizing; the market is too anchored to spot balances.",
+      "Tanker chatter and policy warnings are heating faster than inventories alone explain — flat price is late.",
 
-    hiddenDriver: "Chokepoint fragility (insurance, routing, and policy signaling).",
-    likelyPath: "Friction shows up first in freight/insurance, then physical diffs, then flat price jumps.",
-    marketMisread: "The market still expects smooth flows; it's a jump-risk story.",
-    tradeExpression: "Be positioned for upside moves in oil, with defined risk, and respect headline gaps.",
+    thesisCascade: {
+      l1Confirmed:
+        "Insurers and ship brokers are already widening war-risk clauses. That is a live cost, not a forecast.",
+      l2ThisQuarter:
+        "Any verified friction reroutes cargoes first. Freight jumps days before retail traders retag the whole energy tape.",
+      l3ThisYear:
+        "Oil can overshoot while the world reprices Middle East supply security. USO catches the liquid move.",
+      l4Backdrop2026:
+        "Energy security stays a 2026 theme: underspend on spare capacity keeps jump risk on every DEPTH4 oil and macro book.",
+    },
 
-    whyNow: "The posture has shifted and routing chatter is real — this is when oil can jump faster than people expect.",
-    whatsUnpriced: "The jump risk from a single incident is not reflected in flat price.",
-    trigger: "Verified incident, restriction language, or sudden freight/insurance spike.",
-    trade: "Long pullbacks toward 72.40–73.20 · Stop 70.80 · TP 78.50 / 81.00",
-    invalidation: "Stand-down confirmation + flows normalize with no new incidents for a full week.",
-    horizon: "Weeks",
+    hiddenDriver: "One incident at the chokepoint hits millions of barrels per day — price cannot stay sleepy if it happens.",
+    likelyPath: "Freight and insurance move first, then physical spreads, then USO reprices in gaps.",
+    marketMisread: "Equity flows still treat strait risk as background noise.",
+    tradeExpression: "Own USO on dips with a hard stop under the last swing — size for headline gaps.",
+
+    whyNow: "Routing warnings are stacking while crude still trades range-bound — that mismatch breaks fast.",
+    whatsUnpriced:
+      "Most desks watch inventory prints. DEPTH4 watches shipping law + insurance: when those move together, the physical market already decided.",
+    trigger:
+      "Verified strait incident or new military restriction language, OR a two-handle jump in benchmark freight in under five sessions.",
+    trade: "Buy USO on pullbacks 72.40–73.20 · Stop 70.80 · Targets 78.50 then 81.00",
+    invalidation: "Official stand-down plus one week of normal flows and calm insurance quotes — exit the long.",
+    timeStop:
+      "If no incident and no freight spike within eight weeks, downgrade — chokepoint fear did not convert to price.",
+    horizon: "Weeks (jump-risk window)",
     advisoryAction: "hold",
     lastUpdated: "1h ago",
     theme: "energy",
@@ -141,27 +175,44 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.opec,
     slug: "opec-unity-fracturing",
-    title: "Buy USO because OPEC will hold prices if US shale slows",
+    title: "Buy USO because OPEC will hold prices if US shale slows this quarter",
+    oneLineSummary:
+      "Buy oil if US rigs roll: OPEC needs the money and will keep barrels tight while shale stumbles.",
     thesisStatement:
-      "If US shale slows, OPEC keeps barrels tight and oil stays bid. The market still doubts that combo.",
+      "Buy USO because OPEC will hold prices higher if US shale slows this quarter due to fewer rigs and softer producer guides, probability 44%.",
     asset: "USOIL",
     direction: "long",
     probability: 44,
     status: "ready",
     probabilityRationale:
-      "OPEC can hold the line if US rigs roll; the market still bets shale bails everyone out.",
+      "Rig data is wobbling while OPEC messaging stays disciplined — the market still assumes shale saves everyone.",
 
-    hiddenDriver: "OPEC needs cash and US shale is the swing supply.",
-    likelyPath: "Rig count slips first, then OPEC holds cuts, then flat oil grinds higher.",
-    marketMisread: "Equity desks still treat US oil supply as unlimited at any price.",
-    tradeExpression: "Own USO on pullbacks; add if weekly rig count and producer guides show shale slowing.",
+    thesisCascade: {
+      l1Confirmed:
+        "OPEC is verbally holding the line and US rig counts are no longer rising every week. Both are facts today.",
+      l2ThisQuarter:
+        "If two more rig prints are soft and producers trim capex in earnings, OPEC does not need to flood to keep prices firm.",
+      l3ThisYear:
+        "Tighter US supply plus steady OPEC = flat oil can grind higher even without a headline war. USO is the simple expression.",
+      l4Backdrop2026:
+        "Under-investment in spare oil capacity keeps pricing power with producers. That bias feeds every DEPTH4 energy thesis this year.",
+    },
 
-    whyNow: "OPEC discipline plus slowing shale is the path to higher flat price this quarter.",
-    whatsUnpriced: "The market still prices US supply as elastic forever.",
-    trigger: "Two weak rig-count prints plus soft capex guides from named producers.",
-    trade: "Buy USO on dips toward 72–74 zone · Stop below last swing low · Add on trigger",
-    invalidation: "OPEC breaks discipline or US shale roars back with strong rig data.",
-    horizon: "Months",
+    hiddenDriver: "OPEC needs cash; American shale is the only big source that can swing fast.",
+    likelyPath: "Rigs slip → OPEC holds cuts → oil grinds up on any demand bounce.",
+    marketMisread: "Equity desks still model US oil as unlimited at any price.",
+    tradeExpression: "Add USO on weak rig weeks; cut if OPEC leaks real quota cheating.",
+
+    whyNow: "Data is starting to show shale fatigue while OPEC keeps the story tight.",
+    whatsUnpriced:
+      "Retail tracks OPEC headlines only. DEPTH4 stacks rig count + capex guides: when both roll together, supply is tighter than futures imply.",
+    trigger:
+      "Two consecutive weekly rig-count misses AND at least two named US producers guide shale capex lower on calls.",
+    trade: "Buy USO on dips into 72–74 · Stop under the prior swing low · Add size only after the trigger fires",
+    invalidation: "OPEC publicly breaks quota OR US rigs rip higher for four straight weeks — stand down.",
+    timeStop:
+      "If the trigger never fires within two quarters, downgrade — the slow-shale story did not prove out.",
+    horizon: "This quarter into next (slow-shale window)",
     advisoryAction: "enter",
     lastUpdated: "4h ago",
     theme: "energy",
@@ -182,27 +233,44 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.tlt,
     slug: "fed-pivot-delayed-tlt-weakness",
-    title: "Sell TLT because Fed cuts will land later than priced",
+    title: "Sell TLT because Fed cuts will land later than futures price this year",
+    oneLineSummary:
+      "Sell long bonds: futures still bet on early cuts while the Fed sounds higher-for-longer.",
     thesisStatement:
-      "The market still prices cuts too soon; duration is vulnerable before the Fed gives permission to rally.",
+      "Sell TLT because the first Fed cut will land later than futures price within the next few months due to sticky inflation and firm jobs data, probability 61%.",
     asset: "TLT",
     direction: "short",
     probability: 61,
     status: "active",
     probabilityRationale:
-      "Data keeps failing to cool cleanly; rate markets still expect cuts sooner than the Fed likely delivers.",
+      "Payrolls and CPI keep printing hot enough that the dots cannot match the cut path priced in TLT.",
 
-    hiddenDriver: "Sticky services inflation + resilient labor keeps the Fed restrictive longer than futures price.",
-    likelyPath: "Cuts get pushed stepwise; long duration sells first, then stabilizes when pricing matches reality.",
-    marketMisread: "The market still assumes rate cuts will come sooner than they probably will.",
-    tradeExpression: "Sell/avoid long duration; express via TLT weakness with clear stop above key level.",
+    thesisCascade: {
+      l1Confirmed:
+        "Fed speakers keep pushing back on cuts and core inflation is not falling in a straight line. Futures still show cuts starting sooner than the dots.",
+      l2ThisQuarter:
+        "The next CPI + payroll pair can reprice the first cut later. Long bond prices fall first when rate expectations jump.",
+      l3ThisYear:
+        "If cuts drift into next year, TLT chops lower until the market matches reality. Owning TLT here is a bet the Fed blinks early.",
+      l4Backdrop2026:
+        "Funding stays tighter than equity hopes. DEPTH4 keeps that rates bias in every macro thesis until inflation truly breaks.",
+    },
 
-    whyNow: "The next two data prints can shift rate expectations quickly; bond longs are early.",
-    whatsUnpriced: "A later pivot path is still not fully priced in duration.",
-    trigger: "Hot CPI/Payrolls or Fed language that explicitly pushes back on easing expectations.",
-    trade: "Scale 92.50–93.80 adds · Stop 95.20 · TP 88.00",
-    invalidation: "Clear disinflation turn or risk-off shock that forces a TLT bid.",
-    horizon: "Weeks to months",
+    hiddenDriver: "Services prices and jobs are too firm for the Fed to validate the cut path the curve already built.",
+    likelyPath: "Hot print → yields jump → TLT sells off → only stabilizes when pricing matches the Fed.",
+    marketMisread: "The curve assumes the Fed cuts to save stocks; the Fed is still fighting inflation.",
+    tradeExpression: "Sell TLT rips; cover only if data turns cold for real.",
+
+    whyNow: "The next two prints can move the first-cut date fast — bond longs are early.",
+    whatsUnpriced:
+      "Most watch one CPI. DEPTH4 watches CPI + payroll + Fed tone together: when all three disagree with the cut narrative, TLT is wrong.",
+    trigger:
+      "Hot CPI or hot payrolls OR three Fed speakers in one week push back hard on near-term cuts — any one fires the trade.",
+    trade: "Add TLT short / sell TLT into 92.50–93.80 · Stop 95.20 · Target 88.00",
+    invalidation: "Core CPI cools two prints in a row AND payrolls soften — stand down the short.",
+    timeStop:
+      "If TLT cannot make new lows after three CPI cycles, downgrade — the late-cut thesis is not paying.",
+    horizon: "Weeks to months (data cycle)",
     advisoryAction: "hold",
     lastUpdated: "45m ago",
     theme: "rates",
@@ -227,27 +295,44 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.defense,
     slug: "us-defense-repricing-rtx-lmt",
-    title: "Buy RTX because Pentagon awards will firm backlog",
+    title: "Buy RTX because Pentagon awards will firm backlog this quarter",
+    oneLineSummary:
+      "Buy defense primes: contracts are lining up but the stock still prices last year’s doubt.",
     thesisStatement:
-      "Backlog visibility is improving; multiples still reflect yesterday's uncertainty.",
+      "Buy RTX because named Pentagon awards will firm backlog within this quarter due to appropriations moving and primes taking share, probability 55%.",
     asset: "RTX",
     direction: "long",
     probability: 55,
     status: "ready",
     probabilityRationale:
-      "Contract cadence and appropriations language are turning into numbers; the market is still trading vibes.",
+      "Award cadence is turning into dollars while RTX still trades like funding might vanish.",
 
-    hiddenDriver: "Appropriations + award cadence, not the daily headline cycle.",
-    likelyPath: "Awards convert to backlog → guide confidence improves → multiples re-rate on visibility.",
-    marketMisread: "The market focuses on headlines and misses how strong the order backlog is.",
-    tradeExpression: "Own primes where backlog converts cleanly; use defined risk around key support.",
+    thesisCascade: {
+      l1Confirmed:
+        "Defense budgets are set higher and Pentagon language points to accelerated awards. RTX order book is already rising in filings.",
+      l2ThisQuarter:
+        "Named awards hit the tape in weeks, not years. First prints move RTX before slow money updates models.",
+      l3ThisYear:
+        "Backlog converts to cash flow visibility; primes with execution re-rate while laggards stay cheap.",
+      l4Backdrop2026:
+        "Industrial policy + NATO spend keeps defense bid under every DEPTH4 geopolitics book this year.",
+    },
 
-    whyNow: "The awards are close enough to pull forward the re-rating window.",
-    whatsUnpriced: "Visibility into outyear cash flows isn't reflected in current multiples.",
-    trigger: "Named contract awards + guide affirmation; supply chain commentary stays stable.",
-    trade: "RTX 128–132 accumulation · Stop 123 · TP 148",
-    invalidation: "Major program slip or funding shock.",
-    horizon: "Months",
+    hiddenDriver: "Cash is moving from appropriations into contracts faster than sell-side models assume.",
+    likelyPath: "Award headlines stack → backlog line rises → guidance firms → stock closes the valuation gap.",
+    marketMisread: "TV covers politics only; it misses the line-item awards that change EPS.",
+    tradeExpression: "Buy RTX into award flow; stop if a flagship program slips.",
+
+    whyNow: "Award dates are close enough that the next press release can gap the stock.",
+    whatsUnpriced:
+      "Generalists read one headline. DEPTH4 reads award calendars + supply chain checks — when both align, backlog is already real.",
+    trigger:
+      "At least two named missile-defense awards to RTX/LMT AND management affirms supply chain stability on the call.",
+    trade: "Buy RTX 128–132 · Stop 123 · Take profit 140 then 148",
+    invalidation: "Major program cancel or funding pulled from the line — exit longs.",
+    timeStop:
+      "If backlog lines do not rise after two earnings cycles, downgrade — the award wave thesis stalled.",
+    horizon: "Months (award window)",
     advisoryAction: "enter",
     lastUpdated: "12m ago",
     theme: "geopolitics",
@@ -272,30 +357,68 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.qqq,
     slug: "ai-capex-squeeze-qqq-rotation",
-    title: "Avoid QQQ adds because AI capex will squeeze margins first",
+    title: "Don't buy more QQQ yet because AI spending will hit margins this earnings season",
+    oneLineSummary:
+      "Don't add to QQQ yet: many companies will feel the cost of AI spending in earnings before the profits show up, and the index hides that risk.",
     thesisStatement:
-      "The market is still pricing AI spend as free; the bill hits margins before revenue catches up.",
+      "Don't buy more QQQ yet because AI-related spending (chips, data centers, staff) will hit profit margins before new revenue shows up this earnings season, probability 49%.",
     asset: "QQQ",
     direction: "watch",
     probability: 49,
     status: "watching",
     probabilityRationale:
-      "The story is real but the timing isn't tight yet — it needs an earnings catalyst to become tradeable.",
+      "Mega-caps still talk AI growth, but the next two earnings waves decide if spend breaks margins at the same time.",
 
-    hiddenDriver: "Capex intensity vs monetization lag.",
-    likelyPath: "Guides rise → margins wobble → winners and losers split → money shifts toward cash-flow leaders.",
-    marketMisread: "Index pricing still assumes smooth AI monetization with minimal margin cost.",
-    tradeExpression: "Wait for the print; then add cash-flow leaders and cut capex-heavy laggards.",
+    thesisCascade: {
+      l1Confirmed:
+        "AI-related spending is already ramping: chips, data centers, and headcount. Big tech guides show the bill is here, not someday.",
+      l2ThisQuarter:
+        "This quarter you get margin pain in earnings before new revenue proves out. One soft guide is noise. Several in the same two weeks are a pattern.",
+      l3ThisYear:
+        "The index hides the gap between winners and losers. Owning QQQ blind is riskier than it looks while spend runs hot.",
+      l4Backdrop2026:
+        "Capital stays expensive and the tape punishes weak cash-flow names first. DEPTH4 tracks that bias across every thesis this year.",
+    },
 
-    whyNow: "The trade opportunity is forming into earnings — but it isn't a 'now' trade without confirmation.",
-    whatsUnpriced: "Dispersion risk is underpriced at the index level.",
-    trigger: "Two consecutive prints show margin pressure or demand softness tied to AI spend.",
-    trade: "Wait for trigger; then cut beta / favor quality.",
-    invalidation: "AI revenue acceleration beats broadly and margins expand despite capex.",
-    horizon: "Quarters",
+    hiddenDriver: "Companies are spending fast on AI before the extra profit shows up in the numbers.",
+    likelyPath: "Spend stays high → margins slip → the market splits leaders from laggards → money moves to real cash flow.",
+    marketMisread: "People still read each ticker alone. They miss the cluster when several AI-heavy names cut margin outlook together.",
+    tradeExpression:
+      "Own fewer risky growth names and more strong cash-flow names. Don't add QQQ until the margin cluster clears.",
+
+    whyNow: "Earnings season is the clock. The tape prices smooth AI wins; the prints can say otherwise.",
+    whatsUnpriced:
+      "The edge sits outside NVDA/MSFT headlines. When several smaller QQQ names raise AI or infra spend and cut margin or EPS guide in the same window, that cluster is the signal — not one stock alone.",
+    trigger: `WHEN THIS BECOMES A TRADE, NOT JUST A STORY
+
+Watch two earnings windows in a row where:
+- Several non-NVDA/MSFT QQQ names say AI or infrastructure spending is going up
+AND
+- At least some of them cut profit-margin or EPS guidance because of that spending
+
+If that happens twice in back-to-back earnings weeks, the thesis is "live".`,
+    trade: `WHEN THE TRIGGER HITS
+
+- Stop adding to broad QQQ.
+- Shift part of your QQQ exposure into strong cash-flow AI leaders (for example, MSFT, GOOGL) or a quality factor ETF.
+- If you are aggressive, hedge with a small QQQ short or puts, or by shorting weaker high-capex growth names.`,
+    invalidation: `STAND DOWN IF
+
+- AI revenue starts to beat across many QQQ names, not just the obvious leaders
+AND
+- Profit margins stay stable or improve while AI spending remains high
+
+If broader AI earnings look good and margins hold up, the market is handling AI spend better than this thesis assumes. In that case, stop treating this as a live edge.`,
+    timeStop:
+      "If the trigger has not fired within two earnings seasons, treat the thesis as stale and downgrade the probability — the risk never matured on schedule.",
+    horizon: "Up to two earnings seasons (until live or stale)",
     advisoryAction: "watch",
     lastUpdated: "3h ago",
     theme: "equities",
+    entryZone: "No new QQQ buys · trim zone 465–475",
+    stop: "Weekly close above 480 with broad margin beats across Mag 7",
+    target1: "440",
+    target2: "420",
     scores: {
       driverStrength: 13,
       timeCompression: 8,
@@ -313,27 +436,44 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.copper,
     slug: "china-stimulus-copper-long",
-    title: "Buy HG because China stimulus will speed up again",
+    title: "Buy HG because China stimulus will speed up again within months",
+    oneLineSummary:
+      "Buy copper: Beijing is turning the dial while HG still prices slow China.",
     thesisStatement:
-      "The market is still priced for 'slow China'; policy impulse is turning and copper is late to it.",
+      "Buy HG because China credit and spending stimulus will speed up again within months due to easier policy and restocking, probability 52%.",
     asset: "HG",
     direction: "long",
     probability: 52,
     status: "ready",
     probabilityRationale:
-      "Policy tone + early HF data suggest impulse stabilization; copper pricing still trails the old slow-China story.",
+      "Credit pulse is stabilizing while copper still trades last year’s pessimism — the gap should close on data.",
 
-    hiddenDriver: "Policy impulse (credit + fiscal) turning from defense to support.",
-    likelyPath: "Impulse turns → industrial proxies firm → inventories draw → copper catches up to the growth shift.",
-    marketMisread: "The market still thinks China will stay slow, even if policy support speeds things up.",
-    tradeExpression: "Own copper in a defined zone; add on confirmation via inventory draw and HF demand prints.",
+    thesisCascade: {
+      l1Confirmed:
+        "Beijing is verbally back-stopping growth and early credit reads are no longer collapsing. That is a policy turn, not a rumor.",
+      l2ThisQuarter:
+        "Restocking + infrastructure bids hit industrial metals first. HG moves before equities fully rerate China.",
+      l3ThisYear:
+        "If impulse sticks, copper catches a multi-quarter grind higher as inventories draw globally.",
+      l4Backdrop2026:
+        "Grid + commodity spend stays onshoring-friendly — DEPTH4 keeps a soft-USD / hard-assets tilt when China impulse is live.",
+    },
 
-    whyNow: "Policy signals are turning while the market is still stuck in last quarter's story.",
-    whatsUnpriced: "A reacceleration path isn't reflected in copper risk premium.",
-    trigger: "Inventory draw + credit impulse confirmation in two consecutive reads.",
-    trade: "Long HG 4.12–4.18 zone · Stop 3.98 · TP 4.45",
-    invalidation: "Renewed property stress or USD spike.",
-    horizon: "Weeks to months",
+    hiddenDriver: "Credit and fiscal lines are inflecting; copper is the fast read on whether it is real.",
+    likelyPath: "Pulse firms → warehouses empty → HG rallies before the macro podcasts notice.",
+    marketMisread: "Funds still anchor to property fear; they ignore the stimulus lever turning.",
+    tradeExpression: "Own HG in a box; add only after inventory confirms the turn.",
+
+    whyNow: "Policy tone flipped while HG is still priced for no help.",
+    whatsUnpriced:
+      "Traders watch one PMI. DEPTH4 stacks credit impulse + warehouse data: when both tick up together, copper is late.",
+    trigger:
+      "Two consecutive inventory draws in Shanghai bonded stocks AND a confirming credit impulse print in the same month.",
+    trade: "Buy HG 4.12–4.18 · Stop 3.98 · Targets 4.32 then 4.45",
+    invalidation: "Property crash headlines return with force OR USD spikes on a funding scare — exit HG long.",
+    timeStop:
+      "If no draws and no credit tick within two quarters, downgrade — China impulse thesis did not land.",
+    horizon: "Weeks to months (restock window)",
     advisoryAction: "enter",
     lastUpdated: "50m ago",
     theme: "china",
@@ -358,27 +498,44 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.euTech,
     slug: "eu-tech-crackdown-megacap",
-    title: "Sell META because EU platform rules will get tougher",
+    title: "Sell META because EU platform rules will bite within months",
+    oneLineSummary:
+      "Sell META into EU enforcement: fines were priced; behavior rules were not.",
     thesisStatement:
-      "EU remedies are becoming structural; multiples still assume business-as-usual growth and monetization.",
+      "Sell META because EU platform rules will tighten within months due to binding remedies and daily fines that change how ads run, probability 46%.",
     asset: "META",
     direction: "short",
     probability: 46,
     status: "active",
     probabilityRationale:
-      "The direction is right, but timing can be slow — needs a binding action to compress the window.",
+      "Brussels is moving from headline fines to product limits — the stock still prices a one-off check.",
 
-    hiddenDriver: "Structural remedies (behavioral constraints) that change terminal assumptions.",
-    likelyPath: "Binding action → compliance cost rises → growth assumptions compress → multiple derates.",
-    marketMisread: "The market treats this like a one-time fine, not a rule change that lasts.",
-    tradeExpression: "Wait for binding action; then short rallies with defined stop.",
+    thesisCascade: {
+      l1Confirmed:
+        "EU courts already ordered real product changes, not just cash penalties. Compliance teams are staffing up now.",
+      l2ThisQuarter:
+        "The next binding step hits revenue mechanics (ads, app stores) faster than US investors expect.",
+      l3ThisYear:
+        "Margin dollars shrink as META reroutes product; multiple compresses while growth slows.",
+      l4Backdrop2026:
+        "Global platform regulation stays a headwind for ad-heavy megacaps — DEPTH4 keeps that regulatory bias in tech books.",
+    },
 
-    whyNow: "The story is real, but it's only tradeable when the action becomes binding.",
-    whatsUnpriced: "Structural constraint risk isn't in the multiple yet.",
-    trigger: "Binding remedies or enforcement action with clear behavioral constraints.",
-    trade: "Strategic short rallies 605–625 · Stop 640 · TP 540",
-    invalidation: "Legal wins or settlement that removes structural risk.",
-    horizon: "Months",
+    hiddenDriver: "Behavior rules hit revenue lines; fines were only the opening act.",
+    likelyPath: "Binding order → compliance spend rises → guides cut → stock derates in steps.",
+    marketMisread: "US desks model the EU risk as paid; they ignore ongoing product limits.",
+    tradeExpression: "Short META into EU headlines with a hard stop above prior highs.",
+
+    whyNow: "Enforcement is entering the binding phase — that is when shorts pay.",
+    whatsUnpriced:
+      "Retail reads the fine headline. DEPTH4 reads remedy text + compliance cost: when both bite, EPS models are high.",
+    trigger:
+      "Published binding remedy that forces product change OR two weeks of EU daily fines with no legal stay.",
+    trade: "Sell META into 605–625 rips · Stop 640 · Cover toward 540 as rules price in",
+    invalidation: "Court stay or settlement that removes product limits — cover the short.",
+    timeStop:
+      "If META walks EU rules without guide cuts within two quarters, downgrade — regulation thesis overstayed.",
+    horizon: "Months (remedy window)",
     advisoryAction: "hold",
     lastUpdated: "2h ago",
     theme: "regulation",
@@ -622,7 +779,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Oil rises as traders weigh Gulf transit headlines",
     summary: "Crude bid on perceived tail risk; flows modest vs prior shocks.",
     linkedThesisSlug: "strait-hormuz-oil-long",
-    linkedThesisTitle: "Buy USO because Hormuz transit risk will rise",
+    linkedThesisTitle: "Buy USO because Hormuz chokepoint risk will spike within weeks",
   },
   {
     id: "f2",
@@ -631,7 +788,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Gold slips as risk appetite improves",
     summary: "Equities firm; precious metals lose marginal safe-haven premium.",
     linkedThesisSlug: "war-peace-gold-short",
-    linkedThesisTitle: "Sell GLD because peace progress will continue",
+    linkedThesisTitle: "Sell GLD because peace progress will continue within weeks",
   },
   {
     id: "f3",
@@ -640,7 +797,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Fed officials caution on cutting too soon",
     summary: "Front-end yields tick higher; duration underperforms.",
     linkedThesisSlug: "fed-pivot-delayed-tlt-weakness",
-    linkedThesisTitle: "Fed pivot delayed — TLT weakness",
+    linkedThesisTitle: "Sell TLT because Fed cuts will land later than futures price this year",
   },
   {
     id: "f4",
@@ -649,7 +806,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "EU regulators sharpen remedies on platform competition",
     summary: "Regulation story strengthens for mega-cap platforms.",
     linkedThesisSlug: "eu-tech-crackdown-megacap",
-    linkedThesisTitle: "Sell META because EU platform rules will get tougher",
+    linkedThesisTitle: "Sell META because EU platform rules will bite within months",
   },
   {
     id: "f5",
@@ -658,7 +815,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "China credit impulse shows early stabilization",
     summary: "Industrial demand proxies tick up; metals watchlist active.",
     linkedThesisSlug: "china-stimulus-copper-long",
-    linkedThesisTitle: "Buy HG because China stimulus will speed up again",
+    linkedThesisTitle: "Buy HG because China stimulus will speed up again within months",
   },
   {
     id: "f6",
@@ -667,7 +824,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Pentagon accelerates award timeline on missile defense line",
     summary: "Backlog visibility improves for defense primes.",
     linkedThesisSlug: "us-defense-repricing-rtx-lmt",
-    linkedThesisTitle: "Buy RTX because Pentagon awards will firm backlog",
+    linkedThesisTitle: "Buy RTX because Pentagon awards will firm backlog this quarter",
   },
   {
     id: "f7",
@@ -676,7 +833,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "OPEC+ members disagree on quota enforcement",
     summary: "Unity story frays; volatility bids in energy.",
     linkedThesisSlug: "opec-unity-fracturing",
-    linkedThesisTitle: "Buy USO because OPEC will hold prices if US shale slows",
+    linkedThesisTitle: "Buy USO because OPEC will hold prices if US shale slows this quarter",
   },
   {
     id: "f8",
@@ -685,7 +842,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Cloud capex guides creep higher for hyperscalers",
     summary: "Spend discipline vs AI race tension rises for mega-cap tech.",
     linkedThesisSlug: "ai-capex-squeeze-qqq-rotation",
-    linkedThesisTitle: "Avoid QQQ adds because AI capex will squeeze margins first",
+    linkedThesisTitle: "Don't buy more QQQ yet because AI spending will hit margins this earnings season",
   },
   {
     id: "f9",
@@ -724,7 +881,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Reuters",
     timestamp: "09:12 UTC",
     headline: "Delegations signal 'constructive' weekend talks",
-    thesisName: "Sell GLD because peace progress will continue",
+    thesisName: "Sell GLD because peace progress will continue within weeks",
     probabilityBefore: 54,
     probabilityAfter: 67,
     impact: "major_positive",
@@ -759,7 +916,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Defense News",
     timestamp: "10:26 UTC",
     headline: "Pentagon accelerates award timeline on missile defense line",
-    thesisName: "Buy RTX because Pentagon awards will firm backlog",
+    thesisName: "Buy RTX because Pentagon awards will firm backlog this quarter",
     probabilityBefore: 49,
     probabilityAfter: 55,
     impact: "minor_positive",
@@ -778,7 +935,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Argus",
     timestamp: "12:09 UTC",
     headline: "OPEC+ delegates push back on quota enforcement rumors",
-    thesisName: "Buy USO because OPEC will hold prices if US shale slows",
+    thesisName: "Buy USO because OPEC will hold prices if US shale slows this quarter",
     probabilityBefore: 52,
     probabilityAfter: 46,
     impact: "minor_negative",
@@ -797,7 +954,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Reuters",
     timestamp: "13:22 UTC",
     headline: "Shipping insurers widen war-risk clauses after new advisories",
-    thesisName: "Buy USO because Hormuz transit risk will rise",
+    thesisName: "Buy USO because Hormuz chokepoint risk will spike within weeks",
     probabilityBefore: 58,
     probabilityAfter: 66,
     impact: "major_positive",
@@ -808,7 +965,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-1",
     thesisSlug: "china-stimulus-copper-long",
-    title: "Buy HG because China stimulus will speed up again",
+    title: "Buy HG because China stimulus will speed up again within months",
     author: "@macro_maven",
     reputationBadge: "Top 10% accuracy",
     probability: 58,
@@ -820,7 +977,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-2",
     thesisSlug: "opec-unity-fracturing",
-    title: "Buy USO because OPEC will hold prices if US shale slows",
+    title: "Buy USO because OPEC will hold prices if US shale slows this quarter",
     author: "@vol_hunter",
     reputationBadge: "12-month win rate: 73%",
     probability: 54,
@@ -832,7 +989,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-3",
     thesisSlug: "tlt-duration-short",
-    title: "Sell TLT because cuts are priced too soon",
+    title: "Sell TLT because Fed cuts will land later than futures price this year",
     author: "@rates_trader",
     reputationBadge: "Top 5% accuracy",
     probability: 61,
@@ -844,7 +1001,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-4",
     thesisSlug: "eu-tech-crackdown-megacap",
-    title: "Sell META because EU platform rules will get tougher",
+    title: "Sell META because EU platform rules will bite within months",
     author: "@credit_bull",
     reputationBadge: "Top 20% accuracy",
     probability: 52,
@@ -1006,21 +1163,21 @@ export const MOCK_WATCHLIST: WatchlistIdea[] = [
   {
     id: "w1",
     symbol: "QQQ",
-    thesisTitle: "Avoid QQQ adds because AI capex will squeeze margins first",
+    thesisTitle: "Don't buy more QQQ yet because AI spending will hit margins this earnings season",
     thesisSlug: "ai-capex-squeeze-qqq-rotation",
     note: "No position yet — waiting for earnings confirmation.",
   },
   {
     id: "w2",
     symbol: "META",
-    thesisTitle: "Sell META because EU platform rules will get tougher",
+    thesisTitle: "Sell META because EU platform rules will bite within months",
     thesisSlug: "eu-tech-crackdown-megacap",
     note: "Strategic short; sizing TBD.",
   },
   {
     id: "w3",
     symbol: "USOIL",
-    thesisTitle: "Buy USO because OPEC will hold prices if US shale slows",
+    thesisTitle: "Buy USO because OPEC will hold prices if US shale slows this quarter",
     thesisSlug: "opec-unity-fracturing",
     note: "Add on rig-count weakness; cut if OPEC leaks quota breaks.",
   },

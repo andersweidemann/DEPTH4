@@ -11,6 +11,7 @@ import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
+import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFourLevelCascade";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomePanel";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
@@ -214,6 +215,12 @@ export function ThesisDetailClient({
         <ThesisHero thesis={thesis} />
       </div>
 
+      {thesis.thesisCascade ? (
+        <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
+          <ThesisFourLevelCascade thesis={thesis} />
+        </div>
+      ) : null}
+
       {layout === "drawer" ? (
         <div className="mt-3">
           <MispricingAnalysis m={mispricing} />
@@ -387,6 +394,7 @@ export function ThesisDetailClient({
         <AnswerBlock kicker="What the market hasn't priced in yet">{thesis.whatsUnpriced}</AnswerBlock>
         <AnswerBlock kicker="Trigger">{thesis.trigger}</AnswerBlock>
         <AnswerBlock kicker="Trade">{thesis.trade}</AnswerBlock>
+        {thesis.timeStop ? <AnswerBlock kicker="Time stop">{thesis.timeStop}</AnswerBlock> : null}
       </div>
 
       <div className={cn("mt-3", layout === "drawer" && "px-4 sm:px-5")}>

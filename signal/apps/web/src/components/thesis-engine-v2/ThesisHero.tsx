@@ -8,8 +8,8 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
 
 const ADVISORY_LABEL: Record<AdvisoryAction, string> = {
-  watch: "Watch — wait for trigger clarity.",
-  enter: "Enter — setup meets advisory threshold.",
+  watch: "Watch — wait for the trigger you wrote.",
+  enter: "Enter — odds and trigger meet the advisory bar.",
   hold: "Hold — thesis intact; manage risk.",
   reduce: "Reduce — lock partial; elevated uncertainty.",
   exit: "Exit — invalidation or thesis closed.",
@@ -19,10 +19,10 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
   const tip =
     q === "tradeable"
-      ? "Thesis meets the framework’s actionability threshold"
+      ? "Thesis meets the action bar: clear trigger, trade line, and odds."
       : q === "emerging"
         ? "Thesis is forming, not yet actionable"
-        : "High-level theme; trigger and trade expression may still be forming";
+        : "High-level theme; trigger and trade line may still be forming";
   return (
     <Tooltip label={tip}>
       <span
@@ -55,6 +55,11 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
           </span>
         ) : null}
       </div>
+      {thesis.oneLineSummary ? (
+        <p className="mt-3 max-w-2xl text-[15px] font-medium leading-snug tracking-tight text-zinc-100">
+          {thesis.oneLineSummary}
+        </p>
+      ) : null}
       <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-zinc-400">{thesis.thesisStatement}</p>
       <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
         <span className="text-zinc-500">Market misread · </span>

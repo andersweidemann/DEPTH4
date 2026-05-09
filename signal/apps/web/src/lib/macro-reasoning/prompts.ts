@@ -4,9 +4,10 @@
  */
 
 import { FEED_CARD_WORD_LIMITS } from "./schema";
+import { DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v4";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v6";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -41,7 +42,9 @@ LENGTH SPLIT (read this first)
   - irrelevant: not worth trading the news.
 
 - thesis_trade_line: string. DETAIL PAGE ONLY — not feed-capped. One or two tight sentences. Must answer: position, event, cause, when (days/weeks/months or dated catalyst), probability.
-  Core format: "[Buy/Sell/Avoid/Wait on] [ticker] because [future event] will happen because of [cause], probability [N%]"
+  Core format: "[Buy/Sell/Don't add/Don't buy more … yet] [ticker] because [future event] will happen [within time window] due to [cause], probability [N%]"
+  Use **plain actions**: "Don't buy more QQQ yet" or "Sell TLT" — never vague "Avoid QQQ adds" (unclear: hold, trim, or short?).
+  On first mention, spell out "AI-related spending (chips, data centers, staff)" instead of unexplained "AI capex".
   Then add timing in the same sentence or right after, e.g. "Window: next two weeks" or "Catalyst: May FOMC + payroll." Never "eventually" or multi-year-only stories without a near-term catalyst.
   If no clean thesis, write a cautious line, keep probability modest, still name tickers and a time window if possible.
 
@@ -124,8 +127,8 @@ EVENT NARRATIVE RULES (detail page)
 
 GLOBAL THESIS ALIGNMENT
 - Every output should reflect the six thesis checks: position, future event, cause, when (time-bound), L1–L4 cascade, what the market misses.
-- Known theses use retail display titles: "[Buy/Sell] [ticker] because [event] will happen" — directional, no ALL-CAPS theme labels (not "OPEC UNITY — VOL").
-- When affected_theses is non-empty, reasoning_summary and thesis_trade_line should match that pattern and the same intent as the stub title.
+- Known theses use retail display titles: "[Buy/Sell/Don't add …] [ticker] because [event] will happen [time window]" — directional, no ALL-CAPS theme labels (not "OPEC UNITY — VOL").
+- When affected_theses is non-empty, reasoning_summary and thesis_trade_line should match that pattern and the same intent as the stub title (mirror **Don't add** / **Don't buy more** wording when the catalog title uses it).
 - trade_implication: one clear side (Bullish OR Bearish OR Neutral only), tickers, action — Iran-brief confidence, not hedge-fund hedge words.
 - confidence is not "model confidence"; phrase as how strong the read is from the text (optional: low/medium/high in prose fields only — confidence key stays 0–1).
 
@@ -173,6 +176,8 @@ MORE RULES
 - Each effect line is one new idea. No empty repeats.
 - confidence is how strong the case is from the text alone. Loud headlines do not raise confidence by themselves.
 - Return JSON only. Nothing before or after the JSON.
+
+${DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM}
 
 JSON CONTRACT
 
