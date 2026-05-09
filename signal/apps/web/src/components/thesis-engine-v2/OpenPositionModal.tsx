@@ -5,6 +5,7 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Position, Thesis } from "@/lib/thesis-engine-v2/types";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 type FormState = {
   direction: "long" | "short";
@@ -106,7 +107,7 @@ export function OpenPositionModal({
                 Link a trade to this thesis so DEPTH4 can track both the idea and your execution.
               </p>
               <p className="mt-2 text-[11px] text-zinc-400">
-                <span className="font-mono">{thesis.asset}</span> · {thesis.title}
+                <span className="font-mono">{thesis.asset}</span> · {getThesisDisplayTitle(thesis)}
               </p>
             </div>
             <Dialog.Close

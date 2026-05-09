@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { CommunityThesis } from "@/lib/thesis-engine-v2/types";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { isFollowed, toggleFollow } from "@/components/thesis-engine-v2/community-store";
 import { ProbabilityBar } from "@/components/thesis-engine-v2/ProbabilityBar";
 import { cn } from "@/lib/utils";
@@ -38,7 +39,7 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
             href={`/theses/${item.thesisSlug}`}
             className="block text-[12px] font-semibold leading-snug text-zinc-100 truncate hover:text-amber-200/90"
           >
-            {item.title}
+            {getThesisDisplayTitle(item)}
           </Link>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
             <span className="text-zinc-300">{item.author}</span>

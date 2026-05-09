@@ -11,6 +11,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-outcomes-store";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 function fmtWhen(iso: string) {
   try {
@@ -82,7 +83,7 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
           type="button"
           data-testid="thesis-mark-resolved"
           disabled={!live || ended}
-          onClick={() => live?.setManualThesisOutcome(thesis.id, "resolved", thesis.title)}
+          onClick={() => live?.setManualThesisOutcome(thesis.id, "resolved", getThesisDisplayTitle(thesis))}
           className={cn(
             "rounded-md px-3 py-2 text-[11px] font-semibold ring-1 transition-colors",
             !live || ended
@@ -95,7 +96,7 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
         <button
           type="button"
           disabled={!live || ended}
-          onClick={() => live?.setManualThesisOutcome(thesis.id, "invalidated", thesis.title)}
+          onClick={() => live?.setManualThesisOutcome(thesis.id, "invalidated", getThesisDisplayTitle(thesis))}
           className={cn(
             "rounded-md px-3 py-2 text-[11px] font-semibold ring-1 transition-colors",
             !live || ended
@@ -108,7 +109,7 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
         <button
           type="button"
           disabled={!live || !sessionOutcome}
-          onClick={() => live?.setManualThesisOutcome(thesis.id, null, thesis.title)}
+          onClick={() => live?.setManualThesisOutcome(thesis.id, null, getThesisDisplayTitle(thesis))}
           className={cn(
             "rounded-md px-3 py-2 text-[11px] font-semibold ring-1 transition-colors",
             !live || !sessionOutcome

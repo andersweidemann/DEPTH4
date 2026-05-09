@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailClient";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/mock-data";
 import { getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 const TRANSITION_MS = 300;
 
@@ -14,7 +15,16 @@ const TRANSITION_MS = 300;
  * Desktop: right-side detail panel with subtle dim; mobile: full-width panel.
  * ESC and backdrop close; scroll stays on dashboard (no route change).
  */
-export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onClose: () => void }) {
+export function ThesisDetailDrawer({
+  slug,
+  catalogDisplayTitle,
+  onClose,
+}: {
+  slug: string | null;
+  /** Merged `Thesis.title` from dashboard (Supabase-backed when signed in). */
+  catalogDisplayTitle?: string | null;
+  onClose: () => void;
+}) {
   const [entered, setEntered] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
@@ -72,8 +82,15 @@ export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onC
 
   if (!slug) return null;
 
-  const drawerTitle =
-    getThesisDetail(slug)?.thesis.title ?? getUserThesisBySlug(slug)?.title ?? slug.replace(/-/g, " ");
+  const drawerTitle = (() => {
+    const fromParent = catalogDisplayTitle?.trim();
+    if (fromParent) return fromParent;
+    const sys = getThesisDetail(slug);
+    if (sys) return getThesisDisplayTitle(sys.thesis);
+    const ut = getUserThesisBySlug(slug);
+    if (ut) return getThesisDisplayTitle(ut);
+    return slug.replace(/-/g, " ");
+  })();
 
   return (
     <div className="fixed inset-0 z-[85] flex justify-end" role="dialog" aria-modal="true" aria-label="Thesis detail">
@@ -121,7 +138,7 @@ export function ThesisDetailDrawer({ slug, onClose }: { slug: string | null; onC
         <div className="h-px w-full bg-white/[0.06]" aria-hidden />
 
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
-          <ThesisDetailClient slug={slug} layout="drawer" onClose={requestClose} />
+          <ThesisDetailClient slug={slug} layout="drawer" onClose={requestClose} catalogDisplayTitle={catalogDisplayTitle} />
         </div>
       </aside>
     </div>

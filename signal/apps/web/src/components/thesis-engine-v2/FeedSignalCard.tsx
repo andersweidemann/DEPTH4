@@ -1,8 +1,11 @@
 import Link from "next/link";
 import type { FeedSignal } from "@/lib/thesis-engine-v2/types";
+import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 export function FeedSignalCard({ item }: { item: FeedSignal }) {
-  const linked = item.linkedThesisSlug && item.linkedThesisTitle;
+  const rawLinked = (item.linkedThesisTitle ?? "").trim();
+  const linkedTitle = rawLinked ? normalizeThesisDisplayTitle(rawLinked) : "";
+  const linked = Boolean(item.linkedThesisSlug && rawLinked);
 
   return (
     <article
@@ -24,7 +27,7 @@ export function FeedSignalCard({ item }: { item: FeedSignal }) {
             href={`/theses/${item.linkedThesisSlug}`}
             className="inline-flex rounded-md px-2.5 py-1 text-[10px] font-medium text-zinc-300 hover:text-zinc-100"
           >
-            Linked · {item.linkedThesisTitle}
+            Linked · {linkedTitle}
           </Link>
         </div>
       ) : null}

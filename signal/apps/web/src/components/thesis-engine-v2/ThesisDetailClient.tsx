@@ -37,6 +37,20 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 
+function withCatalogDisplayTitle(bundle: ThesisDetailBundle, catalogTitle: string | null | undefined): ThesisDetailBundle {
+  const t = (catalogTitle ?? "").trim();
+  if (!t) return bundle;
+  return { ...bundle, thesis: { ...bundle.thesis, title: t } };
+}
+
+function initialBundleForSlug(slug: string, catalogDisplayTitle: string | null | undefined): ThesisDetailBundle | null {
+  const sys = getThesisDetail(slug);
+  if (sys) return withCatalogDisplayTitle(sys, catalogDisplayTitle);
+  const ut = getUserThesisBySlug(slug);
+  if (ut) return bundleForUserThesis(ut);
+  return null;
+}
+
 function notifyLabel(p: "any" | "major" | "consequence" | "mute") {
   switch (p) {
     case "any":
@@ -56,14 +70,17 @@ export function ThesisDetailClient({
   slug,
   layout = "page",
   onClose,
+  catalogDisplayTitle = null,
 }: {
   slug: string;
   layout?: "page" | "drawer";
   onClose?: () => void;
+  /** When set, overrides catalog thesis title with `public.theses.title` (server read). */
+  catalogDisplayTitle?: string | null;
 }) {
   const requireFeature = useRequireFeature();
   const liveOpt = useThesisLiveOptional();
-  const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => getThesisDetail(slug) ?? null);
+  const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() => initialBundleForSlug(slug, catalogDisplayTitle));
   const [openPos, setOpenPos] = useState(false);
   const [bookPulse, setBookPulse] = useState(0);
   const [alertsMenuOpen, setAlertsMenuOpen] = useState(false);
@@ -81,15 +98,8 @@ export function ThesisDetailClient({
   }, [alertsMenuOpen]);
 
   useEffect(() => {
-    const sys = getThesisDetail(slug);
-    if (sys) {
-      setBundle(sys);
-      return;
-    }
-    const ut = getUserThesisBySlug(slug);
-    if (ut) setBundle(bundleForUserThesis(ut));
-    else setBundle(null);
-  }, [slug]);
+    setBundle(initialBundleForSlug(slug, catalogDisplayTitle));
+  }, [slug, catalogDisplayTitle]);
 
   useEffect(() => {
     if (!bundle) return;

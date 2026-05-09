@@ -8,6 +8,7 @@ import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-sta
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import { MOCK_THESES, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
+import { getThesisDisplayTitle, getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { Position, ResolvedThesisRecord, WatchlistIdea } from "@/lib/thesis-engine-v2/types";
 
@@ -64,17 +65,24 @@ export function BookClient({
   const thesisMeta = useMemo(() => {
     void metaNonce;
     const map = new Map<string, { title: string; slug?: string }>();
-    for (const t of MOCK_THESES) map.set(t.id, { title: t.title, slug: t.slug });
-    for (const t of loadUserTheses()) map.set(t.id, { title: t.title, slug: t.slug });
+    for (const t of MOCK_THESES) {
+      const db = live?.catalogDbThesisTitles.get(t.id)?.trim();
+      const title = db ? getThesisDisplayTitle({ title: db }) : getThesisDisplayTitle(t);
+      map.set(t.id, { title, slug: t.slug });
+    }
+    for (const t of loadUserTheses()) map.set(t.id, { title: getThesisDisplayTitle(t), slug: t.slug });
     return map;
-  }, [metaNonce]);
+  }, [metaNonce, live?.catalogDbThesisTitles]);
 
   const metaFor = useCallback(
-    (p: Position) =>
-      thesisMeta.get(p.linkedThesisId) ?? {
+    (p: Position) => {
+      const row = thesisMeta.get(p.linkedThesisId);
+      if (row) return { title: getThesisMetaDisplayTitle(row), slug: row.slug };
+      return {
         title: thesisTitleById(p.linkedThesisId),
         slug: thesisSlugById(p.linkedThesisId),
-      },
+      };
+    },
     [thesisMeta],
   );
 

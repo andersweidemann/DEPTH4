@@ -6,6 +6,7 @@ import { ClosePositionModal } from "@/components/thesis-engine-v2/ClosePositionM
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
 import { closePosition } from "@/lib/thesis-engine-v2/positions-store";
 import type { Position, TradeStatus } from "@/lib/thesis-engine-v2/types";
+import { getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { StatusBadge } from "./StatusBadge";
 
 function fmtMaybe(n?: number) {
@@ -82,7 +83,7 @@ export function PositionRow({
             <div className="min-w-0 flex-1">
               <p className="text-[12px] font-semibold leading-snug text-zinc-100">
                 <Link href={thesisLink} className="text-zinc-100 hover:text-white">
-                  {thesisMeta.title}
+                  {getThesisMetaDisplayTitle(thesisMeta)}
                 </Link>
               </p>
               <div className="mt-2 flex flex-wrap items-center gap-2">

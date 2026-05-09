@@ -11,6 +11,7 @@ import type {
   WatchlistIdea,
 } from "./types";
 import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";
+import { getThesisDisplayTitle } from "./thesis-display-title";
 
 function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
@@ -988,7 +989,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   },
   {
     id: "ct-3",
-    thesisSlug: "tlt-duration-short",
+    thesisSlug: "fed-pivot-delayed-tlt-weakness",
     title: "Sell TLT because Fed cuts will land later than futures price this year",
     author: "@rates_trader",
     reputationBadge: "Top 5% accuracy",

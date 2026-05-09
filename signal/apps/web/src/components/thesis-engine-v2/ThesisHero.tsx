@@ -5,6 +5,7 @@ import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "./Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
 
 const ADVISORY_LABEL: Record<AdvisoryAction, string> = {
@@ -45,7 +46,7 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
   return (
     <div className="border-b border-white/[0.06] pb-7">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">{thesis.title}</h1>
+        <h1 className="text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">{getThesisDisplayTitle(thesis)}</h1>
         {entrySetupValid ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300/80">
             <span aria-hidden className="text-emerald-300/80">

@@ -21,6 +21,7 @@ export type ThesisQualificationScores = {
 export type Thesis = {
   id: string;
   slug: string;
+  /** Canonical display title — mirrors Supabase `public.theses.title` for catalog rows. */
   title: string;
   /** Optional one-sentence hook for a ~3-second scan (retail clarity). */
   oneLineSummary?: string;

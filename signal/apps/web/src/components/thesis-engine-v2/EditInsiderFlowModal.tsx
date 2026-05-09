@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { commaFieldsFromInsiderFlow, insiderFlowFromCommaFields } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
@@ -77,7 +78,7 @@ export function EditInsiderFlowModal({
             <div>
               <Dialog.Title className="text-[13px] font-semibold text-zinc-100">Edit Insider Flow</Dialog.Title>
               <Dialog.Description className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-                Update monitoring for <span className="text-zinc-300">{thesis.title}</span>. Star this thesis so scheduled scans can run against your
+                Update monitoring for <span className="text-zinc-300">{getThesisDisplayTitle(thesis)}</span>. Star this thesis so scheduled scans can run against your
                 setup.
               </Dialog.Description>
             </div>

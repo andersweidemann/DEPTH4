@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PromotedCardModel } from "@/lib/feed/promoted-macro-events";
 import { ConfidenceMeter } from "@/components/macro-reasoning/ConfidenceMeter";
+import { getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 type Relation = PromotedCardModel["reasoning"]["thesis_relation"];
 
@@ -70,7 +71,7 @@ export function PromotedMacroEventCard({
   const hasImpactedAssets = Array.isArray(reasoning.impacted_assets) && reasoning.impacted_assets.length > 0;
   const hasTradeImplication = Boolean((reasoning.trade_implication || "").trim());
   const implication = implicationLine({
-    thesisTitle: primaryMeta?.title ?? null,
+    thesisTitle: primaryMeta ? getThesisMetaDisplayTitle(primaryMeta) : null,
     thesisRelation: reasoning.thesis_relation,
     impactedAssets: Array.isArray(reasoning.impacted_assets) ? reasoning.impacted_assets : [],
     directionOfChange: reasoning.direction_of_change,
@@ -96,9 +97,9 @@ export function PromotedMacroEventCard({
             <Link
               href={`/theses/${primaryMeta.slug}`}
               className="mt-1 block min-w-0 truncate text-[14px] font-semibold leading-snug text-zinc-100 underline-offset-2 hover:text-white hover:underline"
-              title={primaryMeta.title}
+              title={getThesisMetaDisplayTitle(primaryMeta)}
             >
-              {primaryMeta.title}
+              {getThesisMetaDisplayTitle(primaryMeta)}
             </Link>
           ) : (
             <p className="mt-1 text-[13px] font-medium leading-snug text-zinc-400">No linked thesis yet</p>

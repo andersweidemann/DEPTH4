@@ -27,6 +27,7 @@ import { createMockThesisStream } from "@/lib/thesis-engine-v2/thesis-mock-strea
 import { runMockThesisTick } from "@/lib/thesis-engine-v2/thesis-mock-tick";
 import type { Overrides } from "@/lib/thesis-engine-v2/thesis-mock-tick";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/types";
 import type { InsiderFlowPatternType, InsiderFlowStatus } from "@/lib/thesis-engine-v2/insider-flow/types";
@@ -133,14 +134,6 @@ function applyManualOutcome(t: Thesis): Thesis {
 
 function newAlertId(): string {
   return `al-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function resolveThesisTitle(thesisId: string): string {
-  const sys = MOCK_THESES.find((t) => t.id === thesisId);
-  if (sys) return sys.title;
-  const u = loadUserTheses().find((t) => t.id === thesisId);
-  if (u) return u.title;
-  return "Thesis";
 }
 
 function baseThesisForId(thesisId: string): Thesis | undefined {
@@ -273,6 +266,9 @@ type Ctx = {
 
   /** Starred ∪ open-book thesis count — Insider Flow polls anomalies for these IDs only. */
   insiderFlowWatchedCount: number;
+
+  /** `public.theses.title` keyed by thesis id (catalog rows), when signed in. */
+  catalogDbThesisTitles: ReadonlyMap<string, string>;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -311,6 +307,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [insiderApplied, setInsiderApplied] = useState<Record<string, { base: number; bull: number; bear: number }>>({});
   const [insiderSuggested, setInsiderSuggested] = useState<Record<string, { base: number; bull: number; bear: number }>>({});
   const [evidenceLog, setEvidenceLog] = useState<ThesisEvidenceLogRow[]>([]);
+  const [catalogDbThesisTitles, setCatalogDbThesisTitles] = useState(() => new Map<string, string>());
 
   const scenarioRef = useRef(
     new Map<string, { base: number; bull: number; bear: number; lead: "base" | "bull" | "bear" }>(),
@@ -337,9 +334,43 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     return u.size;
   }, [starred, openIds]);
 
+  const resolveThesisDisplayTitle = useCallback(
+    (thesisId: string) => {
+      const db = catalogDbThesisTitles.get(thesisId)?.trim();
+      if (db) return getThesisDisplayTitle({ title: db });
+      const sys = MOCK_THESES.find((t) => t.id === thesisId);
+      if (sys) return getThesisDisplayTitle(sys);
+      const u = loadUserTheses().find((t) => t.id === thesisId);
+      if (u) return getThesisDisplayTitle(u);
+      return "Thesis";
+    },
+    [catalogDbThesisTitles],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/theses/catalog-titles")
+      .then((r) => r.json())
+      .then((j: unknown) => {
+        if (cancelled) return;
+        const o = j && typeof j === "object" ? (j as { titlesByThesisId?: unknown }).titlesByThesisId : null;
+        const m = new Map<string, string>();
+        if (o && typeof o === "object") {
+          for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
+            if (typeof v === "string" && v.trim()) m.set(k, v.trim());
+          }
+        }
+        setCatalogDbThesisTitles(m);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const evidenceTickerItems = useMemo(
-    () => evidenceRowsToTickerItems(evidenceLog, resolveThesisTitle),
-    [evidenceLog],
+    () => evidenceRowsToTickerItems(evidenceLog, resolveThesisDisplayTitle),
+    [evidenceLog, resolveThesisDisplayTitle],
   );
 
   const tickerItems = mockTicksEnabled ? mockTickerOnly : evidenceTickerItems;
@@ -470,7 +501,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         const pref = prefsRef.current[r.thesisId] ?? "major";
         if (pref === "mute") continue;
 
-        const title = resolveThesisTitle(r.thesisId);
+        const title = resolveThesisDisplayTitle(r.thesisId);
         const signalLevel = typeof r.metadata?.signal_level === "number" ? r.metadata.signal_level : 0;
 
         if (r.probabilityAfter) {
@@ -588,7 +619,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [pushAlert, pushToast, starredKey, openIdsKey]);
+  }, [pushAlert, pushToast, starredKey, openIdsKey, resolveThesisDisplayTitle]);
 
   useEffect(() => {
     // Read flow_anomalies for followed theses only (starred ∪ open book) — matches server cron scan scope.
@@ -854,7 +885,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
                     ? "Exit / reduce per advisory"
                     : "Base trade plan remains operative";
 
-              const thesisTitle = mergeThesisCb(MOCK_THESES.find((t) => t.id === tick.thesisId)!).title;
+              const thesisTitle = resolveThesisDisplayTitle(tick.thesisId);
               pushAlert({
                 thesisId: tick.thesisId,
                 thesisTitle,
@@ -905,7 +936,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         setMockTickerOnly((cur) => [tick.tickerItem!, ...cur].slice(0, MAX_TICKER));
       }
     });
-  }, [mockTicksEnabled, thesisPageActive, pushAlert, mergeThesisCb, prefs, pushToast]);
+  }, [mockTicksEnabled, thesisPageActive, pushAlert, mergeThesisCb, prefs, pushToast, resolveThesisDisplayTitle]);
 
   const value = useMemo<Ctx>(() => {
     void outcomeEpoch;
@@ -937,6 +968,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       dismissInsiderFlowSuggestion,
       evidenceLog,
       insiderFlowWatchedCount,
+      catalogDbThesisTitles,
     };
   },
     [
@@ -967,6 +999,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       dismissInsiderFlowSuggestion,
       evidenceLog,
       insiderFlowWatchedCount,
+      catalogDbThesisTitles,
       outcomeEpoch,
     ],
   );

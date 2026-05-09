@@ -2,6 +2,7 @@
 
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { cn } from "@/lib/utils";
+import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
@@ -75,7 +76,7 @@ export function ThesisTableRow({
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="truncate text-[14px] font-semibold text-zinc-100">{thesis.title}</p>
+            <p className="truncate text-[14px] font-semibold text-zinc-100">{getThesisDisplayTitle(thesis)}</p>
             <span className="text-[10px] font-medium uppercase tracking-[0.14em] text-zinc-500">{thesis.direction}</span>
             <Tooltip label={STATUS_TOOLTIP[thesis.status]}>
               <span className={cn("text-[10px] font-semibold uppercase tracking-[0.14em]", pill.className)}>{pill.label}</span>

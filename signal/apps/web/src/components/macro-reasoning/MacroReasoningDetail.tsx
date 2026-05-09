@@ -6,6 +6,7 @@ import { tickerQuoteUrl } from "@/components/macro-reasoning/ticker-link";
 import { parseReasoningChainLevels } from "@/lib/macro-reasoning/reasoning-chain-levels";
 import { thesisRelationDisplay } from "@/lib/macro-reasoning/thesis-relation-copy";
 import type { ThesisMeta } from "@/lib/feed/thesis-slugs";
+import { getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 function EffectList({ title, items }: { title: string; items: string[] }) {
   if (!items.length) return null;
@@ -76,12 +77,27 @@ export function MacroReasoningDetail({
           </h1>
         </div>
 
-        {reasoning.thesis_trade_line ? (
-          <div className="rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Thesis</p>
-            <p className="mt-2 text-[14px] leading-relaxed text-zinc-100">{reasoning.thesis_trade_line}</p>
-          </div>
-        ) : null}
+        {(() => {
+          const primaryId = reasoning.affected_theses[0];
+          const primaryMeta = primaryId ? thesisMetaById.get(primaryId) : null;
+          const tradeLine = (reasoning.thesis_trade_line ?? "").trim();
+          if (!primaryMeta && !tradeLine) return null;
+          return (
+            <div className="rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Thesis</p>
+              {primaryMeta ? (
+                <Link
+                  href={`/theses/${primaryMeta.slug}`}
+                  className="mt-2 block text-[14px] font-semibold leading-snug text-zinc-100 underline-offset-2 hover:text-white hover:underline"
+                >
+                  {getThesisMetaDisplayTitle(primaryMeta)}
+                </Link>
+              ) : (
+                <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">{tradeLine}</p>
+              )}
+            </div>
+          );
+        })()}
 
         {reasoning.probability_update || probLine ? (
           <div className="rounded-lg border border-white/[0.06] bg-zinc-900/25 px-4 py-4 md:px-5">
@@ -233,7 +249,7 @@ export function MacroReasoningDetail({
                       href={`/theses/${tm.slug}`}
                       className="inline-flex min-h-11 max-w-full flex-col rounded-md border border-white/[0.1] bg-zinc-900/40 px-3 py-2 text-left text-[12px] text-zinc-200 underline-offset-2 hover:border-[#E8473F]/35 hover:text-white hover:underline sm:min-h-0 sm:py-1.5"
                     >
-                      <span className="font-medium text-zinc-100">{tm.title}</span>
+                      <span className="font-medium text-zinc-100">{getThesisMetaDisplayTitle(tm)}</span>
                       <span className="font-mono text-[10px] text-zinc-500">{tm.slug}</span>
                     </Link>
                   </li>

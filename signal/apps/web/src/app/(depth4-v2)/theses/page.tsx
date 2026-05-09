@@ -4,13 +4,18 @@ import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell
 import { ThesesDashboardClient } from "@/components/thesis-engine-v2/ThesesDashboardClient";
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { createClient } from "@/lib/supabase/server";
+import {
+  fetchCatalogThesisTitleRows,
+  mergeCatalogThesesWithDbTitles,
+} from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Live theses",
   description: "Tracks macro events the market hasn't priced in yet.",
 };
 
-export default function ThesesDashboardPage({
+export default async function ThesesDashboardPage({
   searchParams,
 }: {
   searchParams?: { openDrawer?: string | string[] };
@@ -21,11 +26,15 @@ export default function ThesesDashboardPage({
 
   const liveLine = thesesLiveHeaderNeutral();
 
+  const supabase = await createClient();
+  const titleRows = await fetchCatalogThesisTitleRows(supabase);
+  const systemTheses = mergeCatalogThesesWithDbTitles(MOCK_THESES, titleRows);
+
   return (
     <>
       <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
       <main className="mx-auto max-w-5xl px-5 pb-14 pt-4">
-        <ThesesDashboardClient systemTheses={MOCK_THESES} initialDrawerSlug={initialDrawerSlug} />
+        <ThesesDashboardClient systemTheses={systemTheses} initialDrawerSlug={initialDrawerSlug} />
       </main>
     </>
   );
