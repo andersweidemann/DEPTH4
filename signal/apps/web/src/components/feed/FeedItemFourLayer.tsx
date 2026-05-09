@@ -518,7 +518,7 @@ function BookL4({ l4, hook }: { l4: NonNullable<FeedViewModel["layer4"]>; hook: 
       </section>
       {l4.orderBookReview && l4.orderBookReview.length > 0 && (
         <section>
-          <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">Model — order book vs scenario</h4>
+          <h4 className="text-xs font-bold uppercase text-zinc-500 mb-2">Order book vs scenario</h4>
           <ul className="space-y-2 text-sm text-zinc-200">
             {l4.orderBookReview.map((r, i) => (
               <li key={`${r.ticker}-${i}`} className="rounded-lg border border-sky-700/40 bg-sky-950/20 px-3 py-2">

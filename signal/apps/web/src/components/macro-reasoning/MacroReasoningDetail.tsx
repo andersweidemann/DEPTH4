@@ -31,13 +31,45 @@ export function MacroReasoningDetail({
     timeStyle: "short",
   });
 
+  const probLine =
+    reasoning.probability_before_pct != null && reasoning.probability_after_pct != null
+      ? `${reasoning.probability_before_pct}% → ${reasoning.probability_after_pct}%`
+      : null;
+
   return (
     <div className="space-y-8">
       <header className="space-y-4 border-b border-white/[0.06] pb-8">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Macro reasoning</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Event narrative</p>
         <h1 className="max-w-prose text-xl font-semibold leading-snug tracking-tight text-white md:text-2xl">
           {reasoning.event_summary}
         </h1>
+
+        {reasoning.thesis_trade_line ? (
+          <div className="rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Thesis</p>
+            <p className="mt-2 text-[14px] leading-relaxed text-zinc-100">{reasoning.thesis_trade_line}</p>
+          </div>
+        ) : null}
+
+        {reasoning.probability_update || probLine ? (
+          <div className="rounded-lg border border-white/[0.06] bg-zinc-900/25 px-4 py-4 md:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Probability update</p>
+              {probLine ? <span className="tabular-nums text-[12px] font-semibold text-zinc-200">{probLine}</span> : null}
+            </div>
+            {reasoning.probability_update ? (
+              <p className="mt-2 text-[13px] leading-relaxed text-zinc-200">{reasoning.probability_update}</p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {reasoning.trade_implication ? (
+          <div className="rounded-lg border border-[#E8473F]/25 bg-[#E8473F]/[0.06] px-4 py-4 md:px-5">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E8473F]">Trade implication</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-zinc-100">{reasoning.trade_implication}</p>
+          </div>
+        ) : null}
+
         <ConfidenceMeter reasoning={reasoning} />
         <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-zinc-500">
           <span>
@@ -64,9 +96,7 @@ export function MacroReasoningDetail({
             ))}
           </div>
         )}
-        <p className="text-[11px] text-zinc-600">
-          Model {meta.model} · {meta.prompt_version} · {fmtMeta}
-        </p>
+        <p className="text-[11px] text-zinc-600">Updated {fmtMeta}</p>
       </header>
 
       <aside

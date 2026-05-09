@@ -1,0 +1,61 @@
+---
+description: DEPTH4 — thesis & narrative voice (retail display, banned jargon, no model talk)
+globs: signal/apps/web/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# DEPTH4 global writing — theses and narratives
+
+Product: thesis engine for **unpriced scenarios** and **probability over time**.
+
+Every thesis answers: **position**, **future event**, **cause**, **probability**, **what the market misses**.
+
+## Display title (UI, retail)
+
+`[Buy/Sell/Avoid/Wait on] [ticker or named asset] because [future event] will happen`
+
+Examples:
+
+- Buy GLD because war escalation will continue
+- Sell IWM because credit stress will spread
+- Buy TLT because Fed cuts will come sooner than priced
+
+## Full thesis statement (longer copy)
+
+`[Action] [asset] because [event Y] will happen because of [cause Z], probability [N%]`
+
+## Probability updates
+
+`New evidence moves the probability from [old%] to [new%] because [what changed]`
+
+Or: `Stays at [N%] — [why nothing moved]`
+
+## Language rules
+
+1. **Novice-first**: smart reader, not an expert; trade obvious in ~10s; short sentences (about 15–20 words); everyday words; **active voice only**.
+2. **Always state direction**: bullish / bearish / neutral; more likely / less likely; probability up / down; buy / sell / avoid / wait.
+3. **Always state action**: buy, sell, add, trim, wait for confirmation, tighten stop, watch [specific thing].
+4. **Name assets with tickers** where possible: QQQ, TLT, GLD, HYG, IWM, USO, etc. Not vague: “risk assets”, “duration”, “the market” as the only label.
+5. **Always state probability**: current `N%`, change in points, and confidence (low / medium / high) when relevant.
+6. **Translate jargon in the same sentence** (e.g. convexity → how sensitive long bond prices are to rate moves).
+7. **Banned consultant phrasing** — replace with plain English:
+   - rotation → money moving from X to Y  
+   - regime → market shift  
+   - setup → trade opportunity  
+   - transmission → how X affects Y  
+   - convexity → price sensitivity (to rates)  
+   - adjacent signal → related evidence  
+   - cross-sectional → several [companies/sectors] together  
+   - mosaic → pieces of evidence  
+   - dislocation → price gap  
+   - incremental → additional  
+   - coordinated → happening together  
+   - non-linear → accelerating / hard to predict  
+   - path dependency → past choices limiting options now  
+8. **Naming**: internal `slug` (e.g. `ai-capex-squeeze-qqq-rotation`) vs **display `title`** (plain sentence above). **UI shows display title only.**
+9. **Never mention the model**: no LLM, Claude, Opus, AI-generated, model-ranked. Present as **DEPTH4** analysis.
+10. **Scannable structure**: short headers; 2–3 sentence paragraphs max; bullets when helpful; **most important point first**.
+
+**Target voice:** sharp trade call from an experienced analyst to a smart beginner — not a hedge fund memo, consultant deck, or academic paper.
+
+**Brand tokens** (when styling UI): accent `#E8473F`, background `#111110`, text `#ffffff` / `#888888`.

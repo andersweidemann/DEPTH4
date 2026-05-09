@@ -20,6 +20,8 @@ export function countWords(s: string): number {
 
 export const thesisRelationSchema = z.enum(["confirm", "contradict", "create_new", "adjacent", "irrelevant"]);
 
+const pctIntSchema = z.number().int().min(0).max(100);
+
 export const macroEventReasoningSchema = z
   .object({
     /** Headline-level feed line — hard word cap. */
@@ -45,6 +47,21 @@ export const macroEventReasoningSchema = z
     affected_theses: z.array(z.string()).default([]),
 
     thesis_relation: thesisRelationSchema,
+
+    /**
+     * DETAIL PAGE (not feed-capped):
+     * One plain-English trade thesis line including the current probability.
+     * Example: "Buy TLT because rate cuts will come sooner than priced..., probability 42%".
+     */
+    thesis_trade_line: z.string().optional().default(""),
+
+    /** DETAIL PAGE: explicit probability update for the thesis this event tests. */
+    probability_before_pct: pctIntSchema.optional().nullable().default(null),
+    probability_after_pct: pctIntSchema.optional().nullable().default(null),
+    probability_update: z.string().optional().default(""),
+
+    /** DETAIL PAGE: one-line trade implication (bull/bear/neutral + action + assets). */
+    trade_implication: z.string().optional().default(""),
 
     /** Full causal narrative (detail — not feed scan fields). */
     reasoning_chain: z.string().min(1),

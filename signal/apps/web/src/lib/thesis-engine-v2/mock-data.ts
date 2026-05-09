@@ -51,7 +51,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.gold,
     slug: "war-peace-gold-short",
-    title: "WAR / PEACE — GOLD SHORT",
+    title: "Sell GLD because peace progress will continue",
     thesisStatement:
       "De-escalation odds have moved into the tradeable zone; bullion is still priced for escalation tail-risk.",
     asset: "XAUUSD",
@@ -96,7 +96,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.hormuz,
     slug: "strait-hormuz-oil-long",
-    title: "STRAIT OF HORMUZ RISK — OIL LONG",
+    title: "Buy USO because Hormuz transit risk will rise",
     thesisStatement:
       "Transit risk is being priced like noise; the distribution has fattened and crude is late to reflect it.",
     asset: "USOIL",
@@ -141,7 +141,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.opec,
     slug: "opec-unity-fracturing",
-    title: "OPEC UNITY FRACTURING — OIL VOLATILITY",
+    title: "Avoid USO because OPEC will spring a policy surprise",
     thesisStatement:
       "The market is complacent about policy surprise; unity is weaker than the surface message.",
     asset: "USOIL",
@@ -182,7 +182,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.tlt,
     slug: "fed-pivot-delayed-tlt-weakness",
-    title: "FED PIVOT DELAYED — TLT WEAKNESS",
+    title: "Sell TLT because Fed cuts will land later than priced",
     thesisStatement:
       "The market still prices cuts too soon; duration is vulnerable before the Fed gives permission to rally.",
     asset: "TLT",
@@ -201,7 +201,7 @@ export const MOCK_THESES: Thesis[] = [
     whatsUnpriced: "A later pivot path is still not fully priced in duration.",
     trigger: "Hot CPI/Payrolls or Fed language that explicitly pushes back on easing expectations.",
     trade: "Scale 92.50–93.80 adds · Stop 95.20 · TP 88.00",
-    invalidation: "Clear disinflation regime shift or risk-off shock that forces duration bid.",
+    invalidation: "Clear disinflation turn or risk-off shock that forces a TLT bid.",
     horizon: "Weeks to months",
     advisoryAction: "hold",
     lastUpdated: "45m ago",
@@ -227,7 +227,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.defense,
     slug: "us-defense-repricing-rtx-lmt",
-    title: "US DEFENSE RESET — RTX / LMT LONG",
+    title: "Buy RTX because Pentagon awards will firm backlog",
     thesisStatement:
       "Backlog visibility is improving; multiples still reflect yesterday's uncertainty.",
     asset: "RTX",
@@ -272,7 +272,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.qqq,
     slug: "ai-capex-squeeze-qqq-rotation",
-    title: "AI CAPEX SQUEEZE — QQQ ROTATION",
+    title: "Avoid QQQ adds because AI capex will squeeze margins first",
     thesisStatement:
       "The market is still pricing AI spend as free; the bill hits margins before revenue catches up.",
     asset: "QQQ",
@@ -283,14 +283,14 @@ export const MOCK_THESES: Thesis[] = [
       "The story is real but the timing isn't tight yet — it needs an earnings catalyst to become tradeable.",
 
     hiddenDriver: "Capex intensity vs monetization lag.",
-    likelyPath: "Guides rise → margins wobble → dispersion widens → index leadership rotates.",
+    likelyPath: "Guides rise → margins wobble → winners and losers split → money shifts toward cash-flow leaders.",
     marketMisread: "Index pricing still assumes smooth AI monetization with minimal margin cost.",
-    tradeExpression: "Wait for the print; then rotate into cash-flow quality and away from capex-heavy laggards.",
+    tradeExpression: "Wait for the print; then add cash-flow leaders and cut capex-heavy laggards.",
 
-    whyNow: "The setup is forming into earnings — but it isn't a 'now' trade without confirmation.",
+    whyNow: "The trade opportunity is forming into earnings — but it isn't a 'now' trade without confirmation.",
     whatsUnpriced: "Dispersion risk is underpriced at the index level.",
     trigger: "Two consecutive prints show margin pressure or demand softness tied to AI spend.",
-    trade: "Wait for trigger; then rotate / reduce beta.",
+    trade: "Wait for trigger; then cut beta / favor quality.",
     invalidation: "AI revenue acceleration beats broadly and margins expand despite capex.",
     horizon: "Quarters",
     advisoryAction: "watch",
@@ -313,7 +313,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.copper,
     slug: "china-stimulus-copper-long",
-    title: "CHINA STIMULUS REACCELERATION — COPPER LONG",
+    title: "Buy HG because China stimulus will speed up again",
     thesisStatement:
       "The market is still priced for 'slow China'; policy impulse is turning and copper is late to it.",
     asset: "HG",
@@ -321,7 +321,7 @@ export const MOCK_THESES: Thesis[] = [
     probability: 52,
     status: "ready",
     probabilityRationale:
-      "Policy tone + early HF data suggest impulse stabilization; copper pricing still reflects the prior regime.",
+      "Policy tone + early HF data suggest impulse stabilization; copper pricing still trails the old slow-China story.",
 
     hiddenDriver: "Policy impulse (credit + fiscal) turning from defense to support.",
     likelyPath: "Impulse turns → industrial proxies firm → inventories draw → copper catches up to the growth shift.",
@@ -358,7 +358,7 @@ export const MOCK_THESES: Thesis[] = [
   withQualification({
     id: TID.euTech,
     slug: "eu-tech-crackdown-megacap",
-    title: "EU TECH CRACKDOWN — MEGA-CAP MULTIPLE COMPRESSION",
+    title: "Sell META because EU platform rules will get tougher",
     thesisStatement:
       "EU remedies are becoming structural; multiples still assume business-as-usual growth and monetization.",
     asset: "META",
@@ -497,7 +497,7 @@ export const MOCK_DETAIL_EXTRA: Record<string, Omit<ThesisDetailBundle, "thesis"
         thesisId: TID.gold,
         label: "Bear case",
         probability: 30,
-        confirmation: "Signed framework + risk-on rotation.",
+        confirmation: "Signed framework + broad risk-on bid.",
         marketConsequence: "Fast premium unwind; targets hit quicker.",
       },
     ],
@@ -622,7 +622,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Oil rises as traders weigh Gulf transit headlines",
     summary: "Crude bid on perceived tail risk; flows modest vs prior shocks.",
     linkedThesisSlug: "strait-hormuz-oil-long",
-    linkedThesisTitle: "Strait of Hormuz risk — Oil long",
+    linkedThesisTitle: "Buy USO because Hormuz transit risk will rise",
   },
   {
     id: "f2",
@@ -631,7 +631,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Gold slips as risk appetite improves",
     summary: "Equities firm; precious metals lose marginal safe-haven premium.",
     linkedThesisSlug: "war-peace-gold-short",
-    linkedThesisTitle: "War / Peace — Gold short",
+    linkedThesisTitle: "Sell GLD because peace progress will continue",
   },
   {
     id: "f3",
@@ -649,7 +649,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "EU regulators sharpen remedies on platform competition",
     summary: "Regulation story strengthens for mega-cap platforms.",
     linkedThesisSlug: "eu-tech-crackdown-megacap",
-    linkedThesisTitle: "EU tech crackdown — Mega-cap compression",
+    linkedThesisTitle: "Sell META because EU platform rules will get tougher",
   },
   {
     id: "f5",
@@ -658,7 +658,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "China credit impulse shows early stabilization",
     summary: "Industrial demand proxies tick up; metals watchlist active.",
     linkedThesisSlug: "china-stimulus-copper-long",
-    linkedThesisTitle: "China stimulus — Copper long",
+    linkedThesisTitle: "Buy HG because China stimulus will speed up again",
   },
   {
     id: "f6",
@@ -667,7 +667,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Pentagon accelerates award timeline on missile defense line",
     summary: "Backlog visibility improves for defense primes.",
     linkedThesisSlug: "us-defense-repricing-rtx-lmt",
-    linkedThesisTitle: "US defense reset — RTX / LMT long",
+    linkedThesisTitle: "Buy RTX because Pentagon awards will firm backlog",
   },
   {
     id: "f7",
@@ -676,7 +676,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "OPEC+ members disagree on quota enforcement",
     summary: "Unity story frays; volatility bids in energy.",
     linkedThesisSlug: "opec-unity-fracturing",
-    linkedThesisTitle: "OPEC unity fracturing — Oil volatility",
+    linkedThesisTitle: "Avoid USO because OPEC will spring a policy surprise",
   },
   {
     id: "f8",
@@ -685,7 +685,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     headline: "Cloud capex guides creep higher for hyperscalers",
     summary: "Spend discipline vs AI race tension rises for mega-cap tech.",
     linkedThesisSlug: "ai-capex-squeeze-qqq-rotation",
-    linkedThesisTitle: "AI capex squeeze — QQQ rotation",
+    linkedThesisTitle: "Avoid QQQ adds because AI capex will squeeze margins first",
   },
   {
     id: "f9",
@@ -712,7 +712,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     id: "f12",
     source: "Barron's",
     timestamp: "7h ago",
-    headline: "Retail traders rotate into single-stock momentum",
+    headline: "Retail traders move money into single-stock momentum",
     summary: "Positioning noise — DEPTH4 flags it when it matches a thesis.",
   },
 ];
@@ -724,7 +724,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Reuters",
     timestamp: "09:12 UTC",
     headline: "Delegations signal 'constructive' weekend talks",
-    thesisName: "WAR / PEACE — GOLD SHORT",
+    thesisName: "Sell GLD because peace progress will continue",
     probabilityBefore: 54,
     probabilityAfter: 67,
     impact: "major_positive",
@@ -751,7 +751,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "CNBC",
     timestamp: "07:18 UTC",
     headline: "Treasury auction tails; term premium talk returns",
-    topic: "Rates stress — Duration downside",
+    topic: "Rates stress — TLT downside",
   },
   {
     id: "lst-4",
@@ -759,7 +759,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Defense News",
     timestamp: "10:26 UTC",
     headline: "Pentagon accelerates award timeline on missile defense line",
-    thesisName: "US DEFENSE RESET — RTX / LMT LONG",
+    thesisName: "Buy RTX because Pentagon awards will firm backlog",
     probabilityBefore: 49,
     probabilityAfter: 55,
     impact: "minor_positive",
@@ -778,7 +778,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Argus",
     timestamp: "12:09 UTC",
     headline: "OPEC+ delegates push back on quota enforcement rumors",
-    thesisName: "OPEC UNITY FRACTURING — OIL VOLATILITY",
+    thesisName: "Avoid USO because OPEC will spring a policy surprise",
     probabilityBefore: 52,
     probabilityAfter: 46,
     impact: "minor_negative",
@@ -797,7 +797,7 @@ export const MOCK_LIVE_SIGNAL_TICKER: LiveSignalTickerItem[] = [
     source: "Reuters",
     timestamp: "13:22 UTC",
     headline: "Shipping insurers widen war-risk clauses after new advisories",
-    thesisName: "STRAIT OF HORMUZ RISK — OIL LONG",
+    thesisName: "Buy USO because Hormuz transit risk will rise",
     probabilityBefore: 58,
     probabilityAfter: 66,
     impact: "major_positive",
@@ -808,7 +808,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-1",
     thesisSlug: "china-stimulus-copper-long",
-    title: "CHINA STIMULUS REACCELERATION — COPPER LONG",
+    title: "Buy HG because China stimulus will speed up again",
     author: "@macro_maven",
     reputationBadge: "Top 10% accuracy",
     probability: 58,
@@ -820,7 +820,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-2",
     thesisSlug: "opec-unity-fracturing",
-    title: "OIL VOL SURFACE BID — HEADLINE GAP RISK",
+    title: "Avoid USO because OPEC surprise risk will rise",
     author: "@vol_hunter",
     reputationBadge: "12-month win rate: 73%",
     probability: 54,
@@ -832,7 +832,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-3",
     thesisSlug: "tlt-duration-short",
-    title: "RATE CUTS TOO SOON — DURATION PULLBACK",
+    title: "Sell TLT because cuts are priced too soon",
     author: "@rates_trader",
     reputationBadge: "Top 5% accuracy",
     probability: 61,
@@ -844,7 +844,7 @@ export const MOCK_COMMUNITY_THESES: CommunityThesis[] = [
   {
     id: "ct-4",
     thesisSlug: "eu-tech-crackdown-megacap",
-    title: "EM CREDIT CRACK — SPREAD WIDENING",
+    title: "Sell META because EU platform rules will get tougher",
     author: "@credit_bull",
     reputationBadge: "Top 20% accuracy",
     probability: 52,
@@ -1006,21 +1006,21 @@ export const MOCK_WATCHLIST: WatchlistIdea[] = [
   {
     id: "w1",
     symbol: "QQQ",
-    thesisTitle: "AI capex squeeze — QQQ rotation",
+    thesisTitle: "Avoid QQQ adds because AI capex will squeeze margins first",
     thesisSlug: "ai-capex-squeeze-qqq-rotation",
     note: "No position yet — waiting for earnings confirmation.",
   },
   {
     id: "w2",
     symbol: "META",
-    thesisTitle: "EU tech crackdown — Mega-cap compression",
+    thesisTitle: "Sell META because EU platform rules will get tougher",
     thesisSlug: "eu-tech-crackdown-megacap",
-    note: "Strategic short setup; sizing TBD.",
+    note: "Strategic short; sizing TBD.",
   },
   {
     id: "w3",
     symbol: "USOIL",
-    thesisTitle: "OPEC unity fracturing — Oil volatility",
+    thesisTitle: "Avoid USO because OPEC will spring a policy surprise",
     thesisSlug: "opec-unity-fracturing",
     note: "Vol expression only; directional stand aside.",
   },
@@ -1037,7 +1037,7 @@ export const MOCK_TRACK_RECORD_METRICS: TrackRecordMetrics = {
 export const MOCK_RESOLVED_THESES: ResolvedThesisRecord[] = [
   {
     id: "rt-1",
-    title: "BANK LIQUIDITY REPRICING — USD STRENGTH",
+    title: "Buy UUP because bank funding stress will lift the dollar",
     asset: "UUP",
     openedDate: "2026-03-02",
     closedDate: "2026-03-11",
@@ -1047,7 +1047,7 @@ export const MOCK_RESOLVED_THESES: ResolvedThesisRecord[] = [
   },
   {
     id: "rt-2",
-    title: "FRONT-END SHOCK — DURATION RESET",
+    title: "Sell TLT because front-end rate shock will last",
     asset: "TLT",
     openedDate: "2026-02-08",
     closedDate: "2026-02-21",
@@ -1057,7 +1057,7 @@ export const MOCK_RESOLVED_THESES: ResolvedThesisRecord[] = [
   },
   {
     id: "rt-3",
-    title: "SOFT LANDING OVERPRICED — EQUITY MULTIPLE CLIP",
+    title: "Sell SPY because soft-landing odds were too high",
     asset: "SPY",
     openedDate: "2026-01-14",
     closedDate: "2026-01-26",
@@ -1067,7 +1067,7 @@ export const MOCK_RESOLVED_THESES: ResolvedThesisRecord[] = [
   },
   {
     id: "rt-4",
-    title: "SUPPLY DISLOCATION — ENERGY UPSIDE",
+    title: "Buy USO because supply tightness will drive crude higher",
     asset: "USOIL",
     openedDate: "2025-12-03",
     closedDate: "2025-12-15",
@@ -1077,7 +1077,7 @@ export const MOCK_RESOLVED_THESES: ResolvedThesisRecord[] = [
   },
   {
     id: "rt-5",
-    title: "RISK-OFF BID — GOLD BREAKOUT FAIL",
+    title: "Sell GLD because gold breakout follow-through will fail",
     asset: "XAUUSD",
     openedDate: "2025-11-05",
     closedDate: "2025-11-12",

@@ -23,11 +23,15 @@ function implicationLine(args: {
   thesisRelation: PromotedCardModel["reasoning"]["thesis_relation"];
   impactedAssets: string[];
   directionOfChange: string;
+  tradeImplication?: string;
 }) {
-  const { thesisTitle, thesisRelation, impactedAssets, directionOfChange } = args;
+  const { thesisTitle, thesisRelation, impactedAssets, directionOfChange, tradeImplication } = args;
   const watch = impactedAssets.slice(0, 2).filter(Boolean).join(", ");
   const watchSuffix = watch ? ` Watch ${watch}.` : "";
   const dir = (directionOfChange || "").trim();
+
+  const ti = (tradeImplication || "").trim();
+  if (ti) return ti;
 
   if (thesisRelation === "confirm") {
     return `Thesis looks stronger.${watchSuffix}`.trim();
@@ -66,6 +70,7 @@ export function PromotedMacroEventCard({
     thesisRelation: reasoning.thesis_relation,
     impactedAssets: Array.isArray(reasoning.impacted_assets) ? reasoning.impacted_assets : [],
     directionOfChange: reasoning.direction_of_change,
+    tradeImplication: reasoning.trade_implication,
   });
 
   return (

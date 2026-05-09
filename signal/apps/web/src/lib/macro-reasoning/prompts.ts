@@ -29,7 +29,7 @@ LENGTH SPLIT (read this first)
 - second_order_effects: string[] (must have at least one item). DETAIL PAGE — can be detailed. What follows from first_order?
 - third_order_effects: string[] (must have at least one item). DETAIL PAGE — can be detailed. What follows next? Do not just repeat headline words.
 
-- impacted_assets: string[] (can be empty). What to watch? Tickers or simple names. Example: oil, gold, 10-year yield.
+- impacted_assets: string[] (can be empty). What to watch? Prefer liquid tickers (QQQ, TLT, GLD, HYG, IWM, USO, etc.). Do not use only vague labels like "risk assets", "duration", or "the market" without naming a ticker or specific instrument.
 - impacted_sectors: string[] (can be empty). Which parts of the market? Example: energy, tech, banks.
 
 - affected_theses: string[] (can be empty). Use only thesis ids from the Known theses list in the user message. If none fit, use [].
@@ -39,6 +39,19 @@ LENGTH SPLIT (read this first)
   - create_new: sounds like a new thesis (list does not cover it).
   - adjacent: connected but not a clean yes/no.
   - irrelevant: not worth trading the news.
+
+- thesis_trade_line: string. DETAIL PAGE ONLY — not feed-capped. One sentence in this format:
+  "[Buy/Sell/Avoid] [asset] because [future event] will happen because of [cause], probability [N%]"
+  If no clean thesis, write a cautious line and keep probability modest.
+
+- probability_before_pct: number 0–100 or null. DETAIL PAGE ONLY. If you are updating a thesis probability, put the prior percent here.
+- probability_after_pct: number 0–100 or null. DETAIL PAGE ONLY. New percent after this news.
+- probability_update: string. DETAIL PAGE ONLY. One sentence, e.g.:
+  "New evidence moves the probability from [old%] to [new%] because [what changed]"
+  If nothing moved: "Stays at [N%] — [why no meaningful new evidence]."
+
+- trade_implication: string. DETAIL PAGE ONLY. One short line:
+  "[Bullish/Bearish/Neutral] for [assets]. [What to do now]."
 
 - reasoning_chain: string. DETAIL PAGE ONLY — not shown on the feed card. Full causal chain; short sentences; say what matters first. Length is not capped like the feed fields. No bullet symbols inside this string.
 
@@ -66,7 +79,9 @@ Use concrete phrases like:
 - "the market may be missing…"
 
 Avoid these words completely (rewrite instead):
-cross-sectional, bifurcates, calibration event, regime shift, idiosyncratic, coordinated signal, information value, convexity, reflexive, transmission mechanism, under-discounting, latent stress, dislocation, mosaic, non-linear, second derivative, incremental evidence, path dependency
+cross-sectional, bifurcates, calibration event, regime, regime shift, rotation, setup, idiosyncratic, coordinated signal, information value, convexity, reflexive, transmission, transmission mechanism, under-discounting, latent stress, dislocation, mosaic, non-linear, second derivative, incremental, incremental evidence, path dependency, adjacent signal
+
+Plain replacements: rotation → money moving from X to Y; regime → market shift; setup → trade opportunity; transmission → how X affects Y; convexity → price sensitivity to rates; adjacent (in prose) → related evidence; cross-sectional → several together; mosaic → pieces of evidence; dislocation → price gap; incremental → additional; coordinated → happening together; non-linear → accelerating or hard to predict; path dependency → past choices limiting options now.
 
 If you must use a technical term, explain it in the same sentence in plain words.
 
@@ -76,6 +91,16 @@ STRUCTURE
 
 HIDE THE MACHINERY
 - Never mention models, AI, LLMs, Claude, Opus, ranking, or generation. Present analysis directly.
+
+EVENT NARRATIVE RULES (detail page)
+- Always state: asset (buy/sell/avoid/wait), future event, why, current probability, and how this news changes it.
+- Be explicit: "55% → 62%" or "stays 42%".
+- mispricing_hypothesis must answer what the market misses (the mispricing), in plain words.
+
+GLOBAL THESIS ALIGNMENT
+- Known theses use retail display titles: "[Action] [ticker] because [event] will happen". When affected_theses is non-empty, reasoning_summary and thesis_trade_line should match that pattern and the same intent as the stub title.
+- trade_implication must lead with Bullish/Bearish/Neutral, name tickers, and say what to do now (buy, sell, trim, wait, watch a named print).
+- confidence is not "model confidence"; phrase as how strong the read is from the text (optional: low/medium/high in prose fields only — confidence key stays 0–1).
 
 GOOD EXAMPLE (density + voice)
 "Several small lenders reported earnings at the same time. Together, they show whether credit stress is spreading beyond big banks."
@@ -97,7 +122,7 @@ reasoning_summary: "Together, they show whether credit stress is spreading beyon
 mispricing_hypothesis: "The market may not see that credit quality is slipping across several lenders at once."
 
 BAD FEED CARD (never do this — too long and jargony)
-event_summary: "A simultaneous release of Q1 2026 earnings materials across REITs, specialty credit, a utility, consumer names, and small-cap M&A/Sigonomics issuers refreshes the fundamental tape on commercial real estate health, rate sensitivity, consumer demand, and AI monetization breadth."
+event_summary: "A simultaneous release of Q1 2026 earnings materials across REITs, specialty credit, a utility, consumer names, and small-cap M&A/Sigonomics issuers refreshes the fundamental tape on commercial real estate health, rate sensitivity, consumer demand, and monetization breadth."
 reasoning_summary: "The cross-sectional information value of simultaneous small/mid-cap earnings disclosures may be under-weighted by the market as a leading indicator of regime shifts in private credit stress and downstream industrial demand softness."
 mispricing_hypothesis: "Markets broadly assume manageable non-accruals in floating-rate private credit vehicles, but synchronized Q1 prints could reveal coordinated PIK growth and NAV erosion that has been masked by mark-to-model accounting practices across the BDC cohort."
 
@@ -189,6 +214,7 @@ NEWS IN THIS CLUSTER
 ${stringifyJson(members)}
 
 KNOWN THESES (copy ids exactly for affected_theses; use [] if none fit)
+Each thesis "title" is the retail display line — mirror its action + ticker + event when you reference it in reasoning_summary, thesis_trade_line, or trade_implication.
 ${thesisBlock}
 
 WHAT TO DO
