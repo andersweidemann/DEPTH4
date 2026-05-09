@@ -53,8 +53,8 @@ export default function PrivacyPage() {
         <p>We may share information in the following cases:</p>
         <ul>
           <li>
-            <strong>Service providers</strong> (for example: AI/LLM providers for analysis, email providers, analytics
-            services, hosting and infrastructure).
+            <strong>Service providers</strong> (for example: analysis providers, email providers, analytics services,
+            hosting and infrastructure).
           </li>
           <li>
             <strong>Public user content</strong>: if you publish theses, certain content may be visible to others,

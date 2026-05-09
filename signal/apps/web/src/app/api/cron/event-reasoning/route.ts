@@ -118,7 +118,7 @@ async function runEventReasoning() {
   };
 
   // Find + claim exactly one promoted cluster deterministically.
-  // Claim uses optimistic concurrency on updated_at to avoid duplicate Opus work on overlapping cron hits.
+  // Claim uses optimistic concurrency on updated_at to avoid duplicate work on overlapping cron hits.
   const { data: promotedRows, error: clErr } = await admin
     .from("thesis_discovery_clusters")
     .select("id,status,title_hint,member_news_event_ids,signal_score,updated_at,created_at,metadata")

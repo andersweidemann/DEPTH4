@@ -12,7 +12,7 @@ import {
   toPromotedCardModel,
   type PromotedCardModel,
 } from "@/lib/feed/promoted-macro-events";
-import { fetchThesisSlugMap } from "@/lib/feed/thesis-slugs";
+import { fetchThesisMetaMap } from "@/lib/feed/thesis-slugs";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Feed",
@@ -28,13 +28,13 @@ export default async function Feed2Page() {
   } = await supabase.auth.getUser();
 
   let promotedCards: PromotedCardModel[] = [];
-  let thesisSlugById = new Map<string, string>();
+  let thesisMetaById = new Map<string, { slug: string; title: string }>();
 
   if (user) {
     const rows = await fetchPromotedMacroReasoningRows(supabase);
     promotedCards = rows.map(toPromotedCardModel).filter((c): c is NonNullable<typeof c> => c !== null);
     const thesisIds = promotedCards.flatMap((c) => c.reasoning.affected_theses);
-    thesisSlugById = await fetchThesisSlugMap(supabase, thesisIds);
+    thesisMetaById = await fetchThesisMetaMap(supabase, thesisIds);
   }
 
   return (
@@ -56,14 +56,13 @@ export default async function Feed2Page() {
                       Promoted macro narratives
                     </h2>
                     <p className="mt-1 max-w-xl text-[12px] leading-relaxed text-zinc-600">
-                      Opus-ranked causal reasoning on promoted discovery clusters. Open a card for the full chain and
-                      mispricing view.
+                      High-signal macro narratives tied to active theses and market mispricing.
                     </p>
                   </div>
                 </div>
                 <div className="rounded-lg border border-white/[0.06] bg-[#111110]/90 px-4 sm:px-5">
                   {promotedCards.map((card) => (
-                    <PromotedMacroEventCard key={card.row.id} card={card} thesisSlugById={thesisSlugById} />
+                    <PromotedMacroEventCard key={card.row.id} card={card} thesisMetaById={thesisMetaById} />
                   ))}
                 </div>
               </div>
@@ -77,7 +76,7 @@ export default async function Feed2Page() {
                   <code className="rounded bg-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-400">
                     /api/cron/event-reasoning
                   </code>{" "}
-                  to populate Opus macro reasoning. Rows appear here when{" "}
+                  to generate the narrative card. Rows appear here when{" "}
                   <code className="rounded bg-zinc-800 px-1 py-0.5 font-mono text-[11px] text-zinc-400">
                     event_reasoning
                   </code>{" "}
@@ -95,15 +94,17 @@ export default async function Feed2Page() {
               </div>
             ) : null}
 
-            <div className={promotedCards.length > 0 ? "mt-12" : "mt-10"}>
-              <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Sample signals</h2>
-              <p className="mt-1 mb-4 text-[11px] text-zinc-600">Illustrative feed layout — not live Supabase news.</p>
-              <div className="rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
-                {MOCK_FEED_SIGNALS.map((item) => (
-                  <FeedSignalCard key={item.id} item={item} />
-                ))}
+            {!user ? (
+              <div className={promotedCards.length > 0 ? "mt-12" : "mt-10"}>
+                <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Demo signals</h2>
+                <p className="mt-1 mb-4 text-[11px] text-zinc-600">Layout preview only — not connected to live news.</p>
+                <div className="rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 sm:px-5">
+                  {MOCK_FEED_SIGNALS.map((item) => (
+                    <FeedSignalCard key={item.id} item={item} />
+                  ))}
+                </div>
               </div>
-            </div>
+            ) : null}
           </section>
 
           <aside className="hidden lg:block">
