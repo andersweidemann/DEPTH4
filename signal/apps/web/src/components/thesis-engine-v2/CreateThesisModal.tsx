@@ -256,7 +256,7 @@ export function CreateThesisModal({
       mode: "choice",
       aiPrompt:
         "Peace talks reduce gold's war premium, but spot still reflects too much geopolitical risk.",
-      title: "War premium fades — Gold downside",
+      title: "Sell GLD because peace progress will continue within weeks",
       thesisStatement:
         "If geopolitics de-escalates, gold's war premium comes out faster than current positioning implies.",
       asset: "XAUUSD",

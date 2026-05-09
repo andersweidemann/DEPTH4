@@ -80,21 +80,16 @@ export function MacroReasoningDetail({
         {(() => {
           const primaryId = reasoning.affected_theses[0];
           const primaryMeta = primaryId ? thesisMetaById.get(primaryId) : null;
-          const tradeLine = (reasoning.thesis_trade_line ?? "").trim();
-          if (!primaryMeta && !tradeLine) return null;
+          if (!primaryMeta) return null;
           return (
             <div className="rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Thesis</p>
-              {primaryMeta ? (
-                <Link
-                  href={`/theses/${primaryMeta.slug}`}
-                  className="mt-2 block text-[14px] font-semibold leading-snug text-zinc-100 underline-offset-2 hover:text-white hover:underline"
-                >
-                  {getThesisMetaDisplayTitle(primaryMeta)}
-                </Link>
-              ) : (
-                <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">{tradeLine}</p>
-              )}
+              <Link
+                href={`/theses/${primaryMeta.slug}`}
+                className="mt-2 block text-[14px] font-semibold leading-snug text-zinc-100 underline-offset-2 hover:text-white hover:underline"
+              >
+                {getThesisMetaDisplayTitle(primaryMeta)}
+              </Link>
             </div>
           );
         })()}

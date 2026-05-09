@@ -8,7 +8,11 @@ import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-sta
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { DEPTH4_POSITIONS_CHANGED, loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import { MOCK_THESES, thesisSlugById, thesisTitleById } from "@/lib/thesis-engine-v2/mock-data";
-import { getThesisDisplayTitle, getThesisMetaDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import {
+  getThesisDisplayTitle,
+  getThesisMetaDisplayTitle,
+  normalizeThesisDisplayTitle,
+} from "@/lib/thesis-engine-v2/thesis-display-title";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { Position, ResolvedThesisRecord, WatchlistIdea } from "@/lib/thesis-engine-v2/types";
 
@@ -154,7 +158,7 @@ export function BookClient({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-mono text-sm text-zinc-200">{w.symbol}</span>
                   <Link href={`/theses/${w.thesisSlug}`} className="text-[11px] font-medium text-zinc-300 hover:text-zinc-100">
-                    {w.thesisTitle}
+                    {normalizeThesisDisplayTitle(w.thesisTitle)}
                   </Link>
                 </div>
                 <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">{w.note}</p>
@@ -176,7 +180,7 @@ export function BookClient({
               <div key={r.id} className="grid gap-2 border-b border-white/[0.05] py-4 last:border-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-[12px] font-medium text-zinc-200">{r.title}</p>
+                    <p className="text-[12px] font-medium text-zinc-200">{normalizeThesisDisplayTitle(r.title)}</p>
                     <p className="mt-1 font-mono text-[11px] text-zinc-500">
                       {r.asset} · {r.openedDate} → {r.closedDate} · {r.duration}
                     </p>

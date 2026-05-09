@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
+import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { resolveThesisDetailSlug } from "@/lib/thesis-engine-v2/user-theses";
 import Link from "next/link";
 
 export function ThesisAlertsBell() {
@@ -131,7 +133,7 @@ export function ThesisAlertsBell() {
                     </button>
                   </div>
                   <div className="pr-9">
-                    <p className="text-[11px] font-semibold leading-snug text-zinc-200">{a.thesisTitle}</p>
+                    <p className="text-[11px] font-semibold leading-snug text-zinc-200">{normalizeThesisDisplayTitle(a.thesisTitle)}</p>
                     <p className="mt-1 text-[11px] leading-relaxed text-zinc-300">{a.confirmText}</p>
                     <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{a.consequenceText}</p>
                     <div className="mt-2 flex items-center justify-between gap-2">
@@ -139,7 +141,7 @@ export function ThesisAlertsBell() {
                         {new Date(a.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                       </p>
                       <Link
-                        href={`/theses/${encodeURIComponent(a.thesisId)}`}
+                        href={`/theses/${encodeURIComponent(resolveThesisDetailSlug(a.thesisId))}`}
                         className="text-[10px] font-semibold text-zinc-400 hover:text-zinc-200"
                       >
                         View thesis →

@@ -16,7 +16,10 @@ export function getThesisMetaDisplayTitle(meta: { title: string }): string {
   return t || "Thesis";
 }
 
-/** Raw strings (e.g. feed links, alerts) — trim only; caller should already use DB/mock title. */
+/**
+ * Any persisted or streamed thesis headline (alerts, ticker, insider flow, watchlist copy).
+ * Trims whitespace; empty after trim becomes `"Thesis"`. Prefer `getThesisDisplayTitle` when you have a full `Thesis`.
+ */
 export function normalizeThesisDisplayTitle(raw: string | null | undefined): string {
   const t = (raw ?? "").trim();
   return t || "Thesis";

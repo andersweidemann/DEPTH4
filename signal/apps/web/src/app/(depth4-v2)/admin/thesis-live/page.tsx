@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { MOCK_THESES, TID } from "@/lib/thesis-engine-v2/mock-data";
+import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 type ApiRow = {
   id: string;
@@ -173,7 +174,7 @@ export default function ThesisLiveAdminPage() {
               rows.map((r) => (
                 <tr key={r.id} className="border-b border-white/[0.04] text-zinc-300">
                   <td className="px-3 py-2">
-                    <div className="font-medium text-zinc-100">{r.title}</div>
+                    <div className="font-medium text-zinc-100">{normalizeThesisDisplayTitle(r.title)}</div>
                     <div className="text-[10px] text-zinc-600">{r.status}</div>
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] text-zinc-400">{r.id}</td>

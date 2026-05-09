@@ -8,6 +8,7 @@ import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { createClient } from "@/lib/supabase/client";
 import { resolveThesisDetailSlug } from "@/lib/thesis-engine-v2/user-theses";
+import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 function planGte(a: string, b: string) {
   const order = ["free", "analyst", "pro", "creator"];
@@ -293,7 +294,7 @@ export function InsiderFlowPanel({
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Latest</p>
                 {latest ? (
                   <>
-                    <p className="mt-2 text-[12px] font-semibold text-zinc-100">{latest.thesisTitle}</p>
+                    <p className="mt-2 text-[12px] font-semibold text-zinc-100">{normalizeThesisDisplayTitle(latest.thesisTitle)}</p>
                     <p className="mt-1 text-[11px] text-zinc-300">
                       {latest.patternType === "BULL_LEAK" ? "Bull-leak anomaly" : "Bear-leak anomaly"} ·{" "}
                       {latest.status === "UNCONFIRMED_LEAK" ? "Unconfirmed leak" : latest.status === "CONFIRMED_MOVE" ? "Confirmed move" : "Invalidated"}
@@ -371,7 +372,7 @@ export function InsiderFlowPanel({
                   <div className="mt-2 space-y-2">
                     {anomalies.slice(0, 30).map((a) => (
                       <div key={a.id} className="rounded-none border border-white/[0.06] bg-zinc-900/15 px-3 py-2">
-                        <p className="text-[11px] font-semibold text-zinc-200">{a.thesisTitle}</p>
+                        <p className="text-[11px] font-semibold text-zinc-200">{normalizeThesisDisplayTitle(a.thesisTitle)}</p>
                         <p className="mt-0.5 text-[11px] text-zinc-400">
                           {a.patternType === "BULL_LEAK" ? "Bull leak" : "Bear leak"} ·{" "}
                           {a.status === "UNCONFIRMED_LEAK" ? "Unconfirmed" : a.status === "CONFIRMED_MOVE" ? "Confirmed" : "Invalidated"}

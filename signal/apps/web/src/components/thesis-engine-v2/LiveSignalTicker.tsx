@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { LiveSignalTickerItem } from "@/lib/thesis-engine-v2/types";
+import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import { cn } from "@/lib/utils";
 
 function impactStyle(impact: "major_positive" | "minor_positive" | "neutral" | "minor_negative" | "major_negative") {
@@ -109,7 +110,7 @@ export function LiveSignalTicker({
         {it.kind === "thesis_update" ? (
           <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
             <span className="text-zinc-500">→</span>
-            <span className="text-zinc-200">{it.thesisName}</span>
+            <span className="text-zinc-200">{normalizeThesisDisplayTitle(it.thesisName)}</span>
             <span className="tabular-nums text-zinc-400">{it.probabilityBefore}% → {it.probabilityAfter}%</span>
             {(() => {
               const s = impactStyle(it.impact);
