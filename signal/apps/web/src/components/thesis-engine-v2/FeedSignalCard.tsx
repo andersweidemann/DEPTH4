@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { FeedSignal } from "@/lib/thesis-engine-v2/types";
-import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { formatThesisMicroLabel, normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 
 export function FeedSignalCard({ item }: { item: FeedSignal }) {
   const rawLinked = (item.linkedThesisTitle ?? "").trim();
   const linkedTitle = rawLinked ? normalizeThesisDisplayTitle(rawLinked) : "";
   const linked = Boolean(item.linkedThesisSlug && rawLinked);
+  const micro = formatThesisMicroLabel(item.linkedThesisMicroLabel);
+  const impact = (item.thesisImpact ?? "").trim();
 
   return (
     <article
@@ -18,19 +20,27 @@ export function FeedSignalCard({ item }: { item: FeedSignal }) {
         <span className="font-medium text-zinc-400">{item.source}</span>
         <span className="tabular-nums">{item.timestamp}</span>
       </div>
-      <h2 className="mt-2 text-[13px] font-medium leading-snug text-zinc-100">{item.headline}</h2>
-      {!linked ? <p className="mt-1 text-[11px] text-zinc-600">No thesis match</p> : null}
-      <p className="mt-1.5 text-[12px] leading-relaxed text-zinc-500">{item.summary}</p>
-      {linked ? (
-        <div className="mt-3">
+      <h2 className="mt-2 text-[15px] font-semibold leading-snug tracking-tight text-zinc-50">{item.headline}</h2>
+
+      <div className="mt-3 min-w-0">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Linked thesis</p>
+        {linked ? (
           <Link
             href={`/theses/${item.linkedThesisSlug}`}
-            className="inline-flex rounded-md px-2.5 py-1 text-[10px] font-medium text-zinc-300 hover:text-zinc-100"
+            className="mt-1 block min-w-0 underline-offset-2 hover:text-white hover:underline"
+            title={linkedTitle}
           >
-            Linked · {linkedTitle}
+            {micro ? <span className="block truncate text-[11px] font-medium leading-snug text-zinc-500">{micro}</span> : null}
+            <span className={`block truncate text-[13px] font-semibold leading-snug text-zinc-100 ${micro ? "mt-0.5" : ""}`}>
+              {linkedTitle}
+            </span>
           </Link>
-        </div>
-      ) : null}
+        ) : (
+          <p className="mt-1 text-[13px] font-medium leading-snug text-zinc-500">No linked thesis yet</p>
+        )}
+      </div>
+
+      {impact ? <p className="mt-2 text-[12px] font-medium leading-snug text-zinc-300">{impact}</p> : null}
     </article>
   );
 }

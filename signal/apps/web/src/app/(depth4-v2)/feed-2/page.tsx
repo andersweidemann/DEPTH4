@@ -45,7 +45,8 @@ export default async function Feed2Page() {
           <section>
             <h1 className="text-lg font-semibold tracking-tight text-zinc-100">Feed</h1>
             <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-zinc-500">
-              Incoming macro signals. DEPTH4 matches these into active theses or proposes new ones.
+              Scan headlines mapped into theses. Open reasoning when a line deserves a read — the feed stays light on
+              purpose.
             </p>
 
             {user && promotedCards.length > 0 ? (
@@ -56,7 +57,8 @@ export default async function Feed2Page() {
                       Promoted macro narratives
                     </h2>
                     <p className="mt-1 max-w-xl text-[12px] leading-relaxed text-zinc-600">
-                      High-signal macro narratives tied to active theses and market mispricing.
+                      Live cluster summaries — thesis link, one impact line, optional prob. Full chain on the reasoning
+                      page.
                     </p>
                   </div>
                 </div>
@@ -90,7 +92,7 @@ export default async function Feed2Page() {
                 <Link href="/login" className="font-medium text-[#E8473F] underline-offset-2 hover:underline">
                   Sign in
                 </Link>{" "}
-                to view live macro reasoning on promoted narratives (causal chain + mispricing hypothesis).
+                to view promoted narrative cards (headline → thesis map). Open any card for full reasoning.
               </div>
             ) : null}
 

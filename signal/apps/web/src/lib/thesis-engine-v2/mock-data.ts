@@ -812,6 +812,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Crude bid on perceived tail risk; flows modest vs prior shocks.",
     linkedThesisSlug: "strait-hormuz-oil-long",
     linkedThesisTitle: "Buy USO because Hormuz chokepoint risk will spike within weeks",
+    linkedThesisMicroLabel: "Gulf routes keep oil on edge",
+    thesisImpact: "Supports the oil-tightness thesis.",
   },
   {
     id: "f2",
@@ -821,6 +823,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Equities firm; precious metals lose marginal safe-haven premium.",
     linkedThesisSlug: "war-peace-gold-short",
     linkedThesisTitle: "Sell GLD because peace progress will continue within weeks",
+    linkedThesisMicroLabel: "War risk keeps gold bid",
+    thesisImpact: "Supports the peace-drift / gold thesis.",
   },
   {
     id: "f3",
@@ -830,6 +834,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Front-end yields tick higher; duration underperforms.",
     linkedThesisSlug: "fed-pivot-delayed-tlt-weakness",
     linkedThesisTitle: "Sell TLT because Fed cuts will land later than futures price this year",
+    linkedThesisMicroLabel: "Rates stay higher for longer",
+    thesisImpact: "Adds evidence to delayed Fed cuts.",
   },
   {
     id: "f4",
@@ -839,6 +845,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Regulation story strengthens for mega-cap platforms.",
     linkedThesisSlug: "eu-tech-crackdown-megacap",
     linkedThesisTitle: "Sell META because EU platform rules will bite within months",
+    linkedThesisMicroLabel: "Ad machine funding AI dreams",
+    thesisImpact: "Strengthens the EU platform-risk thesis.",
   },
   {
     id: "f5",
@@ -848,6 +856,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Industrial demand proxies tick up; metals watchlist active.",
     linkedThesisSlug: "china-stimulus-copper-long",
     linkedThesisTitle: "Buy HG because China stimulus will speed up again within months",
+    linkedThesisMicroLabel: "China's build-out lifts copper",
+    thesisImpact: "Supports the China impulse / copper thesis.",
   },
   {
     id: "f6",
@@ -857,6 +867,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Backlog visibility improves for defense primes.",
     linkedThesisSlug: "us-defense-repricing-rtx-lmt",
     linkedThesisTitle: "Buy RTX because Pentagon awards will firm backlog this quarter",
+    linkedThesisMicroLabel: "Wars drive steady defense spend",
+    thesisImpact: "Supports the defense backlog thesis.",
   },
   {
     id: "f7",
@@ -866,6 +878,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Unity story frays; volatility bids in energy.",
     linkedThesisSlug: "opec-unity-fracturing",
     linkedThesisTitle: "Buy USO because OPEC will hold prices if US shale slows this quarter",
+    linkedThesisMicroLabel: "Oil supply unity cracking",
+    thesisImpact: "Supports the slow-shale / OPEC discipline view.",
   },
   {
     id: "f8",
@@ -875,6 +889,8 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     summary: "Spend discipline vs AI race tension rises for mega-cap tech.",
     linkedThesisSlug: "ai-capex-squeeze-qqq-rotation",
     linkedThesisTitle: "Don't buy more QQQ yet because AI spending will hit margins this earnings season",
+    linkedThesisMicroLabel: "AI costs before AI profits",
+    thesisImpact: "Adds margin-pressure evidence for mega-cap tech.",
   },
   {
     id: "f9",
@@ -882,6 +898,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     timestamp: "4h ago",
     headline: "Dollar index grinds up on rate differential",
     summary: "FX moves not thesis-specific; feeds cross-asset checklist.",
+    thesisImpact: "Watch only — not enough yet.",
   },
   {
     id: "f10",
@@ -889,6 +906,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     timestamp: "5h ago",
     headline: "Emerging market flows soften on USD strength",
     summary: "Macro backdrop note — propose thesis if linked book risk emerges.",
+    thesisImpact: "Interesting, but not a clean thesis update yet.",
   },
   {
     id: "f11",
@@ -896,6 +914,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     timestamp: "6h ago",
     headline: "Climate summit commitments rekindle industrial policy debate",
     summary: "Second-order readthrough to grid metals and defense supply chains.",
+    thesisImpact: "Related signal, no trigger yet.",
   },
   {
     id: "f12",
@@ -903,6 +922,7 @@ export const MOCK_FEED_SIGNALS: FeedSignal[] = [
     timestamp: "7h ago",
     headline: "Retail traders move money into single-stock momentum",
     summary: "Positioning noise — DEPTH4 flags it when it matches a thesis.",
+    thesisImpact: "Watch only — not enough yet.",
   },
 ];
 

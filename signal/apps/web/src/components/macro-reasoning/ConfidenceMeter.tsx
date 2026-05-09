@@ -21,6 +21,37 @@ const TIER_COLOR: Record<ConfidenceTier, string> = {
   high: "bg-[#E8473F]",
 };
 
+/** Feed scan row only — full meter lives on reasoning / detail pages. */
+export function CompactScanConfidenceProb({
+  reasoning,
+}: {
+  reasoning: Pick<MacroEventReasoning, "confidence" | "probability_before_pct" | "probability_after_pct">;
+}) {
+  const pb = reasoning.probability_before_pct;
+  const pa = reasoning.probability_after_pct;
+  const c = Math.round(Math.min(1, Math.max(0, reasoning.confidence)) * 100);
+  const probPart =
+    pb != null && pa != null && pb !== pa
+      ? `Thesis prob ${pb}% → ${pa}%`
+      : pa != null
+        ? `Thesis prob ${pa}%`
+        : null;
+  if (!probPart && !Number.isFinite(reasoning.confidence)) return null;
+  return (
+    <p className="mt-2 text-[11px] tabular-nums leading-snug text-zinc-500">
+      {probPart ? (
+        <>
+          {probPart}
+          <span className="text-zinc-600"> · </span>
+          <span className="text-zinc-400">Model {c}%</span>
+        </>
+      ) : (
+        <span className="text-zinc-400">Model confidence {c}%</span>
+      )}
+    </p>
+  );
+}
+
 export function ConfidenceMeter({ reasoning }: { reasoning: Pick<MacroEventReasoning, "confidence"> }) {
   const tier = confidenceTier(reasoning.confidence);
   const pct = Math.round(Math.min(1, Math.max(0, reasoning.confidence)) * 100);

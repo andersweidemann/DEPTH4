@@ -189,9 +189,14 @@ export type FeedSignal = {
   source: string;
   timestamp: string;
   headline: string;
+  /** Legacy body copy; omitted on feed scan cards when `thesisImpact` is set. */
   summary: string;
   linkedThesisSlug?: string;
   linkedThesisTitle?: string;
+  /** Short line above hero title when linked to a catalog thesis. */
+  linkedThesisMicroLabel?: string | null;
+  /** Single scan-line impact (feed layer only; detail lives on thesis / reasoning). */
+  thesisImpact?: string;
 };
 
 export type WatchlistIdea = {

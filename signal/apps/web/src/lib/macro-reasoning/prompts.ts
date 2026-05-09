@@ -40,6 +40,7 @@ LENGTH SPLIT (read this first)
   - create_new: sounds like a new thesis (list does not cover it).
   - adjacent: connected but not a clean yes/no.
   - irrelevant: not worth trading the news.
+  The feed scan layer maps this to a single impact phrase (strengthens / weakens / watch / related signal); keep other fields detailed for the reasoning page.
 
 - thesis_trade_line: string. DETAIL PAGE ONLY — not feed-capped. One or two tight sentences. Must answer: position, event, cause, when (days/weeks/months or dated catalyst), probability.
   Core format: "[Buy/Sell/Don't add/Don't buy more … yet] [ticker] because [future event] will happen [within time window] due to [cause], probability [N%]"
@@ -75,6 +76,7 @@ LEVEL 4 (STRUCTURAL BIAS — backdrop this year):
 Persistent directional tilt for DEPTH4 theses this year — bias for this year's book, not a 2028 prediction. Name tickers (winners and losers). Tie back to observable near-term proof. 2–3 short sentences max.
 
 - reasoning_summary: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words. 1–2 sentences. How this event tests the thesis across L1–L4 (hint L3–L4). Say confirm or challenge. No "trade opportunity" filler.
+  NOTE: The web feed scan card does not render this field — it appears on the reasoning / detail pages only.
 
 - mispricing_hypothesis: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. 1–2 sharp sentences. Name tickers or prints when you can. Contrast "market treats X as noise" vs "together Y proves Z".
   BAD: "The market may be reading each print solo, missing that energy capex guides together could confirm…"
