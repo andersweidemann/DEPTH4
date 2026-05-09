@@ -99,7 +99,7 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
  * trim risk_factors when it blindly repeats invalidation.
  */
 export function normalizeThesisNarrativeFields(thesis: Thesis): Thesis {
-  let whatsUnpriced = (thesis.whatsUnpriced ?? "").trim();
+  const whatsUnpriced = (thesis.whatsUnpriced ?? "").trim();
   let marketMisread = (thesis.marketMisread ?? "").trim();
   const invalidation = (thesis.invalidation ?? "").trim();
 
