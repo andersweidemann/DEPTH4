@@ -271,6 +271,8 @@ type Ctx = {
   catalogDbThesisTitles: ReadonlyMap<string, string>;
   /** `public.theses.micro_label` keyed by thesis id (catalog rows), when signed in. */
   catalogDbThesisMicroLabels: ReadonlyMap<string, string>;
+  /** `public.theses.body` JSON keyed by thesis id (catalog rows), when signed in. */
+  catalogDbThesisBodies: ReadonlyMap<string, unknown>;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -311,6 +313,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [evidenceLog, setEvidenceLog] = useState<ThesisEvidenceLogRow[]>([]);
   const [catalogDbThesisTitles, setCatalogDbThesisTitles] = useState(() => new Map<string, string>());
   const [catalogDbThesisMicroLabels, setCatalogDbThesisMicroLabels] = useState(() => new Map<string, string>());
+  const [catalogDbThesisBodies, setCatalogDbThesisBodies] = useState(() => new Map<string, unknown>());
 
   const scenarioRef = useRef(
     new Map<string, { base: number; bull: number; bear: number; lead: "base" | "bull" | "bear" }>(),
@@ -359,6 +362,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         const root = j && typeof j === "object" ? (j as Record<string, unknown>) : null;
         const o = root?.titlesByThesisId;
         const microObj = root?.microLabelsByThesisId;
+        const bodiesObj = root?.bodiesByThesisId;
         const m = new Map<string, string>();
         if (o && typeof o === "object") {
           for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
@@ -373,6 +377,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
           }
         }
         setCatalogDbThesisMicroLabels(mm);
+        const bm = new Map<string, unknown>();
+        if (bodiesObj && typeof bodiesObj === "object") {
+          for (const [k, v] of Object.entries(bodiesObj as Record<string, unknown>)) {
+            if (v !== undefined && v !== null && typeof v === "object") bm.set(k, v);
+          }
+        }
+        setCatalogDbThesisBodies(bm);
       })
       .catch(() => {});
     return () => {
@@ -982,6 +993,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       insiderFlowWatchedCount,
       catalogDbThesisTitles,
       catalogDbThesisMicroLabels,
+      catalogDbThesisBodies,
     };
   },
     [
@@ -1014,6 +1026,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       insiderFlowWatchedCount,
       catalogDbThesisTitles,
       catalogDbThesisMicroLabels,
+      catalogDbThesisBodies,
       outcomeEpoch,
     ],
   );

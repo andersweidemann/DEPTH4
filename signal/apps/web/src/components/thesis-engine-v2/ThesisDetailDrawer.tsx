@@ -19,6 +19,7 @@ export function ThesisDetailDrawer({
   slug,
   catalogDisplayTitle,
   catalogMicroLabel,
+  catalogBody,
   onClose,
 }: {
   slug: string | null;
@@ -26,6 +27,8 @@ export function ThesisDetailDrawer({
   catalogDisplayTitle?: string | null;
   /** Merged `Thesis.microLabel` from dashboard. */
   catalogMicroLabel?: string | null;
+  /** Optional `public.theses.body` for catalog narrative merge in the drawer. */
+  catalogBody?: unknown | null;
   onClose: () => void;
 }) {
   const [entered, setEntered] = useState(false);
@@ -160,6 +163,7 @@ export function ThesisDetailDrawer({
             onClose={requestClose}
             catalogDisplayTitle={catalogDisplayTitle}
             catalogMicroLabel={catalogMicroLabel}
+            catalogBody={catalogBody}
           />
         </div>
       </aside>

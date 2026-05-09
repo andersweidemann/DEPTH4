@@ -19,6 +19,7 @@ export default async function ThesisDetailPage({ params }: Props) {
       slug={params.slug}
       catalogDisplayTitle={header.title}
       catalogMicroLabel={header.microLabel}
+      catalogBody={header.body}
     />
   );
 }

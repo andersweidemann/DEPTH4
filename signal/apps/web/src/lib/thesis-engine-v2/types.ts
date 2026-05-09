@@ -18,6 +18,13 @@ export type ThesisQualificationScores = {
   triggerClarityScore: number; // 0–15
 };
 
+/**
+ * DEPTH4 thesis **book** — canonical narrative fields (mock, `public.theses.body` JSON, or AI output).
+ * **Single purpose:** do not paste the same idea into multiple blocks. Hero sentence lives in `title` /
+ * `thesisStatement` only; edge / misread once in `whatsUnpriced` (keep `marketMisread` empty when folded);
+ * `trigger`, `trade`, `invalidation`, `timeStop` each once; `whyThesisExists` is framing only (3–4 short
+ * paragraphs). `riskFactors` summarizes and references Invalidation, never duplicates full stand-down text.
+ */
 export type Thesis = {
   id: string;
   slug: string;
@@ -30,6 +37,7 @@ export type Thesis = {
   microLabel?: string | null;
   /** Optional one-sentence hook for a ~3-second scan (retail clarity). */
   oneLineSummary?: string;
+  /** Full hero trade sentence (same voice as `title`; may be slightly longer than display title). */
   thesisStatement: string;
   /**
    * Optional 3–4 short paragraphs for “Why this thesis exists” (catalog + rich user drafts).
@@ -51,8 +59,8 @@ export type Thesis = {
   origin?: "system" | "user";
 
   /**
-   * Optional four-level cascade for the thesis **book** (not the same labels as event narratives).
-   * L1 = already true · L2 = this quarter · L3 = this year · L4 = 2026 backdrop for the whole tape.
+   * Four-level cascade for the thesis **book** (not event L1–L4). Do not restate the hero title here.
+   * L1 = facts now · L2 = near window / what to watch · L3 = how the trade pays through time · L4 = structural bias.
    */
   thesisCascade?: {
     l1Confirmed: string;
@@ -61,17 +69,24 @@ export type Thesis = {
     l4Backdrop2026: string;
   };
 
-  // causal framework
+  // causal framework (legacy cards when `whyThesisExists` absent)
   hiddenDriver: string;
   likelyPath: string;
+  /** Prefer empty when misread is folded into `whatsUnpriced`; hero / feed may hide when blank. */
   marketMisread: string;
   tradeExpression: string;
 
   whyNow: string;
+  /** Single “what the market hasn’t priced” / variant-perception block — not repeated in hero or cascade. */
   whatsUnpriced: string;
+  /** Observable gate only — not a second copy of trade instructions. */
   trigger: string;
+  /** What to do in words; numeric levels belong in Trade plan (`entryZone`, `stop`, `target*`). */
   trade: string;
+  /** Canonical stand-down conditions — `riskFactors` references here instead of pasting. */
   invalidation: string;
+  /** Optional: summarizes tail risks; must reference Invalidation, not duplicate its full text. */
+  riskFactors?: string;
   /** Optional: clock on the thesis (e.g. downgrade if trigger never fires in N seasons). */
   timeStop?: string;
   horizon: string;

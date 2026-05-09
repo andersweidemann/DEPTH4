@@ -1,5 +1,6 @@
 import type { Thesis, ThesisDetailBundle, ThesisEvidence, ThesisScenario, ThesisUpdate } from "@/lib/thesis-engine-v2/types";
 import { getThesisBySlug, MOCK_THESES } from "@/lib/thesis-engine-v2/mock-data";
+import { normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
 
 const USER_THESES_KEY = "depth4.v2.user_theses.v1";
 
@@ -166,7 +167,7 @@ function mkAdvisoryLog(thesis: Thesis): ThesisUpdate[] {
 
 export function bundleForUserThesis(thesis: Thesis): ThesisDetailBundle {
   return {
-    thesis,
+    thesis: normalizeThesisNarrativeFields(thesis),
     evidence: mkEvidence(thesis),
     scenarios: mkScenarios(thesis),
     advisoryLog: mkAdvisoryLog(thesis),

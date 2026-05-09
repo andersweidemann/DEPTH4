@@ -4,7 +4,10 @@
  */
 
 import { FEED_CARD_WORD_LIMITS } from "./schema";
-import { DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM } from "@/lib/thesis-engine-v2/thesis-book-template";
+import {
+  DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM,
+  DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM,
+} from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
 export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v6";
@@ -180,6 +183,8 @@ MORE RULES
 - Return JSON only. Nothing before or after the JSON.
 
 ${DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM}
+
+${DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM}
 
 JSON CONTRACT
 

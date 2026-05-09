@@ -20,3 +20,18 @@ DEPTH4 CATALOG THESIS VOICE (canonical QQQ / AI template — apply to EVERY link
 CANONICAL ONE-LINE (QQQ — 3-second scan shape for any thesis)
 "${DEPTH4_CANONICAL_QQQ_ONE_LINE}"
 `.trim();
+
+/**
+ * When writing or updating `public.theses.body` (or a full `Thesis` JSON for discovery / admin),
+ * enforce the same single-purpose fields as the web `Thesis` type and mock catalog.
+ */
+export const DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM = `
+DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO DUPLICATION
+- **title** / **thesis_statement**: the ONLY place for the full hero trade sentence (action + asset + because + time + cause + probability tone). Do not repeat that sentence in why_thesis_exists, thesis_cascade, whats_unpriced, trigger, or trade.
+- **whats_unpriced**: ONE block for the variant read / “what the market hasn’t priced.” Fold legacy misread here; leave **market_misread** empty or omit.
+- **thesis_cascade** (l1–l4): facts → near window → payout path → structural bias. No hero-title clone; no second copy of whats_unpriced.
+- **trigger** / **trade** / **invalidation** / **time_stop**: each appears **once** in its own field. **trade** = actions in words; numeric entry/stop/targets live in entry_zone / stop / target fields, not repeated as a second trade essay.
+- **why_thesis_exists**: 3–4 short paragraphs, framing ONLY (why the lens exists). Reference “see Trigger / Trade / Invalidation” instead of pasting them.
+- **risk_factors**: summarize; **reference** Invalidation (“see Invalidation”) — never paste the full invalidation block again.
+- **probability_rationale**: evidence / odds only — not a third copy of the hero line.
+`.trim();

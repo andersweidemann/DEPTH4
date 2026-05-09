@@ -1,4 +1,5 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
 
 export function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
@@ -19,12 +20,12 @@ export function qualificationFromTotal(total: number): Thesis["qualification"] {
 }
 
 export function mergeThesis(base: Thesis, patch: Partial<Thesis> | undefined): Thesis {
-  if (!patch || Object.keys(patch).length === 0) return base;
+  if (!patch || Object.keys(patch).length === 0) return normalizeThesisNarrativeFields(base);
   if (patch.scores) {
     const sp = { ...base.scores, ...patch.scores };
     const total = scoreTotalFromParts(sp);
     const scores = { ...sp, total };
-    return { ...base, ...patch, scores, qualification: qualificationFromTotal(total) };
+    return normalizeThesisNarrativeFields({ ...base, ...patch, scores, qualification: qualificationFromTotal(total) });
   }
-  return { ...base, ...patch, scores: base.scores, qualification: base.qualification };
+  return normalizeThesisNarrativeFields({ ...base, ...patch, scores: base.scores, qualification: base.qualification });
 }

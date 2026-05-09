@@ -4,6 +4,7 @@ import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/e
 import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
+import { thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 
 export const runtime = "nodejs";
@@ -86,6 +87,7 @@ export async function PUT(req: NextRequest) {
     slug: thesis.slug,
     owner_user_id: user.id,
     updated_at: nowIso,
+    body: thesisToDbBodyPayload(thesis),
   };
   const insertRow = { ...baseRow, created_at: nowIso };
 

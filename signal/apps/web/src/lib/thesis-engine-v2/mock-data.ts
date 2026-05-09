@@ -12,6 +12,7 @@ import type {
 } from "./types";
 import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";
 import { formatThesisMicroLabel, getThesisDisplayTitle } from "./thesis-display-title";
+import { normalizeThesisNarrativeFields } from "./thesis-db-body";
 
 function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
@@ -799,8 +800,8 @@ export function getThesisDetail(slug: string): ThesisDetailBundle | undefined {
   const t = getThesisBySlug(slug);
   if (!t) return undefined;
   const extra = MOCK_DETAIL_EXTRA[slug];
-  if (extra) return { thesis: t, ...extra };
-  return defaultDetail(slug);
+  const bundle = extra ? { thesis: t, ...extra } : defaultDetail(slug);
+  return { ...bundle, thesis: normalizeThesisNarrativeFields(bundle.thesis) };
 }
 
 export const MOCK_FEED_SIGNALS: FeedSignal[] = [

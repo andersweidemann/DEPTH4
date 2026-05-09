@@ -110,6 +110,13 @@ export function ThesesDashboardClient({
     return liveSorted.find((t) => t.slug === drawerSlug)?.microLabel ?? null;
   }, [drawerSlug, liveSorted]);
 
+  const drawerCatalogBody = useMemo(() => {
+    if (!drawerSlug) return null;
+    const id = liveSorted.find((t) => t.slug === drawerSlug)?.id;
+    if (!id) return null;
+    return live.catalogDbThesisBodies.get(id) ?? null;
+  }, [drawerSlug, liveSorted, live.catalogDbThesisBodies]);
+
   const focus = useMemo(() => filtered.filter((t) => t.status === "ready" || t.status === "active"), [filtered]);
   const focusTop = useMemo(() => focus.slice(0, 3), [focus]);
   const focusIds = useMemo(() => new Set(focusTop.map((t) => t.id)), [focusTop]);
@@ -350,6 +357,7 @@ export function ThesesDashboardClient({
         slug={drawerSlug}
         catalogDisplayTitle={drawerCatalogTitle}
         catalogMicroLabel={drawerCatalogMicroLabel}
+        catalogBody={drawerCatalogBody}
         onClose={() => setDrawerSlug(null)}
       />
     </>
