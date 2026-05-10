@@ -23,6 +23,13 @@ import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 
+/**
+ * Vercel serverless ceiling for this cron (Pro: up to 300s). Without this, long Anthropic calls
+ * can hit the default ~10–60s limit and surface as 502/504 at the edge — which also trips
+ * “disable cron after N failures” monitors.
+ */
+export const maxDuration = 300;
+
 /** Default when `ANTHROPIC_MODEL` unset — strongest model for macro reasoning quality checks. */
 const DEFAULT_MODEL = "claude-opus-4-7";
 
@@ -160,6 +167,7 @@ async function runEventReasoning() {
   const promptVersion = MACRO_EVENT_REASONING_PROMPT_VERSION;
 
   const summary = {
+    /** False when we attempted work but did not persist reasoning (LLM/schema/DB). Skips with no error stay true. */
     ok: true,
     prompt_version: promptVersion,
     model,
@@ -384,39 +392,44 @@ async function runEventReasoning() {
     text = out.text;
     raw = out.raw;
   } catch (e) {
+    summary.ok = false;
     summary.duration_ms = Date.now() - startedAt;
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = e instanceof Error ? e.message : "llm_failed";
     console.info("[event-reasoning] llm_failed", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
-    return NextResponse.json(summary, { status: 502 });
+    // 200: operational failure (upstream LLM / network). Cron schedulers must not treat this as infra 502.
+    return NextResponse.json(summary);
   }
 
   let parsed: unknown;
   try {
     parsed = parseJsonObject<unknown>(text);
   } catch (e) {
+    summary.ok = false;
     summary.duration_ms = Date.now() - startedAt;
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = `json_parse: ${e instanceof Error ? e.message : "parse_failed"}`;
     console.info("[event-reasoning] json_parse_failed", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
-    return NextResponse.json(summary, { status: 502 });
+    return NextResponse.json(summary);
   }
 
   const validated = safeParseMacroEventReasoning(parsed);
   if (!validated.ok) {
+    summary.ok = false;
     summary.duration_ms = Date.now() - startedAt;
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = `schema: ${validated.error.message}`;
     console.info("[event-reasoning] schema_failed", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
-    return NextResponse.json(summary, { status: 502 });
+    return NextResponse.json(summary);
   }
 
   const expectedPassIds = knownTheses.map((t) => t.id);
   const passCheck = catalogThesisPassesComplete(expectedPassIds, validated.data.per_catalog_thesis);
   if (!passCheck.ok) {
+    summary.ok = false;
     summary.duration_ms = Date.now() - startedAt;
     summary.processed = 1;
     summary.skipped = 1;
@@ -427,11 +440,12 @@ async function runEventReasoning() {
       message: passCheck.message,
       durationMs: summary.duration_ms,
     });
-    return NextResponse.json(summary, { status: 502 });
+    return NextResponse.json(summary);
   }
 
   const insertQuality = assertPerCatalogThesesInsertQuality(validated.data.per_catalog_thesis);
   if (!insertQuality.ok) {
+    summary.ok = false;
     summary.duration_ms = Date.now() - startedAt;
     summary.processed = 1;
     summary.skipped = 1;
@@ -442,7 +456,7 @@ async function runEventReasoning() {
       message: insertQuality.message,
       durationMs: summary.duration_ms,
     });
-    return NextResponse.json(summary, { status: 502 });
+    return NextResponse.json(summary);
   }
 
   const { error: insErr, data: insRows } = await admin
@@ -465,8 +479,10 @@ async function runEventReasoning() {
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = code === "23505" ? "unique_violation_idempotent" : `insert: ${insErr.message}`;
+    // Unique violation = another replica inserted first — treat as benign for cron health.
+    if (code !== "23505") summary.ok = false;
     console.info("[event-reasoning] insert_failed", { clusterId: claimed.id, anchorId, code, durationMs: summary.duration_ms });
-    return NextResponse.json(summary, { status: 502 });
+    return NextResponse.json(summary);
   }
 
   const ins0 = Array.isArray(insRows) ? insRows[0] : null;
