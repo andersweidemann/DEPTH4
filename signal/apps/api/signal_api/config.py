@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     default="claude-3-5-haiku-20241022",
     validation_alias="ANTHROPIC_MODEL",
   )
+  # Premium tier (Opus-class) for interactive / escalation.
+  anthropic_model_premium: str = Field(
+    default="claude-opus-4-7",
+    validation_alias="ANTHROPIC_MODEL_PREMIUM",
+  )
+  # Anthropic model when Kimi is unavailable but tier is still cheap/standard.
+  anthropic_model_cheap: str = Field(
+    default="claude-3-5-haiku-20241022",
+    validation_alias="ANTHROPIC_MODEL_CHEAP",
+  )
 
   # Base provider (used as fallback when per-task provider is not set).
   llm_provider: str = Field(
@@ -48,7 +58,10 @@ class Settings(BaseSettings):
   # Kimi (Moonshot) — OpenAI-compatible /chat/completions.
   kimi_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="KIMI_API_KEY")
   kimi_base_url: str = Field(default="https://api.moonshot.cn/v1", validation_alias="KIMI_BASE_URL")
-  kimi_model: str = Field(default="", validation_alias="KIMI_MODEL")
+  kimi_model: str = Field(default="kimi-k2.6", validation_alias="KIMI_MODEL")
+
+  # When true, cheap-path failures (empty / JSON validation) escalate once to ANTHROPIC_MODEL_PREMIUM.
+  llm_routing_escalation: bool = Field(default=True, validation_alias="LLM_ROUTING_ESCALATION")
 
   redis_url: str = Field(default="redis://localhost:6379/0", validation_alias="REDIS_URL")
 

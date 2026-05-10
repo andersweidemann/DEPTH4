@@ -6,7 +6,8 @@ import re
 from typing import Any
 
 from signal_api.ai import prompts
-from signal_api.ai.llm_client import llm_text_for_task
+from signal_api.ai.llm_client import llm_text_routed
+from signal_api.ai.model_routing import ModelTaskType
 from signal_api.config import get_settings, Settings
 
 
@@ -26,9 +27,9 @@ async def classify_news(headline: str, body: str) -> dict[str, Any]:
 
 
 def _classify_sync(settings: Settings, headline: str, body: str) -> str:
-  return llm_text_for_task(
+  return llm_text_routed(
     settings,
-    "classify",
+    ModelTaskType.news_classify,
     prompts.CLASSIFY_SYSTEM,
     prompts.classify_user_prompt(headline, body),
   )
@@ -93,9 +94,9 @@ def _scenarios_repair_sync(
   tickers: list,
   temperature: float | None,
 ) -> str:
-  return llm_text_for_task(
+  return llm_text_routed(
     settings,
-    "analysis",
+    ModelTaskType.scenarios_repair,
     prompts.SCENARIOS_REPAIR_SYSTEM,
     prompts.scenarios_repair_user_prompt(headline, body, sectors, tickers),
     temperature=temperature,
@@ -112,9 +113,9 @@ def _consequence_sync(
   orders_json: str,
   temperature: float | None,
 ) -> str:
-  return llm_text_for_task(
+  return llm_text_routed(
     settings,
-    "analysis",
+    ModelTaskType.consequence_tree,
     prompts.CONSEQUENCE_SYSTEM,
     prompts.consequence_user_prompt(headline, body, sectors, tickers, portfolio_json, orders_json),
     temperature=temperature,
@@ -140,9 +141,9 @@ def _briefing_sync(
   orders: str,
   trees: str,
 ) -> str:
-  return llm_text_for_task(
+  return llm_text_routed(
     settings,
-    "analysis",
+    ModelTaskType.daily_briefing,
     prompts.BRIEFING_SYSTEM,
     prompts.briefing_user_prompt(date_str, events, portfolio, orders, trees),
   )
@@ -179,9 +180,9 @@ def _revise_sync(
   new_headlines_digest: str,
   crowd_block: str,
 ) -> str:
-  return llm_text_for_task(
+  return llm_text_routed(
     settings,
-    "analysis",
+    ModelTaskType.revise_scenario_probabilities,
     prompts.REVISE_PROB_SYSTEM,
     prompts.revise_user_prompt(
       event_headline,
@@ -223,15 +224,17 @@ def _personalize_sync(
   orders: str,
   llm_task: str,
 ) -> str:
-  return llm_text_for_task(
+  task_type = ModelTaskType.personalize_interactive if llm_task == "interactive" else ModelTaskType.personalize_alerts
+  return llm_text_routed(
     settings,
-    llm_task,
+    task_type,
     prompts.PERSONALIZE_SYSTEM,
     prompts.personalize_user_prompt(headline, scenarios_json, portfolio, orders),
   )
 
 
 async def generate_deep_brief(depth1: str, depth2: str, depth3: str, *, llm_task: str = "interactive") -> dict[str, Any]:
+  del llm_task  # reserved for future routing overrides; always premium-tier task type today.
   s = get_settings()
   text = await asyncio.to_thread(
     _deep_brief_sync,
@@ -239,15 +242,14 @@ async def generate_deep_brief(depth1: str, depth2: str, depth3: str, *, llm_task
     depth1 or "",
     depth2 or "",
     depth3 or "",
-    llm_task,
   )
   return json.loads(_strip_fences(text))
 
 
-def _deep_brief_sync(settings: Settings, depth1: str, depth2: str, depth3: str, llm_task: str) -> str:
-  return llm_text_for_task(
+def _deep_brief_sync(settings: Settings, depth1: str, depth2: str, depth3: str) -> str:
+  return llm_text_routed(
     settings,
-    llm_task,
+    ModelTaskType.deep_brief,
     prompts.DEEP_BRIEF_SYSTEM,
     prompts.deep_brief_user_prompt(depth1, depth2, depth3),
   )
