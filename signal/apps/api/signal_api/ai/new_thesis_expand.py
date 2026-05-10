@@ -20,56 +20,76 @@ _BANNED_GENERIC = (
   "only time will tell",
   "it is difficult to predict",
   "various factors could affect",
+  "markets may react strongly",
+  "investors may reprice the asset",
+  "investors may reprice",
+  "this could impact sentiment",
+  "could impact sentiment",
+  "the thesis could play out over time",
+  "could play out over time",
+  "may be wrong",
+  "could go either way",
 )
 
-NEW_THESIS_EXPAND_SYSTEM = """You are DEPTH4 — a macro/thematic analyst helping a trader formalize a thesis.
+NEW_THESIS_EXPAND_SYSTEM = """You are DEPTH4 — the user’s first-pass macro analyst, not a form assistant.
 
-TASK (NOT simple completion): Given a sparse user thesis idea (sometimes one sentence), infer the strongest coherent \
-DEPTH4 draft they likely mean while staying faithful to their claim.
+MISSION: Take a sparse user thesis seed (often one sentence). Produce the strongest coherent DEPTH4 draft they likely mean — \
+the full analytical pass — while staying faithful to their claim.
 
-INTERNAL REASONING (do not output): work through catalyst; first- and second-order consequences; who benefits/loses; \
-messy execution path; what breaks the thesis; observable signals that confirm vs invalidate. Then compress into the JSON \
-fields only.
+DEPTH4 writes the first serious analyst draft; the user edits afterward.
 
-OUTPUT RULES:
-- Return a single JSON object only (no markdown, no code fences, no commentary).
-- Populate EVERY required field with concrete, thesis-specific prose or numbers — not generic filler.
-- Do NOT leave bracket/template placeholders like [X], [Catalyst], [Risk], [Asset], [TODO], or any [square brackets].
-- If something is uncertain, state a reasonable explicit assumption in plain words inside the relevant field — never empty.
-- Follow DEPTH4 voice: forecast/description wording in thesis_statement and scenario lines — avoid imperative Buy/Sell/\
-Go long/Go short on those strings. Trade mechanics belong in trigger_entry_setup / stop / target as observational framing.
+NON‑NEGOTIABLE BEHAVIOR:
+- Infer missing structure: catalysts, consequences, messy paths, invalidation, flows, timing.
+- Fill EVERY major JSON field with thesis‑specific content. Do not leave majors sparse when a reasonable inference exists.
+- Do NOT simply restate the user’s sentence across thesis_statement / why_now / whats_unpriced / scenarios.
+- Do NOT output generic finance filler (“markets may react”, “investors reprice”, “sentiment shifts”) — name mechanisms, \
+actors, instruments, and observables.
+- Do NOT use bracket placeholders ([Risk], [Catalyst], etc.).
+- title: concise and specific — never paste the raw seed verbatim as the only headline.
+- thesis_statement: rewrite as a sharp investment claim (mechanism + horizon), not a copy‑paste of the seed.
+- why_now: what changed or why the window is live **now** — legislation, data path, policy calendar, positioning, flows.
+- whats_unpriced: what the market still mis‑anchors on vs your read (levels of aggregation, timing, second‑order flows).
+- trigger_entry_setup / stop / target: real trade logic — observable gates, invalidation facts, what “right enough” looks \
+like — not vague “wait for confirmation”.
+- scenario_base / bull / bear: distinct real‑world paths with different confirmation facts and consequence logic — not labels \
+only.
+- insider_flow: infer plausible instruments (comma‑logic symbols) and confirm/contradict headline tags tied to this thesis \
+(regulation, enforcement, macro, sector). Prefer non‑empty tags/instruments when the thesis names an asset or theme.
 
-REQUIRED JSON SHAPE (exact keys):
+INTERNAL REASONING (never output): catalyst → first‑order → second‑order → beneficiaries/losers → messy execution → what \
+breaks the thesis → confirm vs invalidate observables. Compress into JSON fields only.
+
+OUTPUT: Single JSON object only — no markdown, fences, or commentary.
+
+SCHEMA (exact keys):
 {
-  "title": "string, <= 90 chars, scan-friendly",
-  "asset": "primary tradeable symbol uppercase e.g. BTC GLD QQQ TLT XAUUSD META — pick the clearest expression of the idea",
-  "direction": "long" or "short",
-  "thesis_statement": "2–4 sentences, hero claim + mechanism + rough horizon",
-  "why_now": "what changed or why the window is live",
-  "whats_unpriced": "what the tape still embeds vs your read",
-  "trigger_entry_setup": "observable gate / entry posture (words; no numeric spot quotes)",
-  "stop": "invalidation / risk line described in words",
-  "target": "how payoff shows up / take-profit posture in words",
-  "horizon": "e.g. 2–8 weeks or 3–6 months",
-  "probability_percent": integer 40-72 reflecting stated conviction in the idea,
-  "scenario_base": {"probability": int, "confirms": "messy/choppy path evidence", "consequence": "what it means for sizing"},
-  "scenario_bull": {"probability": int, "confirms": "clean win evidence", "consequence": "payoff framing"},
-  "scenario_bear": {"probability": int, "confirms": "thesis broken evidence", "consequence": "stand-down framing"},
+  "title": "string, scan‑friendly, <= 90 chars",
+  "asset": "primary symbol uppercase (BTC, GLD, QQQ, TLT, XAUUSD, META, …)",
+  "direction": "long" | "short",
+  "thesis_statement": "2–4 sentences; sharp claim + mechanism",
+  "why_now": "live catalyst / timing — not ‘someday’",
+  "whats_unpriced": "specific wedge vs market pricing narrative",
+  "trigger_entry_setup": "observable gate before acting (no spot quotes)",
+  "stop": "facts that prove the trade expression wrong",
+  "target": "what ‘right enough’ looks like in positioning/flows/price behavior",
+  "horizon": "realistic window e.g. 2–8 weeks or 6–18 months",
+  "probability_percent": integer 38–78 reflecting conviction (avoid lazy 50 defaults)",
+  "scenario_base": {"probability": int, "confirms": "messy/choppy path facts", "consequence": "sizing / patience logic"},
+  "scenario_bull": {"probability": int, "confirms": "clean‑win facts", "consequence": "payoff logic"},
+  "scenario_bear": {"probability": int, "confirms": "invalidation facts", "consequence": "stand‑down logic"},
   "insider_flow": {
-    "bull_instruments": ["optional tickers/symbols that would rally if thesis plays"],
-    "bear_instruments": ["symbols that weaken if thesis plays"],
-    "confirm_tags": ["short headline tags that would strengthen conviction"],
-    "contradict_tags": ["tags/forces that would weaken or kill the thesis"]
+    "bull_instruments": ["…"],
+    "bear_instruments": ["…"],
+    "confirm_tags": ["short tags tied to thesis"],
+    "contradict_tags": ["tags that kill/weaken thesis"]
   }
 }
 
-scenario_base/bull/bear probabilities must be integers >= 15 and sum to exactly 100.
+scenario probabilities: integers ≥15, sum exactly 100. Avoid lazy equal thirds unless the thesis truly supports it.
 
-FEW-SHOT FORMAT HINTS (do not copy wording literally):
-Example A seed: user ties crypto upside to US regulatory clarity bill signing → infer custody/ETF/on-ramp flows, \
-implementation lags, risk-off macro as failure mode, bill progress & flows as signals.
-Example B seed: NATO/defense spending forced higher → infer primes vs subs, EU procurement lag, budget politics, \
-ceasefire/détente as break paths."""
+FEW‑SHOT THEMES (never paste unrelated examples into unrelated seeds):
+- Crypto + US clarity/regulation → custody, ETFs, flows, rulemaking lag, enforcement risk, macro risk‑off as breaker.
+- NATO/defense spend → primes vs subs, procurement lag, budgets, ceasefire/détente risk."""
 
 FEW_SHOT_BLOCK = """
 ILLUSTRATIVE COMPLETION (structure only — never paste this example into answers for unrelated seeds):
@@ -125,12 +145,131 @@ def build_expand_user_prompt(user_idea: str) -> str:
 Now output ONLY the JSON object for the user's seed above."""
 
 
-REPAIR_SYSTEM = """You repair incomplete DEPTH4 thesis-draft JSON.
-Return JSON only (no fences). Fill EVERY required field with thesis-specific content.
-Remove ALL bracket placeholders like [Risk]. Replace generic filler with concrete mechanisms tied to the user's seed.
-scenario probabilities must be integers summing to 100."""
+REPAIR_SYSTEM = """You repair failing DEPTH4 thesis-draft JSON after automated validation.
+
+Return JSON only (no markdown fences). Same schema as production drafts.
+
+STRICT FIXES:
+- Replace generic finance filler with thesis-specific reasoning tied to the USER SEED. Infer concrete defaults (instruments, \
+tags, timing) — do not leave thin-but-valid text.
+- Remove bracket placeholders. Expand any field under minimum analytical depth.
+- Ensure thesis_statement is a rewritten investment claim — not the seed copied multiple times.
+- why_now must cite a live catalyst or calendar/timing; whats_unpriced must name a specific wedge vs consensus.
+- trigger_entry_setup, stop, target must contain observable logic (ifs/whens/unless), not vague “monitor markets”.
+- scenario_base / bull / bear must be semantically distinct world states with different confirms + consequences.
+- insider_flow: populate plausible bull/bear instruments and confirm/contradict tags when the thesis implies an asset/theme.
+- scenario probabilities: integers ≥15, sum 100; avoid 33/33/34 unless justified.
+
+Replace generic finance filler with thesis-specific reasoning. Infer concrete defaults. Do not leave thin but valid text."""
 
 SCENARIO_KEYS = ("scenario_base", "scenario_bull", "scenario_bear")
+
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+
+def _tokens(s: str) -> list[str]:
+  return [m.group(0) for m in _TOKEN_RE.finditer((s or "").lower()) if len(m.group(0)) >= 4]
+
+
+def _token_set(s: str) -> set[str]:
+  return set(_tokens(s))
+
+
+def _jaccard_sets(a: set[str], b: set[str]) -> float:
+  if not a or not b:
+    return 0.0
+  inter = len(a & b)
+  union = len(a | b)
+  return inter / union if union else 0.0
+
+
+def _norm_sentence(s: str) -> str:
+  return re.sub(r"\s+", " ", (s or "").strip().lower())
+
+
+def _seed_structure_issues(seed: str, d: dict[str, Any]) -> list[str]:
+  errs: list[str] = []
+  sn = _norm_sentence(seed)
+  if len(sn) < 10:
+    return errs
+  ts = _norm_sentence(_as_str(d.get("thesis_statement")))
+  if ts and sn == ts:
+    errs.append("thesis_equals_seed")
+  elif ts and len(sn) > 12 and len(ts) >= len(sn) * 0.82 and ts in sn:
+    errs.append("thesis_embedded_in_seed")
+  j_ts = _jaccard_sets(_token_set(sn), _token_set(ts))
+  if ts and j_ts >= 0.76 and len(ts) <= len(sn) * 1.4:
+    errs.append("thesis_too_close_to_seed")
+  return errs
+
+
+def _why_now_has_catalyst(why_now: str) -> bool:
+  low = why_now.lower()
+  return bool(
+    re.search(
+      r"\b(bill|law|act|policy|fed|ecb|rate|cpi|jobs|data|print|opec|sanction|tariff|election|war|ceasefire|deal|"
+      r"regulation|sec|etf|flows|implementation|calendar|quarter|month|week|now|today|language|committee|vote|headline|"
+      r"positioning|supply|demand|inventory|guidance|deficit|spending|nato|budget|procurement)\b",
+      low,
+    )
+  )
+
+
+def _trade_shell_weak(s: str) -> bool:
+  low = (s or "").lower()
+  vague_hits = sum(
+    1
+    for phrase in (
+      "wait for headline",
+      "monitor markets",
+      "follow through",
+      "your plan",
+      "the zone",
+      "stay nimble",
+      "watch closely",
+      "see what happens",
+    )
+    if phrase in low
+  )
+  logic_markers = sum(1 for m in (" if ", " when ", " unless ", " after ", " until ") if m in f" {low} ")
+  return len(low) < 38 or (vague_hits >= 1 and logic_markers == 0)
+
+
+def _lazy_equal_triplet(pb: int, pu: int, pe: int) -> bool:
+  probs = sorted([pb, pu, pe])
+  return probs[0] >= 32 and probs[2] <= 35
+
+
+def _scenario_texts(d: dict[str, Any]) -> list[str]:
+  out: list[str] = []
+  for sk in SCENARIO_KEYS:
+    block = d.get(sk)
+    if isinstance(block, dict):
+      out.append(_as_str(block.get("confirms")) + " " + _as_str(block.get("consequence")))
+    else:
+      out.append("")
+  return out
+
+
+def _scenarios_too_similar(d: dict[str, Any]) -> bool:
+  texts = _scenario_texts(d)
+  pairs = ((0, 1), (0, 2), (1, 2))
+  for i, j in pairs:
+    if _jaccard_sets(_token_set(texts[i]), _token_set(texts[j])) >= 0.46:
+      return True
+  return False
+
+
+def _insider_flow_total(d: dict[str, Any]) -> int:
+  inf = d.get("insider_flow")
+  if not isinstance(inf, dict):
+    return 0
+  n = 0
+  for k in ("bull_instruments", "bear_instruments", "confirm_tags", "contradict_tags"):
+    v = inf.get(k)
+    if isinstance(v, list):
+      n += len([x for x in v if _as_str(x)])
+  return n
 
 
 def _as_str(x: Any, fallback: str = "") -> str:
@@ -257,24 +396,40 @@ def validate_draft(d: dict[str, Any], seed_idea: str) -> tuple[bool, list[str]]:
   if len(seed) < 6:
     errs.append("seed_too_short")
 
-  min_story = 28
-  for key in (
-    "title",
-    "thesis_statement",
-    "why_now",
-    "whats_unpriced",
-    "trigger_entry_setup",
-    "stop",
-    "target",
-  ):
+  min_core = 32
+  min_trade = 38
+
+  for key in ("title", "thesis_statement", "why_now", "whats_unpriced"):
     v = _as_str(d.get(key))
-    if len(v) < min_story:
+    if len(v) < min_core:
       errs.append(f"short:{key}")
     if _has_brackets(v):
       errs.append(f"brackets:{key}")
     hit = _banned_hit(v)
     if hit:
       errs.append(f"banned:{key}:{hit}")
+
+  for key in ("trigger_entry_setup", "stop", "target"):
+    v = _as_str(d.get(key))
+    if len(v) < min_trade:
+      errs.append(f"short:{key}")
+    if _has_brackets(v):
+      errs.append(f"brackets:{key}")
+    hit = _banned_hit(v)
+    if hit:
+      errs.append(f"banned:{key}:{hit}")
+    if _trade_shell_weak(v):
+      errs.append(f"trade_shell_weak:{key}")
+
+  wn = _as_str(d.get("why_now"))
+  if wn and not _why_now_has_catalyst(wn):
+    errs.append("why_now_missing_catalyst_timing")
+
+  wu = _as_str(d.get("whats_unpriced"))
+  if wn and wu and _jaccard_sets(_token_set(wn), _token_set(wu)) >= 0.55:
+    errs.append("why_now_vs_unpriced_too_similar")
+
+  errs.extend(_seed_structure_issues(seed_idea, d))
 
   if len(_as_str(d.get("horizon"))) < 4:
     errs.append("short:horizon")
@@ -292,6 +447,7 @@ def validate_draft(d: dict[str, Any], seed_idea: str) -> tuple[bool, list[str]]:
     if ts.startswith(bad_start):
       errs.append("thesis_imperative_open")
 
+  pb = pu = pe = 0
   for sk in SCENARIO_KEYS:
     block = d.get(sk)
     if not isinstance(block, dict):
@@ -300,11 +456,17 @@ def validate_draft(d: dict[str, Any], seed_idea: str) -> tuple[bool, list[str]]:
     prob = _as_int(block.get("probability"), 0)
     if prob < 15:
       errs.append(f"scenario_prob_low:{sk}")
+    if sk == "scenario_base":
+      pb = prob
+    elif sk == "scenario_bull":
+      pu = prob
+    else:
+      pe = prob
     cf = _as_str(block.get("confirms"))
     cq = _as_str(block.get("consequence"))
-    if len(cf) < min_story:
+    if len(cf) < min_core:
       errs.append(f"short:{sk}_confirms")
-    if len(cq) < min_story:
+    if len(cq) < min_core:
       errs.append(f"short:{sk}_consequence")
     if _has_brackets(cf) or _has_brackets(cq):
       errs.append(f"brackets:{sk}")
@@ -312,9 +474,20 @@ def validate_draft(d: dict[str, Any], seed_idea: str) -> tuple[bool, list[str]]:
     if hit:
       errs.append(f"banned:{sk}:{hit}")
 
+  if pb and pu and pe and _lazy_equal_triplet(pb, pu, pe):
+    errs.append("lazy_equal_split_probs")
+
+  if _scenarios_too_similar(d):
+    errs.append("scenarios_semantically_similar")
+
   pp = _as_int(d.get("probability_percent"), 0)
-  if pp < 35 or pp > 85:
+  if pp < 38 or pp > 82:
     errs.append("probability_percent_range")
+  if pp == 50:
+    errs.append("probability_lazy_fifty")
+
+  if len(ast) >= 2 and _insider_flow_total(d) == 0:
+    errs.append("insider_flow_empty_inferable")
 
   return (len(errs) == 0, errs)
 

@@ -1,0 +1,34 @@
+{
+  "title": "BTC rerates if US crypto clarity unlocks institutional pipes faster than priced",
+  "asset": "BTC",
+  "direction": "long",
+  "thesis_statement": "If the Clarity Act passes with workable custody and market-structure rules, BTC can rerate as regulated pipes absorb institutional flows that today sit bottlenecked by legal ambiguity — especially if ETF balances and on-exchange volumes inflect within weeks of enactment.",
+  "why_now": "Congressional momentum and committee language are shifting while BTC still trades as if compliant rails will take quarters to matter — the legislative window is live now, not hypothetical.",
+  "whats_unpriced": "The tape anchors on signing headlines but underweights lagged broker enablement, treasury desk onboarding, and cumulative ETF flows once rule text is actionable — the repricing can arrive after the ceremony.",
+  "trigger_entry_setup": "Act only after final statutory language plus two consecutive weeks of rising ETF net flows and stablecoin transfer velocity confirming balances are moving through compliant venues — ignore one-day headline spikes without flow confirmation.",
+  "stop": "Stand down if enabling rulemaking stalls past credible deadlines, if major exchanges face existential enforcement actions, or if BTC loses structural demand after passage while macro liquidation dominates.",
+  "target": "Scale toward peaks tied to sustained flow pulses and volatility compression — trail risk once stacked balance-sheet and advisor mandate evidence confirms the narrative is paying through positioning, not only sentiment.",
+  "horizon": "6–18 months",
+  "probability_percent": 56,
+  "scenario_base": {
+    "probability": 38,
+    "confirms": "Law passes but implementation chops persist — desks rebuild stacks slowly while headline volatility resets conviction each week.",
+    "consequence": "Smaller core exposure, wider risk buffers; add size only when flows and volumes confirm pipes are filling."
+  },
+  "scenario_bull": {
+    "probability": 37,
+    "confirms": "Clean rulebook accelerates ETF and treasury pipelines; transfer volumes step-change and regulated balances rise in tandem.",
+    "consequence": "Thesis pays faster — scale methodically as flows compound while trailing invalidation levels."
+  },
+  "scenario_bear": {
+    "probability": 25,
+    "confirms": "Bill stalls, language is watered down, or macro risk-off overwhelms micro bullish catalyst before flows inflect.",
+    "consequence": "Retire the squeeze framing — cut or exit per invalidation before averaging into drawdowns."
+  },
+  "insider_flow": {
+    "bull_instruments": ["BTC", "COIN"],
+    "bear_instruments": [],
+    "confirm_tags": ["regulatory clarity", "final passage", "ETF flows", "custody rulemaking"],
+    "contradict_tags": ["bill stalls", "SEC enforcement surge", "risk-off", "stablecoin crackdown"]
+  }
+}

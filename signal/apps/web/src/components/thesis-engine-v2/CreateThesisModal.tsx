@@ -193,56 +193,189 @@ function generateDraftFromPrompt(prompt: string): Pick<
   | "contradictTags"
 > {
   const p = prompt.trim();
-  const isShort = /\bshort\b|\bweaken\b|\bfade\b|\bdownside\b|\brace\b/i.test(p);
-  const assetMatch = p.match(/\b([A-Z]{2,6}(?:USD)?)\b/);
-  const asset = (assetMatch?.[1] ?? "—").toUpperCase();
-  const title = p.length ? p.split(".")[0]!.slice(0, 72).trim() : "Untitled thesis";
+  const low = p.toLowerCase();
+
+  const explicitLong =
+    /\blong\b|\bbull\b|\bbullish\b|\brally\b|\bskyrocket\b|\bmoon\b|\bsurge\b|\brebound\b|\bbounce\b|\brerate\b/i.test(
+      low,
+    );
+  const explicitShort =
+    /\bshort\b|\bbear\b|\bbearish\b|\bcrash\b|\bplunge\b|\bweaken\b|\bfade\b|\bdownside\b|\brace\b/i.test(low);
+  const direction: "long" | "short" = explicitShort && !explicitLong ? "short" : "long";
+
+  let asset = "—";
+  if (/\bbtc\b|bitcoin\b/i.test(p)) asset = "BTC";
+  else if (/\beth\b|ethereum\b/i.test(p)) asset = "ETH";
+  else if (/\bxau\b|\bgold\b/i.test(p)) asset = "XAUUSD";
+  else if (/\bwti\b|\bbrent\b|\boil\b/i.test(p)) asset = "WTI";
+  else {
+    const assetMatch = p.match(/\b([A-Z]{2,6}(?:USD)?)\b/);
+    if (assetMatch?.[1]) asset = assetMatch[1].toUpperCase();
+  }
+
+  const clarityAct = /\bclarity\s+act\b|\bcrypto\s+clarity\b|\bgenius\s+act\b/i.test(p);
+  const regulation = /\bregulation\b|\blegislation\b|\bbill\b|\bsec\b|\bcustody\b|\betf\b|\bstatute\b/i.test(low);
+  const ceasefireGeo = /\bceasefire\b|\bpeace\b|\btalks\b/i.test(p);
+  const fedMacro = /\bfed\b|\bpivot\b|\brates\b|\bcpi\b/i.test(p);
+  const oilTheme = /\bopec\b|\bbrent\b|\bwti\b|\boil\b/i.test(p);
+
+  const firstClause = p.length ? p.split(/[.!?]/)[0]!.trim() : "";
+  let title =
+    asset === "BTC" && clarityAct
+      ? "BTC rerating risk if US crypto clarity legislation lands clean"
+      : asset !== "—" && firstClause
+        ? `${asset}: ${firstClause.slice(0, 56)}`.slice(0, 72)
+        : firstClause
+          ? firstClause.slice(0, 72)
+          : "Untitled thesis";
+
+  const thesisStatement =
+    asset === "BTC" && clarityAct
+      ? "Long BTC: workable statutory clarity plus follow-on rulemaking should pull institutional pipes and ETF balances forward faster than spot implies — especially if flows confirm after passage."
+      : direction === "long"
+        ? `Long ${asset !== "—" ? asset : "the expression"}: ${firstClause || p}`.slice(0, 520)
+        : `Short ${asset !== "—" ? asset : "the expression"}: ${firstClause || p}`.slice(0, 520);
+
+  const whyNow =
+    asset === "BTC" && clarityAct
+      ? "Congressional calendars and drafting leaks are live — BTC reprices headline risk around passage and implementation timing now, not as a distant hypothetical."
+      : regulation
+        ? "Policy calendars and headline risk are moving — the catalyst stack matters this quarter, not abstractly."
+        : ceasefireGeo
+          ? "Talk-track and battlefield headlines are shifting weekly — positioning resets faster than many hedges assume."
+          : fedMacro
+            ? "Prints and Fed guidance are in motion — the window where markets repriced stale assumptions is open."
+            : `The driver you named is showing up in headlines or positioning — the tape is reacting now rather than drifting.`;
+
+
+  const whatsUnpriced =
+    asset === "BTC" && clarityAct
+      ? "Spot anchors on signing theater; it tends to misprice how quickly custody, stablecoin rails, and advisor mandates refill once rule text is actionable."
+      : regulation
+        ? "Consensus tracks the vote; second-order enablement speed and flow absorption through compliant venues are usually under-modeled."
+        : `Price reflects the obvious narrative — the missing piece is how ${asset !== "—" ? asset : "risk"} reprices second-order flows once the catalyst proves durable.`;
+
+  const entrySetup =
+    asset === "BTC" && clarityAct
+      ? "Wait for credible statutory language plus at least two weeks of confirming ETF net flows or rising regulated balances — only size up after flows validate the policy handoff, not a one-day headline spike."
+      : `Act only after your catalyst shows up in observable evidence — use continuation or a clean retest once ${asset !== "—" ? asset : "price"} and the trigger align.`;
+
+  const stop =
+    asset === "BTC" && clarityAct
+      ? "Stand down if passage stalls or dilutes past credible timelines, if enforcement shocks break venue trust, or if BTC refuses higher flows after constructive headlines — those break the legislative-to-flows bridge."
+      : `Exit if the catalyst fails or ${asset !== "—" ? asset : "the tape"} prints your invalidation — don’t rationalize a broken setup.`;
+
+  const target =
+    asset === "BTC" && clarityAct
+      ? "Scale toward sustained flow pulses and compressed realized vol — trail risk once balances and volumes prove the thesis through positioning, not sentiment chop."
+      : `Take profits in steps toward the scenario your thesis implies — tighten risk once ${asset !== "—" ? asset : "markets"} confirm via flows or levels.`;
+
+  const horizon =
+    asset === "BTC" && clarityAct ? "6–18 months" : regulation ? "3–12 months" : oilTheme ? "4–16 weeks" : "2–8 weeks";
+
+  const probability = String(52 + (p.length % 7));
+
+  const baseConfirms =
+    asset === "BTC" && clarityAct
+      ? "Law lands but implementation chops — desks onboard slowly, headlines alternate between euphoria and skepticism, and BTC grinds with frequent resets."
+      : `Messy path: your driver still matters but cross-currents keep ${asset !== "—" ? asset : "the tape"} two-way.`;
+
+  const baseConsequence =
+    asset === "BTC" && clarityAct
+      ? "Run a smaller core, wider buffers — add only when flows and volumes prove pipes are filling."
+      : `Keep size modest; lean on your risk lines until ${asset !== "—" ? asset : "price"} picks a cleaner trend.`;
+
+  const bullConfirms =
+    asset === "BTC" && clarityAct
+      ? "Clean rulebook accelerates ETF and treasury pipelines; transfer volumes step-change and regulated balances rise together."
+      : `Clean win: the trigger clears with stacked confirming data — ${asset !== "—" ? asset : "expression"} tracks your thesis on schedule.`;
+
+  const bullConsequence =
+    asset === "BTC" && clarityAct
+      ? "Payoff arrives faster — scale methodically as flows compound while trailing invalidation levels."
+      : `Let winners run along your plan — add only while invalidation stays untouched.`;
+
+  const bearConfirms =
+    asset === "BTC" && clarityAct
+      ? "Bill stalls, language is watered down, or macro risk-off swallows the micro catalyst before flows inflect."
+      : `Broken thesis: your invalidation prints — facts or positioning show the read is wrong.`;
+
+  const bearConsequence =
+    asset === "BTC" && clarityAct
+      ? "Retire the squeeze framing — cut before averaging into a narrative that lost its mechanism."
+      : `Cut or exit per your book — don’t rebuild size into a disproved story.`;
 
   const tags: string[] = [];
   const contradict: string[] = [];
-  if (/\bceasefire\b|\bpeace\b|\btalks\b/i.test(p)) tags.push("ceasefire", "peace talks");
-  if (/\bceasefire\b|\bpeace\b|\btalks\b/i.test(p)) contradict.push("strikes", "escalation", "talks collapse");
-  if (/\bfed\b|\bpivot\b|\brates\b|\bcpi\b/i.test(p)) tags.push("Fed pivot", "rates");
-  if (/\bfed\b|\bpivot\b|\brates\b|\bcpi\b/i.test(p)) contradict.push("sticky inflation", "hawkish hold", "higher for longer");
-  if (/\bopec\b|\bbrent\b|\bwti\b|\boil\b/i.test(p)) tags.push("OPEC cuts", "oil");
-  if (/\bopec\b|\bbrent\b|\bwti\b|\boil\b/i.test(p)) contradict.push("output increase", "spare capacity", "demand slowdown");
-  if (/\bstimulus\b|\bbill\b|\bpackage\b/i.test(p)) tags.push("stimulus package");
+  if (ceasefireGeo) {
+    tags.push("ceasefire", "peace talks");
+    contradict.push("strikes", "escalation", "talks collapse");
+  }
+  if (fedMacro) {
+    tags.push("Fed pivot", "rates guidance");
+    contradict.push("sticky inflation", "hawkish hold", "higher for longer");
+  }
+  if (oilTheme) {
+    tags.push("OPEC cuts", "oil balances");
+    contradict.push("output increase", "demand slowdown");
+  }
+  if (asset === "BTC" && clarityAct) {
+    tags.push("regulatory clarity", "ETF flows", "custody rulemaking", "final passage");
+    contradict.push("bill stalls", "SEC enforcement surge", "risk-off", "diluted language");
+  } else if (regulation && asset === "BTC") {
+    tags.push("regulatory headlines", "ETF flows");
+    contradict.push("enforcement shock", "risk-off");
+  }
   if (/\btrade deal\b|\btariff\b/i.test(p)) tags.push("trade deal");
 
   const bullIns: string[] = [];
   const bearIns: string[] = [];
   if (/\bgold\b|\bxau\b/i.test(p)) bearIns.push("XAUUSD");
-  if (/\boil\b|\bwti\b|\bbrent\b/i.test(p)) bearIns.push("WTI", "Brent");
+  if (/\boil\b|\bwti\b|\bbrent\b/i.test(p)) bearIns.push("WTI");
   if (/\bdefen[cs]e\b|\bita\b/i.test(p)) bearIns.push("ITA");
-  if (/\bbtc\b/i.test(p)) bullIns.push("BTC");
-  if (/\btlt\b|\brates\b/i.test(p)) bullIns.push("TLT");
+  if (/\bbtc\b|bitcoin\b/i.test(p)) bullIns.push("BTC");
+  if (asset === "BTC" && clarityAct) bullIns.push("COIN");
+  if (/\btlt\b/i.test(p)) bullIns.push("TLT");
+
+  const confirmTags =
+    tags.length > 0
+      ? Array.from(new Set(tags)).join(", ")
+      : regulation
+        ? "policy headlines, implementation timing"
+        : "catalyst confirmation, flow shift";
+
+  const contradictTags =
+    contradict.length > 0
+      ? Array.from(new Set(contradict)).join(", ")
+      : regulation
+        ? "enforcement shock, headline reversal"
+        : "invalidation print, macro flip";
 
   return {
     title: title || "Untitled thesis",
     asset,
-    direction: isShort ? "short" : "long",
-    whyNow: `Drivers for ${asset} are shifting; positioning still lags the new path.`,
-    whatsUnpriced: `The crowd leans on the headline; the edge is what ${asset} has not repriced yet.`,
-    entrySetup: "Wait for headline plus price both confirming; enter on follow-through or a clean retest.",
-    stop: "If the confirm fails — your invalidation prints — stand down.",
-    target: "Take profits in steps toward the zone in your plan.",
-    thesisStatement: p.length ? p : "Describe your thesis in plain English, then generate a structured draft.",
-    probability: "58",
-    horizon: "2–8 weeks",
-    baseProb: "35",
-    baseConfirms: `Drivers for ${asset} stay two-way: your thesis direction can still be right but the next few prints keep resetting conviction.`,
-    baseConsequence: `Keep the existing line sized for chop; lean on Trade plan until ${asset} picks a cleaner side.`,
-    bullProb: "40",
-    bullConfirms: `The trigger you named for ${asset} clears with confirming data — the thesis basically works on schedule.`,
-    bullConsequence: `Payoff tracks closer to plan; follow Trade plan for adds, targets, and trails — no new entry story here.`,
+    direction,
+    whyNow,
+    whatsUnpriced,
+    entrySetup,
+    stop,
+    target,
+    thesisStatement: p.length ? thesisStatement : "Add your thesis idea to draft against.",
+    probability,
+    horizon,
+    baseProb: "38",
+    baseConfirms,
+    baseConsequence,
+    bullProb: "37",
+    bullConfirms,
+    bullConsequence,
     bearProb: "25",
-    bearConfirms: `Your stated invalidation for ${asset} prints — conditions show the thesis is wrong or flipped.`,
-    bearConsequence: "Retire or cut the line per Invalidation and Book.",
-
-    bullInstruments: bullIns.length ? bullIns.join(", ") : "BTC, TLT",
-    bearInstruments: bearIns.length ? bearIns.join(", ") : "WTI, ITA",
-    confirmTags: tags.length ? Array.from(new Set(tags)).join(", ") : "ceasefire, Fed pivot",
-    contradictTags: contradict.length ? Array.from(new Set(contradict)).join(", ") : "strikes, escalation",
+    bearConfirms,
+    bearConsequence,
+    bullInstruments: bullIns.length ? bullIns.join(", ") : asset === "BTC" ? "BTC" : "—",
+    bearInstruments: bearIns.join(", "),
+    confirmTags,
+    contradictTags,
   };
 }
 
@@ -343,6 +476,7 @@ export function CreateThesisModal({
 }) {
   const [aiBusy, setAiBusy] = useState(false);
   const [aiErr, setAiErr] = useState<string | null>(null);
+  const [reviewSource, setReviewSource] = useState<null | "api" | "local">(null);
 
   const initial: FormState = useMemo(
     () => ({
@@ -414,6 +548,7 @@ export function CreateThesisModal({
           setForm(initial);
           setAiErr(null);
           setAiBusy(false);
+          setReviewSource(null);
         }
       }}
     >
@@ -432,7 +567,7 @@ export function CreateThesisModal({
             <div>
               <Dialog.Title className="text-sm font-semibold text-zinc-100">Create new thesis</Dialog.Title>
               <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-                Turn a rough macro idea into a structured thesis.
+                Paste a thesis idea — DEPTH4 turns it into a full draft you can refine.
               </p>
             </div>
             <Dialog.Close
@@ -454,12 +589,18 @@ export function CreateThesisModal({
                   onClick={() => set("mode", "ai")}
                 >
                   <p className="text-[12px] font-semibold text-amber-200">Write with AI</p>
-                  <p className="mt-1 text-[11px] text-zinc-400">Describe the idea. DEPTH4 drafts the thesis + scenarios.</p>
+                  <p className="mt-1 text-[11px] text-zinc-400">
+                    Paste one sentence — DEPTH4 drafts asset, direction, why now, what&apos;s unpriced, resolution paths, and a
+                    trade shell.
+                  </p>
                 </button>
                 <button
                   type="button"
                   className="rounded-none border border-white/[0.08] bg-zinc-900/30 px-4 py-4 text-left ring-1 ring-white/[0.06] hover:bg-zinc-900/45"
-                  onClick={() => set("mode", "manual")}
+                  onClick={() => {
+                    setReviewSource(null);
+                    set("mode", "manual");
+                  }}
                 >
                   <p className="text-[12px] font-semibold text-zinc-200">Start manually</p>
                   <p className="mt-1 text-[11px] text-zinc-500">Fill the structured fields yourself.</p>
@@ -470,7 +611,7 @@ export function CreateThesisModal({
             {form.mode === "ai" ? (
               <div className="grid gap-3">
                 <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                  Describe your thesis in plain English
+                  Paste your thesis idea
                 </label>
                 <textarea
                   value={form.aiPrompt}
@@ -480,7 +621,7 @@ export function CreateThesisModal({
                   placeholder="Example: Peace talks reduce gold's war premium, but spot still reflects too much geopolitical risk."
                 />
                 <p className="text-[11px] text-zinc-500">
-                  Example: Peace talks reduce gold&apos;s war premium, but spot still reflects too much geopolitical risk.
+                  Start with one sentence. DEPTH4 thinks it through first — edit anything that looks off.
                 </p>
                 {aiErr ? (
                   <p className="text-[11px] leading-relaxed text-amber-200/90">{aiErr}</p>
@@ -510,31 +651,34 @@ export function CreateThesisModal({
                           if (!res.ok || !j) {
                             const fb = generateDraftFromPrompt(raw);
                             setForm((cur) => ({ ...cur, ...fb, mode: "review" }));
+                            setReviewSource("local");
                             setAiErr(
                               j?.error === "api_proxy_misconfigured"
-                                ? "AI draft needs DEPTH4 API URL + ingest secret on the server — using offline template."
-                                : "Could not reach thesis AI — filled a quick offline template; edit freely.",
+                                ? "Configure DEPTH4 API URL and ingest secret on the server for full AI drafts."
+                                : null,
                             );
                             return;
                           }
                           if (j.ok === true && j.draft && typeof j.draft === "object") {
                             const patch = draftFromApiResponse(j.draft);
+                            setReviewSource("api");
+                            setAiErr(null);
                             setForm((cur) => ({ ...cur, ...patch, mode: "review" }));
                             return;
                           }
                           const fb = generateDraftFromPrompt(raw);
                           setForm((cur) => ({ ...cur, ...fb, mode: "review" }));
+                          setReviewSource("local");
                           const hint =
                             j.meta?.errors_after_repair?.join(", ") ??
                             j.meta?.errors?.join(", ") ??
                             "validation_after_repair";
-                          setAiErr(
-                            `AI draft did not pass quality checks (${hint}). Offline template applied — tighten fields manually.`,
-                          );
+                          setAiErr(`Quality checks failed after repair (${hint}).`);
                         } catch {
                           const fb = generateDraftFromPrompt(form.aiPrompt.trim());
                           setForm((cur) => ({ ...cur, ...fb, mode: "review" }));
-                          setAiErr("Network error — using offline template.");
+                          setReviewSource("local");
+                          setAiErr(null);
                         } finally {
                           setAiBusy(false);
                         }
@@ -542,7 +686,7 @@ export function CreateThesisModal({
                     }}
                     disabled={!form.aiPrompt.trim() || aiBusy}
                   >
-                    {aiBusy ? "Generating…" : "Generate thesis draft"}
+                    {aiBusy ? "Drafting…" : "Draft thesis with DEPTH4"}
                   </button>
                   <button
                     type="button"
@@ -557,9 +701,25 @@ export function CreateThesisModal({
 
             {form.mode === "manual" || form.mode === "review" ? (
               <div className="grid gap-4">
+                {form.mode === "review" && reviewSource === "api" ? (
+                  <div className="rounded-none border border-white/[0.08] bg-zinc-900/35 px-3 py-2 text-[11px] leading-relaxed text-zinc-300 ring-1 ring-white/[0.05]">
+                    DEPTH4 drafted this from your idea. Edit anything.
+                  </div>
+                ) : null}
+                {form.mode === "review" && reviewSource === "local" ? (
+                  <div className="rounded-none border border-amber-500/25 bg-amber-500/10 px-3 py-2 ring-1 ring-amber-500/15">
+                    <p className="text-[11px] leading-relaxed text-amber-200/95">
+                      AI draft service unavailable — showing a lightweight local draft. Review carefully.
+                    </p>
+                    {aiErr ? <p className="mt-1 text-[10px] leading-relaxed text-zinc-500">{aiErr}</p> : null}
+                  </div>
+                ) : null}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Thesis title</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">
+                      We&apos;ll propose a short title from your idea.
+                    </p>
                     <input
                       value={form.title}
                       onChange={(e) => set("title", e.target.value)}
@@ -569,6 +729,9 @@ export function CreateThesisModal({
 
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Asset / ticker</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">
+                      We&apos;ll suggest the main ticker or basket when we can infer it.
+                    </p>
                     <input
                       value={form.asset}
                       onChange={(e) => set("asset", e.target.value)}
@@ -578,6 +741,7 @@ export function CreateThesisModal({
 
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Direction</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">Long or short — inferred from how you framed the trade.</p>
                     <div className="mt-2 flex items-center gap-2">
                       <button
                         type="button"
@@ -608,6 +772,7 @@ export function CreateThesisModal({
 
                   <div className="sm:col-span-2">
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Why now</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">What changed to make this thesis live now.</p>
                     <textarea
                       value={form.whyNow}
                       onChange={(e) => set("whyNow", e.target.value)}
@@ -618,6 +783,9 @@ export function CreateThesisModal({
 
                   <div className="sm:col-span-2">
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">What&apos;s unpriced</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">
+                      The part of the story the market still seems to be missing.
+                    </p>
                     <textarea
                       value={form.whatsUnpriced}
                       onChange={(e) => set("whatsUnpriced", e.target.value)}
@@ -628,6 +796,7 @@ export function CreateThesisModal({
 
                   <div className="sm:col-span-2">
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Entry setup</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">What you want to see before acting.</p>
                     <textarea
                       value={form.entrySetup}
                       onChange={(e) => set("entrySetup", e.target.value)}
@@ -638,6 +807,7 @@ export function CreateThesisModal({
 
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Stop</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">What would prove this trade expression wrong.</p>
                     <input
                       value={form.stop}
                       onChange={(e) => set("stop", e.target.value)}
@@ -647,6 +817,7 @@ export function CreateThesisModal({
 
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Target</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">What &apos;right enough&apos; looks like.</p>
                     <input
                       value={form.target}
                       onChange={(e) => set("target", e.target.value)}
@@ -655,7 +826,12 @@ export function CreateThesisModal({
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Thesis title-line (plain English)</label>
+                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                      Thesis statement (plain English)
+                    </label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">
+                      The sharpened investment claim — not the same line repeated across fields.
+                    </p>
                     <textarea
                       value={form.thesisStatement}
                       onChange={(e) => set("thesisStatement", e.target.value)}
@@ -666,6 +842,7 @@ export function CreateThesisModal({
 
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Starting probability</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">A plausible opening conviction — adjust after you review.</p>
                     <div className="mt-2 flex items-center gap-2">
                       <input
                         value={form.probability}
@@ -679,6 +856,7 @@ export function CreateThesisModal({
 
                   <div>
                     <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Time horizon</label>
+                    <p className="mt-1 text-[10px] leading-snug text-zinc-600">How long this thesis should reasonably take to prove or break.</p>
                     <input
                       value={form.horizon}
                       onChange={(e) => set("horizon", e.target.value)}
@@ -693,7 +871,7 @@ export function CreateThesisModal({
                   <div>
                     <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Resolution paths</p>
                     <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
-                      Three ways <span className="text-zinc-400">this</span> thesis can resolve — not three different trades. Probabilities should sum to about 100%.
+                      Three ways this thesis can actually play out — not three separate trades. Probabilities should sum to about 100%.
                     </p>
                   </div>
 
@@ -798,7 +976,7 @@ export function CreateThesisModal({
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] px-5 py-4">
             <p className="text-[11px] text-zinc-500">
-              DEPTH4 will monitor signals against your trigger and log probability changes over time.
+              DEPTH4 watches your trigger and logs how conviction shifts as headlines and flows arrive.
             </p>
             <div className="flex items-center gap-2">
               <Dialog.Close className="min-h-11 rounded-md px-4 py-2.5 text-[14px] font-medium text-zinc-400 hover:bg-zinc-900/60 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] sm:text-zinc-500">

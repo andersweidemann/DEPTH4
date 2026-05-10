@@ -38,7 +38,7 @@ export function InsiderFlowSetupFields({
     <div className={cn("grid gap-3", className)}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Insider Flow setup (optional)</p>
       <p className="text-[11px] leading-relaxed text-zinc-500">
-        Configure instruments + confirm tags to monitor suspicious pre-headline flow for this thesis.
+        Optional monitoring for suspicious pre-headline flow tied to this thesis — DEPTH4 can suggest tags when it infers a theme.
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>

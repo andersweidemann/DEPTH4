@@ -12,13 +12,13 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const supabaseKey = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  const login = new URL("/login", request.url);
+  const welcome = new URL("/", request.url);
 
   if (!supabaseUrl || !supabaseKey || !isLikelySupabaseJwtAnonKey(supabaseKey)) {
-    return NextResponse.redirect(login);
+    return NextResponse.redirect(welcome);
   }
 
-  const res = NextResponse.redirect(login);
+  const res = NextResponse.redirect(welcome);
   const jar = await cookies();
   const s = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
