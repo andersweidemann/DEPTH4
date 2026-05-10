@@ -3,6 +3,12 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { anthropicMessages } from "@/lib/macro-reasoning/anthropic-messages";
 import {
+  defaultTierForCronTask,
+  resolveCronAnthropicModel,
+  tierMaxTokens,
+  type CronLlmTaskType,
+} from "@/lib/macro-reasoning/model-routing";
+import {
   MACRO_EVENT_REASONING_PROMPT_VERSION,
   MACRO_EVENT_REASONING_SYSTEM,
   buildMacroReasoningUserPrompt,
@@ -23,8 +29,7 @@ import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 
 export const runtime = "nodejs";
 
-/** Default when `ANTHROPIC_MODEL` unset — strongest model for macro reasoning quality checks. */
-const DEFAULT_MODEL = "claude-opus-4-7";
+const EVENT_REASONING_CRON_TASK: CronLlmTaskType = "macro_event_reasoning";
 
 function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
@@ -139,12 +144,17 @@ async function runEventReasoning() {
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const service = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
   const apiKey = (process.env.ANTHROPIC_API_KEY ?? "").trim();
-  const model = (process.env.ANTHROPIC_MODEL ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
+  const tier = defaultTierForCronTask(EVENT_REASONING_CRON_TASK);
+  const model = resolveCronAnthropicModel(process.env, EVENT_REASONING_CRON_TASK);
   // Production safety: keep each cron invocation small so 30s schedulers don't time out.
   // Allow env var, but hard-cap to 1 by default.
   const clusterLimitEnv = clamp(Number(process.env.EVENT_REASONING_CLUSTER_LIMIT ?? "1"), 1, 25);
   const clusterLimit = Math.min(1, clusterLimitEnv);
-  const maxTokens = clamp(Number(process.env.EVENT_REASONING_MAX_TOKENS ?? "8192"), 512, 16_384);
+  const maxTokens = clamp(
+    Number(process.env.EVENT_REASONING_MAX_TOKENS ?? String(tierMaxTokens(tier))),
+    512,
+    16_384,
+  );
 
   if (!url || !service) {
     return NextResponse.json(

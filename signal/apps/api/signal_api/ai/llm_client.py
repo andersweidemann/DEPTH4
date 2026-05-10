@@ -23,6 +23,7 @@ from signal_api.ai.model_routing import (
   tier_starts_on_premium,
   tier_uses_terse_prefix,
 )
+from signal_api.ai import model_budget
 from signal_api.config import Settings, get_settings
 
 
@@ -36,6 +37,11 @@ _TERSE_PREFIX = (
 _COMPLETION_CACHE: OrderedDict[str, tuple[float, str]] = OrderedDict()
 _COMPLETION_CACHE_TTL_SEC = 90.0
 _COMPLETION_CACHE_MAX = 48
+
+
+def clear_completion_cache() -> None:
+  """Test hook: in-memory completion cache only."""
+  _COMPLETION_CACHE.clear()
 
 
 def _norm_provider(p: str | None) -> str:
@@ -329,8 +335,15 @@ def llm_text_routed(
       return cached
 
   esc = settings.llm_routing_escalation
-  max_primary = tier_max_tokens(tier)
-  terse = tier_uses_terse_prefix(tier)
+  starts_premium = tier_starts_on_premium(tier, task_type)
+
+  cap_tier = (
+    ModelTaskTier.standard
+    if (starts_premium and not model_budget.premium_call_allowed(settings, high_stakes=high_stakes))
+    else tier
+  )
+  max_primary = tier_max_tokens(cap_tier)
+  terse = tier_uses_terse_prefix(cap_tier)
   sys_primary = _apply_system_style(system, terse=terse)
 
   def run_premium(*, escalation_leg: bool) -> str:
@@ -354,8 +367,21 @@ def llm_text_routed(
     )
     return text
 
-  if tier_starts_on_premium(tier, task_type):
+  if starts_premium and model_budget.premium_call_allowed(settings, high_stakes=high_stakes):
     return run_premium(escalation_leg=False)
+
+  if starts_premium and not model_budget.premium_call_allowed(settings, high_stakes=high_stakes):
+    hit = model_budget.first_exceeded_budget_window(settings)
+    if hit:
+      w, sp, cp = hit
+      model_budget.log_premium_budget_block(
+        task_type=task_type,
+        window=w,
+        spent_usd=sp,
+        cap_usd=cp,
+        degraded_to_cheap=True,
+        escalation_blocked=False,
+      )
 
   def run_cheap_path() -> tuple[str, str, str]:
     """Returns text, provider label, model id for telemetry."""
@@ -397,11 +423,24 @@ def llm_text_routed(
   if v_fn and task_accepts_json_validation(task_type):
     ok_val = v_fn(primary)
 
-  need_esc = esc and (
-    high_stakes
-    or not (primary or "").strip()
-    or (v_fn is not None and task_accepts_json_validation(task_type) and ok_val is False)
+  budget_blocks_escalation = not high_stakes and model_budget.premium_budget_exceeded(settings)
+  would_escalate = high_stakes or not (primary or "").strip() or (
+    v_fn is not None and task_accepts_json_validation(task_type) and ok_val is False
   )
+  if esc and budget_blocks_escalation and would_escalate:
+    hit = model_budget.first_exceeded_budget_window(settings)
+    if hit:
+      w, sp, cp = hit
+      model_budget.log_premium_budget_block(
+        task_type=task_type,
+        window=w,
+        spent_usd=sp,
+        cap_usd=cp,
+        degraded_to_cheap=False,
+        escalation_blocked=True,
+      )
+
+  need_esc = esc and not budget_blocks_escalation and would_escalate
   if need_esc:
     out = run_premium(escalation_leg=True)
     if use_cache:

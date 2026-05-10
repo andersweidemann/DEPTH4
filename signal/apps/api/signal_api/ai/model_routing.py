@@ -22,10 +22,9 @@ from __future__ import annotations
 import json
 import re
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import Any
 
-if TYPE_CHECKING:
-  from signal_api.config import Settings
+from signal_api.config import Settings
 
 
 def strip_json_fences(t: str) -> str:
@@ -140,3 +139,51 @@ def default_validator_for_task(task_type: str):
 def describe_task_tier_matrix() -> dict[str, str]:
   """Human-readable tier map for docs / ops."""
   return {k: v.value for k, v in _TASK_DEFAULT_TIER.items()}
+
+
+def validator_kind_for_task(task_type: str) -> str:
+  if task_type == ModelTaskType.daily_briefing:
+    return "briefing_non_trivial"
+  if task_type in {
+    ModelTaskType.news_classify,
+    ModelTaskType.consequence_tree,
+    ModelTaskType.scenarios_repair,
+    ModelTaskType.revise_scenario_probabilities,
+    ModelTaskType.personalize_alerts,
+    ModelTaskType.personalize_interactive,
+    ModelTaskType.deep_brief,
+  }:
+    return "json_object_or_array"
+  return "none"
+
+
+def build_llm_routing_matrix(settings: Settings) -> dict[str, Any]:
+  """Concise routing matrix for ops / debug (no secrets)."""
+  tasks: list[dict[str, Any]] = []
+  for tt in ModelTaskType:
+    dt = _TASK_DEFAULT_TIER.get(tt, ModelTaskTier.standard)
+    tasks.append(
+      {
+        "task_type": tt.value,
+        "default_tier": dt.value,
+        "validator": validator_kind_for_task(tt.value),
+        "starts_on_premium_by_default": tier_starts_on_premium(dt, tt.value),
+        "max_tokens_default": tier_max_tokens(dt),
+      }
+    )
+  return {
+    "tasks": tasks,
+    "describe_task_tier_matrix": describe_task_tier_matrix(),
+    "cheap_path": "kimi if KIMI_API_KEY+KIMI_MODEL else anthropic ANTHROPIC_MODEL_CHEAP",
+    "anthropic_model_cheap": settings.anthropic_model_cheap,
+    "anthropic_model_premium": settings.anthropic_model_premium,
+    "kimi_model": settings.kimi_model,
+    "llm_routing_escalation": settings.llm_routing_escalation,
+    "llm_premium_daily_budget_usd": settings.llm_premium_daily_budget_usd,
+    "llm_premium_hourly_budget_usd": settings.llm_premium_hourly_budget_usd,
+  }
+
+
+def format_llm_routing_matrix(settings: Settings) -> str:
+  """Plain-text summary for logs or copy-paste."""
+  return json.dumps(build_llm_routing_matrix(settings), indent=2, sort_keys=True)

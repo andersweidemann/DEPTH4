@@ -63,6 +63,11 @@ class Settings(BaseSettings):
   # When true, cheap-path failures (empty / JSON validation) escalate once to ANTHROPIC_MODEL_PREMIUM.
   llm_routing_escalation: bool = Field(default=True, validation_alias="LLM_ROUTING_ESCALATION")
 
+  # Premium (ANTHROPIC_MODEL_PREMIUM) spend caps — rough USD from telemetry estimates; in-process per replica.
+  # 0 disables that window. Exceeded → block premium escalation unless high_stakes; premium-first tasks degrade to cheap.
+  llm_premium_daily_budget_usd: float = Field(default=0.0, validation_alias="LLM_PREMIUM_DAILY_BUDGET_USD")
+  llm_premium_hourly_budget_usd: float = Field(default=0.0, validation_alias="LLM_PREMIUM_HOURLY_BUDGET_USD")
+
   redis_url: str = Field(default="redis://localhost:6379/0", validation_alias="REDIS_URL")
 
   # If set, POST /cron/ingest-once with header X-Depth4-Ingest-Secret: <value> runs one RSS cycle (free Render spin-up).

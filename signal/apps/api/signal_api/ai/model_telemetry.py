@@ -88,3 +88,14 @@ def emit_llm_job(
       estimated_cost_usd=cost,
     )
   )
+  try:
+    from signal_api.config import get_settings
+
+    s = get_settings()
+    mp = (s.anthropic_model_premium or "").strip().lower()
+    if mp and (provider or "").lower() == "anthropic" and (model or "").strip().lower() == mp:
+      from signal_api.ai import model_budget
+
+      model_budget.record_premium_spend(cost)
+  except Exception:
+    pass
