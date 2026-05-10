@@ -45,7 +45,7 @@ dispersion, index diversification, basket repricing / reprices cleanly, convexit
 - Trigger / Trade / Invalidation / Time stop: each once, observable.
 - Why thesis exists: framing only; no pasting hero / edge / trade.
 - Risk factors: new words; never paste invalidation again.
-- Scenarios: thesis-specific; name the asset and driver. Ban generic filler like: "Trend continues with noisy headlines", "Catalyst confirms direction early", "Base trade plan remains operative", "Invalidation triggers hit", "Accelerated path to targets."
+- Scenario view (resolution paths): exactly three outcomes for the **same** long/short — Clean win / Messy win / Thesis broken — with probabilities summing ~100%. Each path needs (1) what happens in the world and (2) what it means for the **current** trade (size, targets, time, invalidation, Book). Do **not** write three different theses or suggest new entry trades. Do **not** contradict the thesis direction; ban generic filler like: "Trend continues with noisy headlines", "Catalyst confirms direction early", "Base trade plan remains operative", "Invalidation triggers hit", "Accelerated path to targets." Name real drivers and the asset (rigs, OPEC, GLD, TLT, etc.).
 
 5) FEED / SCAN LAYER — teaser only: headline, thesis link, hero line, one impact line; no thesis paragraphs in feed fields.
 

@@ -88,11 +88,10 @@ function computeSuggestedUpdate(args: {
   const bump = signalLevel >= 4 ? 12 : 7;
   const next = { ...prior };
 
-  // Without full thesis-direction + scenario semantics, we only nudge Base up/down.
-  // confirmHit => reduce base uncertainty slightly; contradictHit => increase uncertainty.
+  // Storage keys: base=messy win, bull=clean win, bear=thesis broken. Heuristic only nudges messy (base) up/down.
+  // confirmHit => slightly higher conviction messy path; contradictHit => more weight to tails (clean/broken).
   if (confirmHit) {
     next.base = clamp(prior.base + bump, 5, 90);
-    // Take proportionally from bull/bear.
     const take = next.base - prior.base;
     next.bull = clamp(prior.bull - Math.round(take * 0.5), 5, 90);
     next.bear = clamp(prior.bear - Math.round(take * 0.5), 5, 90);

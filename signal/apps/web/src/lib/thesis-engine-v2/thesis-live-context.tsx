@@ -28,6 +28,7 @@ import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/typ
 import type { InsiderFlowPatternType, InsiderFlowStatus } from "@/lib/thesis-engine-v2/insider-flow/types";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { createClient as createSbClient } from "@/lib/supabase/client";
+import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 
 const STAR_KEY = "depth4.v2.starred.v1";
 const MAX_TICKER = 14;
@@ -593,10 +594,10 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
           const consequenceText =
             scenarioLabel === "bull"
-              ? "Faster path to your stated targets — stay disciplined on size."
+              ? "Conviction tilts toward this thesis paying roughly on plan — still size and trail per Trade plan; do not invent a new entry here."
               : scenarioLabel === "bear"
-                ? "Stand down: trim or exit per your invalidation plan."
-                : "Middle path holds — keep the trade plan you already set.";
+                ? "Conviction tilts toward invalidation — follow Invalidation and Book; trim or retire the line per your rules."
+                : "Same thesis, choppier path — keep size cautious until drivers line up cleanly.";
 
           pushAlert({
             thesisId: r.thesisId,
@@ -605,13 +606,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
             scenario: scenarioLabel,
             oldProbability: oldP,
             newProbability: newP,
-            confirmText: `${scenarioLabel === "bull" ? "Bull" : scenarioLabel === "bear" ? "Bear" : "Base"} case ${oldP}% → ${newP}%`,
-            consequenceText: `Consequence: ${consequenceText}.`,
+            confirmText: `${displayLabelForDbScenarioKey(scenarioLabel)} ${oldP}% → ${newP}%`,
+            consequenceText: `Consequence: ${consequenceText}`,
             impact: scenarioLabel === "bear" ? "major_negative" : scenarioLabel === "bull" ? "major_positive" : "neutral",
           });
 
           if (bigMove || (leadChanged && scenarioLabel !== "base")) {
-            pushToast(`${title}: ${scenarioLabel} ${oldP}% → ${newP}%`);
+            pushToast(`${title}: ${displayLabelForDbScenarioKey(scenarioLabel)} ${oldP}% → ${newP}%`);
           }
         } else {
           const should = pref === "any" || (pref === "major" && signalLevel >= 4);

@@ -60,6 +60,11 @@ Money is still expensive. Companies that throw off steady cash can fund AI and e
 4) TRIGGER / TRADE / EXIT / TIME STOP: observable trigger; trade names tickers and execution framing (Enter / Trim / etc., informational disclaimer applies); invalidation states what proves you wrong; time stop if thesis never fires on schedule (e.g. two quarters / two earnings seasons).
 5) DEPTH4 retail voice: short direct sentences; pass the DEPTH4 RETAIL VOICE TEST (see depth4-retail-voice-constitution module, injected with macro prompts); ban consultant deck speak.
 
+6) SCENARIO VIEW — RESOLUTION PATHS (same trade, three outcomes; not Base/Bull/Bear alternate bets)
+- Exactly three paths with labels clean_win / messy_win / thesis_broken (display: "Clean win", "Messy win", "Thesis broken"), each with probability (sum ~100%), what_happens, consequence_for_trade.
+- All three are conditional on the **current** thesis direction (long or short). Do not propose unrelated entry trades. Do not contradict the hero forecast.
+- Consequence must reference Trade plan, Invalidation, Book where appropriate — thesis-specific, not copy-paste templates.
+
 CANONICAL ONE-LINE (QQQ — 3-second scan shape for any thesis)
 "${DEPTH4_CANONICAL_QQQ_ONE_LINE}"
 `.trim();
@@ -84,4 +89,5 @@ DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO D
 - **why_thesis_exists**: 3–4 short paragraphs, framing ONLY (why the lens exists). Reference "see Trigger / Trade / Invalidation" instead of pasting them.
 - **risk_factors**: summarize; **reference** Invalidation ("see Invalidation") — never paste the full invalidation block again.
 - **probability_rationale**: evidence / odds only — not a third copy of the hero line.
+- **scenario_view / resolution paths** (when generating structured scenario JSON): use the clean_win / messy_win / thesis_broken contract above; map any legacy Base/Bull/Bear copy to messy/clean/broken semantics before returning.
 `.trim();

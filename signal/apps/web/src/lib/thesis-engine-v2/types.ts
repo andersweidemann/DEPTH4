@@ -104,7 +104,10 @@ export type Thesis = {
   target1?: string;
   target2?: string;
 
-  /** Optional user-authored scenario framing (used for user theses). */
+  /**
+   * Optional user-authored resolution paths (user theses). Storage keys only:
+   * `base` → messy win, `bull` → clean win, `bear` → thesis broken (matches `scenario_probabilities` in Supabase).
+   */
   scenarioOverrides?: {
     base: { probability: number; confirmation: string; marketConsequence: string };
     bull: { probability: number; confirmation: string; marketConsequence: string };
@@ -138,12 +141,18 @@ export type ThesisEvidence = {
   interpretation: string;
 };
 
+export type ThesisScenarioPathKey = "clean_win" | "messy_win" | "thesis_broken";
+
+/** How this single long/short thesis can resolve (not parallel alternate trades). */
 export type ThesisScenario = {
   id: string;
   thesisId: string;
-  label: "Base case" | "Bull case" | "Bear case";
+  pathKey: ThesisScenarioPathKey;
+  label: "Clean win" | "Messy win" | "Thesis broken";
   probability: number;
+  /** Narrative: how the world looks if this path plays out. */
   confirmation: string;
+  /** What it means for the current trade (size, targets, invalidation, Book). */
   marketConsequence: string;
 };
 

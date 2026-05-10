@@ -37,6 +37,7 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 
 function withCatalogHeader(
   bundle: ThesisDetailBundle,
@@ -678,8 +679,8 @@ export function ThesisDetailClient({
             </div>
             {insider.applied || insider.suggested ? (
               <p className="mt-2 text-[11px] text-zinc-500">
-                {insider.applied ? "Applied" : "Suggested"}: Base {((insider.applied ?? insider.suggested)!.base)}% · Bull{" "}
-                {((insider.applied ?? insider.suggested)!.bull)}% · Bear {((insider.applied ?? insider.suggested)!.bear)}%
+                {insider.applied ? "Applied" : "Suggested"}: Messy win {((insider.applied ?? insider.suggested)!.base)}% · Clean win{" "}
+                {((insider.applied ?? insider.suggested)!.bull)}% · Thesis broken {((insider.applied ?? insider.suggested)!.bear)}%
               </p>
             ) : null}
           </div>
@@ -687,14 +688,17 @@ export function ThesisDetailClient({
 
         <ScenarioPanel
           scenarios={(() => {
-            if (!insider?.applied) return scenarios;
-            return scenarios.map((s) =>
-              s.label === "Base case"
-                ? { ...s, probability: insider.applied!.base }
-                : s.label === "Bull case"
-                  ? { ...s, probability: insider.applied!.bull }
-                  : { ...s, probability: insider.applied!.bear },
-            );
+            const base = normalizeThesisScenarios(scenarios);
+            if (!insider?.applied) return base;
+            return base.map((s) => {
+              const p =
+                s.pathKey === "messy_win"
+                  ? insider.applied!.base
+                  : s.pathKey === "clean_win"
+                    ? insider.applied!.bull
+                    : insider.applied!.bear;
+              return { ...s, probability: p };
+            });
           })()}
         />
 
@@ -702,7 +706,7 @@ export function ThesisDetailClient({
           updates={(() => {
             if (!insider?.latest || (!insider.applied && !insider.suggested)) return advisoryLog;
             const eff = insider.applied ?? insider.suggested;
-            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Base ${eff!.base}%, Bull ${eff!.bull}%, Bear ${eff!.bear}%.`;
+            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Messy win ${eff!.base}%, Clean win ${eff!.bull}%, Thesis broken ${eff!.bear}%.`;
             return [
               { id: `${thesis.id}-if-${insider.latest.id}`, thesisId: thesis.id, timestamp: "Now", text: line },
               ...advisoryLog,

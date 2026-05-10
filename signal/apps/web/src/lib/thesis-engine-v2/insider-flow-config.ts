@@ -27,6 +27,7 @@ export function normalizeInsiderFlowForDb(insiderFlow?: Thesis["insiderFlow"]): 
   };
 }
 
+/** Returns DB row shape: `base`=messy win, `bull`=clean win, `bear`=thesis broken. */
 export function scenarioProbabilitiesForDb(thesis: Thesis): { base: number; bull: number; bear: number } {
   if (thesis.scenarioOverrides) {
     return {

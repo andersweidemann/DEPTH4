@@ -218,7 +218,7 @@ export default function HelpPage() {
 
               <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">How it works</h3>
               <ul className="space-y-2">
-                <Bullet>You configure bull-case and bear-case instruments when creating a thesis (or let the AI suggest them).</Bullet>
+                <Bullet>You configure confirming and contradicting tape instruments when creating a thesis (or let the AI suggest them).</Bullet>
                 <Bullet>DEPTH4 monitors those instruments every 5 minutes.</Bullet>
                 <Bullet>If returns move beyond normal volatility and volume spikes, a flow anomaly is detected.</Bullet>
                 <Bullet>If the move matches a scenario but no matching confirm headline exists yet, it is labeled an <strong className="text-zinc-100">unconfirmed leak</strong>.</Bullet>
@@ -234,7 +234,7 @@ export default function HelpPage() {
                 <Bullet>
                   Evidence log style entry:
                   <ExampleBox>
-                    Insider flow detected: TLT −3.2%, 5× volume → Bear case +15pts
+                    Insider flow detected: TLT −3.2%, 5× volume → Clean win +15pts
                   </ExampleBox>
                 </Bullet>
               </ul>
@@ -245,12 +245,14 @@ export default function HelpPage() {
                   You have a thesis: <strong className="text-zinc-100">“Fed pivot delayed — TLT weakness.”</strong>
                 </p>
                 <p>
-                  You map <strong className="text-zinc-100">TLT</strong> and long-duration bonds to the bear case, and add confirm tags like{" "}
-                  <strong className="text-zinc-100">“Fed pivot”</strong> and <strong className="text-zinc-100">“rates”</strong>.
+                  You map <strong className="text-zinc-100">TLT</strong> and long-duration bonds to the instrument list DEPTH4 watches for tape
+                  confirmation, and add confirm tags like <strong className="text-zinc-100">“Fed pivot”</strong> and{" "}
+                  <strong className="text-zinc-100">“rates”</strong>.
                 </p>
                 <p>
-                  At 11:42, TLT dumps −3.2% on 5× normal volume, but there is no Fed headline yet. DEPTH4 flags a bear-leak anomaly and raises the bear
-                  case probability from 20% to 35%. 47 minutes later, a Bloomberg headline confirms delayed easing — the anomaly flips to “Confirmed.”
+                  At 11:42, TLT dumps −3.2% on 5× normal volume, but there is no Fed headline yet. DEPTH4 flags a tape anomaly and raises the linked
+                  resolution-path probability (for example Clean win) from 20% to 35%. 47 minutes later, a Bloomberg headline confirms delayed easing —
+                  the anomaly flips to “Confirmed.”
                 </p>
               </div>
 

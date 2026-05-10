@@ -6,7 +6,7 @@
  * - This is not a live market feed. Detail bundles omit fabricated evidence or ticker lines; real evidence
  *   comes from `thesis_evidence_log` and related pipelines.
  */
-import type { Thesis, ThesisDetailBundle, ThesisScenario } from "./types";
+import type { Thesis, ThesisDetailBundle, ThesisScenario, ThesisScenarioPathKey } from "./types";
 import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";
 import { formatThesisMicroLabel, getThesisDisplayTitle } from "./thesis-display-title";
 import { normalizeThesisNarrativeFields } from "./thesis-db-body";
@@ -638,193 +638,242 @@ export function getThesisBySlug(slug: string): Thesis | undefined {
   return CATALOG_THESES.find((t) => t.slug === slug);
 }
 
-/** Per-thesis scenario copy — no generic “trend continues” placeholders (retail voice constitution). */
+/** Per-thesis resolution paths — one trade, three outcomes; thesis-specific drivers (retail voice constitution). */
 function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario[] {
   const { slug, id } = thesis;
   const sym = thesis.asset;
 
   const row = (
     sc: 1 | 2 | 3,
-    label: ThesisScenario["label"],
+    pathKey: ThesisScenarioPathKey,
     probability: number,
     confirmation: string,
     marketConsequence: string,
   ): ThesisScenario => ({
     id: `${slug}-sc${sc}`,
     thesisId: id,
-    label,
+    pathKey,
+    label: pathKey === "clean_win" ? "Clean win" : pathKey === "messy_win" ? "Messy win" : "Thesis broken",
     probability,
     confirmation,
     marketConsequence,
   });
 
   switch (slug) {
+    case "war-peace-gold-short":
+      return [
+        row(
+          1,
+          "clean_win",
+          40,
+          "Calm geopolitical weeks stack, ETF flows show funds trimming war hedges on GLD, and XAU spot bleeds the fear bid without a new strike.",
+          "The GLD / XAU short pays close to plan; scale toward Trade plan targets and trail using the levels you already set — no new entry story here.",
+        ),
+        row(
+          2,
+          "messy_win",
+          35,
+          "Talks keep progressing but gold chops on mixed headlines: surprise CPI, fake escalation tweets, or GLD flow noise spike the tape while the broader drift still favors lower.",
+          "Direction is still right but payoff is slower and uglier; keep the short smaller, widen patience, and lean on risk lines in Trade plan.",
+        ),
+        row(
+          3,
+          "thesis_broken",
+          25,
+          "A kinetic headline returns, GLD gaps through your stop band, or spot holds above the weekly invalidation in your book.",
+          "Thesis is wrong or early; follow Invalidation and retire or sharply cut the short per Book — do not rationalize new risk.",
+        ),
+      ];
     case "strait-hormuz-oil-long":
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          "Gulf headlines stay hot but there is no verified strait closure yet; crude hangs in a range.",
-          "Hold USO small until freight, insurance, or policy confirms the jump window.",
+          "Verified friction on the strait route or a sharp benchmark freight spike within days while navy and insurer language hardens.",
+          "USO gaps and trends toward upper targets; add only on your Trade plan with gap-aware stops — still one Hormuz long, not a fresh punt.",
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          "Verified friction on the route or a sharp benchmark freight spike within days.",
-          "USO can gap up — add only with a hard stop and a plan for headline gaps.",
+          "Gulf headlines run hot but there is no verified closure yet; crude oscillates as inventory prints fight routing fear.",
+          "Jump-risk long stays valid but choppy; size for ranges until freight or policy confirms the squeeze window.",
         ),
-        row(3, "Bear case", 25, "Official stand-down plus a week of calm shipping quotes.", "Exit the Hormuz jump-risk long."),
+        row(
+          3,
+          "thesis_broken",
+          25,
+          "Official stand-down plus a week of calm insurance quotes and normal tanker flows — chokepoint fear never converts to price.",
+          "Exit the Hormuz USO long per Invalidation; log it clean in Book.",
+        ),
       ];
     case "opec-unity-fracturing":
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          "US rigs slip slowly while OPEC keeps tough talk; oil drifts higher without a crisis.",
-          "Grind USO higher in steps; add size only after rig data and cartel language align.",
+          "US shale slows, OPEC holds the line, and rig data plus cartel language keep the tight-supply story intact through the quarter.",
+          "The long USO thesis pays close to plan; scale into strength toward targets and follow your normal trailing rules in Trade plan.",
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          "Back-to-back weak rig prints and OPEC holds quota discipline on the tape.",
-          "USO extends toward the upper targets in your trade plan.",
+          "Supply is roughly tight, but headlines are noisy: surprise inventory builds, political noise, and mixed data keep oil choppy.",
+          "Thesis is still broadly right but payoff is slower; keep the long but size more cautiously and lean on risk management in Trade plan.",
         ),
-        row(3, "Bear case", 25, "Rigs re-accelerate or quota cheating shows up in headlines.", "Stand down the slow-shale / OPEC story."),
+        row(
+          3,
+          "thesis_broken",
+          25,
+          "Rigs re-accelerate or OPEC cohesion cracks in headlines and data — the market reads spare barrels as easy again.",
+          "Thesis is wrong or early; follow Invalidation and retire or sharply reduce the USO long per Book.",
+        ),
       ];
     case "fed-pivot-delayed-tlt-weakness":
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          "Inflation and jobs prints stay choppy; TLT whipsaws around the first-cut debate.",
-          "Keep TLT downside lean tactical per plan; only scale after a clean hot-print pack.",
+          "Hot CPI or payrolls plus Fed speakers pushing the first cut into next year; long Treasury prices sell as the curve reprices slower easing.",
+          "The TLT short pays in line with the delay-cut read; fade strength per Trade plan and respect the next data cluster.",
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          "Core CPI cools twice and payrolls soften — the Fed gets room to ease sooner.",
-          "Close TLT downside positioning; the late-cut repricing thesis is wrong.",
+          "Inflation and jobs prints chop month to month; TLT whipaws around where futures price the first cut while the Fed still sounds cautious.",
+          "Higher-for-longer bias can still win but path is noisy; keep size tactical and expect a longer clock than one print.",
         ),
         row(
           3,
-          "Bear case",
+          "thesis_broken",
           25,
-          "Hot CPI or hawkish Fed push — the market moves the first cut later again.",
-          "Scale TLT downside on strength; yields lead the repricing.",
+          "Core CPI cools two prints in a row and payrolls soften together — the window for aggressive Fed pushback closes.",
+          "Cover the TLT short per Invalidation; the late-cut repricing thesis is not the right frame.",
         ),
       ];
     case "us-defense-repricing-rtx-lmt":
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          "Awards trickle in; RTX tracks the market while backlog lines creep up.",
-          "Accumulate RTX on dips; wait for filing lines to confirm the award path.",
+          "Two named Pentagon awards hit the tape plus stable supply commentary on the call; backlog lines in filings step up clearly.",
+          "RTX grinds toward upper targets; add only after booked work confirms, trailing per Trade plan.",
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          "Two named awards hit plus stable supply commentary on the call.",
-          "RTX presses toward the upper targets in your plan.",
+          "Awards trickle while RTX tracks the broad market; backlog creeps up but headlines stay political and noisy.",
+          "Upside thesis still alive but payoff is stepwise; accumulate on dips, avoid hero sizing until filing lines prove the path.",
         ),
-        row(3, "Bear case", 25, "Major program slip or funding pulled from the line.", "Stand down RTX upside fast."),
+        row(
+          3,
+          "thesis_broken",
+          25,
+          "Major program cancel or funding pulled from the line — the order-book story breaks.",
+          "Exit RTX longs fast per Invalidation; do not average a broken award thesis.",
+        ),
       ];
     case "ai-capex-squeeze-qqq-rotation":
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          "Mixed margin guides; QQQ ranges while mega-caps absorb AI spend headlines.",
-          "Stay on watch; no new broad QQQ adds until your trigger is clearly live.",
+          "Back-to-back earnings weeks where several non-leader QQQ names cut margins on AI-related spend while mega-cap gloss cannot hide the cluster.",
+          "Margin-squeeze watch becomes actionable: trim broad QQQ adds and rotate toward cash-heavy leaders or hedges exactly as your Trade plan spells out.",
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          "Broad AI revenue beats and margins hold while spend stays high.",
-          "Stand down the watch thesis; the index is handling the spend better than feared.",
+          "Mixed margin guides and mega-cap strength mask weak tail names; QQQ ranges while AI spend headlines argue both ways.",
+          "Thesis direction still plausible but unconfirmed; stay on watch with minimal size until the margin cluster is obvious.",
         ),
         row(
           3,
-          "Bear case",
+          "thesis_broken",
           25,
-          "Several non-leader QQQ names cut margin guides on AI spend in the same earnings window.",
-          "Treat as live: trim QQQ adds, tilt toward cash-heavy leaders or hedges per plan.",
+          "Margins hold and AI spend guides stabilize — the index absorbs the build-out without the feared squeeze showing up.",
+          "Stand down the QQQ margin-watch thesis; do not force a new broad index bet from this lens.",
         ),
       ];
     case "china-stimulus-copper-long":
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          "Beijing talks stimulus but Shanghai bonded stocks do not draw yet.",
-          "Hold a small HG line; wait for inventory plus credit to confirm together.",
+          "Two consecutive draws in Shanghai bonded stocks and a confirming credit impulse print in the same month.",
+          "HG extends toward restock targets; scale toward Trade plan levels as inventory and credit align.",
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          "Two draws in bonded stocks and a confirming credit impulse in the same month.",
-          "HG extends toward your restock targets on China impulse.",
+          "Beijing stimulus rhetoric runs hot but bonded stocks do not draw yet; copper mean-reverts on every PMI headline.",
+          "China impulse thesis still possible but delayed; keep HG small until warehouse and credit lines agree.",
         ),
-        row(3, "Bear case", 25, "Property panic headlines or a sharp USD funding spike returns.", "Cover the HG long."),
+        row(
+          3,
+          "thesis_broken",
+          25,
+          "Property panic headlines return with force or a sharp USD funding spike hits — restock story loses the tape.",
+          "Cover the HG long per Invalidation; log the miss in Book.",
+        ),
       ];
     case "eu-tech-crackdown-megacap":
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          "EU legal headlines chop META while remedies grind through courts.",
-          "Keep META downside lean tactical and tight to your invalidation.",
+          "Binding EU remedy forces real product change or daily fines stick without a legal stay; ads and app flows tighten faster than sell-side models assume.",
+          "META derates toward your downside zone; lean on Trade plan adds and trails, not a new short campaign invented here.",
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          "Court stay or settlement removes real product limits on ads and apps.",
-          "Close META downside positioning — regulation bite is off the table.",
+          "Brussels headlines chop META while remedies grind through courts; revenue impact is real but the tape fights every headline.",
+          "Regulation short stays valid but path is choppier; size lighter and keep invalidation tight.",
         ),
         row(
           3,
-          "Bear case",
+          "thesis_broken",
           25,
-          "Binding remedy forces product change or daily fines stick without a stay.",
-          "META derates on revenue mechanics; scale downside only if your plan allows.",
+          "Court stay or settlement removes enforceable product limits — the revenue bite thesis loses teeth.",
+          "Cover the META short per Invalidation; regulation fade is no longer the driver.",
         ),
       ];
     default:
       return [
         row(
           1,
-          "Base case",
+          "clean_win",
           40,
-          `Drivers for ${sym} stay two-way; no clean break on the next few prints.`,
-          `Hold or scale per your trade plan until ${sym} gives a clear yes/no.`,
+          `Drivers you named for ${sym} line up in data and price within your window — the thesis basically works.`,
+          `The existing ${sym} trade pays closer to plan; follow Trade plan for adds, targets, and trails.`,
         ),
         row(
           2,
-          "Bull case",
+          "messy_win",
           35,
-          `Your upside case for ${sym} shows up early in data and price — not just headlines.`,
-          `Press toward targets; trail risk per invalidation.`,
+          `Evidence for ${sym} stays two-way: the story drifts your way but prints and headlines keep resetting conviction.`,
+          `Payoff is slower and choppier; keep size cautious and lean on risk lines until the tape clears.`,
         ),
         row(
           3,
-          "Bear case",
+          "thesis_broken",
           25,
-          `Your stated invalidation for ${sym} prints — thesis is wrong on timing or direction.`,
-          `Stand down: trim or exit per advisory.`,
+          `Your stated invalidation for ${sym} prints — conditions show the thesis is wrong or flipped.`,
+          `Stand down per Invalidation and Book; do not open a new unrelated bet from this block.`,
         ),
       ];
   }

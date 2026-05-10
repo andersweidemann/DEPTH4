@@ -229,15 +229,15 @@ function generateDraftFromPrompt(prompt: string): Pick<
     thesisStatement: p.length ? p : "Describe your thesis in plain English, then generate a structured draft.",
     probability: "58",
     horizon: "2–8 weeks",
-    baseProb: "40",
-    baseConfirms: `No clean break for ${asset} yet on the next few prints.`,
-    baseConsequence: `Hold size; wait for your trigger before adding on ${asset}.`,
-    bullProb: "35",
-    bullConfirms: `Upside case for ${asset} shows up early in data and price.`,
-    bullConsequence: `Press toward targets; trail risk per your plan on ${asset}.`,
+    baseProb: "35",
+    baseConfirms: `Drivers for ${asset} stay two-way: your thesis direction can still be right but the next few prints keep resetting conviction.`,
+    baseConsequence: `Keep the existing line sized for chop; lean on Trade plan until ${asset} picks a cleaner side.`,
+    bullProb: "40",
+    bullConfirms: `The trigger you named for ${asset} clears with confirming data — the thesis basically works on schedule.`,
+    bullConsequence: `Payoff tracks closer to plan; follow Trade plan for adds, targets, and trails — no new entry story here.`,
     bearProb: "25",
-    bearConfirms: `Your invalidation for ${asset} prints — thesis is wrong on timing or direction.`,
-    bearConsequence: "Stand down: trim or exit per plan.",
+    bearConfirms: `Your stated invalidation for ${asset} prints — conditions show the thesis is wrong or flipped.`,
+    bearConsequence: "Retire or cut the line per Invalidation and Book.",
 
     bullInstruments: bullIns.length ? bullIns.join(", ") : "BTC, TLT",
     bearInstruments: bearIns.length ? bearIns.join(", ") : "WTI, ITA",
@@ -272,15 +272,20 @@ export function CreateThesisModal({
       target: "Reprice toward pre-premium range / next support shelf.",
       horizon: "2–8 weeks",
       probability: "61",
-      baseProb: "40",
-      baseConfirms: "Calm weeks stack; talks move without new strikes.",
-      baseConsequence: "GLD drifts lower; keep fade size inside your plan.",
-      bullProb: "35",
-      bullConfirms: "Talks break down or a kinetic headline hits.",
-      bullConsequence: "Gold rips; cover or stand down the downside fade fast.",
+      baseProb: "35",
+      baseConfirms:
+        "Talks keep progressing but GLD chops on mixed headlines — every inflation blip or rumor spike resets the tape while the broader drift still leans lower.",
+      baseConsequence:
+        "Same short thesis, uglier path: keep size smaller, lean on Trade plan risk lines, and wait for cleaner calendar proof.",
+      bullProb: "40",
+      bullConfirms:
+        "Calm geopolitical weeks stack, ETF flows show funds trimming war hedges on GLD, and XAU bleeds the fear bid without a fresh kinetic shock.",
+      bullConsequence:
+        "The GLD / XAU short pays close to plan; scale toward Trade plan targets — still this fade, not a new punt.",
       bearProb: "25",
-      bearConfirms: "Framework signed and risk-on broadens.",
-      bearConsequence: "War premium unwinds fast; path to targets speeds up.",
+      bearConfirms:
+        "A kinetic headline returns or spot holds above the invalidation you set in the book — the peace-fade read is wrong on timing or facts.",
+      bearConsequence: "Follow Invalidation and retire or sharply cut the short per Book.",
 
       bullInstruments: "BTC, TLT",
       bearInstruments: "WTI, ITA",
@@ -542,10 +547,16 @@ export function CreateThesisModal({
                 <div className="h-px w-full bg-white/[0.06]" aria-hidden />
 
                 <div className="grid gap-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Scenarios</p>
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Resolution paths</p>
+                    <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+                      Three ways <span className="text-zinc-400">this</span> thesis can resolve — not three different trades. Probabilities should sum to about 100%.
+                    </p>
+                  </div>
 
                   <div className="grid gap-3 rounded-none border border-white/[0.06] bg-zinc-900/20 p-3">
-                    <p className="text-[11px] font-semibold text-zinc-200">Base case</p>
+                    <p className="text-[11px] font-semibold text-zinc-200">Messy win</p>
+                    <p className="text-[10px] leading-snug text-zinc-600">Direction roughly right; payoff slower, smaller, or choppier.</p>
                     <div className="grid gap-2 sm:grid-cols-3">
                       <input
                         value={form.baseProb}
@@ -559,20 +570,21 @@ export function CreateThesisModal({
                         onChange={(e) => set("baseConfirms", e.target.value)}
                         className="sm:col-span-2 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
                         rows={2}
-                        placeholder="Confirms"
+                        placeholder="What happens"
                       />
                       <textarea
                         value={form.baseConsequence}
                         onChange={(e) => set("baseConsequence", e.target.value)}
                         className="sm:col-span-3 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
                         rows={2}
-                        placeholder="Consequence"
+                        placeholder="What it means for the trade"
                       />
                     </div>
                   </div>
 
                   <div className="grid gap-3 rounded-none border border-white/[0.06] bg-zinc-900/20 p-3">
-                    <p className="text-[11px] font-semibold text-zinc-200">Bull case</p>
+                    <p className="text-[11px] font-semibold text-zinc-200">Clean win</p>
+                    <p className="text-[10px] leading-snug text-zinc-600">Thesis basically correct; pays close to how you framed it.</p>
                     <div className="grid gap-2 sm:grid-cols-3">
                       <input
                         value={form.bullProb}
@@ -586,20 +598,21 @@ export function CreateThesisModal({
                         onChange={(e) => set("bullConfirms", e.target.value)}
                         className="sm:col-span-2 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
                         rows={2}
-                        placeholder="Confirms"
+                        placeholder="What happens"
                       />
                       <textarea
                         value={form.bullConsequence}
                         onChange={(e) => set("bullConsequence", e.target.value)}
                         className="sm:col-span-3 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
                         rows={2}
-                        placeholder="Consequence"
+                        placeholder="What it means for the trade"
                       />
                     </div>
                   </div>
 
                   <div className="grid gap-3 rounded-none border border-white/[0.06] bg-zinc-900/20 p-3">
-                    <p className="text-[11px] font-semibold text-zinc-200">Bear case</p>
+                    <p className="text-[11px] font-semibold text-zinc-200">Thesis broken</p>
+                    <p className="text-[10px] leading-snug text-zinc-600">Invalidated — retire or cut per Invalidation / Book.</p>
                     <div className="grid gap-2 sm:grid-cols-3">
                       <input
                         value={form.bearProb}
@@ -613,14 +626,14 @@ export function CreateThesisModal({
                         onChange={(e) => set("bearConfirms", e.target.value)}
                         className="sm:col-span-2 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
                         rows={2}
-                        placeholder="Confirms"
+                        placeholder="What happens"
                       />
                       <textarea
                         value={form.bearConsequence}
                         onChange={(e) => set("bearConsequence", e.target.value)}
                         className="sm:col-span-3 resize-none rounded-lg border border-white/[0.08] bg-zinc-900/40 px-3 py-2 text-[12px] text-zinc-200"
                         rows={2}
-                        placeholder="Consequence"
+                        placeholder="What it means for the trade"
                       />
                     </div>
                   </div>
