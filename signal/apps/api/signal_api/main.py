@@ -5,13 +5,15 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI, Header
 from fastapi.middleware.cors import CORSMiddleware
 
+from signal_api.ai.depth4_guard import get_depth4_guard_status
 from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.config import get_settings
 from signal_api.jobs import briefing_worker, scenario_refinement
 from signal_api.routers import ingest_cron, market_routes, stripe_routes
+from signal_api.routers.ingest_cron import _require_ingest_secret, depth4_status_payload
 from signal_api.services import news_ingest
 
 log = logging.getLogger("depth4")
@@ -79,14 +81,32 @@ app.include_router(stripe_routes.router, prefix="/webhooks", tags=["billing"])
 app.include_router(market_routes.router, prefix="/market", tags=["market"])
 app.include_router(ingest_cron.router, prefix="/cron", tags=["cron"])
 
+_admin = APIRouter(prefix="/admin", tags=["admin"])
+
+
+@_admin.get("/depth4-status")
+def admin_depth4_status(
+  x_depth4_ingest_secret: str | None = Header(default=None, alias="X-Depth4-Ingest-Secret"),
+) -> dict:
+  """Same payload as ``GET /cron/depth4-status``; protect with ``X-Depth4-Ingest-Secret`` (or edge ACL)."""
+  _require_ingest_secret(x_depth4_ingest_secret)
+  return depth4_status_payload()
+
+
+app.include_router(_admin)
+
 
 @app.get("/healthz")
 def healthz() -> dict:
   s = get_settings()
+  g = get_depth4_guard_status()
   return {
     "ok": True,
     "service": "depth4-api",
     "background_llm_loops": s.enable_background_llm_loops,
+    "depth4_enabled": g.enabled,
+    "depth4_active_users": g.active_users,
+    "depth4_background_llm_ok": g.enabled and g.meets_minimum,
   }
 
 

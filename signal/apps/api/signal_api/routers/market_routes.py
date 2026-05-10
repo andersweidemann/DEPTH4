@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from fastapi import APIRouter, Header, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from signal_api.ai import claude
+from signal_api.ai.depth4_guard import depth4_can_run_interactive_llm
 from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.db import supabase_admin
 from signal_api.services import news_ingest, prices, redis as redis_svc
@@ -27,6 +28,11 @@ async def ingest_session(authorization: str | None = Header(default=None)) -> di
   """One RSS+classify(+trees) cycle, tied to a signed-in user — for when background loops are off."""
   if not llm_configured():
     raise HTTPException(status_code=503, detail="LLM not configured on API.")
+  if not depth4_can_run_interactive_llm():
+    raise HTTPException(
+      status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+      detail="DEPTH4 is currently disabled.",
+    )
   if not authorization or not authorization.lower().startswith("bearer "):
     raise HTTPException(status_code=401, detail="Send Authorization: Bearer <Supabase access_token>")
   token = authorization[7:].strip()
@@ -86,6 +92,11 @@ async def premium_personalize(
     raise HTTPException(
       status_code=503,
       detail="Interactive LLM not configured (e.g. set ANTHROPIC_API_KEY for LLM_PROVIDER_INTERACTIVE=anthropic).",
+    )
+  if not depth4_can_run_interactive_llm():
+    raise HTTPException(
+      status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+      detail="DEPTH4 is currently disabled.",
     )
   if not authorization or not authorization.lower().startswith("bearer "):
     raise HTTPException(status_code=401, detail="Send Authorization: Bearer <Supabase access_token>")
@@ -171,6 +182,11 @@ async def deep_brief(
     raise HTTPException(
       status_code=503,
       detail="Interactive LLM not configured (e.g. set ANTHROPIC_API_KEY for LLM_PROVIDER_INTERACTIVE=anthropic).",
+    )
+  if not depth4_can_run_interactive_llm():
+    raise HTTPException(
+      status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+      detail="DEPTH4 is currently disabled.",
     )
   if not authorization or not authorization.lower().startswith("bearer "):
     raise HTTPException(status_code=401, detail="Send Authorization: Bearer <Supabase access_token>")

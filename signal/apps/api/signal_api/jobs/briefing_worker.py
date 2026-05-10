@@ -6,6 +6,7 @@ from datetime import date, datetime, UTC
 from zoneinfo import ZoneInfo
 
 from signal_api.ai import claude
+from signal_api.ai.depth4_guard import depth4_can_run_background_llm
 from signal_api.db import supabase_admin
 from signal_api.services import one_signal
 
@@ -88,6 +89,8 @@ async def _deliver(uid: str, btype: str) -> None:
 
 
 async def one_tick() -> None:
+  if not depth4_can_run_background_llm():
+    return
   sb = supabase_admin()
   r = (
     sb.table("users")

@@ -63,6 +63,14 @@ class Settings(BaseSettings):
   # When true, cheap-path failures (empty / JSON validation) escalate once to ANTHROPIC_MODEL_PREMIUM.
   llm_routing_escalation: bool = Field(default=True, validation_alias="LLM_ROUTING_ESCALATION")
 
+  # Global DEPTH4 kill switch. When false, all DEPTH4 LLM work is disabled.
+  # Use DEPTH4_ENABLED=false to pause DEPTH4 without a code change.
+  depth4_enabled: bool = Field(default=True, validation_alias="DEPTH4_ENABLED")
+  # Automatic guard: when active user count (see depth4_guard.get_active_user_count) is below this
+  # threshold, background LLM loops and cron ingest are paused to avoid burning tokens when nobody
+  # is using the product. Set to 0 to disable the threshold check (count is still reported in status).
+  min_active_users_for_depth4: int = Field(default=2, validation_alias="MIN_ACTIVE_USERS_FOR_DEPTH4")
+
   # Premium (ANTHROPIC_MODEL_PREMIUM) spend caps — rough USD from telemetry estimates; in-process per replica.
   # 0 disables that window. Exceeded → block premium escalation unless high_stakes; premium-first tasks degrade to cheap.
   llm_premium_daily_budget_usd: float = Field(default=0.0, validation_alias="LLM_PREMIUM_DAILY_BUDGET_USD")

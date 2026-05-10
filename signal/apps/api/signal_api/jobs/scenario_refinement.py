@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from signal_api.ai import claude
+from signal_api.ai.depth4_guard import depth4_can_run_background_llm
 from signal_api.ai.llm_client import llm_configured
 from signal_api.config import get_settings
 from signal_api.db import supabase_admin
@@ -80,6 +81,8 @@ def _refinement_cooldown_ok(up: dict) -> bool:
 async def one_tick() -> None:
   s = get_settings()
   if not llm_configured():
+    return
+  if not depth4_can_run_background_llm():
     return
   sb = supabase_admin()
   r = (

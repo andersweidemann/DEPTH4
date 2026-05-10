@@ -18,6 +18,7 @@ import httpx
 from supabase import Client
 
 from signal_api.ai import claude
+from signal_api.ai.depth4_guard import depth4_can_run_background_llm
 from signal_api.ai.llm_client import llm_configured, llm_configuration_hint
 from signal_api.config import get_settings
 from signal_api.db import supabase_admin
@@ -380,6 +381,11 @@ async def one_cycle() -> None:
       llm_configuration_hint(),
     )
     return
+  if not depth4_can_run_background_llm():
+    log.info(
+      "news_ingest: skipping cycle — depth4 guard (DEPTH4_ENABLED=false or active users below MIN_ACTIVE_USERS_FOR_DEPTH4)",
+    )
+    return
   sb = supabase_admin()
   feeds_ok = 0
   items_tried = 0
@@ -458,6 +464,8 @@ async def yahoo_ticker_ingest_loop() -> None:
 async def yahoo_ticker_ingest_once() -> None:
   global _ticker_offset  # noqa: PLW0603
   s = get_settings()
+  if not depth4_can_run_background_llm():
+    return
   sb = supabase_admin()
   tickers = _unique_user_tickers(sb)
   if not tickers:

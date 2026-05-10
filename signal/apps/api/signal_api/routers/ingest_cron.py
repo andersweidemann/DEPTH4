@@ -4,8 +4,9 @@ from __future__ import annotations
 import logging
 import hmac
 
-from fastapi import APIRouter, BackgroundTasks, Header, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, status
 
+from signal_api.ai.depth4_guard import depth4_can_run_background_llm, get_depth4_guard_status
 from signal_api.ai.model_routing import build_llm_routing_matrix
 from signal_api.config import get_settings
 from signal_api.services import news_ingest
@@ -45,12 +46,39 @@ async def llm_routing_matrix(
   return build_llm_routing_matrix(get_settings())
 
 
+def depth4_status_payload() -> dict:
+  """Shared JSON for ``/cron/depth4-status`` and ``/admin/depth4-status``."""
+  st = get_depth4_guard_status()
+  s = get_settings()
+  return {
+    "enabled": st.enabled,
+    "active_users": st.active_users,
+    "meets_minimum": st.meets_minimum,
+    "min_active_users_for_depth4": s.min_active_users_for_depth4,
+    "background_llm_allowed": depth4_can_run_background_llm(),
+  }
+
+
+@router.get("/depth4-status")
+async def depth4_status(
+  x_depth4_ingest_secret: str | None = Header(default=None, alias="X-Depth4-Ingest-Secret"),
+) -> dict:
+  """Guard status: DEPTH4 enabled flag, active-user proxy count, whether background LLM is allowed."""
+  _require_ingest_secret(x_depth4_ingest_secret)
+  return depth4_status_payload()
+
+
 @router.post("/ingest-once")
 async def ingest_once(
   background_tasks: BackgroundTasks,
   x_depth4_ingest_secret: str | None = Header(default=None, alias="X-Depth4-Ingest-Secret"),
 ) -> dict:
   _require_ingest_secret(x_depth4_ingest_secret)
+  if not depth4_can_run_background_llm():
+    raise HTTPException(
+      status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+      detail="DEPTH4 background LLM work is paused (disabled or not enough active users).",
+    )
   # Run after the response is sent so reverse-proxy timeouts (Render/Cloudflare) do not
   # kill a long RSS + multi-LLM cycle with HTTP 500.
   background_tasks.add_task(_ingest_cycle_guarded)
