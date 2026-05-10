@@ -22,6 +22,20 @@ export const thesisRelationSchema = z.enum(["confirm", "contradict", "create_new
 
 const pctIntSchema = z.number().int().min(0).max(100);
 
+/**
+ * One catalog thesis: how this cluster reaches that line (second-order channel), not keyword overlap.
+ * Emitted in prompt order for every seeded catalog thesis when the Known theses block is non-empty.
+ */
+export const catalogThesisPassSchema = z.object({
+  thesis_id: z.string().min(1),
+  relevance: z.enum(["none", "weak", "moderate", "strong"]),
+  relation_to_thesis: z.enum(["confirms", "contradicts", "mixed", "unclear"]),
+  /** Causal chain from cluster facts → intermediaries → this thesis (2–4 short sentences). */
+  second_order_effect: z.string().min(1),
+  /** Optional structural / year backdrop for this thesis line (1–2 sentences). */
+  third_order_backdrop: z.string().optional().default(""),
+});
+
 export const macroEventReasoningSchema = z
   .object({
     /** Headline-level feed line — hard word cap. */
@@ -71,6 +85,12 @@ export const macroEventReasoningSchema = z
 
     /** Feed: "market may be missing" — word cap. */
     mispricing_hypothesis: z.string().min(1),
+
+    /**
+     * Per seeded catalog thesis: explicit second-order (and optional third-order) read for this cluster.
+     * When the prompt includes Known theses, the model must emit one entry per thesis id (exact id match).
+     */
+    per_catalog_thesis: z.array(catalogThesisPassSchema).default([]),
   })
   .superRefine((data, ctx) => {
     const es = countWords(data.event_summary);
@@ -101,6 +121,36 @@ export const macroEventReasoningSchema = z
 
 export type MacroEventReasoning = z.infer<typeof macroEventReasoningSchema>;
 export type ThesisRelation = z.infer<typeof thesisRelationSchema>;
+export type CatalogThesisPass = z.infer<typeof catalogThesisPassSchema>;
+
+/** After Zod parse: ensure one pass per catalog thesis id, no extras. */
+export function catalogThesisPassesComplete(
+  expectedIds: readonly string[],
+  passes: CatalogThesisPass[],
+): { ok: true } | { ok: false; message: string } {
+  if (expectedIds.length === 0) return { ok: true };
+  const want = new Set(expectedIds);
+  if (passes.length !== want.size) {
+    return {
+      ok: false,
+      message: `per_catalog_thesis: expected ${want.size} entries, got ${passes.length}`,
+    };
+  }
+  const seen = new Set<string>();
+  for (const p of passes) {
+    if (!want.has(p.thesis_id)) {
+      return { ok: false, message: `per_catalog_thesis: unknown thesis_id ${p.thesis_id}` };
+    }
+    if (seen.has(p.thesis_id)) {
+      return { ok: false, message: `per_catalog_thesis: duplicate thesis_id ${p.thesis_id}` };
+    }
+    seen.add(p.thesis_id);
+  }
+  for (const id of Array.from(want)) {
+    if (!seen.has(id)) return { ok: false, message: `per_catalog_thesis: missing thesis_id ${id}` };
+  }
+  return { ok: true };
+}
 
 export function parseMacroEventReasoning(raw: unknown): MacroEventReasoning {
   return macroEventReasoningSchema.parse(raw);

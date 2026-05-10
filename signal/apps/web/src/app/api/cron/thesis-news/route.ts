@@ -9,9 +9,13 @@ type DbNewsEvent = {
   id: string;
   headline: string;
   body_text: string | null;
+  one_line_summary: string | null;
   published_at: string | null;
   signal_level: number;
+  category: string | null;
+  region: string | null;
   affected_tickers: unknown;
+  affected_sectors: unknown;
   raw_json: unknown;
 };
 
@@ -116,6 +120,48 @@ function normSym(s: string) {
     .toUpperCase();
 }
 
+function treeTextSnippet(tree: DbConsequenceTree | undefined, maxChars: number): string {
+  if (!tree) return "";
+  const parts: string[] = [];
+  const fm = tree.forward_model;
+  if (fm && typeof fm === "object" && !Array.isArray(fm)) {
+    parts.push(JSON.stringify(fm).slice(0, maxChars));
+  } else if (typeof fm === "string" && fm.trim()) {
+    parts.push(fm.trim().slice(0, maxChars));
+  }
+  const sc = tree.scenarios;
+  if (Array.isArray(sc) && sc.length) {
+    parts.push(JSON.stringify(sc).slice(0, Math.floor(maxChars / 2)));
+  }
+  return parts.join("\n").slice(0, maxChars);
+}
+
+function buildNewsMatchText(ev: DbNewsEvent, tree: DbConsequenceTree | undefined): string {
+  const sectors = Array.isArray(ev.affected_sectors) ? JSON.stringify(ev.affected_sectors) : String(ev.affected_sectors ?? "");
+  const tickers = Array.isArray(ev.affected_tickers) ? JSON.stringify(ev.affected_tickers) : String(ev.affected_tickers ?? "");
+  const treeBit = treeTextSnippet(tree, 2_500);
+  const rawHint =
+    ev.raw_json && typeof ev.raw_json === "object"
+      ? JSON.stringify(ev.raw_json).slice(0, 1_500)
+      : typeof ev.raw_json === "string"
+        ? ev.raw_json.slice(0, 1_500)
+        : "";
+  return [
+    ev.headline,
+    ev.one_line_summary ? `Summary: ${ev.one_line_summary}` : "",
+    ev.body_text ?? "",
+    ev.category ? `Category: ${ev.category}` : "",
+    ev.region ? `Region: ${ev.region}` : "",
+    `Sectors: ${sectors}`,
+    `Tickers: ${tickers}`,
+    treeBit ? `Consequence_model_excerpt:\n${treeBit}` : "",
+    rawHint ? `Raw_json_excerpt:\n${rawHint}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
 export async function GET(req: NextRequest) {
   const deny = assertCronSecret(req);
   if (deny) return deny;
@@ -152,7 +198,9 @@ async function runThesisNews(req: NextRequest) {
   // Pull recent news.
   const newsRes = await admin
     .from("news_events")
-    .select("id,headline,body_text,published_at,signal_level,affected_tickers,raw_json")
+    .select(
+      "id,headline,body_text,one_line_summary,published_at,signal_level,category,region,affected_tickers,affected_sectors,raw_json",
+    )
     .gte("published_at", sinceIso)
     .order("published_at", { ascending: false })
     .limit(limit);
@@ -213,7 +261,7 @@ async function runThesisNews(req: NextRequest) {
     const prior = normalizeProb(t.scenario_probabilities ?? null);
 
     for (const ev of news) {
-      const text = `${ev.headline}\n${ev.body_text ?? ""}`.trim();
+      const text = buildNewsMatchText(ev, treeByEvent.get(ev.id));
       if (!text) continue;
 
       const confirmMatched = confirmTags.length ? matchesAnyTag(text, confirmTags) : [];

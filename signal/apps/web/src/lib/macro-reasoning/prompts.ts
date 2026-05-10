@@ -14,7 +14,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v8";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v9";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -88,7 +88,14 @@ Persistent directional tilt for DEPTH4 theses this year — background bias for 
 - mispricing_hypothesis: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. 1–2 sharp sentences. Name tickers or prints when you can. Contrast "market treats X as noise" vs "together Y proves Z".
   BAD: "The market may be reading each print solo, missing that energy capex guides together could confirm…"
   GOOD: "The market treats each print as noise. If PAA, DVN, and GEL all guide capex lower together, that proves US shale is slowing — and oil runs higher by Q3."
-  Usually Level 3 or 4 — lead with "Level 3 —" or "Level 4 —" when it fits the word cap.`;
+  Usually Level 3 or 4 — lead with "Level 3 —" or "Level 4 —" when it fits the word cap.
+
+- per_catalog_thesis: array of objects (see PER-CATALOG-THESIS RULES below). REQUIRED whenever the user message includes a non-empty Known theses JSON array — one object per thesis id, same ids, no extras, no omissions. If Known theses is [] (empty), set per_catalog_thesis to []. Each object keys:
+  - thesis_id: string (must match a Known theses id exactly)
+  - relevance: "none" | "weak" | "moderate" | "strong"
+  - relation_to_thesis: "confirms" | "contradicts" | "mixed" | "unclear" (relative to that thesis line’s direction and story)
+  - second_order_effect: string (DETAIL — not feed-capped). 2–4 short sentences. Trace intermediaries: e.g. Asia maritime friction → safe-haven bid → GLD; or second front → peace-process fatigue → different read for a peace-drift gold short. Name geographies from the cluster when relevant (South China Sea, Scarborough Shoal, Taiwan Strait, etc.). Do not say "matches tags".
+  - third_order_backdrop: string (optional). One or two sentences — structural / year backdrop for that thesis if relevant; else ""`;
 
 export const MACRO_EVENT_REASONING_SYSTEM = `You are DEPTH4. You help traders think ahead. You write for smart people who are not macro experts.
 
@@ -137,6 +144,12 @@ EVENT NARRATIVE RULES (detail page)
 - Always state: asset (buy/sell/avoid/wait), future event, why, **when** (window or catalyst), current probability, and how this news changes it.
 - Be explicit: "55% → 62%" or "stays 42%".
 - mispricing_hypothesis must answer what the market misses — **usually Level 3 or Level 4** (second/third-order or backdrop bias), not only the obvious L1–L2 move.
+
+PER-CATALOG-THESIS (second-order discipline)
+- When Known theses is non-empty: you MUST fill per_catalog_thesis with exactly one row per thesis id listed, in the SAME ORDER as the list.
+- second_order_effect is the main deliverable: how does THIS cluster change or test THAT thesis through intermediaries (policy, risk premia, another region’s spillover, funding, commodities), not a keyword scan.
+- For gold / GLD / war-and-peace style lines: treat new kinetic or naval friction (any theater) as potentially lifting tail-risk premia even when the headline is not Middle East; say whether that supports or undermines the thesis’s stated direction.
+- relevance "none" still requires second_order_effect: one or two sentences explaining why the channel is a stretch from the text (do not leave empty).
 
 GLOBAL THESIS ALIGNMENT
 - Every output should reflect the six thesis checks: position, future event, cause, when (time-bound), L1–L4 cascade, what the market misses.
@@ -202,6 +215,14 @@ ${MACRO_EVENT_REASONING_JSON_CONTRACT}`;
 export type MacroReasoningThesisStub = {
   id: string;
   title: string;
+  slug?: string | null;
+  micro_label?: string | null;
+  /** One-line hook from book / body when available. */
+  narrative_hook?: string | null;
+  asset?: string | null;
+  theme?: string | null;
+  confirm_tags?: string[];
+  contradict_tags?: string[];
 };
 
 export type MacroReasoningMemberEvent = {
@@ -232,19 +253,33 @@ function stringifyJson(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
+const MEMBER_BODY_EXCERPT_CHARS = 4_000;
+
 /**
  * User message: evidence bundle + instructions to emit MacroEventReasoning JSON.
  */
 export function buildMacroReasoningUserPrompt(ctx: MacroReasoningClusterContext): string {
   const thesisBlock =
     ctx.known_theses && ctx.known_theses.length
-      ? stringifyJson(ctx.known_theses.map((t) => ({ id: t.id, title: t.title })))
-      : "[] (no thesis list — use affected_theses: []; use thesis_relation create_new or adjacent if the story still matters)";
+      ? stringifyJson(
+          ctx.known_theses.map((t) => ({
+            id: t.id,
+            title: t.title,
+            slug: t.slug ?? null,
+            micro_label: t.micro_label ?? null,
+            narrative_hook: t.narrative_hook ?? null,
+            asset: t.asset ?? null,
+            theme: t.theme ?? null,
+            confirm_tags: t.confirm_tags ?? [],
+            contradict_tags: t.contradict_tags ?? [],
+          })),
+        )
+      : "[] (no thesis list — use affected_theses: []; use thesis_relation create_new or adjacent if the story still matters; per_catalog_thesis: [])";
 
   const members = ctx.member_events.map((e) => ({
     id: e.id,
     headline: e.headline,
-    body_excerpt: (e.body_excerpt ?? "").slice(0, 1_500),
+    body_excerpt: (e.body_excerpt ?? "").slice(0, MEMBER_BODY_EXCERPT_CHARS),
     signal_level: e.signal_level ?? null,
     published_at: e.published_at ?? null,
     created_at: e.created_at ?? null,
@@ -269,6 +304,7 @@ ${stringifyJson(members)}
 
 KNOWN THESES (copy ids exactly for affected_theses; use [] if none fit)
 Each thesis "title" is the retail display line — mirror its action + ticker + event when you reference it in reasoning_summary, thesis_trade_line, or trade_implication.
+Use slug, micro_label, narrative_hook, asset, theme, and tag lists as grounding — do not invent thesis text that contradicts them.
 ${thesisBlock}
 
 WHAT TO DO
@@ -282,6 +318,7 @@ WHAT TO DO
 8) impacted_assets: prefix L2/L3/L4 (or L1 if immediate data) on each line.
 9) thesis_trade_line: must include probability N%, explicit **when** (window or catalyst), and tickers — never "eventually" or years-only framing.
 10) Average about 10–15 words per sentence in reasoning_chain and trade_implication — scan-layer tight, not a memo.
+11) If Known theses is non-empty: fill per_catalog_thesis with exactly one object per thesis id, same order as the list, full second_order_effect strings — this is the cross-thesis map for the cluster.
 
 Return the JSON object now.`;
 }

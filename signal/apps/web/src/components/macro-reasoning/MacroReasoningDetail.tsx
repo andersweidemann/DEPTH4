@@ -236,6 +236,56 @@ export function MacroReasoningDetail({
         </section>
       ) : null}
 
+      {reasoning.per_catalog_thesis?.length ? (
+        <section aria-labelledby="per-thesis-heading">
+          <h2 id="per-thesis-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            Second-order read by catalog thesis
+          </h2>
+          <p className="mt-1 max-w-prose text-[12px] leading-relaxed text-zinc-500">
+            Each line is how this cluster reaches that thesis through intermediaries (not keyword overlap).
+          </p>
+          <ul className="mt-4 space-y-4">
+            {reasoning.per_catalog_thesis.map((row) => {
+              const tm = thesisMetaById.get(row.thesis_id);
+              const title = tm ? getThesisMetaDisplayTitle(tm) : row.thesis_id;
+              const micro = tm ? getThesisMetaMicroLabel(tm) : null;
+              return (
+                <li
+                  key={row.thesis_id}
+                  className="max-w-prose rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5"
+                >
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <div>
+                      {tm ? (
+                        <Link
+                          href={`/theses/${tm.slug}`}
+                          className="text-[13px] font-semibold text-zinc-100 underline-offset-2 hover:text-white hover:underline"
+                        >
+                          {micro ? <span className="block text-[10px] font-medium text-zinc-500">{micro}</span> : null}
+                          <span className={micro ? "mt-0.5 block" : ""}>{title}</span>
+                        </Link>
+                      ) : (
+                        <span className="font-mono text-[12px] text-zinc-400">{row.thesis_id}</span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+                      {row.relevance} · {row.relation_to_thesis.replace(/_/g, " ")}
+                    </span>
+                  </div>
+                  <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-zinc-200">{row.second_order_effect}</p>
+                  {row.third_order_backdrop?.trim() ? (
+                    <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
+                      <span className="font-semibold text-zinc-400">Backdrop: </span>
+                      {row.third_order_backdrop}
+                    </p>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       {reasoning.affected_theses.length > 0 ? (
         <section aria-labelledby="theses-heading">
           <h2 id="theses-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">

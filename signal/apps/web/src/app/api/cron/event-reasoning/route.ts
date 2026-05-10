@@ -11,7 +11,9 @@ import {
   type MacroReasoningThesisStub,
 } from "@/lib/macro-reasoning/prompts";
 import { pickAnchorNewsEventId } from "@/lib/macro-reasoning/pick-anchor";
-import { safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
+import { CATALOG_THESES } from "@/lib/thesis-engine-v2/catalog-data";
+import { CURATED_FOCUS_CATALOG_ORDER } from "@/lib/thesis-engine-v2/curated-focus-theses";
+import { catalogThesisPassesComplete, safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 
@@ -59,10 +61,73 @@ function isNewsRow(x: unknown): x is NewsRow {
   return typeof o.id === "string" && typeof o.headline === "string";
 }
 
-function isThesisStub(x: unknown): x is MacroReasoningThesisStub {
+function narrativeHookFromBody(body: unknown): string | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const o = body as Record<string, unknown>;
+  const one = typeof o.one_line_summary === "string" ? o.one_line_summary.trim() : "";
+  if (one) return one.slice(0, 280);
+  const ts = typeof o.thesis_statement === "string" ? o.thesis_statement.trim() : "";
+  if (ts) return ts.slice(0, 280);
+  return null;
+}
+
+type DbThesisCatalogRow = {
+  id: string;
+  title: string;
+  slug?: string | null;
+  micro_label?: string | null;
+  body?: unknown;
+  insider_flow?: { confirmTags?: unknown; contradictTags?: unknown } | null;
+};
+
+function isDbThesisCatalogRow(x: unknown): x is DbThesisCatalogRow {
   if (!x || typeof x !== "object") return false;
   const o = x as Record<string, unknown>;
   return typeof o.id === "string" && typeof o.title === "string";
+}
+
+function asTagList(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.map((x) => String(x ?? "").trim()).filter(Boolean);
+}
+
+/** One stub per catalog id in macro breadth order — richer than title-only for second-order passes. */
+function buildCatalogThesisStubs(rows: unknown[]): MacroReasoningThesisStub[] {
+  const byId = new Map<string, DbThesisCatalogRow>();
+  for (const r of rows) {
+    if (!isDbThesisCatalogRow(r)) continue;
+    byId.set(r.id, r);
+  }
+
+  const out: MacroReasoningThesisStub[] = [];
+  for (const id of CURATED_FOCUS_CATALOG_ORDER) {
+    const row = byId.get(id);
+    const catalog = CATALOG_THESES.find((t) => t.id === id);
+    const title = (row?.title ?? "").trim() || catalog?.title || "";
+    if (!title) continue;
+    const ins = row?.insider_flow;
+    const confirm_tags =
+      ins && typeof ins === "object" && !Array.isArray(ins)
+        ? asTagList((ins as { confirmTags?: unknown }).confirmTags)
+        : catalog?.insiderFlow?.confirmTags ?? [];
+    const contradict_tags =
+      ins && typeof ins === "object" && !Array.isArray(ins)
+        ? asTagList((ins as { contradictTags?: unknown }).contradictTags)
+        : catalog?.insiderFlow?.contradictTags ?? [];
+
+    out.push({
+      id,
+      title,
+      slug: row?.slug ?? catalog?.slug ?? null,
+      micro_label: row?.micro_label?.trim() || catalog?.microLabel || null,
+      narrative_hook: narrativeHookFromBody(row?.body) || catalog?.oneLineSummary || null,
+      asset: catalog?.asset ?? null,
+      theme: catalog?.theme ?? null,
+      confirm_tags,
+      contradict_tags,
+    });
+  }
+  return out;
 }
 
 async function runEventReasoning() {
@@ -75,7 +140,7 @@ async function runEventReasoning() {
   // Allow env var, but hard-cap to 1 by default.
   const clusterLimitEnv = clamp(Number(process.env.EVENT_REASONING_CLUSTER_LIMIT ?? "1"), 1, 25);
   const clusterLimit = Math.min(1, clusterLimitEnv);
-  const maxTokens = clamp(Number(process.env.EVENT_REASONING_MAX_TOKENS ?? "4096"), 512, 8192);
+  const maxTokens = clamp(Number(process.env.EVENT_REASONING_MAX_TOKENS ?? "8192"), 512, 16_384);
 
   if (!url || !service) {
     return NextResponse.json(
@@ -89,20 +154,6 @@ async function runEventReasoning() {
 
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
   const promptVersion = MACRO_EVENT_REASONING_PROMPT_VERSION;
-
-  const { data: thesisData, error: thErr } = await admin
-    .from("theses")
-    .select("id,title")
-    .in("status", ["forming", "watching", "ready", "active"])
-    .limit(120);
-
-  if (thErr) {
-    return NextResponse.json({ ok: false, error: thErr.message, stage: "load_theses" }, { status: 400 });
-  }
-
-  const knownTheses: MacroReasoningThesisStub[] = (thesisData ?? [])
-    .filter(isThesisStub)
-    .filter((t) => t.title.trim().length > 0);
 
   const summary = {
     ok: true,
@@ -212,6 +263,22 @@ async function runEventReasoning() {
   summary.claimed_cluster_id = claimed.id;
   console.info("[event-reasoning] claimed", { clusterId: claimed.id, promptVersion });
 
+  const catalogIds = [...CURATED_FOCUS_CATALOG_ORDER];
+  const { data: thesisData, error: thErr } = await admin
+    .from("theses")
+    .select("id,title,slug,micro_label,body,insider_flow")
+    .in("id", catalogIds);
+
+  if (thErr) {
+    summary.duration_ms = Date.now() - startedAt;
+    return NextResponse.json(
+      { ok: false, error: thErr.message, stage: "load_catalog_theses", cluster_id: claimed.id, duration_ms: summary.duration_ms },
+      { status: 400 },
+    );
+  }
+
+  const knownTheses = buildCatalogThesisStubs(thesisData ?? []);
+
   const memberIds = claimed.member_news_event_ids.filter((id) => typeof id === "string" && id.length > 0);
   if (!memberIds.length) {
     summary.duration_ms = Date.now() - startedAt;
@@ -282,6 +349,7 @@ async function runEventReasoning() {
     body_excerpt: n.body_text,
     signal_level: n.signal_level,
     published_at: n.published_at,
+    created_at: null,
     category: n.category,
     region: n.region,
     affected_tickers: n.affected_tickers,
@@ -339,6 +407,22 @@ async function runEventReasoning() {
     summary.skipped = 1;
     summary.skip_reason = `schema: ${validated.error.message}`;
     console.info("[event-reasoning] schema_failed", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
+    return NextResponse.json(summary, { status: 502 });
+  }
+
+  const expectedPassIds = knownTheses.map((t) => t.id);
+  const passCheck = catalogThesisPassesComplete(expectedPassIds, validated.data.per_catalog_thesis);
+  if (!passCheck.ok) {
+    summary.duration_ms = Date.now() - startedAt;
+    summary.processed = 1;
+    summary.skipped = 1;
+    summary.skip_reason = `per_catalog_thesis: ${passCheck.message}`;
+    console.info("[event-reasoning] per_catalog_thesis_incomplete", {
+      clusterId: claimed.id,
+      anchorId,
+      message: passCheck.message,
+      durationMs: summary.duration_ms,
+    });
     return NextResponse.json(summary, { status: 502 });
   }
 
