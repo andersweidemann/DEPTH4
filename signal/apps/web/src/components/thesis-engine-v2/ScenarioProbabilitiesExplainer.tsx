@@ -13,8 +13,12 @@
  *      updates these odds as the evidence shifts. These are
  *      DEPTH4’s estimates, not investment advice."
  *
- * We only show this when probabilities are non-template / overridden,
- * so the explanation matches a genuinely live, thesis-specific state.
+ * Shown whenever Scenario View displays authoritative percentages
+ * (non-template triple), including **provisional** evidence-model outputs
+ * behind `liveScenarioProbabilitiesForThesesEnabled()` / `NEXT_PUBLIC_DEPTH4_LIVE_SCENARIO_PROBS`
+ * and **insider** overrides.
+ * Copy stays accurate: DEPTH4 ingests macro, news, and flow and revises
+ * estimates as evidence shifts — not investment advice.
  */
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";

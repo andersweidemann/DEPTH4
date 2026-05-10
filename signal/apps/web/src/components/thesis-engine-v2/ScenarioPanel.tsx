@@ -25,14 +25,24 @@ import { cn } from "@/lib/utils";
  *
  * The goal: avoid fake precision from seed templates, and only
  * surface numbers once they reflect thesis-specific, live evidence.
+ *
+ * **probabilitySource** — when `showPercentages` is true, optional attribution:
+ * - `evidence_model`: show a short “provisional” footnote (uncalibrated score map).
+ * - `insider_override`: explicit user-applied suggestion (no extra footnote here).
+ * - `null`: merged live / DB path or other non-template triple.
  */
+export type ScenarioPanelProbabilitySource = "insider_override" | "evidence_model" | null;
+
 export function ScenarioPanel({
   scenarios,
   showPercentages = true,
+  probabilitySource = null,
 }: {
   scenarios: ThesisScenarioLike[];
   /** When false, path labels and scenario copy stay; numeric weights and bars are hidden (template / calibrating). */
   showPercentages?: boolean;
+  /** When odds are shown, optional lineage for microcopy (see module comment above). */
+  probabilitySource?: ScenarioPanelProbabilitySource;
 }) {
   const ordered = normalizeThesisScenarios(scenarios);
 
@@ -96,6 +106,11 @@ export function ScenarioPanel({
       {!showPercentages ? (
         <p className="mt-4 text-[10px] leading-relaxed text-zinc-600" data-testid="scenario-calibrating-footer">
           Odds appear once DEPTH4 has enough live evidence.
+        </p>
+      ) : null}
+      {showPercentages && probabilitySource === "evidence_model" ? (
+        <p className="mt-4 text-[10px] leading-relaxed text-zinc-500" data-testid="scenario-provisional-note">
+          These weights are provisional — calibration ships once we log outcomes against predictions.
         </p>
       ) : null}
     </section>

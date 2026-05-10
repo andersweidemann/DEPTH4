@@ -45,6 +45,9 @@ import {
   overlayDbScenarioProbabilities,
   scenarioOverridesFromRows,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { applyProvisionalTripleToScenarios, runScenarioEvidenceModelPipeline } from "@/lib/thesis-engine-v2/scenario-evidence-model";
+import { liveScenarioProbabilitiesForThesesEnabled } from "@/lib/thesis-engine-v2/scenario-evidence-flags";
+import { logScenarioProbabilitySnapshot } from "@/lib/thesis-engine-v2/scenario-probability-log";
 
 /**
  * Merge server-fed catalog fields into a thesis detail bundle.
@@ -144,6 +147,7 @@ export function ThesisDetailClient({
 }) {
   const requireFeature = useRequireFeature();
   const liveOpt = useThesisLiveOptional();
+  const liveScenarioProbModelEnabled = liveScenarioProbabilitiesForThesesEnabled();
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() =>
     initialBundleForSlug(slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities ?? null),
   );
@@ -211,6 +215,11 @@ export function ThesisDetailClient({
     return liveOpt ? liveOpt.mergeThesis(bundle.thesis) : bundle.thesis;
   }, [bundle, liveOpt]);
 
+  const liveEvidence = useMemo(() => {
+    if (!bundle || !liveOpt) return [];
+    return liveOpt.evidenceLog.filter((r) => r.thesisId === bundle.thesis.id);
+  }, [bundle, liveOpt]);
+
   /** Scenario View: probabilities from live merged thesis; narrative fallbacks from bundle defaults. */
   const displayScenarios = useMemo(() => {
     if (!bundle || !thesisLive) return [];
@@ -220,24 +229,21 @@ export function ThesisDetailClient({
   /**
    * Scenario probabilities in ThesisDetailClient
    *
-   * We only show numeric scenario probabilities when they are
-   * thesis-specific or explicitly overridden:
+   * **Layers (template → provisional → calibrated later):**
+   * - **Template triples** — known shipped defaults; we hide `%` and show
+   *   the calibrating line unless something more specific is available.
+   * - **Provisional live probabilities** — when `liveScenarioProbabilitiesForThesesEnabled()`
+   *   (`NEXT_PUBLIC_DEPTH4_LIVE_SCENARIO_PROBS=1`),
+   *   enough evidence exists, and `scenario-evidence-model` yields a non-template
+   *   triple, we overlay those percentages (still uncalibrated; logging hook
+   *   records for future Brier / reliability work).
+   * - **Insider override** — applied suggestion wins over the evidence placeholder.
+   * - **Future calibrated probabilities** — same UI contract, different backend
+   *   once outcomes + calibration layer exist.
    *
-   * - If the scenario triple is still a known template, we treat it
-   *   as "probabilities calibrating" and pass showPercentages = false.
-   *   The UI shows paths + copy and a calibrating line instead of
-   *   pretending the template is live edge.
-   *
-   * - If the triple diverges from the template or the user has applied
-   *   an insider-flow scenario suggestion, we pass showPercentages = true
-   *   and let ScenarioPanel render numbers, bars, and the
-   *   "Why these probabilities" explanation.
-   *
-   * This keeps Scenario View honest: traders either see a clear
-   * calibrating state, or numbers that reflect live evidence.
-   *
-   * `scenarioPanelScenarios` applies insider “applied” weights on top of
-   * `displayScenarios` for the Scenario View cards.
+   * We show numeric scenario probabilities when the visible triple is not a
+   * template, or when an insider suggestion is applied. The ScenarioPanel
+   * explainer stays aligned with “live macro, news, and flow” language.
    */
   const scenarioPanelScenarios = useMemo(() => {
     if (!displayScenarios.length) return displayScenarios;
@@ -254,20 +260,51 @@ export function ThesisDetailClient({
     });
   }, [displayScenarios, insider]);
 
+  const scenarioViewScenarios = useMemo(() => {
+    if (insider?.applied) {
+      return { rows: scenarioPanelScenarios, probabilitySource: "insider_override" as const };
+    }
+    if (!liveScenarioProbModelEnabled || !bundle) {
+      return { rows: scenarioPanelScenarios, probabilitySource: null };
+    }
+    if (!isUncalibratedDisplayScenarioTriple(scenarioPanelScenarios)) {
+      return { rows: scenarioPanelScenarios, probabilitySource: null };
+    }
+    const pipeline = runScenarioEvidenceModelPipeline({
+      thesisId: bundle.thesis.id,
+      slug: bundle.thesis.slug,
+      evidenceRows: liveEvidence,
+      timeWindowDays: 14,
+    });
+    if (!pipeline.useProvisional) {
+      return { rows: scenarioPanelScenarios, probabilitySource: null };
+    }
+    const rows = applyProvisionalTripleToScenarios(scenarioPanelScenarios, pipeline.provisional);
+    logScenarioProbabilitySnapshot({
+      thesisId: bundle.thesis.id,
+      slug: bundle.thesis.slug,
+      dayKey: new Date().toISOString().slice(0, 10),
+      pClean: pipeline.provisional.cleanPct,
+      pMessy: pipeline.provisional.messyPct,
+      pBroken: pipeline.provisional.brokenPct,
+      supportiveSignalCount: pipeline.scoreResult.metadata.supportiveCount,
+      breakingSignalCount: pipeline.scoreResult.metadata.breakingCount,
+      mixedSignalCount: pipeline.scoreResult.metadata.mixedCount,
+      marker: "evidence_model",
+      provisional: true,
+    });
+    return { rows, probabilitySource: "evidence_model" as const };
+  }, [insider?.applied, scenarioPanelScenarios, bundle, liveEvidence, liveScenarioProbModelEnabled]);
+
   const showAuthoritativeScenarioPercents = useMemo(
-    () => Boolean(insider?.applied) || !isUncalibratedDisplayScenarioTriple(scenarioPanelScenarios),
-    [insider?.applied, scenarioPanelScenarios],
+    () => Boolean(insider?.applied) || !isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows),
+    [insider?.applied, scenarioViewScenarios.rows],
   );
 
   const assistBundle = useMemo(() => {
     if (!bundle || !thesisLive) return null;
     return { ...bundle, thesis: thesisLive };
   }, [bundle, thesisLive]);
-
-  const liveEvidence = useMemo(() => {
-    if (!bundle || !liveOpt) return [];
-    return liveOpt.evidenceLog.filter((r) => r.thesisId === bundle.thesis.id);
-  }, [bundle, liveOpt]);
 
   const liveLine = useMemo(() => thesesLiveHeaderNeutral(), []);
 
@@ -784,7 +821,11 @@ export function ThesisDetailClient({
           </div>
         ) : null}
 
-        <ScenarioPanel scenarios={scenarioPanelScenarios} showPercentages={showAuthoritativeScenarioPercents} />
+        <ScenarioPanel
+          scenarios={scenarioViewScenarios.rows}
+          showPercentages={showAuthoritativeScenarioPercents}
+          probabilitySource={scenarioViewScenarios.probabilitySource}
+        />
 
         <AdvisoryLog
           updates={(() => {

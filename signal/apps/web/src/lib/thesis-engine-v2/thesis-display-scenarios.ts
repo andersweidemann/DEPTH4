@@ -8,7 +8,10 @@ import { userThesisScenarioRows } from "@/lib/thesis-engine-v2/user-theses";
 export type DbScenarioTriple = { base: number; bull: number; bear: number };
 
 /**
- * Known template triples in **display order**: clean win, messy win, thesis broken.
+ * Known **template** triples in **display order**: clean win, messy win, thesis broken.
+ * Other triples may still be **provisional** (uncalibrated score → softmax); see
+ * `scenario-evidence-model.ts` and `liveScenarioProbabilitiesForThesesEnabled()`.
+ *
  * - `[40,35,25]` — `catalogDefaultScenariosForThesis` authoring pattern (clean 40 / messy 35 / broken 25).
  * - `[35,40,25]` — same Supabase seed `{base:40,bull:35,bear:25}` expressed on cards after DB-key mapping
  *   (messy / clean / broken).
