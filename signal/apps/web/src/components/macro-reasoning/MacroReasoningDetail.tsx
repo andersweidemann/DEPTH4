@@ -1,6 +1,8 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
-import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
+import type { CatalogThesisPass, MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { ConfidenceMeter } from "@/components/macro-reasoning/ConfidenceMeter";
 import { tickerQuoteUrl } from "@/components/macro-reasoning/ticker-link";
 import { parseReasoningChainLevels } from "@/lib/macro-reasoning/reasoning-chain-levels";
@@ -20,6 +22,51 @@ function EffectList({ title, items }: { title: string; items: string[] }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+const PER_CATALOG_EFFECT_CLAMP = 320;
+
+function relevanceDisplayLabel(r: CatalogThesisPass["relevance"]): string {
+  switch (r) {
+    case "none":
+      return "Not linked";
+    case "weak":
+      return "Tentative link";
+    case "moderate":
+      return "Moderate link";
+    case "strong":
+      return "Strong link";
+    default:
+      return r;
+  }
+}
+
+function PerCatalogSecondOrderText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const t = text.trim();
+  if (!t || t.length < 10) {
+    return (
+      <p className="mt-3 text-[13px] leading-relaxed text-zinc-500">
+        No second-order path identified for this thesis.
+      </p>
+    );
+  }
+  const long = t.length > PER_CATALOG_EFFECT_CLAMP;
+  const body = long && !expanded ? `${t.slice(0, PER_CATALOG_EFFECT_CLAMP)}…` : t;
+  return (
+    <div className="mt-3">
+      <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-zinc-200">{body}</p>
+      {long ? (
+        <button
+          type="button"
+          className="mt-2 text-[11px] font-semibold text-amber-200/85 hover:text-amber-100"
+          onClick={() => setExpanded((v) => !v)}
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
@@ -268,11 +315,14 @@ export function MacroReasoningDetail({
                         <span className="font-mono text-[12px] text-zinc-400">{row.thesis_id}</span>
                       )}
                     </div>
-                    <span className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
-                      {row.relevance} · {row.relation_to_thesis.replace(/_/g, " ")}
+                    <span
+                      className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500"
+                      title={`Relevance: ${row.relevance} · Relation: ${row.relation_to_thesis}`}
+                    >
+                      {relevanceDisplayLabel(row.relevance)} · {row.relation_to_thesis.replace(/_/g, " ")}
                     </span>
                   </div>
-                  <p className="mt-3 whitespace-pre-wrap text-[13px] leading-relaxed text-zinc-200">{row.second_order_effect}</p>
+                  <PerCatalogSecondOrderText text={row.second_order_effect} />
                   {row.third_order_backdrop?.trim() ? (
                     <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
                       <span className="font-semibold text-zinc-400">Backdrop: </span>

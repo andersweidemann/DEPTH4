@@ -36,6 +36,21 @@ export const catalogThesisPassSchema = z.object({
   third_order_backdrop: z.string().optional().default(""),
 });
 
+const PLACEHOLDER_SECOND_ORDER = /^(n\/?a\.?|not applicable|no link|none)$/i;
+
+/**
+ * Stricter `per_catalog_thesis` rows for **new inserts** (event-reasoning cron).
+ * Display / `safeParseMacroEventReasoning` stays on {@link catalogThesisPassSchema} so legacy rows still parse.
+ */
+export const catalogThesisPassSchemaForInsert = catalogThesisPassSchema.extend({
+  second_order_effect: z
+    .string()
+    .min(60, { message: "second_order_effect must be at least 60 characters (substantive causal write-up)." })
+    .refine((val) => !PLACEHOLDER_SECOND_ORDER.test(val.trim()), {
+      message: "second_order_effect must be substantive, not a placeholder.",
+    }),
+});
+
 export const macroEventReasoningSchema = z
   .object({
     /** Headline-level feed line — hard word cap. */
@@ -122,6 +137,19 @@ export const macroEventReasoningSchema = z
 export type MacroEventReasoning = z.infer<typeof macroEventReasoningSchema>;
 export type ThesisRelation = z.infer<typeof thesisRelationSchema>;
 export type CatalogThesisPass = z.infer<typeof catalogThesisPassSchema>;
+export type CatalogThesisPassForInsert = z.infer<typeof catalogThesisPassSchemaForInsert>;
+
+/** Insert-time quality gate for `per_catalog_thesis` (min length + no placeholder-only strings). */
+export function assertPerCatalogThesesInsertQuality(
+  passes: CatalogThesisPass[],
+): { ok: true } | { ok: false; message: string } {
+  const r = z.array(catalogThesisPassSchemaForInsert).safeParse(passes);
+  if (!r.success) {
+    const msg = r.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    return { ok: false, message: msg };
+  }
+  return { ok: true };
+}
 
 /** After Zod parse: ensure one pass per catalog thesis id, no extras. */
 export function catalogThesisPassesComplete(

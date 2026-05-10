@@ -13,7 +13,11 @@ import {
 import { pickAnchorNewsEventId } from "@/lib/macro-reasoning/pick-anchor";
 import { CATALOG_THESES } from "@/lib/thesis-engine-v2/catalog-data";
 import { CURATED_FOCUS_CATALOG_ORDER } from "@/lib/thesis-engine-v2/curated-focus-theses";
-import { catalogThesisPassesComplete, safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
+import {
+  assertPerCatalogThesesInsertQuality,
+  catalogThesisPassesComplete,
+  safeParseMacroEventReasoning,
+} from "@/lib/macro-reasoning/schema";
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 
@@ -421,6 +425,21 @@ async function runEventReasoning() {
       clusterId: claimed.id,
       anchorId,
       message: passCheck.message,
+      durationMs: summary.duration_ms,
+    });
+    return NextResponse.json(summary, { status: 502 });
+  }
+
+  const insertQuality = assertPerCatalogThesesInsertQuality(validated.data.per_catalog_thesis);
+  if (!insertQuality.ok) {
+    summary.duration_ms = Date.now() - startedAt;
+    summary.processed = 1;
+    summary.skipped = 1;
+    summary.skip_reason = `per_catalog_thesis_quality: ${insertQuality.message}`;
+    console.info("[event-reasoning] per_catalog_thesis_quality_failed", {
+      clusterId: claimed.id,
+      anchorId,
+      message: insertQuality.message,
       durationMs: summary.duration_ms,
     });
     return NextResponse.json(summary, { status: 502 });
