@@ -124,6 +124,15 @@ export type Thesis = {
   };
 };
 
+/** Live-derived trade levels (estimated from spot + ATR); not billed broker orders. */
+export type LiveTradePlan = {
+  ready: boolean;
+  entry_zone: { min: number | null; max: number | null; mid: number | null };
+  stop: number | null;
+  target1: number | null;
+  target2: number | null;
+};
+
 export type ThesisEvidence = {
   id: string;
   thesisId: string;
