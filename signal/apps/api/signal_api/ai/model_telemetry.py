@@ -105,8 +105,8 @@ def _aggregate_llm_job_sync(row: LlmJobTelemetry) -> None:
 def _aggregate_llm_job_thread_entry(row: LlmJobTelemetry) -> None:
   try:
     _aggregate_llm_job_sync(row)
-  except Exception:
-    logger.exception("llm_usage_stats: aggregate failed (non-fatal)")
+  except Exception as e:
+    logger.warning("llm_usage_stats: aggregate failed (non-fatal): %s", e, exc_info=True)
 
 
 def schedule_llm_usage_aggregate(row: LlmJobTelemetry) -> None:

@@ -12,7 +12,7 @@ from signal_api.ai.depth4_guard import get_depth4_guard_status
 from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.config import get_settings
 from signal_api.jobs import briefing_worker, scenario_refinement
-from signal_api.routers import admin_llm_usage, ingest_cron, market_routes, stripe_routes
+from signal_api.routers import admin_llm_ops, admin_llm_usage, ingest_cron, market_routes, stripe_routes
 from signal_api.routers.ingest_cron import _require_ingest_secret, depth4_status_payload
 from signal_api.services import news_ingest
 
@@ -94,6 +94,7 @@ def admin_depth4_status(
 
 
 _admin.include_router(admin_llm_usage.router)
+_admin.include_router(admin_llm_ops.router)
 
 app.include_router(_admin)
 
