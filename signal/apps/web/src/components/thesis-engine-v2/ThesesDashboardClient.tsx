@@ -1,12 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ThesisTableRow } from "@/components/thesis-engine-v2/ThesisTableRow";
 import { LiveSignalTicker } from "@/components/thesis-engine-v2/LiveSignalTicker";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { ThesisDetailDrawer } from "@/components/thesis-engine-v2/ThesisDetailDrawer";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
+import {
+  focusInitialVisibleCount,
+  orderFocusThesesCuratedThen,
+} from "@/lib/thesis-engine-v2/curated-focus-theses";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
@@ -57,10 +61,15 @@ export function ThesesDashboardClient({
   const [assetClass, setAssetClass] = useState<AssetClass>("all");
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [drawerSlug, setDrawerSlug] = useState<string | null>(initialDrawerSlug ?? null);
+  const [focusExpanded, setFocusExpanded] = useState(false);
 
   useEffect(() => {
     setUserTheses(loadUserTheses());
   }, []);
+
+  useEffect(() => {
+    setFocusExpanded(false);
+  }, [show, assetClass, sortKey, systemTheses, userTheses]);
 
 
   const sorted = useMemo(() => sortThesesForDashboard([...systemTheses, ...userTheses]), [systemTheses, userTheses]);
@@ -118,8 +127,28 @@ export function ThesesDashboardClient({
   }, [drawerSlug, liveSorted, live.catalogDbThesisBodies]);
 
   const focus = useMemo(() => filtered.filter((t) => t.status === "ready" || t.status === "active"), [filtered]);
-  const focusTop = useMemo(() => focus.slice(0, 3), [focus]);
-  const focusIds = useMemo(() => new Set(focusTop.map((t) => t.id)), [focusTop]);
+
+  const focusTieBreak = useCallback(
+    (a: Thesis, b: Thesis) => {
+      if (sortKey === "probability") return b.probability - a.probability;
+      if (sortKey === "biggest_move") return (moveBySlug.get(b.slug) ?? 0) - (moveBySlug.get(a.slug) ?? 0);
+      return parseRelativeMinutes(a.lastUpdated) - parseRelativeMinutes(b.lastUpdated);
+    },
+    [moveBySlug, sortKey],
+  );
+
+  /** Ready/Active: catalog theses follow fixed macro breadth; user theses follow current sort. */
+  const focusOrdered = useMemo(() => orderFocusThesesCuratedThen(focus, focusTieBreak), [focus, focusTieBreak]);
+
+  const focusInitialRows = useMemo(() => focusInitialVisibleCount(focusOrdered.length), [focusOrdered.length]);
+  const focusVisible = useMemo(
+    () => (focusExpanded ? focusOrdered : focusOrdered.slice(0, focusInitialRows)),
+    [focusExpanded, focusInitialRows, focusOrdered],
+  );
+  const focusHasMore = focusOrdered.length > focusInitialRows;
+
+  /** All ready/active stay in the Focus bucket so rows are not orphaned below the fold. */
+  const focusIds = useMemo(() => new Set(focus.map((t) => t.id)), [focus]);
 
   const monitoring = useMemo(
     () => filtered.filter((t) => !focusIds.has(t.id) && (t.status === "watching" || t.status === "forming")),
@@ -246,10 +275,15 @@ export function ThesesDashboardClient({
       <section className="mt-7">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Focus</h2>
-          <span className="text-[11px] text-zinc-600">Ready / Active</span>
+          <span className="text-[11px] text-zinc-600">Ready / Active · curated macro map</span>
         </div>
+        <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-zinc-600">
+          Default order is fixed by theme (QQQ → gold → rates → energy → defense → China → EU tech → Hormuz); user
+          theses follow your sort. Up to eight ready/active rows show at once; beyond eight, the first six show with See
+          more for the rest.
+        </p>
 
-        {focusTop.length === 0 ? (
+        {focusOrdered.length === 0 ? (
           <div className="mt-3 bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-500">
             No Ready or Active theses match the current filters.
           </div>
@@ -263,7 +297,7 @@ export function ThesesDashboardClient({
               <span className="text-right">Star</span>
             </div>
             <div className="mt-1 grid gap-0">
-              {focusTop.map((t) => (
+              {focusVisible.map((t) => (
                 <ThesisTableRow
                   key={t.id}
                   thesis={t}
@@ -276,6 +310,19 @@ export function ThesesDashboardClient({
                 />
               ))}
             </div>
+            {focusHasMore ? (
+              <div className="border-t border-white/[0.06] px-3 py-2">
+                <button
+                  type="button"
+                  className="text-[11px] font-semibold text-amber-200/85 hover:text-amber-100"
+                  onClick={() => setFocusExpanded((v) => !v)}
+                >
+                  {focusExpanded
+                    ? "Show fewer"
+                    : `See more · ${focusOrdered.length - focusInitialRows} more ready/active`}
+                </button>
+              </div>
+            ) : null}
           </div>
         )}
       </section>
