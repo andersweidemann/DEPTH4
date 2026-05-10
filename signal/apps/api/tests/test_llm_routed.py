@@ -21,6 +21,9 @@ def _settings(**kw: Any) -> Any:
     anthropic_model="claude-3-5-haiku-20241022",
     anthropic_model_cheap="cheap-model",
     anthropic_model_premium="premium-model",
+    nvidia_api_key=SecretStr(""),
+    nvidia_model="meta/llama-3.1-8b-instruct",
+    nvidia_base_url="https://integrate.api.nvidia.com/v1",
     kimi_api_key=SecretStr(""),
     kimi_model="kimi-k2.6",
     kimi_base_url="https://api.moonshot.cn/v1",
@@ -69,6 +72,7 @@ def test_cheap_tier_single_hop_when_validation_passes(mock_complete, _kimi, capl
   row = _last_llm_job_payload(caplog)
   assert row["task_type"] == "news_classify"
   assert row["model"] == "cheap-model"
+  assert row["provider"] == "anthropic"
   assert row["escalation_happened"] is False
   assert row["validation_passed"] is True
 
@@ -85,7 +89,9 @@ def test_cheap_escalates_on_empty_output(mock_complete, _kimi, caplog: pytest.Lo
   assert mock_complete.call_args_list[0].kwargs["model"] == "cheap-model"
   assert mock_complete.call_args_list[1].kwargs["model"] == "premium-model"
   rows = _all_llm_job_payloads(caplog)
+  assert rows[0]["provider"] == "anthropic"
   assert rows[0]["escalation_happened"] is False
+  assert rows[1]["provider"] == "anthropic"
   assert rows[1]["escalation_happened"] is True
 
 
@@ -134,12 +140,72 @@ def test_escalation_disabled_single_hop(mock_complete, _kimi) -> None:
 @patch.object(llm_client, "_kimi_available", return_value=True)
 @patch.object(llm_client, "_kimi_chat_sync")
 @patch.object(llm_client, "_complete_anthropic_sync")
-def test_cheap_prefers_kimi_when_configured(mock_anthropic, mock_kimi, _kav) -> None:
+def test_cheap_prefers_kimi_when_nvidia_unconfigured(mock_anthropic, mock_kimi, _kav) -> None:
+  """NVIDIA-first tasks skip NVIDIA when no key; Kimi is next."""
   mock_kimi.return_value = '{"k": true}'
-  s = _settings(kimi_api_key=SecretStr("k"), kimi_model="kimi-k2.6")
+  s = _settings(kimi_api_key=SecretStr("k"), kimi_model="kimi-k2.6", nvidia_api_key=SecretStr(""))
   out = llm_client.llm_text_routed(s, ModelTaskType.news_classify, "sys", "user")
   assert json.loads(out) == {"k": True}
   assert mock_kimi.call_count == 1
+  assert mock_anthropic.call_count == 0
+
+
+@patch.object(llm_client, "_kimi_available", return_value=True)
+@patch.object(llm_client, "_nvidia_chat_sync")
+@patch.object(llm_client, "_kimi_chat_sync")
+@patch.object(llm_client, "_complete_anthropic_sync")
+def test_news_classify_prefers_nvidia_over_kimi_when_nvidia_configured(
+  mock_anthropic, mock_kimi, mock_nvidia, _kav
+) -> None:
+  mock_nvidia.return_value = '{"nv": true}'
+  s = _settings(
+    nvidia_api_key=SecretStr("nv-key"),
+    kimi_api_key=SecretStr("k"),
+    kimi_model="kimi-k2.6",
+  )
+  out = llm_client.llm_text_routed(s, ModelTaskType.news_classify, "sys", "user")
+  assert json.loads(out) == {"nv": True}
+  assert mock_nvidia.call_count == 1
+  assert mock_kimi.call_count == 0
+  assert mock_anthropic.call_count == 0
+
+
+@patch.object(llm_client, "_kimi_available", return_value=True)
+@patch.object(llm_client, "_nvidia_chat_sync")
+@patch.object(llm_client, "_kimi_chat_sync")
+@patch.object(llm_client, "_complete_anthropic_sync")
+def test_scenarios_repair_prefers_nvidia_when_configured(mock_anthropic, mock_kimi, mock_nvidia, _kav) -> None:
+  mock_nvidia.return_value = '{"ok": 1}'
+  s = _settings(nvidia_api_key=SecretStr("nv"), kimi_api_key=SecretStr("k"))
+  out = llm_client.llm_text_routed(s, ModelTaskType.scenarios_repair, "sys", "user")
+  assert json.loads(out) == {"ok": 1}
+  assert mock_nvidia.call_count == 1
+  assert mock_kimi.call_count == 0
+
+
+@patch.object(llm_client, "_kimi_available", return_value=False)
+@patch.object(llm_client, "_nvidia_chat_sync")
+@patch.object(llm_client, "_complete_anthropic_sync")
+def test_news_nvidia_bad_json_escalates_to_anthropic_premium(mock_anthropic, mock_nvidia, _kimi) -> None:
+  mock_nvidia.return_value = "not-json"
+  mock_anthropic.return_value = '{"a": 1}'
+  s = _settings(nvidia_api_key=SecretStr("nv"))
+  out = llm_client.llm_text_routed(s, ModelTaskType.news_classify, "sys", "user")
+  assert json.loads(out) == {"a": 1}
+  assert mock_nvidia.call_count == 1
+  assert mock_anthropic.call_count == 1
+  assert mock_anthropic.call_args.kwargs["model"] == "premium-model"
+
+
+@patch.object(llm_client, "_kimi_available", return_value=False)
+@patch.object(llm_client, "_nvidia_chat_sync")
+@patch.object(llm_client, "_complete_anthropic_sync")
+def test_news_nvidia_bad_json_no_escalation_when_disabled(mock_anthropic, mock_nvidia, _kimi) -> None:
+  mock_nvidia.return_value = "not-json"
+  s = _settings(nvidia_api_key=SecretStr("nv"), llm_routing_escalation=False)
+  out = llm_client.llm_text_routed(s, ModelTaskType.news_classify, "sys", "user")
+  assert out == "not-json"
+  assert mock_nvidia.call_count == 1
   assert mock_anthropic.call_count == 0
 
 

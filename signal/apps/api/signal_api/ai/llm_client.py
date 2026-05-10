@@ -1,4 +1,7 @@
-"""Unified text completion with DEPTH4 model routing (Kimi default, Opus premium + escalation).
+"""Unified text completion with DEPTH4 model routing (NVIDIA → Kimi → Anthropic cheap, then Opus escalation).
+
+``news_classify`` and ``scenarios_repair`` try NVIDIA Llama 3.1 8B first when ``NVIDIA_*`` is configured;
+other cheap/standard tasks use Kimi then Anthropic. Premium / ``high_stakes`` / escalation use Anthropic premium.
 
 Call ``llm_text_routed`` with a ``ModelTaskType`` for new code. Legacy ``llm_text_for_task``
 remains for older imports but should not be used for new features.
@@ -18,6 +21,7 @@ from signal_api.ai.model_routing import (
   ModelTaskTier,
   default_tier_for_task,
   default_validator_for_task,
+  prefers_nvidia_for_cheap_path,
   task_accepts_json_validation,
   tier_max_tokens,
   tier_starts_on_premium,
@@ -118,10 +122,11 @@ def llm_configuration_hint() -> str:
   c_cls = provider_configured(s, classify_p)
   c_ana = provider_configured(s, analysis_p)
   kimi_ok = provider_configured(s, "kimi")
+  nvidia_ok = provider_configured(s, "nvidia")
   return (
     f"classify_provider={classify_p!r} configured={c_cls}, "
     f"analysis_provider={analysis_p!r} configured={c_ana}, "
-    f"kimi_configured={kimi_ok} "
+    f"kimi_configured={kimi_ok}, nvidia_configured={nvidia_ok} "
     f"(set keys for those providers on the API service)"
   )
 
@@ -159,6 +164,10 @@ def llm_text_for_task(
 
 def _kimi_available(settings: Settings) -> bool:
   return provider_configured(settings, "kimi")
+
+
+def _nvidia_available(settings: Settings) -> bool:
+  return provider_configured(settings, "nvidia")
 
 
 def _apply_system_style(system: str, *, terse: bool) -> str:
@@ -384,9 +393,24 @@ def llm_text_routed(
       )
 
   def run_cheap_path() -> tuple[str, str, str]:
-    """Returns text, provider label, model id for telemetry."""
+    """Returns (text, provider, model_id). Order: NVIDIA (simple tasks) → Kimi → Anthropic cheap."""
     model_telemetry.set_last_token_usage(input_tokens=None, output_tokens=None)
     t0 = time.perf_counter()
+    tt = (task_type or "").strip()
+
+    if prefers_nvidia_for_cheap_path(tt) and _nvidia_available(settings):
+      text = _nvidia_chat_sync(settings, sys_primary, user, max_tokens=max_primary, temperature=temperature)
+      model = (settings.nvidia_model or "").strip() or "meta/llama-3.1-8b-instruct"
+      model_telemetry.emit_llm_job(
+        task_type=task_type,
+        model=model,
+        provider="nvidia",
+        started_monotonic=t0,
+        escalation_happened=False,
+        validation_passed=v_fn(text) if v_fn else None,
+      )
+      return text, "nvidia", model
+
     if _kimi_available(settings):
       text = _kimi_chat_sync(settings, sys_primary, user, max_tokens=max_primary, temperature=temperature)
       model = (settings.kimi_model or "").strip()

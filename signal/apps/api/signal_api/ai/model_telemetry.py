@@ -39,9 +39,11 @@ def _rough_cost_usd(provider: str, model: str, inp: int, out: int) -> float:
   """Placeholder $/1M-token style estimate for dashboards — replace with provider invoices."""
   m = (model or "").lower()
   p = (provider or "").lower()
+  if p in ("nvidia", "nim"):
+    return max(0.0, inp * 0.05 / 1e6 + out * 0.10 / 1e6)
   if p == "kimi":
     return max(0.0, inp * 0.15 / 1e6 + out * 0.15 / 1e6)
-  if "opus" in m or "4-7" in m:
+  if "opus" in m or "4-7" in m or "4-6" in m:
     return max(0.0, inp * 15.0 / 1e6 + out * 75.0 / 1e6)
   if "haiku" in m:
     return max(0.0, inp * 0.25 / 1e6 + out * 1.25 / 1e6)

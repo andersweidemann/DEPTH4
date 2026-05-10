@@ -1,16 +1,29 @@
-"""DEPTH4 model routing: default Kimi-class cheap path, Opus only for premium / escalation.
+"""DEPTH4 model routing: tiered providers + Opus escalation.
+
+Provider stack (cheap / standard first hop)
+--------------------------------------------
+**Tier A — NVIDIA Llama 3.1 8B Instruct** (very cheap, NIM ``/chat/completions``): highest-volume
+simple jobs — ``news_classify``, ``scenarios_repair`` — when ``NVIDIA_API_KEY`` + ``NVIDIA_MODEL`` are set.
+
+**Tier B — Kimi** (``kimi-k2.6``): default cheap/standard path for richer text when Tier A is skipped
+(NVIDIA unset) or for all other task types on the cheap path (Kimi before Anthropic Haiku).
+
+**Tier C — Anthropic** (``ANTHROPIC_MODEL_CHEAP`` / ``ANTHROPIC_MODEL_PREMIUM``): Haiku-class when
+Kimi is unavailable; **premium** model for ``deep_brief`` / ``personalize_interactive``, ``high_stakes``,
+and **one-shot escalation** after an empty or JSON-invalid cheap response (when
+``LLM_ROUTING_ESCALATION`` is true).
 
 Tiers
 -----
-- **cheap** — lowest max_tokens, terse system prefix, prefer Kimi when configured.
-- **standard** — moderate caps; still cheap path first.
-- **premium** — Anthropic premium model (e.g. Opus) for user-triggered / high-quality passes.
-- **high_stakes** — same model stack as premium; telemetry flag for money-facing jobs.
+- **cheap** — lowest ``max_tokens``, terse system prefix; provider order per task (NVIDIA-first tasks above).
+- **standard** — moderate caps; Kimi → Anthropic on the cheap path (no NVIDIA-first unless task is in that set).
+- **premium** — Anthropic premium first hop (no NVIDIA/Kimi cheap attempt).
+- **high_stakes** — same as premium for model routing; budget guardrails may still allow premium.
 
 Escalation (when ``LLM_ROUTING_ESCALATION`` is true)
 ----------------------------------------------------
-Start on cheap route (Kimi if keys present, else Anthropic ``ANTHROPIC_MODEL_CHEAP``).
-Escalate once to premium if: JSON validation fails, empty output, or ``high_stakes`` on a non-premium tier.
+After the cheap primary hop (NVIDIA, Kimi, or Anthropic Haiku), escalate once to ``ANTHROPIC_MODEL_PREMIUM``
+if output is empty, JSON validation fails (where a validator applies), or ``high_stakes`` on a non-premium path.
 
 TODO (policy backlog): dual cheap-model disagreement detection; confidence-score threshold
 from structured model metadata; Platt / isotonic calibration hooks.
@@ -87,6 +100,25 @@ _PREMIUM_FIRST_TASKS: frozenset[str] = frozenset(
     ModelTaskType.deep_brief,
   }
 )
+
+# Simple high-volume tasks: try NVIDIA (Llama 3.1 8B) before Kimi, then Anthropic cheap.
+_NVIDIA_FIRST_CHEAP_TASKS: frozenset[str] = frozenset(
+  {
+    ModelTaskType.news_classify,
+    ModelTaskType.scenarios_repair,
+  }
+)
+
+
+def prefers_nvidia_for_cheap_path(task_type: str) -> bool:
+  """True when the cheap-path order is NVIDIA → Kimi → Anthropic (see module docstring)."""
+  return (task_type or "").strip() in _NVIDIA_FIRST_CHEAP_TASKS
+
+
+def cheap_path_provider_stack_description(task_type: str) -> str:
+  if prefers_nvidia_for_cheap_path(task_type):
+    return "nvidia -> kimi -> anthropic_cheap"
+  return "kimi -> anthropic_cheap"
 
 
 def default_tier_for_task(task_type: str, *, high_stakes: bool) -> ModelTaskTier:
@@ -169,14 +201,16 @@ def build_llm_routing_matrix(settings: Settings) -> dict[str, Any]:
         "validator": validator_kind_for_task(tt.value),
         "starts_on_premium_by_default": tier_starts_on_premium(dt, tt.value),
         "max_tokens_default": tier_max_tokens(dt),
+        "cheap_path_provider_stack": cheap_path_provider_stack_description(tt.value),
       }
     )
   return {
     "tasks": tasks,
     "describe_task_tier_matrix": describe_task_tier_matrix(),
-    "cheap_path": "kimi if KIMI_API_KEY+KIMI_MODEL else anthropic ANTHROPIC_MODEL_CHEAP",
+    "cheap_path": "news_classify/scenarios_repair: nvidia->kimi->anthropic_cheap; others: kimi->anthropic_cheap",
     "anthropic_model_cheap": settings.anthropic_model_cheap,
     "anthropic_model_premium": settings.anthropic_model_premium,
+    "nvidia_model": settings.nvidia_model,
     "kimi_model": settings.kimi_model,
     "llm_routing_escalation": settings.llm_routing_escalation,
     "llm_premium_daily_budget_usd": settings.llm_premium_daily_budget_usd,
