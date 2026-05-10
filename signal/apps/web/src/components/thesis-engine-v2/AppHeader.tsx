@@ -9,6 +9,7 @@ import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
 import { useMemo, useState } from "react";
 import { InsiderFlowPanel, InsiderFlowRadarButton } from "@/components/thesis-engine-v2/InsiderFlowPanel";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 export type ThesisNavTab = "theses" | "feed" | "book" | "community" | "leaderboard" | "help";
 
@@ -68,6 +69,7 @@ export function AppHeader({
             <span className="text-sm text-zinc-500" aria-label="Current tier">
               {tierLabel}
             </span>
+            <LogoutButton />
           </div>
         </div>
         <nav

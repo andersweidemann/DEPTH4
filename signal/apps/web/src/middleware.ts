@@ -15,6 +15,7 @@ const PUBLIC_PREFIXES = [
   "/risk-disclosure",
   "/disclaimer",
   "/auth/callback",
+  "/auth/sign-out",
 ];
 
 function isPublicPath(pathname: string): boolean {
