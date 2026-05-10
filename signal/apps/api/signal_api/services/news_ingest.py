@@ -365,8 +365,10 @@ async def _process_item(
   tr = alerts.insert_tree(eid, tree_out)
   if not tr.get("scenarios") and tree_out.get("scenarios"):
     tr["scenarios"] = tree_out.get("scenarios", [])
+  ols = cls.get("one_line_summary")
+  ols_str = (str(ols).strip() if ols is not None else "") or None
   await alerts.fan_out(
-    eid, title, sev, list(cls.get("affected_tickers") or []), tr
+    eid, title, sev, list(cls.get("affected_tickers") or []), tr, one_line_summary=ols_str
   )
 
 

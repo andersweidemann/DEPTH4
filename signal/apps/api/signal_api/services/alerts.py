@@ -88,6 +88,8 @@ async def fan_out(
   signal_level: int,
   affected: list,
   tree_row: dict[str, Any] | None,
+  *,
+  one_line_summary: str | None = None,
 ) -> None:
   tset = _affected([str(x) for x in (affected or [])])
   # Registry keyword match (headline-only) as a second path to relevance.
@@ -162,8 +164,19 @@ async def fan_out(
       }
       sb.table("user_alerts").insert(ins).execute()
       if signal_level >= 4 or overlap or signal_level >= 3:
+        ev_sum = tree_row.get("event_summary") if tree_row else None
+        if isinstance(ev_sum, str):
+          ev_sum = ev_sum.strip() or None
+        else:
+          ev_sum = None
+        ols = (one_line_summary or "").strip() or None
         await one_signal.push_for_user(
-          str(uid), signal_level, event_headline, bool(overlap) or signal_level >= 4
+          str(uid),
+          signal_level,
+          event_headline,
+          bool(overlap) or signal_level >= 4,
+          one_line_summary=ols,
+          event_summary=ev_sum,
         )
 
   await asyncio.gather(*[one(str(u)) for u in user_ids if u])

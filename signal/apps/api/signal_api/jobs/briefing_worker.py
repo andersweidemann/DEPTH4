@@ -77,7 +77,12 @@ async def _deliver(uid: str, btype: str) -> None:
     # duplicate date/type
     return
   await one_signal.push_for_user(
-    uid, 2, "Briefing is ready. Open the DEPTH4 tab.", True, force=True
+    uid,
+    2,
+    "Briefing is ready. Open the DEPTH4 tab.",
+    True,
+    force=True,
+    frame_wire_headline_fallback=False,
   )
 
 
