@@ -5,12 +5,13 @@
 
 /** One-line hook example (3-second scan). */
 export const DEPTH4_CANONICAL_QQQ_ONE_LINE =
-  "Don't add to QQQ yet: many companies will feel the cost of AI spending in earnings before the profits show up, and the index hides that risk.";
+  "QQQ will underperform as AI spending squeezes margins before revenue catches up — the index hides who pays first.";
 
 export const DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM = `
 DEPTH4 CATALOG THESIS VOICE (canonical QQQ / AI template — apply to EVERY linked thesis id)
-1) TRADE LINE: "[Buy/Sell/Don't add / Don't buy more … yet] [ticker] because [future event] will happen within [time window] due to [plain cause], probability [N%]."
-   - Never vague "avoid" without saying hold vs sell vs don't add.
+1) HERO / TRADE LINE (title + thesis_statement — market forecast, NOT advice): "[Asset] will [direction + move] because [plain cause] within [time window], probability [N%]."
+   - Asset first (ticker or common name). Then direction: will rise, will fall, will rerate higher, will stay bid, will underperform, will stay under pressure, will lag, etc.
+   - **Banned in hero/title/one-line summary:** Buy, Sell, Go long, Go short, Add exposure, Reduce exposure, Don't buy, Don't add (and similar imperatives). Those belong only in Trade plan / execution fields.
    - Never unexplained "AI capex", "dispersion risk", "beta", "quality", "duration" alone — spell out in plain English (e.g. AI-related spending: chips, data centers, staff; long bond prices vs rate cuts).
 
 ====================================================
@@ -56,7 +57,7 @@ L4 · 2026 BACKDROP — Bias for every DEPTH4 thesis this year
 Money is still expensive. Companies that throw off steady cash can fund AI and earn real returns. Weaker or more indebted names have to spend just to keep up and get punished faster when profits slip.
 
 3) MARKET EDGE (whatsUnpriced / misread tone): what the crowd misses; why DEPTH4 sees it first (clusters, levels, policy path) — no empty slogans.
-4) TRIGGER / TRADE / EXIT / TIME STOP: observable trigger; trade names tickers and actions; invalidation states what proves you wrong; time stop if thesis never fires on schedule (e.g. two quarters / two earnings seasons).
+4) TRIGGER / TRADE / EXIT / TIME STOP: observable trigger; trade names tickers and execution framing (Enter / Trim / etc., informational disclaimer applies); invalidation states what proves you wrong; time stop if thesis never fires on schedule (e.g. two quarters / two earnings seasons).
 5) DEPTH4 retail voice: short direct sentences; pass the DEPTH4 RETAIL VOICE TEST (see depth4-retail-voice-constitution module, injected with macro prompts); ban consultant deck speak.
 
 CANONICAL ONE-LINE (QQQ — 3-second scan shape for any thesis)
@@ -69,7 +70,7 @@ CANONICAL ONE-LINE (QQQ — 3-second scan shape for any thesis)
  */
 export const DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM = `
 DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO DUPLICATION
-- **title** / **thesis_statement**: the ONLY place for the full hero trade sentence (action + asset + because + time + cause + probability tone). Do not repeat that sentence in why_thesis_exists, thesis_cascade, whats_unpriced, trigger, or trade.
+- **title** / **thesis_statement**: the ONLY place for the full hero forecast sentence (asset + will [move] + because + time + cause + probability tone). No Buy/Sell imperatives. Do not repeat that sentence in why_thesis_exists, thesis_cascade, whats_unpriced, trigger, or trade.
 
 - **thesis_cascade** (l1–l4) — when generating or refreshing, follow ALL of the below (global: war/peace gold GLD, OPEC/USO, Fed/TLT, RTX/defense, copper/China, META/regulation, any future thesis):
   A. Instruct explicitly: write **all four** levels in plain language for a **smart non-professional**. Do **not** use hedge-fund or bank jargon (e.g. dispersion, index diversification, basket repricing, cash conversion, equity books, beta, duration, regime, setup as trade noun, expression as jargon).

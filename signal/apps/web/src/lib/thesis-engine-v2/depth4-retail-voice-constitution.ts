@@ -23,21 +23,22 @@ This is global law, not a local preference. It covers: thesis titles, micro-labe
 
 1) CANONICAL VOICE
 - Short, direct, human, plain; readable in ~3 seconds.
-- Tell what is happening, why it matters, and what to do.
+- Tell what is happening, why it matters, and (in Trade plan / execution blocks only) how the book frames optional actions — thesis **hero** lines are **market forecasts**, not buy/sell instructions.
 - Feels like a sharp market headline or trader note for a smart non-professional.
 - NOT: hedge-fund memo, bank strategist note, consultant deck, placeholder template, internal product copy.
 
 2) Use the DEPTH4 RETAIL VOICE TEST block above on every string you output for users.
 
 3) LANGUAGE — prefer phrases like:
-"money is still expensive", "the stock still trades like…", "the market is missing…", "a few winners carry the story", "owning the whole index hides the cracks", "gold still trades like war is around the corner", "contracts lock in future work", "future work pipeline", "profits", "margins", "cash flow", "debt", "weaker names", "small caps", "wait", "buy", "sell", "trim", "stand down".
+"money is still expensive", "the stock still trades like…", "the market is missing…", "a few winners carry the story", "owning the whole index hides the cracks", "gold still trades like war is around the corner", "contracts lock in future work", "future work pipeline", "profits", "margins", "cash flow", "debt", "weaker names", "small caps", "wait", "trim", "stand down".
+- In **thesis title, thesis_statement, one-line summary, feed headline, drawer title, thesis_trade_line**: use **forecast verbs** (will rise, will fall, will underperform, will stay bid, will rerate higher, …) — never imperative **Buy**, **Sell**, **Go long**, **Go short**, **Don't buy**, **Don't add**, **Add exposure**, **Reduce exposure**. Plain "buy"/"sell" may still appear inside **Trade plan** copy where the informational disclaimer applies.
 
 Avoid or replace everywhere (unless you define in plain words in the same sentence):
 dispersion, index diversification, basket repricing / reprices cleanly, convexity, beta, duration, regime, setup (trade noun), expression (jargon), book bias, equity books, variant read / variant perception, sell-side models, backlog math, cash conversion, conversion quality, time compression, flow story, and any sentence that sounds like a hedge-fund note.
 
 4) ONE JOB PER BLOCK — do not repeat the same sentence or idea across blocks.
 - Micro-label: 3–6 words, human, memorable, no ticker, no jargon.
-- Hero title: only full thesis sentence — "[Buy/Sell/Don't add …] [asset] because [event] within [window] due to [cause]."
+- Hero title: only full thesis sentence — "[Asset] will [direction + move] because [plain cause], within [time window]." (forecast; no Buy/Sell imperatives.)
 - One-line summary: optional hook; not a duplicate hero.
 - L1 facts now · L2 watch this week/quarter · L3 how the trade pays this year · L4 broad 2026 backdrop — plain language only; bad vs good examples in THESIS BOOK snippet.
 - What the market hasn't priced: the edge, once (plain words — not "variant read").

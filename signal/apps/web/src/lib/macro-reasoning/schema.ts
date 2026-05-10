@@ -80,7 +80,7 @@ export const macroEventReasoningSchema = z
     /**
      * DETAIL PAGE (not feed-capped):
      * Position, event, cause, **time window / catalyst**, probability; tickers; L1–L4 in reasoning_chain.
-     * Example: "Buy TLT because cuts land sooner than priced because labor is softening, probability 42%; catalyst: May payroll + FOMC."
+     * Example: "TLT will rally as the first Fed cut lands sooner than futures price because labor softens, probability 42%; catalyst: May payroll + FOMC."
      */
     thesis_trade_line: z.string().optional().default(""),
 

@@ -4,7 +4,11 @@ import httpx
 
 from signal_api.config import get_settings
 
-"""Server-side send via OneSignal REST. Configure ONE_SIGNAL_APP_ID and ONE_SIGNAL_API_KEY."""
+"""Server-side send via OneSignal REST. Configure ONE_SIGNAL_APP_ID and ONE_SIGNAL_API_KEY.
+
+Notification body uses the source news headline (truncated). Classification prompts enforce DEPTH4
+forecast-style scan lines so one_line_summary / related fields avoid imperative Buy/Sell when generated upstream.
+"""
 
 
 async def push_for_user(

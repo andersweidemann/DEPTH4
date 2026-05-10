@@ -21,7 +21,7 @@ This applies to **everything user-facing** DEPTH4 writes or displays: thesis tit
 ## 1) Canonical voice
 
 - Short, direct, human, plain; readable in ~3 seconds.
-- What is happening, why it matters, what to do.
+- What is happening, why it matters, and (in Trade plan / execution blocks) optional framing of actions — **thesis hero** copy is a **market forecast**, not buy/sell advice.
 - Sharp market headline or trader note for a **smart non-professional**.
 - **Not:** hedge-fund memo, bank strategist note, consultant deck, placeholder template, internal product copy.
 
@@ -33,7 +33,7 @@ Before finalizing any user-facing line, ask:
 
 1. Could a smart retail trader understand this instantly?
 2. Does it sound like a clear market headline, not a PM memo?
-3. Does it say what happened / why it matters / what to do in plain words?
+3. Does it say what happened / why it matters (and, where appropriate, trade-plan context) in plain words — without imperative Buy/Sell on thesis hero surfaces?
 4. Does it avoid hedge-fund or consultant vocabulary?
 5. Could it be read aloud naturally without sounding robotic?
 
@@ -43,7 +43,9 @@ If any answer is **no**, rewrite.
 
 ## 3) Language — prefer / avoid
 
-**Prefer:** “money is still expensive”, “the stock still trades like…”, “the market is missing…”, “a few winners carry the story”, “owning the whole index hides the cracks”, “contracts lock in future work”, “future work pipeline”, profits, margins, cash flow, debt, weaker names, small caps, wait, buy, sell, trim, stand down.
+**Prefer:** “money is still expensive”, “the stock still trades like…”, “the market is missing…”, “a few winners carry the story”, “owning the whole index hides the cracks”, “contracts lock in future work”, “future work pipeline”, profits, margins, cash flow, debt, weaker names, small caps, wait, trim, stand down — and **forecast phrasing** on thesis heroes (“X will underperform…”, “Y will stay bid…”).
+
+**Thesis hero / title / one-line / feed headline:** never imperative **Buy**, **Sell**, **Go long**, **Go short**, **Don't buy**, **Don't add**, **Add exposure**, **Reduce exposure**. Trade plan fields may still use Enter / Trim / etc. under the product disclaimer.
 
 **Avoid or replace** (unless defined in plain words in the same sentence): dispersion, index diversification, basket repricing / reprices cleanly, convexity, beta, duration, regime, setup (trade noun), expression (jargon), book bias, equity books, **variant read / variant perception**, sell-side models, backlog math, cash conversion, conversion quality, time compression, flow story, and any sentence that sounds like a hedge-fund note.
 
@@ -54,7 +56,7 @@ Say **“the edge”** or **“what the market hasn’t priced yet”** — not 
 ## 4) One job per block
 
 - **Micro-label:** 3–6 words; human; memorable; no ticker; no jargon.
-- **Hero title:** only full thesis sentence — `[Buy/Sell/Don't add …] [asset] because [event] within [window] due to [cause].`
+- **Hero title:** only full thesis sentence — `[Asset] will [direction + move] because [plain cause], within [time window].` (No Buy/Sell imperatives.)
 - **One-line summary:** optional hook; not a duplicate hero.
 - **L1–L4:** facts → near window → year payout → 2026 backdrop; plain language; one main new idea per level (see thesis book + QQQ exemplar).
 - **What’s unpriced:** the edge, **once**.
@@ -81,7 +83,7 @@ Every catalog thesis uses the **same** ladder and retail bar as the QQQ AI-cost 
 
 ## 7) Six checks (every thesis)
 
-1. Position in plain English (Buy / Sell / Don’t add / Don’t buy more yet — not vague “avoid”).
+1. **Forecast** in plain English: asset first, then **will** + move (underperform, rerate higher, stay bid, fall, …), then because + window — not vague “avoid”, and **not** imperative Buy/Sell on the hero line.
 2. Specific future event.
 3. Plain cause (define “AI-related spending (chips, data centers, staff)” etc. once).
 4. Time-bound window or catalyst.
@@ -92,9 +94,9 @@ Every catalog thesis uses the **same** ladder and retail bar as the QQQ AI-cost 
 
 ## 8) Display title & statement
 
-`[Buy / Sell / Don’t add / Don’t buy more … yet] [ticker] because [future event] will happen [within time window]`
+`[Asset] will [direction + move] because [plain cause] [within time window]` — optional trailing `, probability [N%]` in `thesis_statement` / detail copy.
 
-Full statement adds cause + probability + timing where needed.
+**Banned on this surface:** Buy, Sell, Go long, Go short, Don’t buy, Don’t add, Add exposure, Reduce exposure.
 
 ---
 
@@ -127,8 +129,8 @@ Uses LEVEL 1–4 headers per `prompts.ts` contract; same retail voice and banned
 
 ## 11) Event narrative & UI
 
-- **Thesis trade line:** full retail sentence + when + probability.
-- **Trade implication:** exactly **Bullish** OR **Bearish** OR **Neutral**; tickers; action.
+- **Thesis trade line:** full retail **forecast** sentence + when + probability (same ban as hero — no Buy/Sell imperatives).
+- **Trade implication:** exactly **Bullish** OR **Bearish** OR **Neutral**; tickers; **bias and what to watch** (avoid imperative buy/sell/add on thesis-facing lines; use “bias”, “pressure”, “watch [print]”).
 - **Relation chips:** sentence case; no raw **adjacent** enum shown as a harsh pill (see product notes in codebase).
 
 **Brand tokens (UI):** accent `#E8473F`, background `#111110`, text `#ffffff` / `#888888`.

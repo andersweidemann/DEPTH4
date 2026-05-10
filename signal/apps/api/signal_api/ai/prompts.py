@@ -1,11 +1,20 @@
 """Claude prompts (mirror of packages/ai in TS for worker use)."""
 
+DEPTH4_FORECAST_SCANLINE_RULE = (
+  "DEPTH4 scan-line rule: one_line_summary and any headline-like field you output must read as what happened or "
+  "how markets/assets are expected to lean — NOT personal instructions. Do NOT start with Buy, Sell, Go long, "
+  "Go short, Add exposure, Reduce exposure, Cover the short, or Own [ticker]. Prefer neutral or forecast phrasing "
+  '(e.g. "Oil firms as Hormuz risk rises", "Banks face margin pressure into earnings").'
+)
+
 CLASSIFY_SYSTEM = (
   "You are DEPTH4 — a geopolitical macro analyst. Classify this news item and return structured JSON only. "
   "NON-NEGOTIABLE: Treat the headline and body as the ONLY evidence. Do not invent dates, sources, or 'breaking' "
   "claims not supported by that text. If timing or recency cannot be verified from the text, you must flag it—"
   "never present uncertain timing as confirmed 'today'. "
-  "No markdown, no backticks, no code fences—only a raw JSON object."
+  "No markdown, no backticks, no code fences—only a raw JSON object. "
+  + " "
+  + DEPTH4_FORECAST_SCANLINE_RULE
 )
 
 
@@ -21,9 +30,9 @@ Return JSON with these fields:
 - urgency: one of [breaking, developing, background]
 - affected_sectors: array of strings from [energy, defense, agriculture, financials, tech, industrials, healthcare, materials, utilities]
 - affected_tickers: array of ticker symbols most likely impacted, both direct and second-order effects
-- one_line_summary: maximum 15 words, no hedging language
+- one_line_summary: maximum 15 words, no hedging language; must follow DEPTH4 scan-line rule (forecast/description, never imperative Buy/Sell).
 - reasoning: 2 sentences explaining the classification
-- opportunity_tickers: array of US-listed tickers that are NOT the main subject but could be actionable longs on this story (0-6 symbols). Use [] if none. Macro/geopolitics: second-order names only.
+- opportunity_tickers: array of US-listed tickers that are NOT the main subject but may see second-order tape impact if the story plays out (0-6 symbols). Use [] if none. Macro/geopolitics: second-order names only — tickers for linkage/illustration, not a directive to trade them.
 - theme_tags: 0-3 short tags like "rates", "oil", "defense" for later matching.
 - verification: object REQUIRED, with:
   - status: exactly one of "confirmed" | "unconfirmed"
@@ -47,7 +56,12 @@ CONSEQUENCE_SYSTEM = (
   "developments, dates, or sources. If the supplied text is thin, say so inside the JSON (e.g. event_summary) "
   "and keep claims conservative. "
   "Parallel scenarios (below) are branches; the transmission chain is the shared backbone. "
-  "Return JSON only, no markdown, no backticks, no code fences—only a raw JSON object."
+  "Return JSON only, no markdown, no backticks, no code fences—only a raw JSON object. "
+  + " "
+  + DEPTH4_FORECAST_SCANLINE_RULE
+  + " For event_summary, forward_horizon_summary, scenario watch_one, and any one-line shown before drill-down: same rule — "
+  "no imperative Buy/Sell/Go long/Go short. stock_ideas.rationale: forecast/mechanism wording only; "
+  "order_recommendations stays generic execution framing (informational only), not 'you should buy/sell.'"
 )
 
 
@@ -74,7 +88,7 @@ Required top-level fields (in addition to scenarios, etc.):
 0) "depth1": a JSON object with EXACTLY these fields:
    - event: one sentence, facts only (no interpretation)
    - whyItMatters: one sentence describing the immediate market mechanism (name asset class + direction + reason)
-   - firstMove: one sentence describing what trades/assets react in the next 1–4 hours (name specific tickers/ETFs/instruments)
+   - firstMove: one sentence on which assets or segments see the first tape pressure in the next 1–4 hours (name specific tickers/ETFs/instruments); describe expected lean or flow, not orders to buy/sell
    - pricedIn: one sentence starting with EXACTLY one of: "Largely priced in", "Partially priced in", "Not yet priced in" — then one sentence why
 
 1) "depth2": a JSON object with EXACTLY these fields:
@@ -92,7 +106,7 @@ Required top-level fields (in addition to scenarios, etc.):
    "priced_in" (REQUIRED: "not_priced_in" | "partial" | "priced_in" for THIS Depth),
    "stock_ideas" (0-3 objects: {{"ticker": US symbol, "rationale": "one line",
    "priced_in_pct": integer 1-100 estimating how much of THIS headline's tradable information is already in that symbol's price (anchor to this Depth's priced_in; be conservative if unsure)}} — illustration only, not advice),
-   "buy_trigger" (one line wait condition; "" if none).
+   "buy_trigger" (JSON key name is buy_trigger for schema compatibility; one line observable wait/entry condition, "" if none — e.g. "Brent clears $80 on volume"; never imperative "Buy TICKER when…").
 
 2) "early_lead_indicators": 3-5 objects with "text" and "light" ("green"|"yellow"|"red") as before.
 
@@ -108,6 +122,7 @@ Required top-level fields (in addition to scenarios, etc.):
    "linked_depth": integer 1-4 (which transmission_chain Depth this hangs off),
    "why_outside_book": "one sentence — must not duplicate a holding in the portfolio JSON"}}.
    Each idea MUST cite a specific under-priced Depth (priced_in not_priced_in or partial with clear rationale). No generic stock picks.
+   Each rationale must stay in forecast/mechanism language — no "you should buy/sell" phrasing.
 
 Also return:
 "event_summary", "signal_level" (1-4),
@@ -135,14 +150,20 @@ The scenarios are alternative paths; transmission_chain is the shared backbone u
 PERSONALIZE_SYSTEM = (
   "You are a senior portfolio risk officer. You receive scenario JSON and a user's portfolio. "
   "Output JSON only with portfolio_impact and order_recommendations. No hedging, be direct. "
-  "No markdown, no backticks, no code fences—only a raw JSON object."
+  "No markdown, no backticks, no code fences—only a raw JSON object. "
+  + " "
+  + DEPTH4_FORECAST_SCANLINE_RULE
+  + " portfolio_impact.summary must stay descriptive/forecast-leaning — no imperative Buy/Sell to the user."
 )
 
 BRIEFING_SYSTEM = (
   "You are DEPTH4 writing a morning briefing. Be direct and opinionated. "
   "Only state as fact what is supported by the event summaries you are given; if something is unclear or "
   "unverified, label it explicitly (e.g. ⚠️ UNCONFIRMED) and do not present it as breaking fact. "
-  "Output valid markdown in the sections requested. No surrounding markdown fences, only markdown content body."
+  "Output valid markdown in the sections requested. No surrounding markdown fences, only markdown content body. "
+  + " "
+  + DEPTH4_FORECAST_SCANLINE_RULE
+  + " Section bullets that read like thesis headlines must use forecast/description phrasing, not Buy/Sell imperatives."
 )
 
 
@@ -195,7 +216,10 @@ REVISE_PROB_SYSTEM = (
   "event plus NEW headlines since the tree was built, and optional Polymarket summary lines. "
   "Re-estimate scenario probabilities. They should still sum to roughly 100% across scenarios (2-4 scenarios; "
   "if only 2, split ~100; allow small integer rounding). Be decisive; crowd odds are a weak prior, not truth. "
-  "Return JSON only, no markdown, no code fences—only a raw JSON object."
+  "Return JSON only, no markdown, no code fences—only a raw JSON object. "
+  + " "
+  + DEPTH4_FORECAST_SCANLINE_RULE
+  + " If you touch scenario outcome or watch text, keep forecast phrasing — no imperative Buy/Sell."
 )
 
 
@@ -230,7 +254,10 @@ Only change probabilities (and at most small outcome text clarifications) unless
 SCENARIOS_REPAIR_SYSTEM = (
   "You are DEPTH4 — same macro voice as the main consequence engine, but your ONLY job is to output a compact "
   "scenario matrix JSON. Facts must come from the supplied headline/body only; do not invent dates or sources. "
-  "Return JSON only, no markdown, no backticks, no code fences—only a raw JSON object."
+  "Return JSON only, no markdown, no backticks, no code fences—only a raw JSON object. "
+  + " "
+  + DEPTH4_FORECAST_SCANLINE_RULE
+  + " outcome, watch_one, and market_impact must avoid imperative Buy/Sell phrasing."
 )
 
 DEEP_BRIEF_SYSTEM = (
@@ -238,7 +265,11 @@ DEEP_BRIEF_SYSTEM = (
   "Write a Deep Brief in three sections: Situation, Market Read, Stock Conviction. "
   "Be specific, direct, trade-oriented. "
   "Return JSON only with keys hook, market, stocks (array of {t, th}). "
-  "No markdown, no backticks, no code fences—only a raw JSON object."
+  "No markdown, no backticks, no code fences—only a raw JSON object. "
+  + " "
+  + DEPTH4_FORECAST_SCANLINE_RULE
+  + " Each stocks[].th is a one-sentence forecast thesis for that ticker (how the name is expected to lean), "
+  "never an imperative to buy/sell."
 )
 
 
@@ -249,7 +280,7 @@ SITUATION: One paragraph. What is physically/politically happening and its immed
 
 MARKET READ: One paragraph. How this flows to specific market segments — who gains, who loses, what moves in sympathy. Include asset classes, geographies, sector dynamics.
 
-STOCK CONVICTION: A list of 3–5 tickers most affected. For each: ticker symbol and one sentence conviction thesis.
+STOCK CONVICTION: A list of 3–5 tickers most affected. For each: ticker symbol and one sentence **forecast** thesis (how the name is expected to lean), never an imperative to buy/sell.
 
 Event data:
 Depth 1 (Event):

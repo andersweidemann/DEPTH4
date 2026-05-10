@@ -260,7 +260,7 @@ export function CreateThesisModal({
       mode: "choice",
       aiPrompt:
         "Peace talks reduce gold's war premium, but spot still reflects too much geopolitical risk.",
-      title: "Sell GLD because peace progress will continue within weeks",
+      title: "Gold will fall as a peace deal removes the war-risk premium the market has been paying within weeks",
       thesisStatement:
         "If geopolitics de-escalates, gold's war premium comes out faster than current positioning implies.",
       asset: "XAUUSD",
@@ -277,7 +277,7 @@ export function CreateThesisModal({
       baseConsequence: "GLD drifts lower; keep fade size inside your plan.",
       bullProb: "35",
       bullConfirms: "Talks break down or a kinetic headline hits.",
-      bullConsequence: "Gold rips; cover or stand down the short fast.",
+      bullConsequence: "Gold rips; cover or stand down the downside fade fast.",
       bearProb: "25",
       bearConfirms: "Framework signed and risk-on broadens.",
       bearConsequence: "War premium unwinds fast; path to targets speeds up.",
