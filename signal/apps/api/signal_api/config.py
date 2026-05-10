@@ -81,6 +81,9 @@ class Settings(BaseSettings):
   # If set, POST /cron/ingest-once with header X-Depth4-Ingest-Secret: <value> runs one RSS cycle (free Render spin-up).
   ingest_cron_secret: SecretStr = Field(default=SecretStr(""), validation_alias="INGEST_CRON_SECRET")
 
+  # When false, skip Supabase upserts into llm_usage_stats (structured logs still emit).
+  llm_usage_stats_enabled: bool = Field(default=True, validation_alias="LLM_USAGE_STATS_ENABLED")
+
   stripe_api_key: SecretStr | None = Field(default=None, validation_alias="STRIPE_API_KEY")
   stripe_webhook_secret: SecretStr | None = Field(default=None, validation_alias="STRIPE_WEBHOOK_SECRET")
   stripe_price_analyst_monthly: str = Field(default="", validation_alias="STRIPE_PRICE_ANALYST_MONTHLY")

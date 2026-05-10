@@ -128,6 +128,16 @@ def default_tier_for_task(task_type: str, *, high_stakes: bool) -> ModelTaskTier
   return _TASK_DEFAULT_TIER.get(t, ModelTaskTier.standard)
 
 
+def tier_label_for_llm_job(task_type: str, provider: str, model: str, settings: Settings) -> str:
+  """Telemetry tier bucket: premium model id → premium; else task default tier (cheap/standard/premium)."""
+  p = (provider or "").strip().lower()
+  m = (model or "").strip().lower()
+  mp = (settings.anthropic_model_premium or "").strip().lower()
+  if mp and p == "anthropic" and m == mp:
+    return ModelTaskTier.premium.value
+  return default_tier_for_task(task_type, high_stakes=False).value
+
+
 def tier_max_tokens(tier: ModelTaskTier) -> int:
   if tier == ModelTaskTier.cheap:
     return 1_536
