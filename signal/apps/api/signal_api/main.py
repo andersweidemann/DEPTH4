@@ -12,7 +12,7 @@ from signal_api.ai.depth4_guard import get_depth4_guard_status
 from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.config import get_settings
 from signal_api.jobs import briefing_worker, scenario_refinement
-from signal_api.routers import admin_llm_ops, admin_llm_usage, ingest_cron, market_routes, stripe_routes
+from signal_api.routers import admin_llm_ops, admin_llm_usage, ingest_cron, market_routes, stripe_routes, thesis_draft_expand
 from signal_api.routers.ingest_cron import _require_ingest_secret, depth4_status_payload
 from signal_api.services import news_ingest
 
@@ -80,6 +80,7 @@ app.add_middleware(
 app.include_router(stripe_routes.router, prefix="/webhooks", tags=["billing"])
 app.include_router(market_routes.router, prefix="/market", tags=["market"])
 app.include_router(ingest_cron.router, prefix="/cron", tags=["cron"])
+app.include_router(thesis_draft_expand.router, prefix="/user", tags=["user"])
 
 _admin = APIRouter(prefix="/admin", tags=["admin"])
 

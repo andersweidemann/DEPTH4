@@ -79,6 +79,7 @@ class ModelTaskType(StrEnum):
   personalize_alerts = "personalize_alerts"
   personalize_interactive = "personalize_interactive"
   deep_brief = "deep_brief"
+  new_thesis_expand = "new_thesis_expand"
 
 
 # Default tier per task (before high_stakes override).
@@ -91,6 +92,7 @@ _TASK_DEFAULT_TIER: dict[str, ModelTaskTier] = {
   ModelTaskType.personalize_alerts: ModelTaskTier.standard,
   ModelTaskType.personalize_interactive: ModelTaskTier.premium,
   ModelTaskType.deep_brief: ModelTaskTier.premium,
+  ModelTaskType.new_thesis_expand: ModelTaskTier.standard,
 }
 
 # Tasks whose first hop should use the premium Anthropic model (no cheap attempt).
@@ -173,6 +175,7 @@ def default_validator_for_task(task_type: str):
     ModelTaskType.personalize_alerts,
     ModelTaskType.personalize_interactive,
     ModelTaskType.deep_brief,
+    ModelTaskType.new_thesis_expand,
   }:
     return json_valid_object_or_array
   return None
@@ -194,6 +197,7 @@ def validator_kind_for_task(task_type: str) -> str:
     ModelTaskType.personalize_alerts,
     ModelTaskType.personalize_interactive,
     ModelTaskType.deep_brief,
+    ModelTaskType.new_thesis_expand,
   }:
     return "json_object_or_array"
   return "none"

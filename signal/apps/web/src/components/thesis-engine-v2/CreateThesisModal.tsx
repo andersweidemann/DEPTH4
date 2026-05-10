@@ -246,6 +246,92 @@ function generateDraftFromPrompt(prompt: string): Pick<
   };
 }
 
+type AiDraftFormPatch = Pick<
+  FormState,
+  | "title"
+  | "asset"
+  | "direction"
+  | "whyNow"
+  | "whatsUnpriced"
+  | "entrySetup"
+  | "stop"
+  | "target"
+  | "thesisStatement"
+  | "probability"
+  | "horizon"
+  | "baseProb"
+  | "baseConfirms"
+  | "baseConsequence"
+  | "bullProb"
+  | "bullConfirms"
+  | "bullConsequence"
+  | "bearProb"
+  | "bearConfirms"
+  | "bearConsequence"
+  | "bullInstruments"
+  | "bearInstruments"
+  | "confirmTags"
+  | "contradictTags"
+>;
+
+function scenBlock(o: unknown): { probability: number; confirms: string; consequence: string } {
+  if (!o || typeof o !== "object") return { probability: 33, confirms: "", consequence: "" };
+  const r = o as Record<string, unknown>;
+  const pr = typeof r.probability === "number" ? r.probability : Number.parseInt(String(r.probability ?? "0"), 10) || 33;
+  return {
+    probability: clamp(Math.round(pr), 0, 100),
+    confirms: typeof r.confirms === "string" ? r.confirms : "",
+    consequence: typeof r.consequence === "string" ? r.consequence : "",
+  };
+}
+
+function joinListField(x: unknown): string {
+  if (!Array.isArray(x)) return "";
+  return x.map((v) => String(v).trim()).filter(Boolean).join(", ");
+}
+
+/** Maps POST /api/user/thesis-draft-expand `draft` JSON into modal form fields. */
+function draftFromApiResponse(d: Record<string, unknown>): AiDraftFormPatch {
+  const dir: "long" | "short" = d.direction === "short" ? "short" : "long";
+  const sb = scenBlock(d.scenario_base);
+  const bu = scenBlock(d.scenario_bull);
+  const be = scenBlock(d.scenario_bear);
+  const inf =
+    d.insider_flow && typeof d.insider_flow === "object" ? (d.insider_flow as Record<string, unknown>) : {};
+  const ppRaw =
+    typeof d.probability_percent === "number"
+      ? d.probability_percent
+      : Number.parseInt(String(d.probability_percent ?? "55"), 10) || 55;
+  const pp = clamp(Math.round(ppRaw), 1, 95);
+
+  return {
+    title: String(d.title ?? "").trim() || "Untitled thesis",
+    asset: String(d.asset ?? "").trim().toUpperCase() || "—",
+    direction: dir,
+    thesisStatement: String(d.thesis_statement ?? "").trim(),
+    whyNow: String(d.why_now ?? "").trim(),
+    whatsUnpriced: String(d.whats_unpriced ?? "").trim(),
+    entrySetup: String(d.trigger_entry_setup ?? "").trim(),
+    stop: String(d.stop ?? "").trim(),
+    target: String(d.target ?? "").trim(),
+    horizon: String(d.horizon ?? "").trim() || "2–8 weeks",
+    probability: String(pp),
+    baseProb: String(sb.probability),
+    baseConfirms: sb.confirms,
+    baseConsequence: sb.consequence,
+    bullProb: String(bu.probability),
+    bullConfirms: bu.confirms,
+    bullConsequence: bu.consequence,
+    bearProb: String(be.probability),
+    bearConfirms: be.confirms,
+    bearConsequence: be.consequence,
+    bullInstruments: joinListField(inf.bull_instruments),
+    bearInstruments: joinListField(inf.bear_instruments),
+    confirmTags: joinListField(inf.confirm_tags),
+    contradictTags: joinListField(inf.contradict_tags),
+  };
+}
+
 export function CreateThesisModal({
   open,
   onOpenChange,
@@ -255,6 +341,9 @@ export function CreateThesisModal({
   onOpenChange: (o: boolean) => void;
   onCreate: (t: Thesis) => void;
 }) {
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiErr, setAiErr] = useState<string | null>(null);
+
   const initial: FormState = useMemo(
     () => ({
       mode: "choice",
@@ -321,7 +410,11 @@ export function CreateThesisModal({
       open={open}
       onOpenChange={(o) => {
         onOpenChange(o);
-        if (!o) setForm(initial);
+        if (!o) {
+          setForm(initial);
+          setAiErr(null);
+          setAiBusy(false);
+        }
       }}
     >
       <Dialog.Portal>
@@ -389,17 +482,67 @@ export function CreateThesisModal({
                 <p className="text-[11px] text-zinc-500">
                   Example: Peace talks reduce gold&apos;s war premium, but spot still reflects too much geopolitical risk.
                 </p>
+                {aiErr ? (
+                  <p className="text-[11px] leading-relaxed text-amber-200/90">{aiErr}</p>
+                ) : null}
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
+                    className="min-h-11 rounded-md bg-amber-500/15 px-4 py-2.5 text-[14px] font-semibold text-amber-200 ring-1 ring-amber-500/25 hover:bg-amber-500/20 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px] disabled:opacity-40"
                     onClick={() => {
-                      const draft = generateDraftFromPrompt(form.aiPrompt);
-                      setForm((cur) => ({ ...cur, ...draft, mode: "review" }));
+                      void (async () => {
+                        const raw = form.aiPrompt.trim();
+                        if (!raw) return;
+                        setAiErr(null);
+                        setAiBusy(true);
+                        try {
+                          const res = await fetch("/api/user/thesis-draft-expand", {
+                            method: "POST",
+                            headers: { "content-type": "application/json" },
+                            body: JSON.stringify({ idea: raw }),
+                          });
+                          const j = (await res.json().catch(() => null)) as {
+                            ok?: boolean;
+                            draft?: Record<string, unknown>;
+                            meta?: { errors?: string[]; errors_after_repair?: string[] };
+                            error?: string;
+                          } | null;
+                          if (!res.ok || !j) {
+                            const fb = generateDraftFromPrompt(raw);
+                            setForm((cur) => ({ ...cur, ...fb, mode: "review" }));
+                            setAiErr(
+                              j?.error === "api_proxy_misconfigured"
+                                ? "AI draft needs DEPTH4 API URL + ingest secret on the server — using offline template."
+                                : "Could not reach thesis AI — filled a quick offline template; edit freely.",
+                            );
+                            return;
+                          }
+                          if (j.ok === true && j.draft && typeof j.draft === "object") {
+                            const patch = draftFromApiResponse(j.draft);
+                            setForm((cur) => ({ ...cur, ...patch, mode: "review" }));
+                            return;
+                          }
+                          const fb = generateDraftFromPrompt(raw);
+                          setForm((cur) => ({ ...cur, ...fb, mode: "review" }));
+                          const hint =
+                            j.meta?.errors_after_repair?.join(", ") ??
+                            j.meta?.errors?.join(", ") ??
+                            "validation_after_repair";
+                          setAiErr(
+                            `AI draft did not pass quality checks (${hint}). Offline template applied — tighten fields manually.`,
+                          );
+                        } catch {
+                          const fb = generateDraftFromPrompt(form.aiPrompt.trim());
+                          setForm((cur) => ({ ...cur, ...fb, mode: "review" }));
+                          setAiErr("Network error — using offline template.");
+                        } finally {
+                          setAiBusy(false);
+                        }
+                      })();
                     }}
-                    disabled={!form.aiPrompt.trim()}
+                    disabled={!form.aiPrompt.trim() || aiBusy}
                   >
-                    Generate thesis draft
+                    {aiBusy ? "Generating…" : "Generate thesis draft"}
                   </button>
                   <button
                     type="button"
