@@ -1,24 +1,63 @@
+"""Push notification copy policy (OneSignal).
+
+- Body prefers LLM-generated scan lines (``one_line_summary``, ``event_summary``) that follow
+  ``DEPTH4_FORECAST_SCANLINE_RULE`` in ``signal_api.ai.prompts`` (mirrored in ``packages/ai``):
+  forecast/description tone; no imperative Buy/Sell/Go long/Go short/Add exposure/Reduce exposure/
+  Cover the short/Don't buy/Don't add/Own [ticker]-style opens.
+- If a candidate line fails the lightweight compliance check, it is skipped so we do not ship
+  obvious instruction-shaped copy in the push body.
+- If no compliant generated line is available, fall back to the raw source headline with a
+  ``Headline:`` prefix so it reads as sourced wire copy, not DEPTH4 advice. We do not run a
+  separate LLM pass to rewrite headlines here; tone is enforced upstream in classify/consequence
+  prompts.
+- ``headings`` (title) stays a short neutral DEPTH4 label (no Buy/Sell, no personalized instructions).
+
+Future code that adds dedicated push text must import ``DEPTH4_FORECAST_SCANLINE_RULE`` (or
+``depth4_forecast_scanline_rule()``) and keep titles and bodies within the same contract.
+"""
+
 from __future__ import annotations
+
+import re
 
 import httpx
 
+from signal_api.ai.prompts import DEPTH4_FORECAST_SCANLINE_RULE
 from signal_api.config import get_settings
-
-"""Server-side send via OneSignal REST. Configure ONE_SIGNAL_APP_ID and ONE_SIGNAL_API_KEY.
-
-Push **body** copy follows the same DEPTH4 scan-line intent as `DEPTH4_FORECAST_SCANLINE_RULE` in
-`signal_api.ai.prompts` (mirrored in `packages/ai`): prefer generated forecast/description lines;
-raw wire text is source attribution, not advisory language from DEPTH4.
-
-Selection order: `one_line_summary` → `event_summary` → framed `headline` fallback.
-When falling back to the wire headline, prefix with "Market headline: " so it reads as sourced
-headline copy unless `frame_wire_headline_fallback=False` (e.g. product copy like "Briefing is ready…").
-"""
 
 # OneSignal `contents` length — keep conservative for mobile lock screens.
 _PUSH_BODY_MAX_LEN = 180
 
-_FRAMED_PREFIX = "Market headline: "
+_HEADLINE_FRAMED_PREFIX = "Headline: "
+
+# Mirrors imperative opens banned in DEPTH4_FORECAST_SCANLINE_RULE (start of line only).
+_NON_COMPLIANT_SCAN_OPENER = re.compile(
+  r"""^\s*(
+    buy(\s|$)
+    | sell(\s|$)
+    | go\s+long\b
+    | go\s+short\b
+    | add\s+exposure\b
+    | reduce\s+exposure\b
+    | don'?t\s+buy\b
+    | don'?t\s+add\b
+    | cover\s+the\s+short\b
+    | own\s+\S
+  )""",
+  re.IGNORECASE | re.VERBOSE,
+)
+
+
+def depth4_forecast_scanline_rule() -> str:
+  """Return the global DEPTH4 scan-line contract (for docs, tests, or any future push-local LLM)."""
+  return DEPTH4_FORECAST_SCANLINE_RULE
+
+
+def _is_compliant_scan_line(text: str) -> bool:
+  s = (text or "").strip()
+  if not s:
+    return False
+  return _NON_COMPLIANT_SCAN_OPENER.match(s) is None
 
 
 def _truncate_push_body(text: str, max_len: int = _PUSH_BODY_MAX_LEN) -> str:
@@ -32,9 +71,9 @@ def _truncate_push_body(text: str, max_len: int = _PUSH_BODY_MAX_LEN) -> str:
   return s[: max_len - 1].rstrip() + "…"
 
 
-def _already_market_framed(headline: str) -> bool:
+def _already_headline_framed(headline: str) -> bool:
   low = (headline or "").lstrip().lower()
-  return low.startswith("market headline:") or low.startswith("headline:")
+  return low.startswith("headline:") or low.startswith("market headline:")
 
 
 def build_push_notification_body(
@@ -45,25 +84,41 @@ def build_push_notification_body(
   frame_wire_headline_fallback: bool = True,
   max_len: int = _PUSH_BODY_MAX_LEN,
 ) -> str:
-  """Assemble notification `contents` (English) within ``max_len`` characters."""
+  """Assemble notification ``contents`` (English) within ``max_len`` characters.
+
+  Order: compliant ``one_line_summary`` → compliant ``event_summary`` → framed wire ``headline``.
+  """
   ols = (one_line_summary or "").strip()
-  if ols:
+  if ols and _is_compliant_scan_line(ols):
     return _truncate_push_body(ols, max_len)
   es = (event_summary or "").strip()
-  if es:
+  if es and _is_compliant_scan_line(es):
     return _truncate_push_body(es, max_len)
   raw = (headline or "").strip()
   if not raw:
     return _truncate_push_body("Market update", max_len)
-  if not frame_wire_headline_fallback or _already_market_framed(raw):
+  if not frame_wire_headline_fallback or _already_headline_framed(raw):
     return _truncate_push_body(raw, max_len)
-  prefix = _FRAMED_PREFIX
+  prefix = _HEADLINE_FRAMED_PREFIX
   if len(prefix) + len(raw) <= max_len:
     return prefix + raw
   room = max_len - len(prefix)
   if room < 12:
     return _truncate_push_body(raw, max_len)
   return prefix + raw[:room].rstrip()
+
+
+def build_push_heading(
+  *,
+  signal_level: int,
+  push_heading: str | None = None,
+) -> str:
+  """Neutral OneSignal ``headings`` line — never wire copy, never Buy/Sell."""
+  if push_heading and push_heading.strip():
+    return push_heading.strip()[:128]
+  if signal_level >= 4:
+    return "DEPTH4 — critical macro event"
+  return "DEPTH4 — new macro event"
 
 
 async def push_for_user(
@@ -76,6 +131,7 @@ async def push_for_user(
   one_line_summary: str | None = None,
   event_summary: str | None = None,
   frame_wire_headline_fallback: bool = True,
+  push_heading: str | None = None,
 ) -> None:
   s = get_settings()
   if not s.one_signal_app_id or not s.one_signal_api_key:
@@ -85,7 +141,7 @@ async def push_for_user(
       return
     if signal_level == 3 and not has_portfolio_overlap:
       return
-  title = "DEPTH4" if signal_level < 4 else "DEPTH4 · Critical"
+  title = build_push_heading(signal_level=signal_level, push_heading=push_heading)
   body = build_push_notification_body(
     headline=headline,
     one_line_summary=one_line_summary,

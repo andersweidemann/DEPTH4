@@ -83,6 +83,7 @@ async def _deliver(uid: str, btype: str) -> None:
     True,
     force=True,
     frame_wire_headline_fallback=False,
+    push_heading="DEPTH4 — briefing ready",
   )
 
 
