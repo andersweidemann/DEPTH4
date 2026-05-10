@@ -24,6 +24,9 @@ test("depth4 theses → drawer → book critical path", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Thesis detail" })).toBeHidden({ timeout: 15_000 });
 
   await page.goto(`/theses/${THESIS_SLUG}`);
+  await expect(page.getByTestId("scenario-view-section")).toBeVisible();
+  await expect(page.getByTestId("scenario-calibrating-line")).toHaveText(/Calibrating from live macro, news, and flow/);
+  await expect(page.getByTestId("scenario-why-probabilities")).toHaveCount(0);
   await page.getByTestId("thesis-drawer-open-position").click();
   await expect(page.getByRole("dialog", { name: "Open position" })).toBeVisible();
   const openPosDialog = page.getByRole("dialog", { name: "Open position" });

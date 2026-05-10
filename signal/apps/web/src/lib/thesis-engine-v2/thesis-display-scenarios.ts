@@ -8,10 +8,11 @@ import { userThesisScenarioRows } from "@/lib/thesis-engine-v2/user-theses";
 export type DbScenarioTriple = { base: number; bull: number; bear: number };
 
 /**
- * Shipped defaults that are not evidence-calibrated:
- * - `[40,35,25]` — catalog narrative row order (clean / messy / broken) before DB overlay.
- * - `[35,40,25]` — `public.theses.scenario_probabilities` seed `{base:40,bull:35,bear:25}` after overlay (DB keys map messy/clean/broken).
- * - `[30,45,25]` — session user thesis rows when `scenarioOverrides` is absent (`mkScenarios`).
+ * Known template triples in **display order**: clean win, messy win, thesis broken.
+ * - `[40,35,25]` — `catalogDefaultScenariosForThesis` authoring pattern (clean 40 / messy 35 / broken 25).
+ * - `[35,40,25]` — same Supabase seed `{base:40,bull:35,bear:25}` expressed on cards after DB-key mapping
+ *   (messy / clean / broken).
+ * - `[30,45,25]` — `mkScenarios` when `thesis.scenarioOverrides` is absent.
  */
 const UNCALIBRATED_SCENARIO_TRIPLES_CLEAN_MESSY_BROKEN: ReadonlyArray<readonly [number, number, number]> = [
   [40, 35, 25],
@@ -30,13 +31,39 @@ export function displayScenarioTripleCleanMessyBroken(scenarios: ThesisScenarioL
   return [c, m, b];
 }
 
-/** True when the visible triple is still a shipped template, not thesis-specific calibration. */
+/**
+ * Treats a scenario triple as "uncalibrated" when it matches one of
+ * our seed templates (clean, messy, broken probabilities).
+ *
+ * These templates are useful as authoring defaults but should not be
+ * shown as if they were live, thesis-specific probabilities. The UI
+ * uses this flag to:
+ *   - hide numeric percentages for template triples
+ *   - show a calibrating state instead
+ *
+ * Once DB / evidence / insider overrides move a thesis away from
+ * these templates, the triple is no longer considered uncalibrated
+ * and we can safely display numbers.
+ *
+ * Callers that also apply an **insider-flow suggestion** should treat
+ * the scenario as authoritative regardless of this helper (see
+ * `ThesisDetailClient` `showAuthoritativeScenarioPercents`).
+ */
+export function isUncalibratedScenarioTripleCleanMessyBroken(
+  clean: number,
+  messy: number,
+  broken: number,
+): boolean {
+  return UNCALIBRATED_SCENARIO_TRIPLES_CLEAN_MESSY_BROKEN.some(
+    (u) => u[0] === clean && u[1] === messy && u[2] === broken,
+  );
+}
+
+/** True when the visible [clean, messy, broken] triple is still a shipped template. */
 export function isUncalibratedDisplayScenarioTriple(scenarios: ThesisScenarioLike[]): boolean {
   if (scenarios.length < 3) return true;
-  const t = displayScenarioTripleCleanMessyBroken(scenarios);
-  return UNCALIBRATED_SCENARIO_TRIPLES_CLEAN_MESSY_BROKEN.some(
-    (u) => u[0] === t[0] && u[1] === t[1] && u[2] === t[2],
-  );
+  const [c, m, b] = displayScenarioTripleCleanMessyBroken(scenarios);
+  return isUncalibratedScenarioTripleCleanMessyBroken(c, m, b);
 }
 
 export function dbScenarioTripleEqualsSeed(p: DbScenarioTriple): boolean {

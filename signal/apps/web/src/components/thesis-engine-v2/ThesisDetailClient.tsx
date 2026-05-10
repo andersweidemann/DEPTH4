@@ -46,6 +46,18 @@ import {
   scenarioOverridesFromRows,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
+/**
+ * Merge server-fed catalog fields into a thesis detail bundle.
+ *
+ * **Scenario probabilities (`catalogScenarioProbabilities`):**
+ * If Supabase returns exactly the **seed** triple `{base:40,bull:35,bear:25}`,
+ * we **do not** overlay it onto catalog narrative rows. That seed is shared
+ * across all catalog theses until evidence/cron writes a divergent value;
+ * overlaying it only rotated the template (e.g. 35/40/25 on cards) without
+ * adding information. Skipping the overlay keeps catalog-authored weights
+ * until the DB moves off the seed. `isUncalibratedDisplayScenarioTriple`
+ * still hides percentages while the visible triple matches a known template.
+ */
 function withCatalogHeader(
   bundle: ThesisDetailBundle,
   catalog: {
@@ -66,8 +78,6 @@ function withCatalogHeader(
   thesis = mergeDbBodyIntoThesis(thesis, catalog.body ?? null);
 
   let seeded = scenarioOverridesFromRows(bundle.scenarios);
-  // Do not replace catalog narrative weights with the identical Supabase seed triple;
-  // that seed is only meaningful once evidence / cron has moved it off the template.
   if (catalog.scenarioProbabilities && !dbScenarioTripleEqualsSeed(catalog.scenarioProbabilities)) {
     seeded = overlayDbScenarioProbabilities(seeded, catalog.scenarioProbabilities);
   }
@@ -207,7 +217,28 @@ export function ThesisDetailClient({
     return buildDisplayScenariosFromThesis(thesisLive, bundle.scenarios);
   }, [bundle, thesisLive]);
 
-  /** Insider “applied” suggestion replaces displayed weights for Scenario View. */
+  /**
+   * Scenario probabilities in ThesisDetailClient
+   *
+   * We only show numeric scenario probabilities when they are
+   * thesis-specific or explicitly overridden:
+   *
+   * - If the scenario triple is still a known template, we treat it
+   *   as "probabilities calibrating" and pass showPercentages = false.
+   *   The UI shows paths + copy and a calibrating line instead of
+   *   pretending the template is live edge.
+   *
+   * - If the triple diverges from the template or the user has applied
+   *   an insider-flow scenario suggestion, we pass showPercentages = true
+   *   and let ScenarioPanel render numbers, bars, and the
+   *   "Why these probabilities" explanation.
+   *
+   * This keeps Scenario View honest: traders either see a clear
+   * calibrating state, or numbers that reflect live evidence.
+   *
+   * `scenarioPanelScenarios` applies insider “applied” weights on top of
+   * `displayScenarios` for the Scenario View cards.
+   */
   const scenarioPanelScenarios = useMemo(() => {
     if (!displayScenarios.length) return displayScenarios;
     const applied = insider?.applied;
