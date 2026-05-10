@@ -11,6 +11,10 @@ import {
   focusInitialVisibleCount,
   orderFocusThesesCuratedThen,
 } from "@/lib/thesis-engine-v2/curated-focus-theses";
+import {
+  computeMonitoringSection,
+  monitoringInitialVisibleCount,
+} from "@/lib/thesis-engine-v2/theses-monitoring-select";
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
@@ -62,6 +66,7 @@ export function ThesesDashboardClient({
   const [sortKey, setSortKey] = useState<SortKey>("recent");
   const [drawerSlug, setDrawerSlug] = useState<string | null>(initialDrawerSlug ?? null);
   const [focusExpanded, setFocusExpanded] = useState(false);
+  const [monitoringExpanded, setMonitoringExpanded] = useState(false);
 
   useEffect(() => {
     setUserTheses(loadUserTheses());
@@ -69,6 +74,7 @@ export function ThesesDashboardClient({
 
   useEffect(() => {
     setFocusExpanded(false);
+    setMonitoringExpanded(false);
   }, [show, assetClass, sortKey, systemTheses, userTheses]);
 
 
@@ -140,20 +146,43 @@ export function ThesesDashboardClient({
   /** Ready/Active: catalog theses follow fixed macro breadth; user theses follow current sort. */
   const focusOrdered = useMemo(() => orderFocusThesesCuratedThen(focus, focusTieBreak), [focus, focusTieBreak]);
 
-  const focusInitialRows = useMemo(() => focusInitialVisibleCount(focusOrdered.length), [focusOrdered.length]);
-  const focusVisible = useMemo(
-    () => (focusExpanded ? focusOrdered : focusOrdered.slice(0, focusInitialRows)),
-    [focusExpanded, focusInitialRows, focusOrdered],
-  );
-  const focusHasMore = focusOrdered.length > focusInitialRows;
+  /** First Focus window size on the full ready/active list (used with Monitoring overflow split). */
+  const focusWindowRows = useMemo(() => focusInitialVisibleCount(focusOrdered.length), [focusOrdered.length]);
 
-  /** All ready/active stay in the Focus bucket so rows are not orphaned below the fold. */
+  const { monitoringRows, borrowedFromFocusIds } = useMemo(
+    () =>
+      computeMonitoringSection({
+        filtered,
+        focusOrdered,
+        focusInitialRows: focusWindowRows,
+      }),
+    [filtered, focusOrdered, focusWindowRows],
+  );
+
+  const focusForDisplay = useMemo(
+    () => focusOrdered.filter((t) => !borrowedFromFocusIds.has(t.id)),
+    [borrowedFromFocusIds, focusOrdered],
+  );
+
+  const focusInitialRows = useMemo(() => focusInitialVisibleCount(focusForDisplay.length), [focusForDisplay.length]);
+  const focusVisible = useMemo(
+    () => (focusExpanded ? focusForDisplay : focusForDisplay.slice(0, focusInitialRows)),
+    [focusExpanded, focusInitialRows, focusForDisplay],
+  );
+  const focusHasMore = focusForDisplay.length > focusInitialRows;
+
+  /** All ready/active (pre-borrow) — archive section hides overlap with this bucket. */
   const focusIds = useMemo(() => new Set(focus.map((t) => t.id)), [focus]);
 
-  const monitoring = useMemo(
-    () => filtered.filter((t) => !focusIds.has(t.id) && (t.status === "watching" || t.status === "forming")),
-    [filtered, focusIds],
+  const monitoringInitialRows = useMemo(
+    () => monitoringInitialVisibleCount(monitoringRows.length),
+    [monitoringRows.length],
   );
+  const monitoringVisible = useMemo(
+    () => (monitoringExpanded ? monitoringRows : monitoringRows.slice(0, monitoringInitialRows)),
+    [monitoringExpanded, monitoringInitialRows, monitoringRows],
+  );
+  const monitoringHasMore = monitoringRows.length > monitoringInitialRows;
   const archived = useMemo(
     () => filtered.filter((t) => !focusIds.has(t.id) && (t.status === "resolved" || t.status === "invalidated")),
     [filtered, focusIds],
@@ -283,7 +312,7 @@ export function ThesesDashboardClient({
           more for the rest.
         </p>
 
-        {focusOrdered.length === 0 ? (
+            {focusForDisplay.length === 0 ? (
           <div className="mt-3 bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-500">
             No Ready or Active theses match the current filters.
           </div>
@@ -319,7 +348,7 @@ export function ThesesDashboardClient({
                 >
                   {focusExpanded
                     ? "Show fewer"
-                    : `See more · ${focusOrdered.length - focusInitialRows} more ready/active`}
+                    : `See more · ${focusForDisplay.length - focusInitialRows} more ready/active`}
                 </button>
               </div>
             ) : null}
@@ -330,7 +359,13 @@ export function ThesesDashboardClient({
       <section className="mt-10">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Monitor</h2>
+          <span className="text-[11px] text-zinc-600">Watching / forming · plus next ready/active on deck</span>
         </div>
+        <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-zinc-600">
+          Two to four high-signal rows: setup watches first, then the next ready/active names after the Focus window
+          (active before ready). If only one strict watch exists, we borrow from the bottom of the Focus strip so the
+          list still feels alive — those names show only here (not duplicated in Focus).
+        </p>
 
         <div className="mt-3 bg-zinc-900/20">
           <div className="hidden grid-cols-[1fr_76px_92px_96px_44px] gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 sm:grid">
@@ -341,21 +376,38 @@ export function ThesesDashboardClient({
             <span className="text-right">Star</span>
           </div>
           <div className="mt-1 grid gap-0">
-            {monitoring.length ? (
-              monitoring.map((t) => (
-                <ThesisTableRow
-                  key={t.id}
-                  thesis={t}
-                  selected={drawerSlug === t.slug}
-                  pulseKey={live.pulseKey(t.id)}
-                  starred={live.isEffectivelyStarred(t.id)}
-                  starDisabled={!!live.starDisabledReason(t.id)}
-                  onToggleStar={() => live.toggleStar(t.id)}
-                  onSelect={() => setDrawerSlug(t.slug)}
-                />
-              ))
+            {monitoringRows.length ? (
+              <>
+                {monitoringVisible.map((t) => (
+                  <ThesisTableRow
+                    key={t.id}
+                    thesis={t}
+                    selected={drawerSlug === t.slug}
+                    pulseKey={live.pulseKey(t.id)}
+                    starred={live.isEffectivelyStarred(t.id)}
+                    starDisabled={!!live.starDisabledReason(t.id)}
+                    onToggleStar={() => live.toggleStar(t.id)}
+                    onSelect={() => setDrawerSlug(t.slug)}
+                  />
+                ))}
+                {monitoringHasMore ? (
+                  <div className="border-t border-white/[0.06] px-3 py-2">
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold text-amber-200/85 hover:text-amber-100"
+                      onClick={() => setMonitoringExpanded((v) => !v)}
+                    >
+                      {monitoringExpanded
+                        ? "Show fewer"
+                        : `See more · ${monitoringRows.length - monitoringInitialRows} more in Monitor`}
+                    </button>
+                  </div>
+                ) : null}
+              </>
             ) : (
-              <div className="px-3 py-4 text-[12px] text-zinc-500">No watching or forming theses match the current filters.</div>
+              <div className="px-3 py-4 text-[12px] text-zinc-500">
+                No monitor candidates match the current filters.
+              </div>
             )}
           </div>
         </div>
