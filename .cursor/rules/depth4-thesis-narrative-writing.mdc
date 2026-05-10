@@ -100,6 +100,14 @@ Every catalog thesis uses the **same** ladder and retail bar as the QQQ AI-cost 
 
 ---
 
+## 8b) Frozen market prices (global)
+
+- Do **not** embed exact spot or index **price levels** in thesis **titles, micro-labels, thesis_statement, one-line summaries, why_now, whats_unpriced, L1–L4, scenario view, feed teasers, promoted narratives, assistant summaries, or prompt examples** unless the value is **live-wired from market data at display time** and shown as live context (quote chip / side metric), not permanent thesis wording.
+- Prefer timeless lines: “Gold still prices war risk” — not “Gold at $3,850 still prices war risk.” Same idea for oil, QQQ, TLT, copper, etc.
+- **Trade plan fields** (`entry_zone`, `stop`, `target*`) may hold numeric levels **only when kept current from quotes or left empty** in stored JSON — avoid stale one-off catalog prints in shipped defaults.
+
+---
+
 ## 9) Four-level reasoning — two surfaces
 
 ### A) Thesis page — `thesisCascade` on `Thesis`

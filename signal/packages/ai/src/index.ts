@@ -1,7 +1,7 @@
 /** Classification prompt — mirrors FastAPI `signal_api/ai/prompts.py` */
 
 /** User-facing scan lines (classify one_line_summary, feed blurbs): forecast/description, not trade instructions. */
-export const DEPTH4_FORECAST_SCANLINE_RULE = `DEPTH4 scan-line rule: one_line_summary and any headline-like field you output must read as what happened or how markets/assets are expected to lean — NOT personal instructions. Do NOT start with Buy, Sell, Go long, Go short, Add exposure, Reduce exposure, Cover the short, or Own [ticker]. Prefer neutral or forecast phrasing (e.g. "Oil firms as Hormuz risk rises", "Banks face margin pressure into earnings").`;
+export const DEPTH4_FORECAST_SCANLINE_RULE = `DEPTH4 scan-line rule: one_line_summary and any headline-like field you output must read as what happened or how markets/assets are expected to lean — NOT personal instructions. Do NOT start with Buy, Sell, Go long, Go short, Add exposure, Reduce exposure, Cover the short, or Own [ticker]. Prefer neutral or forecast phrasing (e.g. "Oil firms as Hormuz risk rises", "Banks face margin pressure into earnings"). Do not embed exact spot or index price levels unless clearly live market data; use timeless wording so lines stay valid as markets move.`;
 
 export const CLASSIFY_SYSTEM = `You are DEPTH4 — a geopolitical macro analyst. Return structured JSON only. No markdown, no backticks.
 NON-NEGOTIABLE: Headline and body are the ONLY evidence. Do not invent dates or breaking claims not in that text. If recency cannot be verified from the text, set verification.status to "unconfirmed" and flag_for_user starting with "⚠️ UNCONFIRMED — ".
@@ -47,7 +47,7 @@ User portfolio: ${JSON.stringify(portfolio)}
 User open orders: ${JSON.stringify(orders)}
 
 Required:
-- transmission_chain: exactly 4 objects (Depth 1–4; field "step" 1-4). Each: from_state, mechanism, to_state, time_to_effect, lead_indicator (optional), priced_in (not_priced_in|partial|priced_in), stock_ideas [{ticker,rationale,priced_in_pct 1-100}] 0-3, buy_trigger (JSON key name is buy_trigger for schema compatibility; value must be an observable wait/entry condition in plain words — e.g. "Brent clears $80 on volume" — never imperative "Buy TICKER when…").
+- transmission_chain: exactly 4 objects (Depth 1–4; field "step" 1-4). Each: from_state, mechanism, to_state, time_to_effect, lead_indicator (optional), priced_in (not_priced_in|partial|priced_in), stock_ideas [{ticker,rationale,priced_in_pct 1-100}] 0-3, buy_trigger (JSON key name is buy_trigger for schema compatibility; value must be an observable wait/entry condition in plain words — e.g. "Brent clears recent resistance on volume" — never imperative "Buy TICKER when…"). Do not embed stale spot prices in narrative; use timeless triggers unless the figure is live market data.
 - early_lead_indicators: 3-5 of { "text", "light": "green"|"yellow"|"red" }
 - forward_horizon_summary: one sentence
 - order_book_review: REQUIRED array, one object per open order (or [] if none): {ticker, direction, limit_price, stance: hold|tighten|cancel|watch|add_risk, rationale}

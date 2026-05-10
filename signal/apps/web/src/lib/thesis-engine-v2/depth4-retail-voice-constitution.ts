@@ -51,5 +51,10 @@ dispersion, index diversification, basket repricing / reprices cleanly, convexit
 
 6) If a technical term is unavoidable, explain it immediately in plain words.
 
-7) Goal: one retail-friendly editorial brain across the product.
+7) FROZEN MARKET PRICES — thesis prose stays timeless
+- Do **not** embed exact spot or index **price levels** in thesis **titles, micro-labels, thesis_statement, one-line summaries, why_now, whats_unpriced, L1–L4, scenario view, feed teasers, promoted narratives, assistant summaries, or prompt examples** unless that value is **live-wired from a market-data feed at display time** and clearly labeled as live (e.g. quote chip), not as permanent thesis wording.
+- Prefer timeless phrasing: "Gold still prices war risk" — not "Gold at $3,850 still prices war risk." Same for oil, QQQ, TLT, copper, etc.
+- **entry_zone / stop / target** columns are for **Trade plan numbers** only when they are **maintained from current quotes or left empty** — never bake stale catalog spot prints into stored narrative or seed copy.
+
+8) Goal: one retail-friendly editorial brain across the product.
 `.trim();

@@ -88,7 +88,8 @@ export const CATALOG_THESES: Thesis[] = [
       "Two calm geopolitical weeks in a row: no new kinetic strikes, plus at least two credible progress headlines, while oil and VIX stay contained.",
     trade:
       "Work GLD/XAU fade only inside the entry window in Trade plan; scale out in steps toward targets there. If invalidation prints, stand down immediately — do not average into the tail.",
-    invalidation: "New kinetic strike or GLD closes above 3312 through the weekly close — stand down the short.",
+    invalidation:
+      "New kinetic strike or GLD closes through the weekly invalidation band you keep in Trade plan — stand down the short.",
     timeStop:
       "If GLD keeps making highs on peaceful headlines for a full quarter, downgrade the thesis — the de-escalation trade is not working on schedule.",
     horizon: "Days to weeks (first repricing window)",
@@ -102,10 +103,6 @@ export const CATALOG_THESES: Thesis[] = [
       tradeClarityScore: 12,
       triggerClarityScore: 14,
     },
-    entryZone: "3285–3295",
-    stop: "3312",
-    target1: "3220",
-    target2: "3180",
 
     insiderFlow: {
       bullInstruments: ["BTC", "TLT"],
@@ -182,10 +179,6 @@ export const CATALOG_THESES: Thesis[] = [
       tradeClarityScore: 10,
       triggerClarityScore: 12,
     },
-    entryZone: "72.40–73.20",
-    stop: "70.80",
-    target1: "78.50",
-    target2: "81.00",
 
     insiderFlow: {
       bullInstruments: ["USOIL", "WTI", "BRENT"],
@@ -310,10 +303,6 @@ export const CATALOG_THESES: Thesis[] = [
       tradeClarityScore: 11,
       triggerClarityScore: 10,
     },
-    entryZone: "92.50–93.80",
-    stop: "95.20",
-    target1: "90.00",
-    target2: "88.00",
 
     insiderFlow: {
       bullInstruments: [],
@@ -376,10 +365,6 @@ export const CATALOG_THESES: Thesis[] = [
       tradeClarityScore: 10,
       triggerClarityScore: 9,
     },
-    entryZone: "128–132",
-    stop: "123",
-    target1: "140",
-    target2: "148",
 
     insiderFlow: {
       bullInstruments: ["RTX", "LMT"],
@@ -451,10 +436,6 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     advisoryAction: "watch",
     lastUpdated: "3h ago",
     theme: "equities",
-    entryZone: "Pause broad QQQ adds · trim zone 465–475",
-    stop: "Weekly close above 480 with broad margin beats across Mag 7",
-    target1: "440",
-    target2: "420",
     scores: {
       driverStrength: 13,
       timeCompression: 8,
@@ -524,10 +505,6 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
       tradeClarityScore: 9,
       triggerClarityScore: 10,
     },
-    entryZone: "4.12–4.18",
-    stop: "3.98",
-    target1: "4.32",
-    target2: "4.45",
 
     insiderFlow: {
       bullInstruments: ["HG", "COPPER"],
@@ -590,10 +567,6 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
       tradeClarityScore: 7,
       triggerClarityScore: 7,
     },
-    entryZone: "605–625",
-    stop: "640",
-    target1: "575",
-    target2: "540",
 
     insiderFlow: {
       bullInstruments: [],

@@ -13,6 +13,7 @@ DEPTH4 CATALOG THESIS VOICE (canonical QQQ / AI template — apply to EVERY link
    - Asset first (ticker or common name). Then direction: will rise, will fall, will rerate higher, will stay bid, will underperform, will stay under pressure, will lag, etc.
    - **Banned in hero/title/one-line summary:** Buy, Sell, Go long, Go short, Add exposure, Reduce exposure, Don't buy, Don't add (and similar imperatives). Those belong only in Trade plan / execution fields.
    - Never unexplained "AI capex", "dispersion risk", "beta", "quality", "duration" alone — spell out in plain English (e.g. AI-related spending: chips, data centers, staff; long bond prices vs rate cuts).
+   - **Frozen spot / index prices:** do not bake exact price levels into hero, summaries, cascades, scenarios, feed teasers, or body prose. Use timeless wording ("Gold still prices war risk") unless the number is live market data rendered at display time. **entry_zone / stop / target** in JSON are for Trade-plan levels **kept current from quotes or omitted** — not stale snapshot literals in shipped defaults.
 
 ====================================================
 GLOBAL RULE — thesisCascade (L1–L4): PLAIN LANGUAGE ONLY
@@ -85,7 +86,7 @@ DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO D
   E. Facts → near window → payout path → structural bias; **plain retail English only**. See THESIS BOOK for banned list and NOT ALLOWED examples.
 
 - **whats_unpriced**: ONE block for the edge — **what the market hasn't priced yet** — in plain words (do not use "variant read" / "variant perception"). Fold legacy misread here; leave **market_misread** empty or omit.
-- **trigger** / **trade** / **invalidation** / **time_stop**: each appears **once** in its own field. **trade** = actions in words; numeric entry/stop/targets live in entry_zone / stop / target fields, not repeated as a second trade essay.
+- **trigger** / **trade** / **invalidation** / **time_stop**: each appears **once** in its own field. **trade** = actions in words; numeric entry/stop/targets belong in **entry_zone / stop / target** only when maintained from current market data (or omit). Do not repeat those numbers as a second trade essay in prose fields; do not store one-off spot quotes that will read wrong next week.
 - **why_thesis_exists**: 3–4 short paragraphs, framing ONLY (why the lens exists). Reference "see Trigger / Trade / Invalidation" instead of pasting them.
 - **risk_factors**: summarize; **reference** Invalidation ("see Invalidation") — never paste the full invalidation block again.
 - **probability_rationale**: evidence / odds only — not a third copy of the hero line.

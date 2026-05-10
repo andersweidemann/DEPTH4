@@ -4,7 +4,9 @@ DEPTH4_FORECAST_SCANLINE_RULE = (
   "DEPTH4 scan-line rule: one_line_summary and any headline-like field you output must read as what happened or "
   "how markets/assets are expected to lean — NOT personal instructions. Do NOT start with Buy, Sell, Go long, "
   "Go short, Add exposure, Reduce exposure, Cover the short, or Own [ticker]. Prefer neutral or forecast phrasing "
-  '(e.g. "Oil firms as Hormuz risk rises", "Banks face margin pressure into earnings").'
+  '(e.g. "Oil firms as Hormuz risk rises", "Banks face margin pressure into earnings"). '
+  "Do not embed exact spot or index price levels in scan-line or thesis-facing copy unless clearly live market data; "
+  "use timeless wording so lines stay valid as markets move."
 )
 
 CLASSIFY_SYSTEM = (
@@ -106,7 +108,7 @@ Required top-level fields (in addition to scenarios, etc.):
    "priced_in" (REQUIRED: "not_priced_in" | "partial" | "priced_in" for THIS Depth),
    "stock_ideas" (0-3 objects: {{"ticker": US symbol, "rationale": "one line",
    "priced_in_pct": integer 1-100 estimating how much of THIS headline's tradable information is already in that symbol's price (anchor to this Depth's priced_in; be conservative if unsure)}} — illustration only, not advice),
-   "buy_trigger" (JSON key name is buy_trigger for schema compatibility; one line observable wait/entry condition, "" if none — e.g. "Brent clears $80 on volume"; never imperative "Buy TICKER when…").
+   "buy_trigger" (JSON key name is buy_trigger for schema compatibility; one line observable wait/entry condition, "" if none — e.g. "Brent clears recent resistance on volume"; never imperative "Buy TICKER when…"). Do not bake exact spot prices into narrative fields unless clearly live data.
 
 2) "early_lead_indicators": 3-5 objects with "text" and "light" ("green"|"yellow"|"red") as before.
 
