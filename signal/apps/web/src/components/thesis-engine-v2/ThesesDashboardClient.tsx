@@ -306,13 +306,8 @@ export function ThesesDashboardClient({
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Focus</h2>
           <span className="text-[11px] text-zinc-600">Ready / Active · curated macro map</span>
         </div>
-        <p className="mt-1 max-w-2xl text-[11px] leading-relaxed text-zinc-600">
-          Default order is fixed by theme (QQQ → gold → rates → energy → defense → China → EU tech → Hormuz); user
-          theses follow your sort. Up to eight ready/active rows show at once; beyond eight, the first six show with See
-          more for the rest.
-        </p>
 
-            {focusForDisplay.length === 0 ? (
+        {focusForDisplay.length === 0 ? (
           <div className="mt-3 bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-500">
             No Ready or Active theses match the current filters.
           </div>
