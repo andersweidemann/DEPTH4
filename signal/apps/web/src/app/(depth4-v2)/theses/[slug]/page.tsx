@@ -20,6 +20,7 @@ export default async function ThesisDetailPage({ params }: Props) {
       catalogDisplayTitle={header.title}
       catalogMicroLabel={header.microLabel}
       catalogBody={header.body}
+      catalogScenarioProbabilities={header.scenarioProbabilities}
     />
   );
 }

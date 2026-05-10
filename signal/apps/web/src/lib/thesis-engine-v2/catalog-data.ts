@@ -639,7 +639,7 @@ export function getThesisBySlug(slug: string): Thesis | undefined {
 }
 
 /** Per-thesis resolution paths — one trade, three outcomes; thesis-specific drivers (retail voice constitution). */
-function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario[] {
+export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario[] {
   const { slug, id } = thesis;
   const sym = thesis.asset;
 

@@ -8,6 +8,7 @@ import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailCl
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
 import { formatThesisMicroLabel, getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 
 const TRANSITION_MS = 300;
 
@@ -20,6 +21,7 @@ export function ThesisDetailDrawer({
   catalogDisplayTitle,
   catalogMicroLabel,
   catalogBody,
+  catalogScenarioProbabilities = null,
   onClose,
 }: {
   slug: string | null;
@@ -29,6 +31,8 @@ export function ThesisDetailDrawer({
   catalogMicroLabel?: string | null;
   /** Optional `public.theses.body` for catalog narrative merge in the drawer. */
   catalogBody?: unknown | null;
+  /** Optional `public.theses.scenario_probabilities` when the parent has fetched them. */
+  catalogScenarioProbabilities?: CatalogThesisScenarioProbabilities | null;
   onClose: () => void;
 }) {
   const [entered, setEntered] = useState(false);
@@ -164,6 +168,7 @@ export function ThesisDetailDrawer({
             catalogDisplayTitle={catalogDisplayTitle}
             catalogMicroLabel={catalogMicroLabel}
             catalogBody={catalogBody}
+            catalogScenarioProbabilities={catalogScenarioProbabilities}
           />
         </div>
       </aside>

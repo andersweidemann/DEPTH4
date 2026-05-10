@@ -28,6 +28,7 @@ import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/typ
 import type { InsiderFlowPatternType, InsiderFlowStatus } from "@/lib/thesis-engine-v2/insider-flow/types";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { createClient as createSbClient } from "@/lib/supabase/client";
+import { defaultScenarioOverridesFromThesis } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 
 const STAR_KEY = "depth4.v2.starred.v1";
@@ -137,23 +138,24 @@ function baseThesisForId(thesisId: string): Thesis | undefined {
 }
 
 function scenarioProbPatchFromDb(baseThesis: Thesis, p: { base: number; bull: number; bear: number }): Partial<Thesis> {
-  const o = baseThesis.scenarioOverrides;
+  const defaults = defaultScenarioOverridesFromThesis(baseThesis);
+  const o = baseThesis.scenarioOverrides ?? defaults;
   return {
     scenarioOverrides: {
       base: {
         probability: p.base,
-        confirmation: o?.base?.confirmation ?? "",
-        marketConsequence: o?.base?.marketConsequence ?? "",
+        confirmation: o.base.confirmation.trim() ? o.base.confirmation : defaults.base.confirmation,
+        marketConsequence: o.base.marketConsequence.trim() ? o.base.marketConsequence : defaults.base.marketConsequence,
       },
       bull: {
         probability: p.bull,
-        confirmation: o?.bull?.confirmation ?? "",
-        marketConsequence: o?.bull?.marketConsequence ?? "",
+        confirmation: o.bull.confirmation.trim() ? o.bull.confirmation : defaults.bull.confirmation,
+        marketConsequence: o.bull.marketConsequence.trim() ? o.bull.marketConsequence : defaults.bull.marketConsequence,
       },
       bear: {
         probability: p.bear,
-        confirmation: o?.bear?.confirmation ?? "",
-        marketConsequence: o?.bear?.marketConsequence ?? "",
+        confirmation: o.bear.confirmation.trim() ? o.bear.confirmation : defaults.bear.confirmation,
+        marketConsequence: o.bear.marketConsequence.trim() ? o.bear.marketConsequence : defaults.bear.marketConsequence,
       },
     },
   };

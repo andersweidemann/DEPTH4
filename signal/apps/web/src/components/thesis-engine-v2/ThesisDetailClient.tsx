@@ -36,21 +36,39 @@ import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
+import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
-import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
+import {
+  buildDisplayScenariosFromThesis,
+  overlayDbScenarioProbabilities,
+  scenarioOverridesFromRows,
+} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 function withCatalogHeader(
   bundle: ThesisDetailBundle,
-  catalog: { title?: string | null; microLabel?: string | null; body?: unknown | null },
+  catalog: {
+    title?: string | null;
+    microLabel?: string | null;
+    body?: unknown | null;
+    scenarioProbabilities?: CatalogThesisScenarioProbabilities | null;
+  },
 ): ThesisDetailBundle {
   const t = (catalog.title ?? "").trim();
   const m = (catalog.microLabel ?? "").trim();
   const hasBody = catalog.body !== undefined && catalog.body !== null;
-  if (!t && !m && !hasBody) return bundle;
+  const hasDbP = catalog.scenarioProbabilities != null;
+  if (!t && !m && !hasBody && !hasDbP) return bundle;
   let thesis = bundle.thesis;
   if (t) thesis = { ...thesis, title: t };
   if (m) thesis = { ...thesis, microLabel: m };
   thesis = mergeDbBodyIntoThesis(thesis, catalog.body ?? null);
+
+  let seeded = scenarioOverridesFromRows(bundle.scenarios);
+  if (catalog.scenarioProbabilities) {
+    seeded = overlayDbScenarioProbabilities(seeded, catalog.scenarioProbabilities);
+  }
+  thesis = { ...thesis, scenarioOverrides: seeded };
+
   return { ...bundle, thesis };
 }
 
@@ -59,9 +77,16 @@ function initialBundleForSlug(
   catalogDisplayTitle: string | null | undefined,
   catalogMicroLabel: string | null | undefined,
   catalogBody: unknown | null | undefined,
+  catalogScenarioProbabilities: CatalogThesisScenarioProbabilities | null | undefined,
 ): ThesisDetailBundle | null {
   const sys = getThesisDetail(slug);
-  if (sys) return withCatalogHeader(sys, { title: catalogDisplayTitle, microLabel: catalogMicroLabel, body: catalogBody });
+  if (sys)
+    return withCatalogHeader(sys, {
+      title: catalogDisplayTitle,
+      microLabel: catalogMicroLabel,
+      body: catalogBody,
+      scenarioProbabilities: catalogScenarioProbabilities ?? null,
+    });
   const ut = getUserThesisBySlug(slug);
   if (ut) return bundleForUserThesis(ut);
   return null;
@@ -89,6 +114,7 @@ export function ThesisDetailClient({
   catalogDisplayTitle = null,
   catalogMicroLabel = null,
   catalogBody = null,
+  catalogScenarioProbabilities = null,
 }: {
   slug: string;
   layout?: "page" | "drawer";
@@ -99,11 +125,13 @@ export function ThesisDetailClient({
   catalogMicroLabel?: string | null;
   /** When set, merges `public.theses.body` JSON over baseline narrative fields from `catalog-data`. */
   catalogBody?: unknown | null;
+  /** When set, seeds `thesis.scenarioOverrides` from `public.theses.scenario_probabilities` (catalog theses). */
+  catalogScenarioProbabilities?: CatalogThesisScenarioProbabilities | null;
 }) {
   const requireFeature = useRequireFeature();
   const liveOpt = useThesisLiveOptional();
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() =>
-    initialBundleForSlug(slug, catalogDisplayTitle, catalogMicroLabel, catalogBody),
+    initialBundleForSlug(slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities ?? null),
   );
   const [openPos, setOpenPos] = useState(false);
   const [bookPulse, setBookPulse] = useState(0);
@@ -122,8 +150,16 @@ export function ThesisDetailClient({
   }, [alertsMenuOpen]);
 
   useEffect(() => {
-    setBundle(initialBundleForSlug(slug, catalogDisplayTitle, catalogMicroLabel, catalogBody));
-  }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody]);
+    setBundle(
+      initialBundleForSlug(
+        slug,
+        catalogDisplayTitle,
+        catalogMicroLabel,
+        catalogBody,
+        catalogScenarioProbabilities ?? null,
+      ),
+    );
+  }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities]);
 
   useEffect(() => {
     if (!bundle) return;
@@ -160,6 +196,12 @@ export function ThesisDetailClient({
     if (!bundle) return null;
     return liveOpt ? liveOpt.mergeThesis(bundle.thesis) : bundle.thesis;
   }, [bundle, liveOpt]);
+
+  /** Scenario View: probabilities from live merged thesis; narrative fallbacks from bundle defaults. */
+  const displayScenarios = useMemo(() => {
+    if (!bundle || !thesisLive) return [];
+    return buildDisplayScenariosFromThesis(thesisLive, bundle.scenarios);
+  }, [bundle, thesisLive]);
 
   const assistBundle = useMemo(() => {
     if (!bundle || !thesisLive) return null;
@@ -233,7 +275,7 @@ export function ThesisDetailClient({
     );
   }
 
-  const { evidence, scenarios, advisoryLog, relatedAssets } = bundle;
+  const { evidence, advisoryLog, relatedAssets } = bundle;
   const thesis = thesisLive!;
   const isUserThesis = bundle.thesis.origin === "user";
   const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
@@ -688,9 +730,8 @@ export function ThesisDetailClient({
 
         <ScenarioPanel
           scenarios={(() => {
-            const base = normalizeThesisScenarios(scenarios);
-            if (!insider?.applied) return base;
-            return base.map((s) => {
+            if (!insider?.applied) return displayScenarios;
+            return displayScenarios.map((s) => {
               const p =
                 s.pathKey === "messy_win"
                   ? insider.applied!.base

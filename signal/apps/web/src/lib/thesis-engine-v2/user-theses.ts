@@ -78,6 +78,11 @@ function mkEvidence(thesis: Thesis): ThesisEvidence[] {
   ];
 }
 
+/** Exported for Scenario View narrative fallback (same rows as `bundle.scenarios` for user theses). */
+export function userThesisScenarioRows(thesis: Thesis): ThesisScenario[] {
+  return mkScenarios(thesis);
+}
+
 function mkScenarios(thesis: Thesis): ThesisScenario[] {
   if (thesis.scenarioOverrides) {
     return [

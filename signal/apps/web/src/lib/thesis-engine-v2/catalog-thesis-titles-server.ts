@@ -52,16 +52,40 @@ export function mergeCatalogThesesWithDbTitles(theses: Thesis[], rows: CatalogTh
   });
 }
 
-export type CatalogThesisHeader = { title: string | null; microLabel: string | null; body: unknown | null };
+/** `public.theses.scenario_probabilities` — base=messy, bull=clean, bear=broken. */
+export type CatalogThesisScenarioProbabilities = { base: number; bull: number; bear: number };
+
+export type CatalogThesisHeader = {
+  title: string | null;
+  microLabel: string | null;
+  body: unknown | null;
+  scenarioProbabilities: CatalogThesisScenarioProbabilities | null;
+};
+
+function parseScenarioProbabilities(raw: unknown): CatalogThesisScenarioProbabilities | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const o = raw as Record<string, unknown>;
+  const b = o.base;
+  const bu = o.bull;
+  const be = o.bear;
+  if (typeof b === "number" && typeof bu === "number" && typeof be === "number") {
+    return { base: Math.round(b), bull: Math.round(bu), bear: Math.round(be) };
+  }
+  return null;
+}
 
 export async function fetchCatalogThesisHeaderBySlug(supabase: SupabaseClient, slug: string): Promise<CatalogThesisHeader> {
   const s = slug.trim();
-  if (!s) return { title: null, microLabel: null, body: null };
+  if (!s) return { title: null, microLabel: null, body: null, scenarioProbabilities: null };
 
-  const { data, error } = await supabase.from("theses").select("title, micro_label, body").eq("slug", s).maybeSingle();
-  if (error || !data) return { title: null, microLabel: null, body: null };
+  const { data, error } = await supabase
+    .from("theses")
+    .select("title, micro_label, body, scenario_probabilities")
+    .eq("slug", s)
+    .maybeSingle();
+  if (error || !data) return { title: null, microLabel: null, body: null, scenarioProbabilities: null };
 
-  const row = data as { title?: unknown; micro_label?: unknown; body?: unknown };
+  const row = data as { title?: unknown; micro_label?: unknown; body?: unknown; scenario_probabilities?: unknown };
   const title = typeof row.title === "string" ? row.title.trim() : "";
   const microLabel = typeof row.micro_label === "string" ? row.micro_label.trim() : "";
   const body = row.body !== undefined && row.body !== null ? row.body : null;
@@ -69,6 +93,7 @@ export async function fetchCatalogThesisHeaderBySlug(supabase: SupabaseClient, s
     title: title || null,
     microLabel: microLabel || null,
     body,
+    scenarioProbabilities: parseScenarioProbabilities(row.scenario_probabilities),
   };
 }
 
