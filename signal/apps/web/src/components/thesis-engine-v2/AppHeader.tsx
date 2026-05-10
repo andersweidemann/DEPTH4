@@ -83,7 +83,9 @@ export function AppHeader({
           {tab("leaderboard", "/leaderboard", "Leaderboard")}
           {tab("help", "/help", "Help")}
         </nav>
-        <p className="mt-2 text-[12px] leading-snug text-zinc-500 sm:mt-3 sm:text-[11px]">{liveLine}</p>
+        {liveLine.trim() ? (
+          <p className="mt-2 text-[12px] leading-snug text-zinc-500 sm:mt-3 sm:text-[11px]">{liveLine}</p>
+        ) : null}
         {bookSummarySlot ? <div className="mt-2 sm:mt-3">{bookSummarySlot}</div> : null}
       </div>
       <InsiderFlowPanel open={insiderOpen} onClose={() => setInsiderOpen(false)} />

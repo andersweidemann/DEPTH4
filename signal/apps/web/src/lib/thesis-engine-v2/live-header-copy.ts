@@ -3,7 +3,7 @@
  * Avoids implying catalog baseline rows are a live fleet statistic.
  */
 export function thesesLiveHeaderNeutral(): string {
-  return "Macro thesis workspace";
+  return "";
 }
 
 /**
