@@ -40,6 +40,8 @@ import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import {
   buildDisplayScenariosFromThesis,
+  dbScenarioTripleEqualsSeed,
+  isUncalibratedDisplayScenarioTriple,
   overlayDbScenarioProbabilities,
   scenarioOverridesFromRows,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
@@ -64,7 +66,9 @@ function withCatalogHeader(
   thesis = mergeDbBodyIntoThesis(thesis, catalog.body ?? null);
 
   let seeded = scenarioOverridesFromRows(bundle.scenarios);
-  if (catalog.scenarioProbabilities) {
+  // Do not replace catalog narrative weights with the identical Supabase seed triple;
+  // that seed is only meaningful once evidence / cron has moved it off the template.
+  if (catalog.scenarioProbabilities && !dbScenarioTripleEqualsSeed(catalog.scenarioProbabilities)) {
     seeded = overlayDbScenarioProbabilities(seeded, catalog.scenarioProbabilities);
   }
   thesis = { ...thesis, scenarioOverrides: seeded };
@@ -202,6 +206,27 @@ export function ThesisDetailClient({
     if (!bundle || !thesisLive) return [];
     return buildDisplayScenariosFromThesis(thesisLive, bundle.scenarios);
   }, [bundle, thesisLive]);
+
+  /** Insider “applied” suggestion replaces displayed weights for Scenario View. */
+  const scenarioPanelScenarios = useMemo(() => {
+    if (!displayScenarios.length) return displayScenarios;
+    const applied = insider?.applied;
+    if (!applied) return displayScenarios;
+    return displayScenarios.map((s) => {
+      const p =
+        s.pathKey === "messy_win"
+          ? applied.base
+          : s.pathKey === "clean_win"
+            ? applied.bull
+            : applied.bear;
+      return { ...s, probability: p };
+    });
+  }, [displayScenarios, insider]);
+
+  const showAuthoritativeScenarioPercents = useMemo(
+    () => Boolean(insider?.applied) || !isUncalibratedDisplayScenarioTriple(scenarioPanelScenarios),
+    [insider?.applied, scenarioPanelScenarios],
+  );
 
   const assistBundle = useMemo(() => {
     if (!bundle || !thesisLive) return null;
@@ -728,20 +753,7 @@ export function ThesisDetailClient({
           </div>
         ) : null}
 
-        <ScenarioPanel
-          scenarios={(() => {
-            if (!insider?.applied) return displayScenarios;
-            return displayScenarios.map((s) => {
-              const p =
-                s.pathKey === "messy_win"
-                  ? insider.applied!.base
-                  : s.pathKey === "clean_win"
-                    ? insider.applied!.bull
-                    : insider.applied!.bear;
-              return { ...s, probability: p };
-            });
-          })()}
-        />
+        <ScenarioPanel scenarios={scenarioPanelScenarios} showPercentages={showAuthoritativeScenarioPercents} />
 
         <AdvisoryLog
           updates={(() => {

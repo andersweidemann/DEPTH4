@@ -1,10 +1,47 @@
 import { CATALOG_THESES, catalogDefaultScenariosForThesis } from "@/lib/thesis-engine-v2/catalog-data";
 import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import type { Thesis, ThesisScenario } from "@/lib/thesis-engine-v2/types";
+import type { ThesisScenarioLike } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { userThesisScenarioRows } from "@/lib/thesis-engine-v2/user-theses";
 
 /** DB / evidence storage shape: base=messy, bull=clean, bear=broken. */
 export type DbScenarioTriple = { base: number; bull: number; bear: number };
+
+/**
+ * Shipped defaults that are not evidence-calibrated:
+ * - `[40,35,25]` — catalog narrative row order (clean / messy / broken) before DB overlay.
+ * - `[35,40,25]` — `public.theses.scenario_probabilities` seed `{base:40,bull:35,bear:25}` after overlay (DB keys map messy/clean/broken).
+ * - `[30,45,25]` — session user thesis rows when `scenarioOverrides` is absent (`mkScenarios`).
+ */
+const UNCALIBRATED_SCENARIO_TRIPLES_CLEAN_MESSY_BROKEN: ReadonlyArray<readonly [number, number, number]> = [
+  [40, 35, 25],
+  [35, 40, 25],
+  [30, 45, 25],
+];
+
+/** Supabase seed default for `scenario_probabilities` (base=messy, bull=clean, bear=broken). */
+export const SCENARIO_PROBABILITY_SEED_DB: DbScenarioTriple = { base: 40, bull: 35, bear: 25 };
+
+export function displayScenarioTripleCleanMessyBroken(scenarios: ThesisScenarioLike[]): [number, number, number] {
+  const n = normalizeThesisScenarios(scenarios);
+  const c = n.find((s) => s.pathKey === "clean_win")!.probability;
+  const m = n.find((s) => s.pathKey === "messy_win")!.probability;
+  const b = n.find((s) => s.pathKey === "thesis_broken")!.probability;
+  return [c, m, b];
+}
+
+/** True when the visible triple is still a shipped template, not thesis-specific calibration. */
+export function isUncalibratedDisplayScenarioTriple(scenarios: ThesisScenarioLike[]): boolean {
+  if (scenarios.length < 3) return true;
+  const t = displayScenarioTripleCleanMessyBroken(scenarios);
+  return UNCALIBRATED_SCENARIO_TRIPLES_CLEAN_MESSY_BROKEN.some(
+    (u) => u[0] === t[0] && u[1] === t[1] && u[2] === t[2],
+  );
+}
+
+export function dbScenarioTripleEqualsSeed(p: DbScenarioTriple): boolean {
+  return p.base === SCENARIO_PROBABILITY_SEED_DB.base && p.bull === SCENARIO_PROBABILITY_SEED_DB.bull && p.bear === SCENARIO_PROBABILITY_SEED_DB.bear;
+}
 
 function isCatalogThesisId(id: string): boolean {
   return CATALOG_THESES.some((t) => t.id === id);
