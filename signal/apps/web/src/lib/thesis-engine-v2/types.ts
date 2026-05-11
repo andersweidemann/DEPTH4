@@ -148,6 +148,11 @@ export type ThesisEvidence = {
   probabilityBefore: number;
   probabilityAfter: number;
   interpretation: string;
+  /**
+   * When false, the log row had no stored `probability_after` JSON — UI should not imply a modeled before→after shift.
+   * Omitted on static bundle rows (treated like a complete narrative line).
+   */
+  logScenarioAfterStored?: boolean;
 };
 
 export type ThesisScenarioPathKey = "clean_win" | "messy_win" | "thesis_broken";

@@ -143,3 +143,29 @@ export function buildDisplayScenariosFromThesis(thesis: Thesis, narrativeFallbac
     };
   });
 }
+
+/**
+ * Lead resolution-path % from a DB triple (`base` = messy win, `bull` = clean win, `bear` = thesis broken).
+ * Matches `thesis_evidence_log` JSON and ticker logic so hero, scenarios, and evidence timeline stay aligned.
+ */
+export function leadScenarioProbabilityFromDbTriple(p: DbScenarioTriple): number {
+  const k = (["base", "bull", "bear"] as const).reduce((best, x) => (p[x] > p[best] ? x : best), "base");
+  return Math.round(p[k]);
+}
+
+/** Single headline “live probability” for DEPTH4: lead scenario weight from merged overrides (or narrative defaults). */
+export function currentThesisProbabilityFromThesis(thesis: Thesis): number {
+  const o = thesis.scenarioOverrides ?? defaultScenarioOverridesFromThesis(thesis);
+  return leadScenarioProbabilityFromDbTriple({
+    base: o.base.probability,
+    bull: o.bull.probability,
+    bear: o.bear.probability,
+  });
+}
+
+/** Keep `thesis.probability` in sync with scenario weights so list rows, hero, and assistant use one number. */
+export function thesisWithSyncedLiveProbability<T extends Thesis>(thesis: T): T {
+  const p = currentThesisProbabilityFromThesis(thesis);
+  if (p === thesis.probability) return thesis;
+  return { ...thesis, probability: p };
+}

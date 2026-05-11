@@ -5,6 +5,7 @@ import {
   narrativeFallbackScenariosForThesis,
   overlayDbScenarioProbabilities,
   scenarioOverridesFromRows,
+  thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
@@ -35,5 +36,5 @@ export function mergeUserThesisWithServerCatalog(local: Thesis, catalog: UserThe
   if (p && !dbScenarioTripleEqualsSeed(p)) {
     seeded = overlayDbScenarioProbabilities(seeded, p);
   }
-  return { ...t, scenarioOverrides: seeded };
+  return thesisWithSyncedLiveProbability({ ...t, scenarioOverrides: seeded });
 }

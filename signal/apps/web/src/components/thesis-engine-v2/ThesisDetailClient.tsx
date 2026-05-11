@@ -43,11 +43,13 @@ import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import {
   buildDisplayScenariosFromThesis,
+  currentThesisProbabilityFromThesis,
   dbScenarioTripleEqualsSeed,
   isCatalogThesisId,
   isUncalibratedDisplayScenarioTriple,
   overlayDbScenarioProbabilities,
   scenarioOverridesFromRows,
+  thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { applyProvisionalTripleToScenarios, runScenarioEvidenceModelPipeline } from "@/lib/thesis-engine-v2/scenario-evidence-model";
 import { liveScenarioProbabilitiesForThesesEnabled } from "@/lib/thesis-engine-v2/scenario-evidence-flags";
@@ -88,7 +90,7 @@ function withCatalogHeader(
   if (catalog.scenarioProbabilities && !dbScenarioTripleEqualsSeed(catalog.scenarioProbabilities)) {
     seeded = overlayDbScenarioProbabilities(seeded, catalog.scenarioProbabilities);
   }
-  thesis = { ...thesis, scenarioOverrides: seeded };
+  thesis = thesisWithSyncedLiveProbability({ ...thesis, scenarioOverrides: seeded });
 
   return { ...bundle, thesis };
 }
@@ -101,13 +103,15 @@ function initialBundleForSlug(
   catalogScenarioProbabilities: CatalogThesisScenarioProbabilities | null | undefined,
 ): ThesisDetailBundle | null {
   const sys = getThesisDetail(slug);
-  if (sys)
-    return withCatalogHeader(sys, {
+  if (sys) {
+    const b = withCatalogHeader(sys, {
       title: catalogDisplayTitle,
       microLabel: catalogMicroLabel,
       body: catalogBody,
       scenarioProbabilities: catalogScenarioProbabilities ?? null,
     });
+    return { ...b, thesis: thesisWithSyncedLiveProbability(b.thesis) };
+  }
   const ut = getUserThesisBySlug(slug);
   if (ut) {
     const merged = mergeUserThesisWithServerCatalog(ut, {
@@ -308,7 +312,8 @@ export function ThesisDetailClient({
 
   const thesisLive = useMemo(() => {
     if (!bundle) return null;
-    return liveOpt ? liveOpt.mergeThesis(bundle.thesis) : bundle.thesis;
+    const m = liveOpt ? liveOpt.mergeThesis(bundle.thesis) : bundle.thesis;
+    return thesisWithSyncedLiveProbability(m);
   }, [bundle, liveOpt]);
 
   const liveEvidence = useMemo(() => {
@@ -319,7 +324,9 @@ export function ThesisDetailClient({
   /** Feed assistant + Evidence timeline from `thesis_evidence_log` rows, not only static bundle.evidence. */
   const mergedEvidenceTimeline = useMemo(() => {
     if (!bundle) return [];
-    const p = thesisLive?.probability ?? bundle.thesis.probability;
+    const p = thesisLive
+      ? currentThesisProbabilityFromThesis(thesisLive)
+      : currentThesisProbabilityFromThesis(bundle.thesis);
     return mergeEvidenceTimelineItems(liveEvidence, bundle.evidence, p);
   }, [bundle, liveEvidence, thesisLive]);
 

@@ -37,6 +37,8 @@ import { createClient as createSbClient } from "@/lib/supabase/client";
 import {
   dbScenarioTripleEqualsSeed,
   defaultScenarioOverridesFromThesis,
+  leadScenarioProbabilityFromDbTriple,
+  thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { hydrateDepth4AccountState } from "@/lib/thesis-engine-v2/depth4-account-hydration";
@@ -162,24 +164,26 @@ function baseThesisForId(thesisId: string): Thesis | undefined {
 function scenarioProbPatchFromDb(baseThesis: Thesis, p: { base: number; bull: number; bear: number }): Partial<Thesis> {
   const defaults = defaultScenarioOverridesFromThesis(baseThesis);
   const o = baseThesis.scenarioOverrides ?? defaults;
-  return {
-    scenarioOverrides: {
-      base: {
-        probability: p.base,
-        confirmation: o.base.confirmation.trim() ? o.base.confirmation : defaults.base.confirmation,
-        marketConsequence: o.base.marketConsequence.trim() ? o.base.marketConsequence : defaults.base.marketConsequence,
-      },
-      bull: {
-        probability: p.bull,
-        confirmation: o.bull.confirmation.trim() ? o.bull.confirmation : defaults.bull.confirmation,
-        marketConsequence: o.bull.marketConsequence.trim() ? o.bull.marketConsequence : defaults.bull.marketConsequence,
-      },
-      bear: {
-        probability: p.bear,
-        confirmation: o.bear.confirmation.trim() ? o.bear.confirmation : defaults.bear.confirmation,
-        marketConsequence: o.bear.marketConsequence.trim() ? o.bear.marketConsequence : defaults.bear.marketConsequence,
-      },
+  const scenarioOverrides = {
+    base: {
+      probability: p.base,
+      confirmation: o.base.confirmation.trim() ? o.base.confirmation : defaults.base.confirmation,
+      marketConsequence: o.base.marketConsequence.trim() ? o.base.marketConsequence : defaults.base.marketConsequence,
     },
+    bull: {
+      probability: p.bull,
+      confirmation: o.bull.confirmation.trim() ? o.bull.confirmation : defaults.bull.confirmation,
+      marketConsequence: o.bull.marketConsequence.trim() ? o.bull.marketConsequence : defaults.bull.marketConsequence,
+    },
+    bear: {
+      probability: p.bear,
+      confirmation: o.bear.confirmation.trim() ? o.bear.confirmation : defaults.bear.confirmation,
+      marketConsequence: o.bear.marketConsequence.trim() ? o.bear.marketConsequence : defaults.bear.marketConsequence,
+    },
+  };
+  return {
+    scenarioOverrides,
+    probability: leadScenarioProbabilityFromDbTriple(p),
   };
 }
 
@@ -438,7 +442,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const tickerItems = evidenceTickerItems;
 
   const mergeThesisCb = useCallback(
-    (t: Thesis) => applyManualOutcome(mergeThesis(t, overrides[t.id])),
+    (t: Thesis) => thesisWithSyncedLiveProbability(applyManualOutcome(mergeThesis(t, overrides[t.id]))),
     [overrides],
   );
 
@@ -887,7 +891,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   const sortPinnedFirst = useCallback(
     (list: Thesis[]) => {
-      const merged = list.map((t) => applyManualOutcome(mergeThesis(t, overrides[t.id])));
+      const merged = list.map((t) =>
+        thesisWithSyncedLiveProbability(applyManualOutcome(mergeThesis(t, overrides[t.id]))),
+      );
       const pinned = merged.filter((t) => starred.has(t.id) || openIds.has(t.id));
       const rest = merged.filter((t) => !starred.has(t.id) && !openIds.has(t.id));
       return [...sortThesesForDashboard(pinned), ...sortThesesForDashboard(rest)];

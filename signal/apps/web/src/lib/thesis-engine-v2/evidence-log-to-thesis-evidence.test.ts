@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
+import { mergeEvidenceTimelineItems, thesisEvidenceFromLogRow } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 
 const logRow = (thesisId: string) => ({
@@ -10,6 +10,46 @@ const logRow = (thesisId: string) => ({
   description: "Test headline",
   probabilityBefore: { base: 40, bull: 35, bear: 25 },
   probabilityAfter: { base: 48, bull: 32, bear: 20 },
+});
+
+describe("thesisEvidenceFromLogRow", () => {
+  it("marks logScenarioAfterStored false when probability_after is null (no faux identical arrow story)", () => {
+    const ev = thesisEvidenceFromLogRow(
+      {
+        id: "r1",
+        createdAt: Date.now(),
+        thesisId: "th-gold",
+        eventType: "NEWS_DEVELOPMENT",
+        description: "Headline only",
+        probabilityBefore: { base: 40, bull: 35, bear: 25 },
+        probabilityAfter: null,
+      },
+      67,
+    );
+    expect(ev.logScenarioAfterStored).toBe(false);
+    expect(ev.probabilityBefore).toBe(40);
+    expect(ev.probabilityAfter).toBe(40);
+    expect(ev.impact).toBe("neutral");
+    expect(ev.interpretation).toContain("no modeled scenario update");
+  });
+
+  it("uses lead path when both triples exist and surfaces zero delta copy", () => {
+    const ev = thesisEvidenceFromLogRow(
+      {
+        id: "r2",
+        createdAt: Date.now(),
+        thesisId: "th-gold",
+        eventType: "NEWS_DEVELOPMENT",
+        description: "Move messy",
+        probabilityBefore: { base: 40, bull: 35, bear: 25 },
+        probabilityAfter: { base: 41, bull: 34, bear: 25 },
+      },
+      50,
+    );
+    expect(ev.logScenarioAfterStored).toBe(true);
+    expect(ev.probabilityBefore).toBe(40);
+    expect(ev.probabilityAfter).toBe(41);
+  });
 });
 
 describe("mergeEvidenceTimelineItems", () => {

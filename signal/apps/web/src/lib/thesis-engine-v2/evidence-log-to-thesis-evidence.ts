@@ -1,4 +1,5 @@
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
+import { leadScenarioProbabilityFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 export type EvidenceLogRowLike = {
   id: string;
@@ -10,11 +11,6 @@ export type EvidenceLogRowLike = {
   probabilityAfter: { base: number; bull: number; bear: number } | null;
   metadata?: Record<string, unknown>;
 };
-
-function leadScenarioProb(p: { base: number; bull: number; bear: number }): number {
-  const k = (["base", "bull", "bear"] as const).reduce((best, x) => (p[x] > p[best] ? x : best), "base");
-  return p[k];
-}
 
 function impactFromDelta(d: number): ThesisEvidence["impact"] {
   if (d >= 5) return "major_positive";
@@ -29,8 +25,11 @@ function impactFromDelta(d: number): ThesisEvidence["impact"] {
  * Uses lead-scenario (messy/clean/broken) probabilities when JSON triples exist; otherwise falls back to headline %.
  */
 export function thesisEvidenceFromLogRow(row: EvidenceLogRowLike, headlineProbabilityFallback: number): ThesisEvidence {
-  const before = row.probabilityBefore ? leadScenarioProb(row.probabilityBefore) : headlineProbabilityFallback;
-  const after = row.probabilityAfter ? leadScenarioProb(row.probabilityAfter) : before;
+  const logScenarioAfterStored = !!(row.probabilityBefore && row.probabilityAfter);
+  const before = row.probabilityBefore
+    ? leadScenarioProbabilityFromDbTriple(row.probabilityBefore)
+    : headlineProbabilityFallback;
+  const after = row.probabilityAfter ? leadScenarioProbabilityFromDbTriple(row.probabilityAfter) : before;
   const d = after - before;
   const ts = new Date(row.createdAt).toLocaleString([], {
     month: "short",
@@ -43,10 +42,18 @@ export function thesisEvidenceFromLogRow(row: EvidenceLogRowLike, headlineProbab
       ? row.metadata.source.trim()
       : row.eventType || "Evidence";
   const headline = (row.description || "").trim() || row.eventType || "Thesis evidence update";
-  const interpretation =
-    row.probabilityBefore && row.probabilityAfter
-      ? `Scenario mix shifted (lead path ${before}%→${after}%). Review resolution paths vs your invalidation.`
-      : "Logged development — check resolution paths and whether your trigger still matches the tape.";
+  let interpretation: string;
+  if (row.probabilityBefore && row.probabilityAfter) {
+    interpretation =
+      d === 0
+        ? `Modeled lead path unchanged at ${before}% after this headline — scenario weights moved under the hood without changing the top path.`
+        : `Scenario mix shifted (lead path ${before}%→${after}%). Review resolution paths vs your invalidation.`;
+  } else if (row.probabilityBefore && !row.probabilityAfter) {
+    interpretation = `Lead path snapshot ${before}% at log time — no modeled scenario update was stored for this headline (policy / threshold). Still logged as a matched development.`;
+  } else {
+    interpretation =
+      "Logged development — check resolution paths and whether your trigger still matches the tape. Scenario triple was not attached to this row.";
+  }
 
   return {
     id: `log-${row.id}`,
@@ -58,6 +65,7 @@ export function thesisEvidenceFromLogRow(row: EvidenceLogRowLike, headlineProbab
     probabilityBefore: before,
     probabilityAfter: after,
     interpretation,
+    logScenarioAfterStored,
   };
 }
 
