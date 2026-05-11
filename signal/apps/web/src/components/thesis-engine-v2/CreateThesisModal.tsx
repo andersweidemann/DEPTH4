@@ -6,6 +6,10 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { InsiderFlowSetupFields, type InsiderFlowFieldKey } from "@/components/thesis-engine-v2/InsiderFlowSetupFields";
+import {
+  repairLongFormNarrativeField,
+  stripEmbeddedProbabilityPhrasesFromText,
+} from "@/lib/thesis-engine-v2/thesis-narrative-probability-guard";
 
 type FormState = {
   mode: "choice" | "ai" | "review" | "manual";
@@ -93,7 +97,7 @@ function buildUserThesis(form: FormState): Thesis {
     probability: p || 50,
     status: p >= 65 ? "ready" : p >= 50 ? "active" : "watching",
     probabilityRationale:
-      "Starting conviction reflects your framing. DEPTH4 will update probability as signals confirm or break the trigger.",
+      "Starting conviction reflects your framing. DEPTH4 updates thesis conviction as signals confirm or break the trigger — keep narrative text free of extra percentages; the hero and Scenario View carry the numbers.",
     origin: "user",
 
     hiddenDriver: "You named the main driver in your draft; incoming headlines will test whether it still holds.",
@@ -438,26 +442,26 @@ function draftFromApiResponse(d: Record<string, unknown>): AiDraftFormPatch {
   const pp = clamp(Math.round(ppRaw), 1, 95);
 
   return {
-    title: String(d.title ?? "").trim() || "Untitled thesis",
+    title: repairLongFormNarrativeField(String(d.title ?? "").trim() || "Untitled thesis"),
     asset: String(d.asset ?? "").trim().toUpperCase() || "—",
     direction: dir,
-    thesisStatement: String(d.thesis_statement ?? "").trim(),
-    whyNow: String(d.why_now ?? "").trim(),
-    whatsUnpriced: String(d.whats_unpriced ?? "").trim(),
-    entrySetup: String(d.trigger_entry_setup ?? "").trim(),
-    stop: String(d.stop ?? "").trim(),
-    target: String(d.target ?? "").trim(),
+    thesisStatement: repairLongFormNarrativeField(String(d.thesis_statement ?? "").trim()),
+    whyNow: repairLongFormNarrativeField(String(d.why_now ?? "").trim()),
+    whatsUnpriced: repairLongFormNarrativeField(String(d.whats_unpriced ?? "").trim()),
+    entrySetup: stripEmbeddedProbabilityPhrasesFromText(String(d.trigger_entry_setup ?? "").trim()),
+    stop: stripEmbeddedProbabilityPhrasesFromText(String(d.stop ?? "").trim()),
+    target: stripEmbeddedProbabilityPhrasesFromText(String(d.target ?? "").trim()),
     horizon: String(d.horizon ?? "").trim() || "2–8 weeks",
     probability: String(pp),
     baseProb: String(sb.probability),
-    baseConfirms: sb.confirms,
-    baseConsequence: sb.consequence,
+    baseConfirms: repairLongFormNarrativeField(sb.confirms),
+    baseConsequence: repairLongFormNarrativeField(sb.consequence),
     bullProb: String(bu.probability),
-    bullConfirms: bu.confirms,
-    bullConsequence: bu.consequence,
+    bullConfirms: repairLongFormNarrativeField(bu.confirms),
+    bullConsequence: repairLongFormNarrativeField(bu.consequence),
     bearProb: String(be.probability),
-    bearConfirms: be.confirms,
-    bearConsequence: be.consequence,
+    bearConfirms: repairLongFormNarrativeField(be.confirms),
+    bearConsequence: repairLongFormNarrativeField(be.consequence),
     bullInstruments: joinListField(inf.bull_instruments),
     bearInstruments: joinListField(inf.bear_instruments),
     confirmTags: joinListField(inf.confirm_tags),

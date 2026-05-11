@@ -17,8 +17,12 @@ export function MispricingAnalysis({ m }: { m: ThesisMispricing }) {
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Mispricing analysis</h2>
         <div className="text-[11px] tabular-nums text-zinc-400">
           Score: <span className="font-semibold text-zinc-200">{m.score}</span>
+          <span className="text-zinc-600"> /100</span>
         </div>
       </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
+        Conviction (above in the hero) answers whether the idea is broadly right. This block answers how much edge the tape may still offer versus implied pricing — high conviction with a moderate score is normal.
+      </p>
 
       <div className="mt-3 grid gap-3">
         <div className="grid gap-2">
@@ -33,7 +37,7 @@ export function MispricingAnalysis({ m }: { m: ThesisMispricing }) {
 
         <div className="grid gap-2">
           <div className="flex items-baseline justify-between gap-2 text-[11px]">
-            <span className="text-zinc-500">Market-implied probability</span>
+            <span className="text-zinc-500">Market-implied view (~%)</span>
             <span className="tabular-nums font-semibold text-zinc-200">~{m.marketImplied}%</span>
           </div>
           <div className="h-1 w-full bg-white/[0.08]">

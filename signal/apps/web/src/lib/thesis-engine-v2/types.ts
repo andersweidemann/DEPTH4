@@ -37,7 +37,7 @@ export type Thesis = {
   microLabel?: string | null;
   /** Optional one-sentence hook for a ~3-second scan (retail clarity). */
   oneLineSummary?: string;
-  /** Full hero trade sentence (same voice as `title`; may be slightly longer than display title). */
+  /** Full hero trade sentence (same voice as `title`; may be slightly longer than display title). No literal headline % here — Thesis conviction is UI-only. */
   thesisStatement: string;
   /**
    * Optional 3–4 short paragraphs for “Why this thesis exists” (catalog + rich user drafts).

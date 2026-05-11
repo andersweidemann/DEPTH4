@@ -9,9 +9,13 @@ export function MispricingTooltipContent({ m }: { m: ThesisMispricing }) {
     <div className="space-y-1">
       <div className="text-[11px] font-semibold text-zinc-100">Mispricing Score</div>
       <div className="text-zinc-300">
-        How much market pricing differs from thesis conviction (Clean + Messy win).
+        <span className="font-medium text-zinc-200">Thesis conviction</span> = chance this thesis is broadly right (shown in the hero).
         <br />
-        Higher score = bigger opportunity if thesis is correct.
+        <span className="font-medium text-zinc-200">Mispricing score</span> = how attractive the setup looks right now versus what price implies — not the same dial as conviction.
+        <br />
+        A thesis can show high conviction but only moderate mispricing if part of the story is already priced, the path is messy, or triggers are still soft.
+        <br />
+        <span className="text-zinc-500">Score mechanics:</span> gap between conviction and market-implied view, scaled for how tradeable the idea is.
       </div>
       <div className="pt-1 text-zinc-300">
         <span className="text-zinc-500">This thesis (conviction):</span>{" "}

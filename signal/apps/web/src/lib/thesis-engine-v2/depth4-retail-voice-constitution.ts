@@ -56,5 +56,10 @@ dispersion, index diversification, basket repricing / reprices cleanly, convexit
 - Prefer timeless phrasing: "Gold still prices war risk" — not "Gold at $3,850 still prices war risk." Same for oil, QQQ, TLT, copper, etc.
 - **entry_zone / stop / target** columns are for **Trade plan numbers** only when they are **maintained from current quotes or left empty** — never bake stale catalog spot prints into stored narrative or seed copy.
 
-8) Goal: one retail-friendly editorial brain across the product.
+8) NO EMBEDDED PROBABILITY PERCENTS IN THESIS PROSE
+- Do **not** write literal percentages inside thesis **narrative** (title, thesis_statement, one_line_summary, why_now, whats_unpriced, thesis_cascade, scenario **confirmation/consequence** text, advisory prose, assistant summaries, feed teasers, or body paragraphs). Examples **banned**: "probability 67%", "a 64% chance", "odds are 55%".
+- The product UI is the only surface for **Thesis conviction** and the **scenario split** (Clean / Messy / Broken). Prose explains the story; it does not restate or invent a second headline %.
+- **Mispricing score** (0–100) is a **different** concept from conviction: conviction = how likely the idea is broadly right; mispricing = how attractive the trade setup is now (timing, underreaction, trigger/trade clarity). Never imply in prose that mispricing % equals conviction or that high conviction always means high mispricing.
+
+9) Goal: one retail-friendly editorial brain across the product.
 `.trim();

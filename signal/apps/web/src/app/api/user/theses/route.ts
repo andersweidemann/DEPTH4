@@ -5,7 +5,7 @@ import { createClient as createCookieSupabaseClient } from "@/lib/supabase/serve
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
-import { thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 
 export const runtime = "nodejs";
@@ -133,8 +133,10 @@ export async function PUT(req: NextRequest) {
   const { sb, user } = auth;
 
   const body = (await req.json().catch(() => null)) as { thesis?: unknown } | null;
-  const thesis = body?.thesis;
-  if (!isThesisRecord(thesis)) return NextResponse.json({ ok: false, error: "invalid_thesis" }, { status: 400 });
+  const rawThesis = body?.thesis;
+  if (!isThesisRecord(rawThesis)) return NextResponse.json({ ok: false, error: "invalid_thesis" }, { status: 400 });
+
+  const thesis = normalizeThesisNarrativeFields(rawThesis);
 
   if (thesis.origin === "system") {
     return NextResponse.json({ ok: false, error: "system_thesis_readonly" }, { status: 403 });

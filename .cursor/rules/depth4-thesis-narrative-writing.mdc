@@ -56,14 +56,14 @@ Say **“the edge”** or **“what the market hasn’t priced yet”** — not 
 ## 4) One job per block
 
 - **Micro-label:** 3–6 words; human; memorable; no ticker; no jargon.
-- **Hero title:** only full thesis sentence — `[Asset] will [direction + move] because [plain cause], within [time window].` (No Buy/Sell imperatives.)
+- **Hero title:** only full thesis sentence — `[Asset] will [direction + move] because [plain cause], within [time window].` (No Buy/Sell imperatives.) **No literal "probability NN%"** in hero or body prose; conviction is UI-only.
 - **One-line summary:** optional hook; not a duplicate hero.
 - **L1–L4:** facts → near window → year payout → 2026 backdrop; plain language; one main new idea per level (see thesis book + QQQ exemplar).
 - **What’s unpriced:** the edge, **once**.
 - **Trigger / trade / invalidation / time stop:** each **once**, observable.
 - **Why thesis exists:** framing only; do not repeat hero / edge / trade blocks.
 - **Risk factors:** new words; never paste invalidation again.
-- **Scenario view (resolution paths):** three ways **this** thesis resolves — **Clean win** (thesis pays roughly on plan), **Messy win** (direction roughly right; slower / smaller / choppier payoff), **Thesis broken** (invalidated; retire per Invalidation / Book). Each path: probability (~100% total), **what happens** (narrative), **consequence** (for the current trade only). Not three parallel bets; no new entry trades; do not contradict the main direction. Name **asset + driver**. **Banned** generic lines: “Trend continues with noisy headlines”, “Catalyst confirms direction early”, “Base trade plan remains operative”, “Invalidation triggers hit”, “Accelerated path to targets.”
+- **Scenario view (resolution paths):** three ways **this** thesis resolves — **Clean win** (thesis pays roughly on plan), **Messy win** (direction roughly right; slower / smaller / choppier payoff), **Thesis broken** (invalidated; retire per Invalidation / Book). Structured probabilities sum ~100% in the UI; **what happens** / **consequence** prose must not repeat raw NN% (bars show weights). Not three parallel bets; no new entry trades; do not contradict the main direction. Name **asset + driver**. **Banned** generic lines: “Trend continues with noisy headlines”, “Catalyst confirms direction early”, “Base trade plan remains operative”, “Invalidation triggers hit”, “Accelerated path to targets.”
 
 Do **not** repeat the same sentence or idea across blocks.
 
@@ -94,9 +94,11 @@ Every catalog thesis uses the **same** ladder and retail bar as the QQQ AI-cost 
 
 ## 8) Display title & statement
 
-`[Asset] will [direction + move] because [plain cause] [within time window]` — optional trailing `, probability [N%]` in `thesis_statement` / detail copy.
+`[Asset] will [direction + move] because [plain cause] [within time window]` — **no** trailing `, probability [N%]` (or any other unlabeled %) in stored prose; Thesis conviction is rendered only by labeled UI.
 
 **Banned on this surface:** Buy, Sell, Go long, Go short, Don’t buy, Don’t add, Add exposure, Reduce exposure.
+
+**Mispricing vs conviction:** do not collapse into one number in copy. Mispricing score measures trade attractiveness now; conviction measures whether the thesis is broadly right.
 
 ---
 

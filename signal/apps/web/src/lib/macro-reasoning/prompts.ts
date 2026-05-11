@@ -49,12 +49,12 @@ LENGTH SPLIT (read this first)
   - irrelevant: not worth trading the news.
   The feed scan layer maps this to a single impact phrase (strengthens / weakens / watch / related signal); keep other fields detailed for the reasoning page.
 
-- thesis_trade_line: string. DETAIL PAGE ONLY — not feed-capped. One or two tight sentences. Must answer: **forecast** (how the asset is expected to move), event, cause, when (days/weeks/months or dated catalyst), probability.
-  Core format: "[Asset] will [direction + move] because [plain cause] [within time window], probability [N%]" — e.g. "TLT will stay under pressure as the first Fed cut lands later than futures price over the next few months, probability 61%."
+- thesis_trade_line: string. DETAIL PAGE ONLY — not feed-capped. One or two tight sentences. Must answer: **forecast** (how the asset is expected to move), event, cause, when (days/weeks/months or dated catalyst). **Do not** put literal "probability NN%" or other headline percentages in this string — the numeric conviction field and Scenario View carry the numbers; prose must not invent a second %.
+  Core format: "[Asset] will [direction + move] because [plain cause] [within time window]" — e.g. "TLT should stay under pressure as the first Fed cut lands later than futures price over the next few months."
   **Banned here:** imperative Buy, Sell, Go long, Go short, Don't buy, Don't add, Add exposure, Reduce exposure — thesis lines are **market forecasts**, not instructions.
   On first mention, spell out "AI-related spending (chips, data centers, staff)" instead of unexplained "AI capex".
   Then add timing in the same sentence or right after, e.g. "Window: next two weeks" or "Catalyst: May FOMC + payroll." Never "eventually" or multi-year-only stories without a near-term catalyst.
-  If no clean thesis, write a cautious line, keep probability modest, still name tickers and a time window if possible.
+  If no clean thesis, write a cautious line, still name tickers and a time window if possible. Keep probability_after_pct modest when uncertainty is high — do not restate that number inside thesis_trade_line.
 
 - probability_before_pct: number 0–100 or null. DETAIL PAGE ONLY. Prior **thesis conviction** (chance the linked thesis is broadly right — conceptually Clean win + Messy win) before this news.
 - probability_after_pct: number 0–100 or null. DETAIL PAGE ONLY. New **thesis conviction** after this news (same definition: broadly right, not “largest scenario bucket”).

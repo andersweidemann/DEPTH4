@@ -1,4 +1,5 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { applyThesisNarrativeProbabilityGuardToThesis } from "@/lib/thesis-engine-v2/thesis-narrative-probability-guard";
 
 /**
  * Supabase `public.theses.body` — optional JSON narrative for thesis book copy.
@@ -99,6 +100,7 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
  * trim risk_factors when it blindly repeats invalidation.
  */
 export function normalizeThesisNarrativeFields(thesis: Thesis): Thesis {
+  thesis = applyThesisNarrativeProbabilityGuardToThesis(thesis);
   const whatsUnpriced = (thesis.whatsUnpriced ?? "").trim();
   let marketMisread = (thesis.marketMisread ?? "").trim();
   const invalidation = (thesis.invalidation ?? "").trim();

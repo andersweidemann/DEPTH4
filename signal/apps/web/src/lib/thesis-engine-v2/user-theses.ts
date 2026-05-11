@@ -29,7 +29,9 @@ export function loadUserTheses(): Thesis[] {
   if (typeof window === "undefined") return [];
   const s = safeParse(window.sessionStorage.getItem(USER_THESES_KEY));
   // avoid collisions with system slugs
-  return s.theses.filter((t) => !RESERVED_CATALOG_SLUGS.has(t.slug)).map(normalizeThesisStatus);
+  return s.theses
+    .filter((t) => !RESERVED_CATALOG_SLUGS.has(t.slug))
+    .map((t) => normalizeThesisNarrativeFields(normalizeThesisStatus(t)));
 }
 
 export function saveUserTheses(theses: Thesis[]) {
@@ -44,7 +46,8 @@ export function saveUserTheses(theses: Thesis[]) {
 
 export function upsertUserThesis(thesis: Thesis) {
   const cur = loadUserTheses();
-  const next = [thesis, ...cur.filter((t) => t.slug !== thesis.slug)];
+  const t = normalizeThesisNarrativeFields(normalizeThesisStatus(thesis));
+  const next = [t, ...cur.filter((x) => x.slug !== t.slug)];
   saveUserTheses(next);
   return next;
 }

@@ -57,7 +57,7 @@ export const CATALOG_THESES: Thesis[] = [
     oneLineSummary:
       "Peace drift meets a rich safe-haven bid: talks are moving but spot still prices a fat tail.",
     thesisStatement:
-      "Gold will fall as steady talks and fewer escalation headlines unwind war-risk premium within the next several weeks, probability 67%.",
+      "Gold should fade over the next several weeks if steady talks and fewer escalation headlines unwind part of the war-risk premium still embedded in spot.",
     asset: "XAUUSD",
     direction: "short",
     probability: 67,
@@ -134,7 +134,7 @@ export const CATALOG_THESES: Thesis[] = [
     oneLineSummary:
       "The strait is fragile but flat crude still underprices a routing-and-insurance shock.",
     thesisStatement:
-      "USO will rerate higher as Hormuz transit risk spikes within weeks due to insurance, routing, and navy warnings, probability 58%.",
+      "USO should rerate higher within weeks if Hormuz transit risk spikes on insurance, routing, and navy warnings ahead of flat headline crude.",
     asset: "USOIL",
     direction: "long",
     probability: 58,
@@ -196,7 +196,7 @@ export const CATALOG_THESES: Thesis[] = [
     oneLineSummary:
       "US rigs are rolling while OPEC language stays disciplined — the tape is slow to price both together.",
     thesisStatement:
-      "USO will grind higher as OPEC holds prices firm if US shale slows this quarter due to fewer rigs and softer producer guides, probability 44%.",
+      "USO should grind higher this quarter if OPEC holds prices firm while US shale slows on fewer rigs and softer producer guides.",
     asset: "USOIL",
     direction: "long",
     probability: 44,
@@ -258,7 +258,7 @@ export const CATALOG_THESES: Thesis[] = [
     oneLineSummary:
       "Futures still bet on early cuts while the Fed sounds higher-for-longer.",
     thesisStatement:
-      "TLT will stay under pressure as the first Fed cut lands later than futures price within the next few months due to sticky inflation and firm jobs data, probability 61%.",
+      "TLT should stay under pressure over the next few months if the first Fed cut lands later than futures price as sticky inflation and firm jobs data drag on cuts.",
     asset: "TLT",
     direction: "short",
     probability: 61,
@@ -320,7 +320,7 @@ export const CATALOG_THESES: Thesis[] = [
     oneLineSummary:
       "Contracts are lining up but the stock still prices last year’s doubt.",
     thesisStatement:
-      "RTX will rerate higher as named Pentagon awards firm backlog within this quarter due to appropriations moving and primes taking share, probability 55%.",
+      "RTX should rerate higher this quarter if named Pentagon awards firm backlog as appropriations move and primes take share.",
     asset: "RTX",
     direction: "long",
     probability: 55,
@@ -382,7 +382,7 @@ export const CATALOG_THESES: Thesis[] = [
     oneLineSummary:
       "Many companies will feel the cost of AI spending in earnings before the profits show up, and the index hides that risk.",
     thesisStatement:
-      "QQQ will underperform as AI-related spending (chips, data centers, staff) squeezes profit margins before new revenue shows up this earnings season, probability 49%.",
+      "QQQ should underperform this earnings season as AI-related spending (chips, data centers, staff) squeezes profit margins before new revenue shows up.",
     asset: "QQQ",
     direction: "watch",
     probability: 49,
@@ -460,7 +460,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     oneLineSummary:
       "Beijing is turning the dial while HG still prices slow China.",
     thesisStatement:
-      "Copper will stay bid as China credit and spending stimulus speeds up again within months due to easier policy and restocking, probability 52%.",
+      "Copper should stay bid over the next few months if China credit and spending stimulus speeds up again on easier policy and restocking.",
     asset: "HG",
     direction: "long",
     probability: 52,
@@ -522,7 +522,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     oneLineSummary:
       "EU enforcement is moving from fines to binding product limits the tape has not repriced.",
     thesisStatement:
-      "META will underperform as EU platform rules tighten within months due to binding remedies and daily fines that change how ads run, probability 46%.",
+      "META should underperform over the next few months if EU platform rules tighten on binding remedies and daily fines that change how ads run.",
     asset: "META",
     direction: "short",
     probability: 46,
