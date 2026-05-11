@@ -1,3 +1,7 @@
+/**
+ * Legacy prose cascade. Canonical structured four-depth UI should read `thesis.thesisDepthBook` when present
+ * (`thesis-depth-canonical.ts`); keep this component until all rows migrate.
+ */
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
 const LEVELS: { key: keyof NonNullable<Thesis["thesisCascade"]>; kicker: string; sub: string }[] = [

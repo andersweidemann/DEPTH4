@@ -92,3 +92,52 @@ DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO D
 - **probability_rationale**: evidence / odds only — not a third copy of the hero line.
 - **scenario_view / resolution paths** (when generating structured scenario JSON): use the clean_win / messy_win / thesis_broken contract above; map any legacy Base/Bull/Bear copy to messy/clean/broken semantics before returning.
 `.trim();
+
+/**
+ * **V2 — canonical four-depth engine** (same semantics as homepage “think ahead” once UI is unified).
+ * Replace legacy “Confirmed / Week–Quarter / Year / 2026 backdrop” prose with **structured nodes** + per-depth mispricing.
+ * Emit JSON key `thesis_depth_book` (sibling to `thesis_cascade` during migration) matching `ThesisDepthBook` in
+ * `thesis-depth-canonical.ts`.
+ */
+export const DEPTH4_THESIS_DEPTH_V2_CONTRACT_FOR_LLM = `
+====================================================
+DEPTH4 THESIS_DEPTH_BOOK (canonical four depths) — STRUCTURED JSON
+====================================================
+One object thesis_depth_book with:
+- version: 1 (integer)
+- lastComputedAt: ISO string or generation tag
+- nodes: object with keys depth_1, depth_2, depth_3, depth_4. Each node MUST include:
+  - id (same as key)
+  - claim (string)
+  - timeframe (string; use canonical windows: depth_1 = 0–24h confirmed; depth_2 = 1–7d direct; depth_3 = 7–30d spillover; depth_4 = 30–90d+ systemic)
+  - confidence (0–1)
+  - evidence (string[])
+  - dependencyOnPriorLevel (string; empty for depth_1)
+  - affectedAssets (string[] tickers/sectors)
+  - expectedDirection: bullish | bearish | mixed | neutral (for the **primary expression at this depth**, which may differ from hero asset)
+  - candidateMarketProxies (string[] — what observable series proxy “market priced”)
+  - whatMarketProbablyPricesNow (string)
+  - whatDepth4ThinksIsMoreLikely (string)
+  - whyTheGapExists (string)
+- mispricingByDepth: same four keys; each MUST include:
+  - depthId
+  - depth4Probability (0–1)
+  - marketImpliedProbability (0–1 or null if unknown)
+  - marketProxyAssessment (string — required when numeric implied null)
+  - gap (number or null) = depth4 − market when both numeric
+  - confidenceAdjustedGap (number or null)
+  - catalystClarity (0–1)
+  - expressibility (0–1)
+
+PRODUCT RULE — trade may NOT be hero asset:
+- If depth_2 (direct) is violently repriced, raise expressibility at depth_3/depth_4 and surface second/third-order trades
+  (e.g. fertilizer vs airlines; EM importers; duration) even when hero is crude.
+
+CANONICAL EXAMPLE — Hormuz closed after clash (illustrative; do not paste verbatim unless event matches):
+- depth_1.claim: "Hormuz traffic disruption is verified by Tier 1 sources."
+- depth_2.claim: "Front crude, tanker rates, and shipping insurance jump."
+- depth_3.claim: "Higher energy costs feed into diesel, fertilizer, ag inputs, airline margins, EM importer stress."
+- depth_4.claim: "Sticky inflation delays cuts, strengthens energy exporters/defense, hurts importers and duration."
+
+Legacy thesis_cascade may remain for one release; prefer filling thesis_depth_book for all new/edited rows.
+`.trim();

@@ -1,3 +1,5 @@
+import type { ThesisDepthBook } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
+
 export type ThesisStatus =
   | "forming"
   | "watching"
@@ -68,6 +70,12 @@ export type Thesis = {
     l3ThisYear: string;
     l4Backdrop2026: string;
   };
+
+  /**
+   * Canonical four-depth book (0–24h → 1–7d → 7–30d → 30–90d+). When set, mispricing/trade selection should
+   * derive from these nodes — see `thesis-depth-canonical.ts`. Legacy `thesisCascade` prose remains until migrated.
+   */
+  thesisDepthBook?: ThesisDepthBook;
 
   // causal framework (legacy cards when `whyThesisExists` absent)
   hiddenDriver: string;

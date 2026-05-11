@@ -1,3 +1,7 @@
+/**
+ * ATR-based levels from hero **asset** only. Future: bias bands using `Thesis.thesisDepthBook` +
+ * `selectPrimaryTradeNode` when primary edge targets a different ticker than `thesis.asset`.
+ */
 import type { LiveTradePlan, Thesis } from "@/lib/thesis-engine-v2/types";
 import type { OhlcvBar } from "@/lib/market-data";
 

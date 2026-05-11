@@ -16,6 +16,9 @@
  *
  * TODO: Replace placeholder heuristics with a trained model; add calibration
  * layer on top of raw scores once we have logged predictions + outcomes.
+ *
+ * **Relation to `thesisDepthBook`:** resolution paths describe *how the hero thesis resolves*; depth nodes describe
+ * *causal time chain + per-depth market gap*. Scenario weights should eventually condition on depth mispricing signals.
  */
 
 import { isUncalibratedScenarioTripleCleanMessyBroken } from "@/lib/thesis-engine-v2/thesis-display-scenarios";

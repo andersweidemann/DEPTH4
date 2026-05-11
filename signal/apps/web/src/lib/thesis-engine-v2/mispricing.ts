@@ -1,3 +1,7 @@
+/**
+ * Thesis-level mispricing headline (qualification totals + scenario nudges). Per-depth mispricing lives on
+ * `Thesis.thesisDepthBook.mispricingByDepth` — see `thesis-depth-canonical.ts` and `selectPrimaryTradeNode`.
+ */
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import {
   currentThesisProbabilityFromThesis,

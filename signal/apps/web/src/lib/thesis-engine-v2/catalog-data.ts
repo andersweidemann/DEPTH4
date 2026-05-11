@@ -5,6 +5,8 @@
  * - At runtime, titles / micro-labels / bodies / slugs from the DB overlay these defaults where present.
  * - This is not a live market feed. Detail bundles omit fabricated evidence or ticker lines; real evidence
  *   comes from `thesis_evidence_log` and related pipelines.
+ * - **Forward:** structured `thesisDepthBook` / `body.thesis_depth_book` replaces hand prose `thesisCascade` for
+ *   per-depth mispricing + trade selection — see `thesis-depth-canonical.ts`.
  */
 import type { Thesis, ThesisDetailBundle, ThesisScenario, ThesisScenarioPathKey } from "./types";
 import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";

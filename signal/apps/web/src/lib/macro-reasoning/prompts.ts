@@ -11,6 +11,7 @@ import {
 import {
   DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM,
   DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM,
+  DEPTH4_THESIS_DEPTH_V2_CONTRACT_FOR_LLM,
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
@@ -211,6 +212,12 @@ MORE RULES
 ${DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM}
 
 ${DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM}
+
+CANONICAL ALIGNMENT — thesis_depth_book (four depths)
+- When updating or authoring catalog thesis bodies, prefer the structured four-depth contract below so macro reasoning,
+  mispricing, and trade expression can share one schema (0–24h, 1–7d, 7–30d, 30–90d+). Event reasoning_chain levels
+  should remain consistent with these windows where possible.
+${DEPTH4_THESIS_DEPTH_V2_CONTRACT_FOR_LLM}
 
 JSON CONTRACT
 
