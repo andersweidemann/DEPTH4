@@ -26,6 +26,7 @@ import {
 } from "@/lib/macro-reasoning/schema";
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
+import { persistEventReasoningToThesisState } from "@/lib/macro-reasoning/persist-event-reasoning-to-thesis-state";
 
 export const runtime = "nodejs";
 
@@ -481,6 +482,20 @@ async function runEventReasoning() {
 
   const ins0 = Array.isArray(insRows) ? insRows[0] : null;
   const insertId = ins0 && typeof (ins0 as { id?: unknown }).id === "string" ? (ins0 as { id: string }).id : null;
+
+  if (insertId) {
+    const persist = await persistEventReasoningToThesisState(admin, {
+      reasoning: validated.data,
+      eventReasoningRowId: insertId,
+      anchorNewsEventId: anchorId,
+      clusterId: claimed.id,
+    });
+    if (!persist.ok) {
+      console.info("[event-reasoning] thesis_state_persist_skipped", { reason: persist.reason, clusterId: claimed.id, anchorId });
+    } else {
+      console.info("[event-reasoning] thesis_state_persisted", { thesisId: persist.thesisId, clusterId: claimed.id, anchorId });
+    }
+  }
 
   summary.processed = 1;
   summary.inserted = insertId ? 1 : 0;

@@ -1,4 +1,5 @@
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
+import { CURATED_FOCUS_CATALOG_ORDER } from "@/lib/thesis-engine-v2/curated-focus-theses";
 
 /**
  * User theses in these statuses are eligible for the same thesis_evidence_log / flow polling
@@ -17,7 +18,9 @@ export const EVIDENCE_LOG_POLL_ROW_LIMIT = 480;
 
 /**
  * Build thesis_id list for `thesis_evidence_log` / `flow_anomalies` polling.
- * Priority: **detail-page focus** (if any) → starred → open book → eligible user theses (session), capped.
+ * Priority: **detail-page focus** (if any) → starred → open book → curated focus catalog (macro map) →
+ * eligible user theses (session), capped. Catalog IDs are included so promoted macro / news evidence reaches
+ * `/theses` without requiring every row to be starred.
  */
 export function buildEvidencePollThesisIds(args: {
   starred: Iterable<string>;
@@ -42,6 +45,11 @@ export function buildEvidencePollThesisIds(args: {
   }
   for (const id of Array.from(args.starred)) push(id);
   for (const id of Array.from(args.openIds)) push(id);
+
+  for (const id of CURATED_FOCUS_CATALOG_ORDER) {
+    if (out.length >= maxTotal) break;
+    push(id);
+  }
 
   for (const t of args.userTheses) {
     if (out.length >= maxTotal) break;
