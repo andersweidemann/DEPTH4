@@ -301,12 +301,15 @@ async function runThesisNews(req: NextRequest) {
 
       const dedupeKey = `news:${ev.id}:${t.id}:r:${reasons.slice().sort().join("+")}:c:${confirmMatched.join("|")}:x:${contradictMatched.join("|")}:t:${tickerHits.join("|")}`;
 
+      // Always persist modeled `probability_after` on the log row when we have a suggestion so the
+      // client can merge scenario weights from evidence without requiring THESIS_NEWS_AUTO_APPLY=1.
+      // Updating `public.theses.scenario_probabilities` stays gated by `shouldApply` below.
       const insertRes = await admin.from("thesis_evidence_log").insert({
         thesis_id: t.id,
         event_type: "NEWS_DEVELOPMENT",
         description: ev.headline,
         probability_before: prior,
-        probability_after: shouldApply && suggestion ? suggestion.next : null,
+        probability_after: suggestion ? suggestion.next : null,
         metadata: {
           source: "news_events",
           event_id: ev.id,

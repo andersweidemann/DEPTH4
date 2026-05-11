@@ -72,4 +72,25 @@ describe("scenario-evidence-model", () => {
     expect(provisionalTripleIsNotTemplateTriple(p.provisional)).toBe(true);
     expect(p.useProvisional).toBe(true);
   });
+
+  it("infers supportive sentiment from thesis-news metadata when probability_after was null (legacy rows)", () => {
+    const row = {
+      id: "e-meta",
+      createdAt: Date.now(),
+      thesisId: "user-peace-gold",
+      eventType: "NEWS_DEVELOPMENT",
+      description: "Ceasefire headline",
+      probabilityBefore: { base: 40, bull: 35, bear: 25 },
+      probabilityAfter: null,
+      metadata: { reasons: ["confirm_tag"] },
+    };
+    const p = runScenarioEvidenceModelPipeline({
+      thesisId: "user-peace-gold",
+      slug: "my-peace-gold-short",
+      evidenceRows: [row],
+      timeWindowDays: 14,
+    });
+    expect(p.scoreResult.metadata.supportiveCount).toBeGreaterThanOrEqual(1);
+    expect(p.snapshot.news_signals[0]?.sentiment).toBe("supportive");
+  });
 });

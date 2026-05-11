@@ -26,6 +26,7 @@ import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-tit
 import {
   buildEvidencePollThesisIds,
   collectEligibleUserThesisPollIdSet,
+  EVIDENCE_LOG_POLL_ROW_LIMIT,
   isFreshEvidenceAlertEligible,
 } from "@/lib/thesis-engine-v2/thesis-evidence-poll-scope";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
@@ -270,6 +271,13 @@ type Ctx = {
   /** Recent thesis evidence rows from Supabase (news / server updates). */
   evidenceLog: ThesisEvidenceLogRow[];
 
+  /**
+   * Pin a thesis id to the **front** of evidence / flow poll id lists so its `thesis_evidence_log`
+   * rows are not starved when the global newest-N query is dominated by other theses.
+   * Call with `null` on unmount. Same path for system + user theses.
+   */
+  registerEvidenceLogPollPriorityThesisId: (thesisId: string | null) => void;
+
   /** Starred ∪ open-book thesis count — Insider Flow polls anomalies for these IDs only. */
   insiderFlowWatchedCount: number;
 
@@ -328,6 +336,15 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   const evidenceBootRef = useRef(false);
   const evidenceHighWaterRef = useRef(0);
+  /** Detail drawer / thesis page — polled first; avoids empty Evidence Timeline on busy accounts. */
+  const evidencePollPriorityThesisIdRef = useRef<string | null>(null);
+  const [evidencePollPriorityNonce, setEvidencePollPriorityNonce] = useState(0);
+
+  const registerEvidenceLogPollPriorityThesisId = useCallback((thesisId: string | null) => {
+    const next = thesisId?.trim() || null;
+    evidencePollPriorityThesisIdRef.current = next;
+    setEvidencePollPriorityNonce((n) => n + 1);
+  }, []);
 
   const starredKey = useMemo(() => Array.from(starred).sort().join(","), [starred]);
   const openIdsKey = useMemo(() => Array.from(openIds).sort().join(","), [openIds]);
@@ -482,10 +499,12 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     const tick = async () => {
       // Match server cron eligibility in spirit: any active-ish user thesis with DB row gets evidence;
       // we must poll its thesis_id here or only starred catalog theses would refresh in UI.
+      const priority = evidencePollPriorityThesisIdRef.current;
       const ids = buildEvidencePollThesisIds({
         starred: starredRef.current,
         openIds: openIdsRef.current,
         userTheses: loadUserTheses(),
+        priorityIds: priority ? [priority] : [],
       });
       if (!ids.length) {
         if (!cancelled) setEvidenceLog([]);
@@ -497,7 +516,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         .select("id,created_at,thesis_id,event_type,description,probability_before,probability_after,metadata")
         .in("thesis_id", ids)
         .order("created_at", { ascending: false })
-        .limit(80);
+        .limit(EVIDENCE_LOG_POLL_ROW_LIMIT);
 
       if (cancelled) return;
 
@@ -528,8 +547,8 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       for (const r of fresh) {
         // Scenario patches: any thesis we poll (catalog + eligible user). Do not gate on star —
         // user theses were incorrectly frozen because only starred ∪ book received merges.
-        // Many log rows carry the shared DB seed triple as metadata; merging it onto the client
-        // overwrites AI/authored scenario splits and trips isUncalibratedDisplayScenarioTriple → hidden %.
+        // Skip only the **shared Supabase seed** triple `{base:40,bull:35,bear:25}` — never treat a
+        // divergent cron suggestion as "seed" to ignore; that would keep user theses on templates forever.
         if (r.probabilityAfter && !dbScenarioTripleEqualsSeed(r.probabilityAfter)) {
           const bt = baseThesisForId(r.thesisId);
           if (bt) {
@@ -662,7 +681,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [pushAlert, pushToast, starredKey, openIdsKey, resolveThesisDisplayTitle]);
+  }, [pushAlert, pushToast, starredKey, openIdsKey, resolveThesisDisplayTitle, evidencePollPriorityNonce]);
 
   useEffect(() => {
     // Read flow_anomalies for followed theses only (starred ∪ open book) — matches server cron scan scope.
@@ -670,10 +689,12 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     const tick = async () => {
+      const priority = evidencePollPriorityThesisIdRef.current;
       const watchIds = buildEvidencePollThesisIds({
         starred: starredRef.current,
         openIds: openIdsRef.current,
         userTheses: loadUserTheses(),
+        priorityIds: priority ? [priority] : [],
       });
       if (!watchIds.length) {
         if (!cancelled) setInsiderFlowAnomalies([]);
@@ -729,7 +750,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [plan, starredKey, openIdsKey]);
+  }, [plan, starredKey, openIdsKey, evidencePollPriorityNonce]);
 
   useEffect(() => {
     const on = () => setOutcomeEpoch((e) => e + 1);
@@ -900,6 +921,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       applyInsiderFlowSuggestion,
       dismissInsiderFlowSuggestion,
       evidenceLog,
+      registerEvidenceLogPollPriorityThesisId,
       insiderFlowWatchedCount,
       catalogDbThesisTitles,
       catalogDbThesisMicroLabels,
@@ -934,6 +956,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       applyInsiderFlowSuggestion,
       dismissInsiderFlowSuggestion,
       evidenceLog,
+      registerEvidenceLogPollPriorityThesisId,
       insiderFlowWatchedCount,
       catalogDbThesisTitles,
       catalogDbThesisMicroLabels,

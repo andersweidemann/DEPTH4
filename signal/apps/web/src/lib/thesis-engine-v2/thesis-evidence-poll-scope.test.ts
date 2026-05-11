@@ -43,6 +43,18 @@ describe("buildEvidencePollThesisIds", () => {
     });
     expect(ids.length).toBe(EVIDENCE_POLL_MAX_THESIS_IDS);
   });
+
+  it("prepends priorityIds so the open thesis is always in the poll set", () => {
+    const ids = buildEvidencePollThesisIds({
+      starred: new Set(["star-1"]),
+      openIds: new Set(),
+      userTheses: [thesisStub("user-a", "active")],
+      priorityIds: ["user-focus"],
+    });
+    expect(ids[0]).toBe("user-focus");
+    expect(ids).toContain("star-1");
+    expect(ids).toContain("user-a");
+  });
 });
 
 describe("isFreshEvidenceAlertEligible", () => {

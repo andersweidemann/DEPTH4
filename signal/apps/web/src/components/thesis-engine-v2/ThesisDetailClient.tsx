@@ -200,6 +200,17 @@ export function ThesisDetailClient({
     );
   }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities]);
 
+  /** Ensure this thesis_id is polled first for `thesis_evidence_log` (system + user); avoids empty timeline under global row caps. */
+  useEffect(() => {
+    const reg = liveOpt?.registerEvidenceLogPollPriorityThesisId;
+    if (!reg) return;
+    const id = bundle?.thesis.id?.trim() || null;
+    reg(id);
+    return () => {
+      reg(null);
+    };
+  }, [liveOpt, bundle?.thesis.id]);
+
   /** Re-fetch user thesis row from Supabase so scenario_probabilities / body match cron + evidence updates. */
   useEffect(() => {
     let cancelled = false;

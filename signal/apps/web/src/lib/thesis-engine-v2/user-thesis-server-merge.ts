@@ -17,7 +17,9 @@ export type UserThesisServerCatalog = {
 
 /**
  * Merge Supabase-fed header fields onto a locally stored user thesis.
- * Same contract as catalog detail: skip overlay when DB still holds the shared seed triple.
+ * Same contract as catalog detail: skip overlay when DB still holds the shared seed triple
+ * `{base:40,bull:35,bear:25}` so we never **overwrite** a divergent client triple with that placeholder.
+ * Once `scenario_probabilities` diverges (cron / evidence), overlay applies and stays until the next server read.
  */
 export function mergeUserThesisWithServerCatalog(local: Thesis, catalog: UserThesisServerCatalog): Thesis {
   let t = local;

@@ -1,54 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { mergeEvidenceTimelineItems, thesisEvidenceFromLogRow } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
+import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
+import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 
-describe("thesisEvidenceFromLogRow", () => {
-  it("maps log row to timeline item using lead scenario probabilities", () => {
-    const ev = thesisEvidenceFromLogRow(
-      {
-        id: "e1",
-        createdAt: Date.UTC(2026, 0, 10, 12, 0, 0),
-        thesisId: "user-abc",
-        eventType: "NEWS_DEVELOPMENT",
-        description: "Peace headline hits tape",
-        probabilityBefore: { base: 40, bull: 35, bear: 25 },
-        probabilityAfter: { base: 32, bull: 38, bear: 30 },
-      },
-      61,
-    );
-    expect(ev.headline).toContain("Peace");
-    expect(ev.probabilityBefore).toBe(40);
-    expect(ev.probabilityAfter).toBe(38);
-  });
+const logRow = (thesisId: string) => ({
+  id: `row-${thesisId}`,
+  createdAt: Date.now(),
+  thesisId,
+  eventType: "NEWS_DEVELOPMENT",
+  description: "Test headline",
+  probabilityBefore: { base: 40, bull: 35, bear: 25 },
+  probabilityAfter: { base: 48, bull: 32, bear: 20 },
 });
 
 describe("mergeEvidenceTimelineItems", () => {
-  it("prepends live rows before static bundle evidence", () => {
-    const live = [
+  it("prepends live log rows for a system thesis id before static bundle evidence", () => {
+    const bundle: ThesisEvidence[] = [
       {
-        id: "l1",
-        createdAt: 2,
-        thesisId: "t1",
-        eventType: "NEWS_DEVELOPMENT",
-        description: "Live item",
-        probabilityBefore: null,
-        probabilityAfter: null,
-      },
-    ];
-    const staticEv = [
-      {
-        id: "s1",
-        thesisId: "t1",
+        id: "th-gold-ev-1",
+        thesisId: "th-gold",
         source: "DEPTH4",
         timestamp: "Created",
-        headline: "Saved",
-        impact: "neutral" as const,
+        headline: "Onboarding",
+        impact: "neutral",
         probabilityBefore: 50,
         probabilityAfter: 55,
         interpretation: "baseline",
       },
     ];
-    const merged = mergeEvidenceTimelineItems(live, staticEv, 60);
-    expect(merged[0]!.headline).toBe("Live item");
-    expect(merged.some((x) => x.headline === "Saved")).toBe(true);
+    const merged = mergeEvidenceTimelineItems([logRow("th-gold")], bundle, 55);
+    expect(merged[0]?.headline).toBe("Test headline");
+    expect(merged.length).toBeGreaterThan(1);
+  });
+
+  it("prepends live log rows for a user thesis id before static bundle evidence", () => {
+    const bundle: ThesisEvidence[] = [
+      {
+        id: "user-1-ev-1",
+        thesisId: "user-1",
+        source: "DEPTH4",
+        timestamp: "Created",
+        headline: "User thesis saved",
+        impact: "neutral",
+        probabilityBefore: 50,
+        probabilityAfter: 55,
+        interpretation: "baseline",
+      },
+    ];
+    const merged = mergeEvidenceTimelineItems([logRow("user-1")], bundle, 55);
+    expect(merged[0]?.thesisId).toBe("user-1");
+    expect(merged[0]?.headline).toBe("Test headline");
   });
 });

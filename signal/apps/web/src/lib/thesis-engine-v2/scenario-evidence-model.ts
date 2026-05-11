@@ -137,6 +137,18 @@ function sentimentFromDeltas(before: { base: number; bull: number; bear: number 
   return "neutral";
 }
 
+/** When cron rows omit `probability_after` (legacy) or deltas are flat, use `thesis-news` metadata reasons. */
+function sentimentFromEvidenceMetadata(meta: Record<string, unknown> | undefined): NewsSignal["sentiment"] | null {
+  if (!meta || typeof meta !== "object") return null;
+  const reasons = meta.reasons;
+  if (!Array.isArray(reasons)) return null;
+  const tags = reasons.map((x) => String(x).toLowerCase());
+  if (tags.includes("confirm_tag")) return "supportive";
+  if (tags.includes("contradict_tag")) return "breaking";
+  if (tags.includes("ticker_hit")) return "mixed";
+  return null;
+}
+
 /**
  * Build a structured evidence snapshot for scoring.
  *
@@ -149,6 +161,9 @@ export function buildThesisScenarioEvidenceSnapshot(params: BuildThesisScenarioE
     let sentiment: NewsSignal["sentiment"] = "neutral";
     if (r.probabilityBefore && r.probabilityAfter) {
       sentiment = sentimentFromDeltas(r.probabilityBefore, r.probabilityAfter);
+    } else {
+      const fromMeta = sentimentFromEvidenceMetadata(r.metadata);
+      if (fromMeta) sentiment = fromMeta;
     }
     return {
       id: r.id,

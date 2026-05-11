@@ -12,14 +12,19 @@ const USER_THESIS_EVIDENCE_POLL_STATUSES = new Set<ThesisStatus>(["forming", "wa
 /** Max thesis_ids per evidence / flow poll (PostgREST URL limits + cost). */
 export const EVIDENCE_POLL_MAX_THESIS_IDS = 96;
 
+/** Rows fetched per poll — must be large enough that low-volume theses are not starved by busy catalog IDs. */
+export const EVIDENCE_LOG_POLL_ROW_LIMIT = 480;
+
 /**
  * Build thesis_id list for `thesis_evidence_log` / `flow_anomalies` polling.
- * Priority: starred → open book → eligible user theses (session), capped.
+ * Priority: **detail-page focus** (if any) → starred → open book → eligible user theses (session), capped.
  */
 export function buildEvidencePollThesisIds(args: {
   starred: Iterable<string>;
   openIds: Iterable<string>;
   userTheses: Thesis[];
+  /** e.g. thesis open in drawer/detail — always polled first so evidence timeline is not dropped under global row caps. */
+  priorityIds?: Iterable<string>;
   maxTotal?: number;
 }): string[] {
   const maxTotal = args.maxTotal ?? EVIDENCE_POLL_MAX_THESIS_IDS;
@@ -32,6 +37,9 @@ export function buildEvidencePollThesisIds(args: {
     out.push(s);
   };
 
+  if (args.priorityIds) {
+    for (const id of Array.from(args.priorityIds)) push(id);
+  }
   for (const id of Array.from(args.starred)) push(id);
   for (const id of Array.from(args.openIds)) push(id);
 
