@@ -15,7 +15,7 @@ const PUBLIC_PREFIXES = [
   "/risk-disclosure",
   "/disclaimer",
   "/auth/callback",
-  /** SSR logout handler — must stay public; route redirects to `/` (welcome), not `/login`. */
+  /** SSR logout handler — must stay public; route redirects to same-origin `/` (marketing home) unless overridden. */
   "/auth/sign-out",
 ];
 

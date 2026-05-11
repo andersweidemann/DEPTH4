@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Plain form POST to `/auth/sign-out` — works without JavaScript.
- * Server responds with **302 to the welcome page** (`/`), not `/login`, after clearing the session.
+ * Server responds with **302 to same-origin `/`** (marketing welcome), not `/login`, after clearing the session.
  */
 export function LogoutButton({
   className,
