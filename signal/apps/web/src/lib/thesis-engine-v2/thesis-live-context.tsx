@@ -943,7 +943,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   const dismissAlert = useCallback((id: string) => {
     alertAccountStateRef.current[id] = "dismissed";
-    void persistDepth4AlertStates([{ alert_key: id, state: "dismissed" }]);
+    void persistDepth4AlertStates([{ alert_key: id, state: "dismissed" }], { action: "dismiss" });
     setAlerts((cur) => cur.filter((x) => x.id !== id));
   }, []);
 
@@ -951,7 +951,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     setAlerts((cur) => {
       const unread = cur.filter((x) => !x.read);
       if (unread.length > 0) {
-        void persistDepth4AlertStates(unread.map((x) => ({ alert_key: x.id, state: "read" })));
+        void persistDepth4AlertStates(unread.map((x) => ({ alert_key: x.id, state: "read" })), { action: "markAllRead" });
         for (const x of unread) alertAccountStateRef.current[x.id] = "read";
       }
       return cur.map((x) => ({ ...x, read: true }));
@@ -962,7 +962,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     setAlerts((cur) => {
       const unread = cur.filter((x) => !x.read);
       if (unread.length > 0) {
-        void persistDepth4AlertStates(unread.map((x) => ({ alert_key: x.id, state: "read" })));
+        void persistDepth4AlertStates(unread.map((x) => ({ alert_key: x.id, state: "read" })), { action: "markReadOnOpen" });
         for (const x of unread) alertAccountStateRef.current[x.id] = "read";
       }
       return cur.map((x) => (x.read ? x : { ...x, read: true }));

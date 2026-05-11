@@ -10,7 +10,7 @@
  * | Book / positions | `public.depth4_user_book` + session cache | Yes | Yes | Yes | |
  * | Notify prefs + manual outcomes | `public.users.notification_preferences` JSON keys | Yes | Yes | Yes | |
  * | User-owned theses | `public.theses` (RLS owner) + session cache | Yes | Yes | Yes | |
- * | Thesis bell read/dismiss | `public.depth4_user_alert_state` | Yes | Yes | Yes | Stable ids `evidence:<log id>`, `manual-outcome:…`. |
+ * | Thesis bell read/dismiss | `public.depth4_user_alert_state` | Yes | Yes | Yes | Stable ids `evidence:<log id>`, `manual-outcome:…`. Failed PATCHes use a **small in-memory queue** (retry + flush on next persist / sign-in hydrate) — not browser storage. |
  * | Community follows | `sessionStorage` only | Tab | No | No | **Intentional:** lightweight demo UX; not account-backed. |
  * | V2 plan picker (`useV2Plan`) | `sessionStorage` only | Tab | No | No | **Intentional:** demo tier switcher until billing ties plan to account. |
  * | Feed lead traffic lights | `localStorage` | Yes | Same browser only | No | **Intentional per-device:** feed annotation toy; not security/account data. |
@@ -18,4 +18,4 @@
  * | Drawer open / scroll / hover | React memory | No | No | No | Ephemeral UI. |
  */
 
-export const DEPTH4_PERSONAL_STATE_INVENTORY_VERSION = 1;
+export const DEPTH4_PERSONAL_STATE_INVENTORY_VERSION = 2;

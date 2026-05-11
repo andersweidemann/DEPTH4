@@ -24,6 +24,7 @@ import type { ManualThesisOutcome } from "@/lib/thesis-engine-v2/thesis-outcomes
 import type { Position, Thesis } from "@/lib/thesis-engine-v2/types";
 import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
 import { schedulePersistBookPositionsDebounced } from "@/lib/thesis-engine-v2/depth4-book-positions-persist";
+import { flushPendingDepth4AlertStates } from "@/lib/thesis-engine-v2/depth4-alert-state-persist";
 import { parseDepth4AlertStateApiEntries, type Depth4AlertPersistedState } from "@/lib/thesis-engine-v2/depth4-alert-state-utils";
 
 type NotifyPref = "any" | "major" | "consequence" | "mute";
@@ -238,6 +239,9 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
 
   schedulePersistDepth4AccountPrefsDebounced();
   schedulePersistBookPositionsDebounced();
+
+  /** Best-effort: flush in-memory failed alert-state PATCH queue (no browser queue). */
+  await flushPendingDepth4AlertStates();
 
   return { starred: mergedStars, notifyPrefs: mergedNotify, alertState };
 }
