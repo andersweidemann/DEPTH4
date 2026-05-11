@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
+import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
+import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 
 export const runtime = "nodejs";
+
+/** User thesis detail must not be statically cached — cron updates scenario_probabilities + body in Supabase. */
+export const dynamic = "force-dynamic";
 
 const ALLOWED_STATUS = new Set<ThesisStatus>([
   "forming",
@@ -31,20 +35,14 @@ function isThesisRecord(x: unknown): x is Thesis {
   return true;
 }
 
-export async function PUT(req: NextRequest) {
+type AuthedClient = { sb: SupabaseClient; user: { id: string } };
+
+async function getAuthedUserThesesClient(req: NextRequest): Promise<AuthedClient | NextResponse> {
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   if (!url || !anon) return NextResponse.json({ ok: false, error: "supabase_env_missing" }, { status: 500 });
 
   const token = bearerToken(req);
-
-  /**
-   * RLS on `public.theses` requires `auth.uid()` on PostgREST requests. A plain anon client with only
-   * `global.headers.Authorization` does not always attach the JWT to the database REST layer the
-   * same way `@supabase/ssr` cookie sessions do — inserts then run as `anon` and fail WITH CHECK.
-   * Prefer the cookie-bound server client (same session as middleware); fall back to Bearer-bound
-   * client only when there is no cookie session but a valid access token is supplied.
-   */
   const cookieSb = await createCookieSupabaseClient();
   const { data: cookieAuth, error: cookieAuthErr } = await cookieSb.auth.getUser();
   let sb = cookieSb;
@@ -63,6 +61,63 @@ export async function PUT(req: NextRequest) {
   }
 
   if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  return { sb, user };
+}
+
+/** Latest DB slice for the signed-in owner — used to refresh user thesis UI after cron / evidence updates. */
+export async function GET(req: NextRequest) {
+  const auth = await getAuthedUserThesesClient(req);
+  if (auth instanceof NextResponse) return auth;
+  const { sb, user } = auth;
+
+  const slug = (req.nextUrl.searchParams.get("slug") || "").trim();
+  if (!slug || slug.length > 240) {
+    return NextResponse.json({ ok: false, error: "invalid_slug" }, { status: 400 });
+  }
+
+  const { data, error } = await sb
+    .from("theses")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin")
+    .eq("slug", slug)
+    .eq("owner_user_id", user.id)
+    .eq("thesis_origin", "user")
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+  if (!data) return NextResponse.json({ ok: true, thesis: null });
+
+  const row = data as {
+    id?: unknown;
+    slug?: unknown;
+    title?: unknown;
+    micro_label?: unknown;
+    body?: unknown;
+    scenario_probabilities?: unknown;
+    updated_at?: unknown;
+    status?: unknown;
+    thesis_origin?: unknown;
+  };
+
+  return NextResponse.json({
+    ok: true,
+    thesis: {
+      id: typeof row.id === "string" ? row.id : null,
+      slug: typeof row.slug === "string" ? row.slug : null,
+      title: typeof row.title === "string" ? row.title : null,
+      micro_label: typeof row.micro_label === "string" ? row.micro_label : null,
+      body: row.body !== undefined && row.body !== null ? row.body : null,
+      scenario_probabilities: parseScenarioProbabilities(row.scenario_probabilities),
+      updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
+      status: typeof row.status === "string" ? row.status : null,
+      thesis_origin: typeof row.thesis_origin === "string" ? row.thesis_origin : null,
+    },
+  });
+}
+
+export async function PUT(req: NextRequest) {
+  const auth = await getAuthedUserThesesClient(req);
+  if (auth instanceof NextResponse) return auth;
+  const { sb, user } = auth;
 
   const body = (await req.json().catch(() => null)) as { thesis?: unknown } | null;
   const thesis = body?.thesis;

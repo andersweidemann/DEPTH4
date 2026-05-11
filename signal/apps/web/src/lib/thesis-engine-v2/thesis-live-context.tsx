@@ -23,6 +23,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-outcomes-store";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { buildEvidencePollThesisIds } from "@/lib/thesis-engine-v2/thesis-evidence-poll-scope";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/types";
 import type { InsiderFlowPatternType, InsiderFlowStatus } from "@/lib/thesis-engine-v2/insider-flow/types";
@@ -472,14 +473,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     };
 
     const tick = async () => {
-      const ids = Array.from(
-        (() => {
-          const u = new Set<string>();
-          starredRef.current.forEach((id) => u.add(id));
-          openIdsRef.current.forEach((id) => u.add(id));
-          return u;
-        })(),
-      );
+      // Match server cron eligibility in spirit: any active-ish user thesis with DB row gets evidence;
+      // we must poll its thesis_id here or only starred catalog theses would refresh in UI.
+      const ids = buildEvidencePollThesisIds({
+        starred: starredRef.current,
+        openIds: openIdsRef.current,
+        userTheses: loadUserTheses(),
+      });
       if (!ids.length) {
         if (!cancelled) setEvidenceLog([]);
         return;
@@ -648,14 +648,11 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     const tick = async () => {
-      const watchIds = Array.from(
-        (() => {
-          const u = new Set<string>();
-          starredRef.current.forEach((id) => u.add(id));
-          openIdsRef.current.forEach((id) => u.add(id));
-          return u;
-        })(),
-      );
+      const watchIds = buildEvidencePollThesisIds({
+        starred: starredRef.current,
+        openIds: openIdsRef.current,
+        userTheses: loadUserTheses(),
+      });
       if (!watchIds.length) {
         if (!cancelled) setInsiderFlowAnomalies([]);
         return;

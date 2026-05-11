@@ -29,6 +29,7 @@ type DbThesis = {
   id: string;
   title: string;
   status: string;
+  thesis_origin?: string | null;
   insider_flow: {
     bullInstruments?: string[];
     bearInstruments?: string[];
@@ -207,10 +208,12 @@ async function runThesisNews(req: NextRequest) {
   const news = (newsRes.data ?? []) as DbNewsEvent[];
   const newsError = newsRes.error ? String(newsRes.error.message || newsRes.error) : null;
 
-  // Pull theses that are currently tracked (keep it simple: active-ish).
+  // Pull theses that are currently tracked (active-ish). No thesis_origin filter:
+  // user-owned rows (`thesis_origin=user`) are included the same as catalog/system rows
+  // when they have insider_flow monitoring + eligible status.
   const thesesRes = await admin
     .from("theses")
-    .select("id,title,status,insider_flow,scenario_probabilities")
+    .select("id,title,status,thesis_origin,insider_flow,scenario_probabilities")
     .in("status", ["forming", "watching", "ready", "active"]);
 
   const theses = (thesesRes.data ?? []) as DbThesis[];
@@ -234,6 +237,9 @@ async function runThesisNews(req: NextRequest) {
   let evidenceDeduped = 0;
   let thesesUpdated = 0;
 
+  let skipped_no_insider_monitor = 0;
+  const skipSampleThesisIds: string[] = [];
+
   const matches: Array<{
     thesis_id: string;
     event_id: string;
@@ -255,7 +261,15 @@ async function runThesisNews(req: NextRequest) {
         .filter(Boolean),
     );
     const hasAnyConfig = confirmTags.length > 0 || contradictTags.length > 0 || instrumentSyms.size > 0;
-    if (!hasAnyConfig) continue;
+    if (!hasAnyConfig) {
+      skipped_no_insider_monitor += 1;
+      if (skipSampleThesisIds.length < 8) {
+        skipSampleThesisIds.push(
+          `${t.id}:${(t.thesis_origin || "unknown").trim() || "unknown"}:${(t.status || "").trim() || "unknown"}`,
+        );
+      }
+      continue;
+    }
 
     const prior = normalizeProb(t.scenario_probabilities ?? null);
 
@@ -336,6 +350,22 @@ async function runThesisNews(req: NextRequest) {
     }
   }
 
+  console.info(
+    "[thesis-news]",
+    JSON.stringify({
+      task: "thesis_news_refresh",
+      thesis_rows_status_eligible: theses.length,
+      skipped_no_insider_flow_monitor_config: skipped_no_insider_monitor,
+      skip_sample_thesis_ids: skipSampleThesisIds,
+      news_count: news.length,
+      evidence_inserted: evidenceInserted,
+      evidence_deduped: evidenceDeduped,
+      theses_scenario_rows_updated: thesesUpdated,
+      auto_apply: autoApply,
+      apply_threshold: applyThreshold,
+    }),
+  );
+
   return NextResponse.json({
     ok: true,
     since_iso: sinceIso,
@@ -349,6 +379,11 @@ async function runThesisNews(req: NextRequest) {
     theses_updated: thesesUpdated,
     matches: matches.slice(0, 100),
     errors: { news: newsError, theses: thesesError },
+    refresh_scope: {
+      thesis_rows_status_eligible: theses.length,
+      skipped_no_insider_flow_monitor_config: skipped_no_insider_monitor,
+      skip_sample_thesis_ids: skipSampleThesisIds,
+    },
   });
 }
 

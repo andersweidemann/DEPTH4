@@ -21,7 +21,9 @@ import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
-import { bundleForUserThesis, getUserThesisBySlug } from "@/lib/thesis-engine-v2/user-theses";
+import { bundleForUserThesis, getUserThesisBySlug, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
 import {
   DEPTH4_POSITIONS_CHANGED,
@@ -30,7 +32,7 @@ import {
   upsertPosition,
 } from "@/lib/thesis-engine-v2/positions-store";
 import { cn } from "@/lib/utils";
-import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
+import type { ThesisDetailBundle, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
@@ -105,9 +107,26 @@ function initialBundleForSlug(
       scenarioProbabilities: catalogScenarioProbabilities ?? null,
     });
   const ut = getUserThesisBySlug(slug);
-  if (ut) return bundleForUserThesis(ut);
+  if (ut) {
+    const merged = mergeUserThesisWithServerCatalog(ut, {
+      title: catalogDisplayTitle ?? null,
+      microLabel: catalogMicroLabel ?? null,
+      body: catalogBody ?? null,
+      scenarioProbabilities: catalogScenarioProbabilities ?? null,
+    });
+    return bundleForUserThesis(merged);
+  }
   return null;
 }
+
+const USER_THESIS_DB_SYNC_STATUSES = new Set<ThesisStatus>([
+  "forming",
+  "watching",
+  "ready",
+  "active",
+  "resolved",
+  "invalidated",
+]);
 
 function notifyLabel(p: "any" | "major" | "consequence" | "mute") {
   switch (p) {
@@ -178,6 +197,70 @@ export function ThesisDetailClient({
       ),
     );
   }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities]);
+
+  /** Re-fetch user thesis row from Supabase so scenario_probabilities / body match cron + evidence updates. */
+  useEffect(() => {
+    let cancelled = false;
+    const poll = async () => {
+      const ut = getUserThesisBySlug(slug);
+      if (!ut || ut.origin !== "user") return;
+      const sb = createBrowserSupabaseClient();
+      const { data: sess } = await sb.auth.getSession();
+      const tok = sess.session?.access_token;
+      if (!tok) return;
+      const r = await fetch(`/api/user/theses?slug=${encodeURIComponent(slug)}`, {
+        credentials: "include",
+        headers: { authorization: `Bearer ${tok}` },
+      });
+      if (!r.ok) return;
+      const j = (await r.json().catch(() => null)) as {
+        ok?: boolean;
+        thesis?: {
+          slug?: string | null;
+          title?: string | null;
+          micro_label?: string | null;
+          body?: unknown;
+          scenario_probabilities?: CatalogThesisScenarioProbabilities | null;
+          updated_at?: string | null;
+          status?: string | null;
+        } | null;
+      } | null;
+      if (cancelled || !j?.ok || !j.thesis?.slug) return;
+      const row = j.thesis;
+      setBundle((prev) => {
+        if (!prev || prev.thesis.origin !== "user" || prev.thesis.slug !== row.slug) return prev;
+        let mergedThesis = mergeUserThesisWithServerCatalog(prev.thesis, {
+          title: row.title ?? null,
+          microLabel: row.micro_label ?? null,
+          body: row.body ?? null,
+          scenarioProbabilities: row.scenario_probabilities ?? null,
+        });
+        if (row.updated_at) {
+          mergedThesis = {
+            ...mergedThesis,
+            lastUpdated: `Synced · ${new Date(row.updated_at).toLocaleString([], {
+              month: "short",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}`,
+          };
+        }
+        if (row.status && USER_THESIS_DB_SYNC_STATUSES.has(row.status as ThesisStatus)) {
+          mergedThesis = { ...mergedThesis, status: row.status as ThesisStatus };
+        }
+        upsertUserThesis(mergedThesis);
+        const next = bundleForUserThesis(mergedThesis);
+        return { ...prev, thesis: next.thesis, scenarios: next.scenarios };
+      });
+    };
+    void poll();
+    const iv = window.setInterval(() => void poll(), 28_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(iv);
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (!bundle) return;

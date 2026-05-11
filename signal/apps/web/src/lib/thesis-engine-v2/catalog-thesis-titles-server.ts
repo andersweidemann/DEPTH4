@@ -62,7 +62,7 @@ export type CatalogThesisHeader = {
   scenarioProbabilities: CatalogThesisScenarioProbabilities | null;
 };
 
-function parseScenarioProbabilities(raw: unknown): CatalogThesisScenarioProbabilities | null {
+export function parseScenarioProbabilities(raw: unknown): CatalogThesisScenarioProbabilities | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
   const b = o.base;

@@ -3,6 +3,9 @@ import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailCl
 import { createClient } from "@/lib/supabase/server";
 import { fetchCatalogThesisHeaderBySlug } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 
+/** User + catalog rows read live `scenario_probabilities` / body from Supabase — do not cache the RSC shell. */
+export const dynamic = "force-dynamic";
+
 type Props = { params: { slug: string } };
 
 export function generateMetadata(): Metadata {
