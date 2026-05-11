@@ -151,7 +151,7 @@ export function MacroReasoningDetail({
         {reasoning.probability_update || probLine ? (
           <div className="rounded-lg border border-white/[0.06] bg-zinc-900/25 px-4 py-4 md:px-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Probability update</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Thesis conviction update</p>
               {probLine ? <span className="tabular-nums text-[12px] font-semibold text-zinc-200">{probLine}</span> : null}
             </div>
             {reasoning.probability_update ? (

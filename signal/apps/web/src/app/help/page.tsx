@@ -17,6 +17,11 @@ const SECTIONS: Section[] = [
   { id: "what-depth4-does", nav: "What DEPTH4 does", title: "What DEPTH4 does" },
   { id: "how-to-use-depth4", nav: "How to use DEPTH4", title: "How to use DEPTH4" },
   { id: "read-a-thesis", nav: "How to read a thesis", title: "How to read a thesis" },
+  {
+    id: "thesis-conviction-scenarios",
+    nav: "Thesis conviction",
+    title: "Thesis conviction and scenario probabilities",
+  },
   { id: "insider-flow-detector", nav: "Insider Flow Detector", title: "Insider Flow Detector" },
   { id: "use-profitably", nav: "Use DEPTH4 profitably", title: "How to use DEPTH4 profitably" },
   { id: "example-gold", nav: "Example: Gold & peace", title: "Example: the gold and peace thesis" },
@@ -142,7 +147,7 @@ export default function HelpPage() {
               <ul className="space-y-2">
                 <Bullet>The thesis name</Bullet>
                 <Bullet>The asset it affects</Bullet>
-                <Bullet>The current probability (confidence level)</Bullet>
+                <Bullet>Thesis conviction (chance the idea is broadly right) and resolution paths below it</Bullet>
                 <Bullet>Whether the setup is Ready (entry conditions valid or close)</Bullet>
                 <Bullet>What changed recently</Bullet>
                 <Bullet>The current trade idea</Bullet>
@@ -174,15 +179,16 @@ export default function HelpPage() {
               <p>Each thesis includes:</p>
               <ul className="space-y-2">
                 <Bullet>A thesis statement</Bullet>
-                <Bullet>A probability score</Bullet>
+                <Bullet>Thesis conviction and scenario probabilities</Bullet>
                 <Bullet>A list of relevant events</Bullet>
                 <Bullet>A current status</Bullet>
                 <Bullet>A trade plan</Bullet>
                 <Bullet>An invalidation condition</Bullet>
               </ul>
               <p>
-                The probability score changes as new information comes in. That does not mean DEPTH4 is predicting the future with
-                certainty. It means the system is tracking whether the evidence is getting stronger or weaker over time.
+                Thesis conviction and scenario paths update as new information comes in. That does not mean DEPTH4 is predicting
+                the future with certainty. It means the system is tracking whether the evidence is getting stronger or weaker over
+                time.
               </p>
 
               <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Thesis states</h3>
@@ -206,6 +212,36 @@ export default function HelpPage() {
                   <strong className="text-zinc-100">Invalidated</strong>: the thesis no longer holds
                 </Bullet>
               </ul>
+            </SectionBlock>
+
+            <SectionBlock id="thesis-conviction-scenarios" title="Thesis conviction and scenario probabilities">
+              <div className="space-y-6">
+                <div>
+                  <p className="font-semibold text-zinc-100">What is Thesis conviction?</p>
+                  <p className="mt-2">
+                    Thesis conviction is DEPTH4&apos;s estimate of the chance that a thesis is broadly right over its horizon. It is
+                    calculated as: Clean win + Messy win. In other words, it measures the probability that the thesis still works,
+                    even if the path is not smooth.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-100">What are Scenario probabilities?</p>
+                  <p className="mt-2">Scenario probabilities break that conviction into three possible resolution paths:</p>
+                  <ul className="mt-2 space-y-2">
+                    <Bullet>Clean win: the thesis pays roughly as intended</Bullet>
+                    <Bullet>Messy win: the thesis is directionally right, but the payoff is slower, noisier, or less linear</Bullet>
+                    <Bullet>Thesis broken: the thesis is invalidated</Bullet>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-semibold text-zinc-100">How should I use them?</p>
+                  <p className="mt-2">
+                    Use Thesis conviction to decide whether the idea is strong enough to run at all. Use the Scenario probabilities
+                    to decide how to run it: more Clean win means a cleaner path; more Messy win means more patience and tighter risk
+                    discipline; more Broken means greater invalidation risk.
+                  </p>
+                </div>
+              </div>
             </SectionBlock>
 
             <SectionBlock id="insider-flow-detector" title="Insider Flow Detector">
@@ -287,7 +323,7 @@ export default function HelpPage() {
                 <div>
                   <p className="font-semibold text-zinc-100">2) Wait for the thesis, not just the news.</p>
                   <p className="text-zinc-300">
-                    A dramatic headline does not always mean the trade is ready. Look for improving probability, a clear trigger,
+                    A dramatic headline does not always mean the trade is ready. Look for improving thesis conviction, a clear trigger,
                     and a trade setup that makes sense.
                   </p>
                 </div>
@@ -332,7 +368,7 @@ export default function HelpPage() {
               <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">How the thesis works in practice</h3>
               <ol className="list-decimal space-y-2 pl-5 text-zinc-300">
                 <li>DEPTH4 detects a pattern of improving diplomacy.</li>
-                <li>The thesis probability rises.</li>
+                <li>Thesis conviction rises.</li>
                 <li>A trigger is crossed, such as a confirmed meeting.</li>
                 <li>The system marks the thesis as Ready.</li>
                 <li>You wait for the price setup, not just the news.</li>
@@ -408,7 +444,7 @@ export default function HelpPage() {
               <p>The advisory feed is different from the raw news feed.</p>
               <p>
                 It is a filtered stream of updates that matter to your live theses or open positions. Instead of showing every
-                headline, it tells you what changed, whether it helps or hurts the thesis, how probability moved, and what the current stance is.
+                headline, it tells you what changed, whether it helps or hurts the thesis, how thesis conviction moved, and what the current stance is.
               </p>
 
               <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Examples</h3>

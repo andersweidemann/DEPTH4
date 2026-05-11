@@ -11,11 +11,11 @@ export type PersistEventReasoningToThesisStateParams = {
 
 /**
  * After `event_reasoning` insert: align thesis engine canonical state with the same headline
- * `probability_*_pct` values the feed shows (`CompactScanConfidenceProb`).
+ * `probability_*_pct` values the feed shows as **thesis conviction** (`CompactScanConfidenceProb`).
  *
  * Writes:
  * - `thesis_evidence_log` — `probability_before` / `probability_after` JSON triples (client bootstrap + timeline)
- * - `public.theses.scenario_probabilities` — headline-aligned triple (SSR + DB truth)
+ * - `public.theses.scenario_probabilities` — conviction-aligned triple (Clean + Messy = headline; Broken = remainder)
  */
 export async function persistEventReasoningToThesisState(
   admin: SupabaseClient,

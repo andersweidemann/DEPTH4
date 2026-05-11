@@ -28,7 +28,7 @@ function thesisAfterMacroPersist(slug: string, headlineAfterPct: number) {
 }
 
 describe("macro headline probability ↔ thesis board/detail merge", () => {
-  it("opec-unity-fracturing (USO): 55% headline lead matches PROB / scenario strip", () => {
+  it("opec-unity-fracturing (USO): 55% headline conviction matches PROB / scenario strip", () => {
     const t = thesisAfterMacroPersist("opec-unity-fracturing", 55);
     const fb = narrativeFallbackScenariosForThesis(t);
     const display = buildDisplayScenariosFromThesis(t, fb);
@@ -37,7 +37,7 @@ describe("macro headline probability ↔ thesis board/detail merge", () => {
     expect(displayScenarioTripleCleanMessyBroken(display)).not.toEqual([40, 35, 25]);
   });
 
-  it("ai-capex-squeeze-qqq-rotation (QQQ): 60% headline lead", () => {
+  it("ai-capex-squeeze-qqq-rotation (QQQ): 60% headline conviction", () => {
     const t = thesisAfterMacroPersist("ai-capex-squeeze-qqq-rotation", 60);
     expect(t.probability).toBe(60);
     expect(currentThesisProbabilityFromThesis(t)).toBe(60);

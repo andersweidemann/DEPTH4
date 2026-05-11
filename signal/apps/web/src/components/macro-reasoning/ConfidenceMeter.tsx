@@ -32,9 +32,9 @@ export function CompactScanConfidenceProb({
   const c = Math.round(Math.min(1, Math.max(0, reasoning.confidence)) * 100);
   const probPart =
     pb != null && pa != null && pb !== pa
-      ? `Thesis prob ${pb}% → ${pa}%`
+      ? `Thesis conviction ${pb}% → ${pa}%`
       : pa != null
-        ? `Thesis prob ${pa}%`
+        ? `Thesis conviction ${pa}%`
         : null;
   if (!probPart && !Number.isFinite(reasoning.confidence)) return null;
   return (

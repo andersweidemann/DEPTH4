@@ -84,8 +84,9 @@ export const macroEventReasoningSchema = z
      */
     thesis_trade_line: z.string().optional().default(""),
 
-    /** DETAIL PAGE: explicit probability update for the thesis this event tests. */
+    /** DETAIL PAGE: prior thesis conviction % (broadly right ≈ Clean + Messy) for the thesis this event tests. */
     probability_before_pct: pctIntSchema.optional().nullable().default(null),
+    /** DETAIL PAGE: updated thesis conviction % after this news (same semantics as before). */
     probability_after_pct: pctIntSchema.optional().nullable().default(null),
     probability_update: z.string().optional().default(""),
 

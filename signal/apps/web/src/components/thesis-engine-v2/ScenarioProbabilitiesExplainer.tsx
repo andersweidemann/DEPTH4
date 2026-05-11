@@ -1,28 +1,16 @@
 "use client";
 
 /**
- * "Why these probabilities" popover
- *
- * Clean, institutional explanation for how DEPTH4 sets odds:
- *
- *   Title:
- *     "How these probabilities are set"
- *
- *   Body:
- *     "DEPTH4 ingests live macro, news, and market flow, then
- *      updates these odds as the evidence shifts. These are
- *      DEPTH4’s estimates, not investment advice."
- *
- * Shown whenever Scenario View displays authoritative percentages
- * (non-template triple), including **provisional** evidence-model outputs
- * behind `liveScenarioProbabilitiesForThesesEnabled()` / `NEXT_PUBLIC_DEPTH4_LIVE_SCENARIO_PROBS`
- * and **insider** overrides.
- * Copy stays accurate: DEPTH4 ingests macro, news, and flow and revises
- * estimates as evidence shifts — not investment advice.
+ * Helper popover for Scenario View when authoritative percentages are shown.
+ * Explains Thesis conviction vs resolution-path (Clean / Messy / Broken) semantics.
  */
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  SCENARIO_PROBABILITIES_POPOVER_DISCLAIMER,
+  SCENARIO_PROBABILITIES_POPOVER_TITLE,
+} from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 
 export function ScenarioProbabilitiesExplainer() {
   const [open, setOpen] = useState(false);
@@ -61,23 +49,29 @@ export function ScenarioProbabilitiesExplainer() {
         aria-controls={panelId}
         onClick={toggle}
       >
-        Why these probabilities
+        How to read these
       </button>
       {open ? (
         <div
           id={panelId}
           role="dialog"
-          aria-label="How these probabilities are set"
+          aria-label={SCENARIO_PROBABILITIES_POPOVER_TITLE}
           className={cn(
-            "absolute right-0 top-[calc(100%+6px)] z-[80] w-[min(20rem,calc(100vw-2rem))]",
+            "absolute right-0 top-[calc(100%+6px)] z-[80] w-[min(22rem,calc(100vw-2rem))]",
             "border border-white/[0.08] bg-[#111110] p-3 shadow-lg ring-1 ring-white/[0.04]",
           )}
         >
-          <p className="text-[11px] font-semibold text-zinc-100">How these probabilities are set</p>
+          <p className="text-[11px] font-semibold text-zinc-100">{SCENARIO_PROBABILITIES_POPOVER_TITLE}</p>
           <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
-            DEPTH4 ingests live macro, news, and market flow, then updates these odds as the evidence shifts. These are
-            DEPTH4&apos;s estimates, not investment advice.
+            Thesis conviction is the chance this idea is broadly right. Scenario probabilities show how it is most likely to
+            resolve:
           </p>
+          <ul className="mt-2 list-disc space-y-1.5 pl-4 text-[11px] leading-relaxed text-zinc-400 marker:text-zinc-600">
+            <li>Clean win: pays roughly as planned</li>
+            <li>Messy win: direction right, but the path is slower or choppier</li>
+            <li>Thesis broken: the thesis is invalidated and should be retired</li>
+          </ul>
+          <p className="mt-3 text-[10px] leading-relaxed text-zinc-500">{SCENARIO_PROBABILITIES_POPOVER_DISCLAIMER}</p>
         </div>
       ) : null}
     </div>

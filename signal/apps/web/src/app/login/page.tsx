@@ -145,7 +145,7 @@ function LoginPageInner() {
           </div>
           <h1 className="mt-6 text-3xl font-semibold tracking-tight text-zinc-50">Log in</h1>
           <p className="mt-3 max-w-md text-[13px] leading-relaxed text-zinc-300">
-            Access your macro theses, live probability updates, and trade review.
+            Access your macro theses, live thesis conviction updates, and trade review.
           </p>
         </div>
 

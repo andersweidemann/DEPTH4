@@ -535,7 +535,7 @@ export function ThesisDetailClient({
             </div>
             {!hasOpen && entrySetupValid && !bookSnap.latest ? (
               <span className="text-[11px] text-zinc-500">
-                Probability crossed threshold{thesis.entryZone ? ` · entry zone ${thesis.entryZone}` : ""}.
+                Thesis conviction crossed threshold{thesis.entryZone ? ` · entry zone ${thesis.entryZone}` : ""}.
               </span>
             ) : null}
           </div>
@@ -605,7 +605,7 @@ export function ThesisDetailClient({
                       )}
                       disabled={disabled}
                       onClick={() => setAlertsMenuOpen((v) => !v)}
-                      title={disabled ? "Star this thesis to receive probability alerts." : "Alert sensitivity"}
+                      title={disabled ? "Star this thesis to receive conviction and scenario alerts." : "Alert sensitivity"}
                     >
                       Alerts · {label} ▾
                     </button>
@@ -725,7 +725,7 @@ export function ThesisDetailClient({
             </div>
           )}
           <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">
-            <span className="text-zinc-600">Probability rationale · </span>
+            <span className="text-zinc-600">Conviction rationale · </span>
             {thesis.probabilityRationale}
           </p>
         </section>

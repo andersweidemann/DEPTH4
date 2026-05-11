@@ -2,6 +2,7 @@ import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenario
 import type { ThesisScenarioLike } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { ScenarioProbabilitiesExplainer } from "@/components/thesis-engine-v2/ScenarioProbabilitiesExplainer";
 import { cn } from "@/lib/utils";
+import { SCENARIO_PATHS_DEFINITION, SCENARIO_SECTION_SUBTITLE } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 
 /**
  * ScenarioPanel
@@ -20,8 +21,8 @@ import { cn } from "@/lib/utils";
  *   an insider scenario suggestion), we consider the odds
  *   authoritative enough to display:
  *     - show numeric percentages and bars
- *     - show a "Why these probabilities" affordance that explains
- *       at a high level how DEPTH4 sets and updates the odds.
+ *     - show a "How to read these" affordance that explains
+ *       Thesis conviction vs resolution paths (Clean / Messy / Broken).
  *
  * The goal: avoid fake precision from seed templates, and only
  * surface numbers once they reflect thesis-specific, live evidence.
@@ -50,10 +51,9 @@ export function ScenarioPanel({
     <section data-testid="scenario-view-section">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Scenario view</h2>
-          <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
-            Three ways this thesis can resolve — not three alternate trades.
-          </p>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Resolution paths</h2>
+          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-600">{SCENARIO_SECTION_SUBTITLE}</p>
+          <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">{SCENARIO_PATHS_DEFINITION}</p>
           {!showPercentages ? (
             <p
               className="mt-2 text-[11px] leading-relaxed text-zinc-500"

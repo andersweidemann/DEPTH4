@@ -96,7 +96,7 @@ export function ThesisTableRow({
               <div className="flex-1 h-[1px] bg-white/10">
                 <div className="h-full bg-amber-400/90" style={{ width: `${Math.max(0, Math.min(100, thesis.probability))}%` }} />
               </div>
-              <Tooltip label="Likelihood estimate from current scenario weights (updates as evidence arrives)">
+              <Tooltip label="Thesis conviction (Clean win + Messy win). Updates as evidence shifts the scenario split.">
                 <span className="text-[12px] font-semibold tabular-nums text-zinc-300">{thesis.probability}%</span>
               </Tooltip>
             </div>

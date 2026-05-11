@@ -9,12 +9,13 @@ export function MispricingTooltipContent({ m }: { m: ThesisMispricing }) {
     <div className="space-y-1">
       <div className="text-[11px] font-semibold text-zinc-100">Mispricing Score</div>
       <div className="text-zinc-300">
-        How much market pricing differs from thesis probability.
+        How much market pricing differs from thesis conviction (Clean + Messy win).
         <br />
         Higher score = bigger opportunity if thesis is correct.
       </div>
       <div className="pt-1 text-zinc-300">
-        <span className="text-zinc-500">This thesis:</span> <span className="tabular-nums">{m.thesisProbability}%</span> likely
+        <span className="text-zinc-500">This thesis (conviction):</span>{" "}
+        <span className="tabular-nums">{m.thesisProbability}%</span> likely
       </div>
       <div className="text-zinc-300">
         <span className="text-zinc-500">Market pricing:</span> <span className="tabular-nums">~{m.marketImplied}%</span>

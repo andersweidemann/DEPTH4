@@ -21,16 +21,16 @@ import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import {
   defaultScenarioOverridesFromThesis,
-  leadScenarioProbabilityFromDbTriple,
+  thesisConvictionPctFromDbTriple,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 type AssetClass = "all" | "equity" | "rates" | "fx" | "commodities" | "crypto";
 type SortKey = "recent" | "probability" | "biggest_move";
 
-/** Headline % implied by shipped defaults only (ignores live overrides) — used when a log row has no `probability_before`. */
-function impliedDefaultHeadlineLead(thesis: Thesis): number {
+/** Thesis conviction % implied by shipped defaults only (ignores live overrides) — used when a log row has no `probability_before`. */
+function impliedDefaultThesisConviction(thesis: Thesis): number {
   const o = defaultScenarioOverridesFromThesis(thesis);
-  return leadScenarioProbabilityFromDbTriple({
+  return thesisConvictionPctFromDbTriple({
     base: o.base.probability,
     bull: o.bull.probability,
     bear: o.bear.probability,
@@ -117,17 +117,17 @@ export function ThesesDashboardClient({
         m.set(t.slug, 0);
         continue;
       }
-      const afterLead = leadScenarioProbabilityFromDbTriple(latest.probabilityAfter);
-      let beforeLead: number;
+      const afterConviction = thesisConvictionPctFromDbTriple(latest.probabilityAfter);
+      let beforeConviction: number;
       if (latest.probabilityBefore) {
-        beforeLead = leadScenarioProbabilityFromDbTriple(latest.probabilityBefore);
+        beforeConviction = thesisConvictionPctFromDbTriple(latest.probabilityBefore);
       } else if (rows[1]?.probabilityAfter) {
         // Prior snapshot on the same thesis (common when `probability_before` was omitted).
-        beforeLead = leadScenarioProbabilityFromDbTriple(rows[1].probabilityAfter);
+        beforeConviction = thesisConvictionPctFromDbTriple(rows[1].probabilityAfter);
       } else {
-        beforeLead = impliedDefaultHeadlineLead(t);
+        beforeConviction = impliedDefaultThesisConviction(t);
       }
-      m.set(t.slug, Math.abs(afterLead - beforeLead));
+      m.set(t.slug, Math.abs(afterConviction - beforeConviction));
     }
     return m;
   }, [evidenceRowsByThesisId, liveSorted]);

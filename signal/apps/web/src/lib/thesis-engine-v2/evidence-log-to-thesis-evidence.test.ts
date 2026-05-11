@@ -27,13 +27,13 @@ describe("thesisEvidenceFromLogRow", () => {
       67,
     );
     expect(ev.logScenarioAfterStored).toBe(false);
-    expect(ev.probabilityBefore).toBe(40);
-    expect(ev.probabilityAfter).toBe(40);
+    expect(ev.probabilityBefore).toBe(75);
+    expect(ev.probabilityAfter).toBe(75);
     expect(ev.impact).toBe("neutral");
-    expect(ev.interpretation).toContain("no modeled scenario update");
+    expect(ev.interpretation).toContain("no modeled scenario after-state");
   });
 
-  it("uses lead path when both triples exist and surfaces zero delta copy", () => {
+  it("uses thesis conviction when both triples exist and surfaces zero delta when conviction is flat", () => {
     const ev = thesisEvidenceFromLogRow(
       {
         id: "r2",
@@ -47,8 +47,9 @@ describe("thesisEvidenceFromLogRow", () => {
       50,
     );
     expect(ev.logScenarioAfterStored).toBe(true);
-    expect(ev.probabilityBefore).toBe(40);
-    expect(ev.probabilityAfter).toBe(41);
+    expect(ev.probabilityBefore).toBe(75);
+    expect(ev.probabilityAfter).toBe(75);
+    expect(ev.interpretation).toContain("Thesis conviction unchanged");
   });
 });
 

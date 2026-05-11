@@ -144,7 +144,7 @@ export default function HomePage() {
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
-                  <span>Estimate the probability of the thesis playing out</span>
+                  <span>Estimate thesis conviction (chance the idea is broadly right) and how it may resolve</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
@@ -231,8 +231,8 @@ export default function HomePage() {
                     "The engine maps catalysts, first‑ and second‑order consequences, winners and losers, and what would make the thesis messy or broken.",
                   ],
                   [
-                    "3. Get probabilities and map the mispricing",
-                    "DEPTH4 assigns a probability path to your thesis and compares it to what the market appears to have priced in.",
+                    "3. Get conviction + scenarios and map the mispricing",
+                    "DEPTH4 tracks thesis conviction (Clean + Messy win) and resolution paths, then compares that view to what the market appears to have priced in.",
                   ],
                   [
                     "4. See the trade and monitor it",
@@ -266,7 +266,7 @@ export default function HomePage() {
                 <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
                   <p className="text-[12px] font-semibold text-zinc-100">Mispricing analysis</p>
                   <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
-                    Make the &quot;score&quot; concrete by comparing thesis probability to market‑implied probability and the gap.
+                    Make the &quot;score&quot; concrete by comparing thesis conviction to market‑implied probability and the gap.
                   </p>
                 </div>
                 <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">

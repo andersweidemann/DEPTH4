@@ -1,5 +1,5 @@
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
-import { leadScenarioProbabilityFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { thesisConvictionPctFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 export type EvidenceLogRowLike = {
   id: string;
@@ -22,14 +22,14 @@ function impactFromDelta(d: number): ThesisEvidence["impact"] {
 
 /**
  * Map a `thesis_evidence_log` row into the `ThesisEvidence` shape used by Evidence timeline + assistant.
- * Uses lead-scenario (messy/clean/broken) probabilities when JSON triples exist; otherwise falls back to headline %.
+ * Uses thesis conviction (Clean + Messy) when JSON triples exist; otherwise falls back to headline %.
  */
 export function thesisEvidenceFromLogRow(row: EvidenceLogRowLike, headlineProbabilityFallback: number): ThesisEvidence {
   const logScenarioAfterStored = !!(row.probabilityBefore && row.probabilityAfter);
   const before = row.probabilityBefore
-    ? leadScenarioProbabilityFromDbTriple(row.probabilityBefore)
+    ? thesisConvictionPctFromDbTriple(row.probabilityBefore)
     : headlineProbabilityFallback;
-  const after = row.probabilityAfter ? leadScenarioProbabilityFromDbTriple(row.probabilityAfter) : before;
+  const after = row.probabilityAfter ? thesisConvictionPctFromDbTriple(row.probabilityAfter) : before;
   const d = after - before;
   const ts = new Date(row.createdAt).toLocaleString([], {
     month: "short",
@@ -46,10 +46,10 @@ export function thesisEvidenceFromLogRow(row: EvidenceLogRowLike, headlineProbab
   if (row.probabilityBefore && row.probabilityAfter) {
     interpretation =
       d === 0
-        ? `Modeled lead path unchanged at ${before}% after this headline — scenario weights moved under the hood without changing the top path.`
-        : `Scenario mix shifted (lead path ${before}%→${after}%). Review resolution paths vs your invalidation.`;
+        ? `Thesis conviction unchanged at ${before}% after this headline — scenario paths reweighted (Clean / Messy / Broken mix shifted).`
+        : `Thesis conviction moved from ${before}% to ${after}% after this headline. Compare resolution paths against your invalidation.`;
   } else if (row.probabilityBefore && !row.probabilityAfter) {
-    interpretation = `Lead path snapshot ${before}% at log time — no modeled scenario update was stored for this headline (policy / threshold). Still logged as a matched development.`;
+    interpretation = `Thesis conviction snapshot ${before}% at log time — no modeled scenario after-state was stored for this headline (policy / threshold). Still logged as a matched development.`;
   } else {
     interpretation =
       "Logged development — check resolution paths and whether your trigger still matches the tape. Scenario triple was not attached to this row.";

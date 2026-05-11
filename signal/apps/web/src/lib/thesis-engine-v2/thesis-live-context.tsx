@@ -37,7 +37,7 @@ import { createClient as createSbClient } from "@/lib/supabase/client";
 import {
   dbScenarioTripleEqualsSeed,
   defaultScenarioOverridesFromThesis,
-  leadScenarioProbabilityFromDbTriple,
+  thesisConvictionPctFromDbTriple,
   thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { latestNonSeedScenarioTripleByThesisId } from "@/lib/thesis-engine-v2/thesis-evidence-scenario-bootstrap";
@@ -185,7 +185,7 @@ function scenarioProbPatchFromDb(baseThesis: Thesis, p: { base: number; bull: nu
   };
   return {
     scenarioOverrides,
-    probability: leadScenarioProbabilityFromDbTriple(p),
+    probability: thesisConvictionPctFromDbTriple(p),
   };
 }
 

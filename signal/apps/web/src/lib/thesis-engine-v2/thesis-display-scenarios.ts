@@ -143,17 +143,25 @@ export function buildDisplayScenariosFromThesis(thesis: Thesis, narrativeFallbac
 
 /**
  * Lead resolution-path % from a DB triple (`base` = messy win, `bull` = clean win, `bear` = thesis broken).
- * Matches `thesis_evidence_log` JSON and ticker logic so hero, scenarios, and evidence timeline stay aligned.
+ * Largest single bucket — useful for “which path is heaviest?” analytics, not the headline conviction number.
  */
 export function leadScenarioProbabilityFromDbTriple(p: DbScenarioTriple): number {
   const k = (["base", "bull", "bear"] as const).reduce((best, x) => (p[x] > p[best] ? x : best), "base");
   return Math.round(p[k]);
 }
 
-/** Single headline “live probability” for DEPTH4: lead scenario weight from merged overrides (or narrative defaults). */
+/**
+ * Thesis conviction % = chance the thesis is broadly right (Clean win + Messy win).
+ * DB keys: `base` = messy win, `bull` = clean win, `bear` = thesis broken (invalidation).
+ */
+export function thesisConvictionPctFromDbTriple(p: DbScenarioTriple): number {
+  return Math.max(0, Math.min(100, Math.round(p.base + p.bull)));
+}
+
+/** Headline thesis number for DEPTH4 UI: conviction (Clean + Messy) from merged overrides (or narrative defaults). */
 export function currentThesisProbabilityFromThesis(thesis: Thesis): number {
   const o = thesis.scenarioOverrides ?? defaultScenarioOverridesFromThesis(thesis);
-  return leadScenarioProbabilityFromDbTriple({
+  return thesisConvictionPctFromDbTriple({
     base: o.base.probability,
     bull: o.bull.probability,
     bear: o.bear.probability,

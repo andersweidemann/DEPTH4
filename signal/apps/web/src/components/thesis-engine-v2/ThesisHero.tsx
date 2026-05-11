@@ -7,6 +7,18 @@ import { Tooltip } from "./Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { ThesisHeadingStack } from "@/components/thesis-engine-v2/ThesisHeadingStack";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
+import {
+  buildDisplayScenariosFromThesis,
+  displayScenarioTripleCleanMessyBroken,
+  narrativeFallbackScenariosForThesis,
+} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import {
+  THESIS_CONVICTION_EXPLAINER_PREFERRED,
+  THESIS_CONVICTION_EXPLAINER_SHORT,
+  THESIS_CONVICTION_LABEL,
+  THESIS_CONVICTION_TOOLTIP,
+  thesisConvictionActionGuidance,
+} from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 
 const ADVISORY_LABEL: Record<AdvisoryAction, string> = {
   watch: "Watch — wait for the trigger you wrote.",
@@ -43,6 +55,10 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
 export function ThesisHero({ thesis }: { thesis: Thesis }) {
   const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
   const mispricing = getThesisMispricing(thesis);
+  const narrativeFallback = narrativeFallbackScenariosForThesis(thesis);
+  const displayScenarios = buildDisplayScenariosFromThesis(thesis, narrativeFallback);
+  const [cleanPct, messyPct, brokenPct] = displayScenarioTripleCleanMessyBroken(displayScenarios);
+  const actionGuidance = thesisConvictionActionGuidance(cleanPct, messyPct, brokenPct);
   return (
     <div className="border-b border-white/[0.06] pb-7">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -79,21 +95,24 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <div className="bg-zinc-900/40 px-3 py-2.5">
           <div className="flex items-baseline justify-between gap-2">
-            <Tooltip label="Likelihood estimate based on current evidence">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Live probability</p>
+            <Tooltip label={THESIS_CONVICTION_TOOLTIP}>
+              <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{THESIS_CONVICTION_LABEL}</p>
             </Tooltip>
             <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
               <span className="text-[10px] tabular-nums text-zinc-500">score {mispricing.score}/100</span>
             </Tooltip>
           </div>
           <div className="mt-2 flex items-center gap-3">
-            <Tooltip label="Likelihood estimate based on current evidence">
+            <Tooltip label={THESIS_CONVICTION_TOOLTIP}>
               <span className="text-base font-semibold tabular-nums text-amber-200/90">{thesis.probability}%</span>
             </Tooltip>
             <div className="min-w-0 flex-1">
               <ProbabilityBar value={thesis.probability} />
             </div>
           </div>
+          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500 sm:hidden">{THESIS_CONVICTION_EXPLAINER_SHORT}</p>
+          <p className="mt-2 hidden text-[11px] leading-relaxed text-zinc-500 sm:block">{THESIS_CONVICTION_EXPLAINER_PREFERRED}</p>
+          <p className="mt-2 text-[11px] leading-relaxed text-amber-200/75">{actionGuidance}</p>
         </div>
         <div className="bg-zinc-900/40 px-3 py-2.5">
           <Tooltip label="Expected timeframe for thesis to play out">

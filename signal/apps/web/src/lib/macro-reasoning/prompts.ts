@@ -56,11 +56,11 @@ LENGTH SPLIT (read this first)
   Then add timing in the same sentence or right after, e.g. "Window: next two weeks" or "Catalyst: May FOMC + payroll." Never "eventually" or multi-year-only stories without a near-term catalyst.
   If no clean thesis, write a cautious line, keep probability modest, still name tickers and a time window if possible.
 
-- probability_before_pct: number 0–100 or null. DETAIL PAGE ONLY. If you are updating a thesis probability, put the prior percent here.
-- probability_after_pct: number 0–100 or null. DETAIL PAGE ONLY. New percent after this news.
+- probability_before_pct: number 0–100 or null. DETAIL PAGE ONLY. Prior **thesis conviction** (chance the linked thesis is broadly right — conceptually Clean win + Messy win) before this news.
+- probability_after_pct: number 0–100 or null. DETAIL PAGE ONLY. New **thesis conviction** after this news (same definition: broadly right, not “largest scenario bucket”).
 - probability_update: string. DETAIL PAGE ONLY. One sentence, preferred form:
-  "This event moves the probability from [old%] to [new%] because [what this news proves]"
-  Alternatives OK: "Moves from…" or "New evidence moves…". If nothing moved: "Stays at [N%] — [why no meaningful new evidence yet]."
+  "This event moves thesis conviction from [old%] to [new%] because [what this news proves]"
+  Alternatives OK: "Moves from…" or "New evidence moves…". If nothing moved: "Conviction stays at [N%] — [why no meaningful new evidence yet]."
 
 - trade_implication: string. DETAIL PAGE ONLY. One or two short sentences. DEPTH4 retail voice: direct, confident, no hedging (pass DEPTH4 RETAIL VOICE TEST).
   Start with exactly ONE stance: "Bullish" OR "Bearish" OR "Neutral" — never "neutral to bullish", "cautiously bullish", or blended qualifiers.

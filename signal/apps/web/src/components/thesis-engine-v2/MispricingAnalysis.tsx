@@ -23,7 +23,7 @@ export function MispricingAnalysis({ m }: { m: ThesisMispricing }) {
       <div className="mt-3 grid gap-3">
         <div className="grid gap-2">
           <div className="flex items-baseline justify-between gap-2 text-[11px]">
-            <span className="text-zinc-500">Thesis probability</span>
+            <span className="text-zinc-500">Thesis conviction</span>
             <span className="tabular-nums font-semibold text-amber-200/90">{m.thesisProbability}%</span>
           </div>
           <div className="h-1 w-full bg-white/[0.08]">

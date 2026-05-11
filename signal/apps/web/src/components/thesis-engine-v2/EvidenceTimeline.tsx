@@ -47,7 +47,7 @@ export function EvidenceTimeline({ items }: { items: ThesisEvidence[] }) {
               <p className="mt-1 text-[11px] tabular-nums text-zinc-500">
                 {ev.logScenarioAfterStored === false ? (
                   <>
-                    Lead path snapshot {ev.probabilityBefore}% · no stored modeled after-state for this row
+                    Thesis conviction snapshot {ev.probabilityBefore}% · no stored modeled after-state for this row
                   </>
                 ) : ev.probabilityBefore === ev.probabilityAfter ? (
                   <>

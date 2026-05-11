@@ -28,13 +28,13 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
   void evidenceDelta(ev);
   const hasOpenBook = !!(book && book.tradeStatus === "open");
 
-  const statusLine = `Thesis status: ${t.status} · live probability (lead path) ${t.probability}%.`;
+  const statusLine = `Thesis status: ${t.status} · thesis conviction ${t.probability}%.`;
   const lastUpdateLine = ev
     ? ev.logScenarioAfterStored === false
-      ? `Latest evidence: “${ev.headline}” (${ev.source}) · lead snapshot ${ev.probabilityBefore}% — no modeled scenario after-state on this log row.`
+      ? `Latest evidence: “${ev.headline}” (${ev.source}) · thesis conviction snapshot ${ev.probabilityBefore}% — no modeled scenario after-state on this log row.`
       : ev.probabilityBefore === ev.probabilityAfter
-        ? `Latest evidence: “${ev.headline}” (${ev.source}) · modeled lead path ${ev.probabilityBefore}% (no change).`
-        : `Latest evidence: “${ev.headline}” (${ev.source}) · modeled lead path ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
+        ? `Latest evidence: “${ev.headline}” (${ev.source}) · thesis conviction ${ev.probabilityBefore}% (no change).`
+        : `Latest evidence: “${ev.headline}” (${ev.source}) · thesis conviction ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
     : "Latest evidence: none logged yet.";
 
   const mapping =

@@ -4,15 +4,15 @@ import {
   buildDisplayScenariosFromThesis,
   currentThesisProbabilityFromThesis,
   displayScenarioTripleCleanMessyBroken,
-  leadScenarioProbabilityFromDbTriple,
   narrativeFallbackScenariosForThesis,
   overlayDbScenarioProbabilities,
   scenarioOverridesFromRows,
+  thesisConvictionPctFromDbTriple,
   thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { mergeThesis } from "@/lib/thesis-engine-v2/thesis-merge";
 
-/** Proof bundle: default catalog rows share the same template triple → lead 40% after sync. */
+/** Proof bundle: default catalog rows share the same template triple → conviction 75% (40+35) after sync. */
 const SEED_CATALOG_SLUGS = [
   { slug: "war-peace-gold-short", label: "gold" },
   { slug: "fed-pivot-delayed-tlt-weakness", label: "TLT" },
@@ -22,7 +22,7 @@ const SEED_CATALOG_SLUGS = [
 ] as const;
 
 describe("thesis probability display (catalog + live merge)", () => {
-  it("A: initial catalog state — template triple, hero synced to lead 40", () => {
+  it("A: initial catalog state — template triple, hero synced to thesis conviction 75", () => {
     for (const { slug } of SEED_CATALOG_SLUGS) {
       const raw = getThesisBySlug(slug);
       expect(raw, slug).toBeTruthy();
@@ -30,8 +30,8 @@ describe("thesis probability display (catalog + live merge)", () => {
       const fallback = narrativeFallbackScenariosForThesis(t);
       const display = buildDisplayScenariosFromThesis(t, fallback);
       const [c, m, b] = displayScenarioTripleCleanMessyBroken(display);
-      expect(currentThesisProbabilityFromThesis(t)).toBe(40);
-      expect(t.probability).toBe(40);
+      expect(currentThesisProbabilityFromThesis(t)).toBe(75);
+      expect(t.probability).toBe(75);
       expect([c, m, b]).toEqual([40, 35, 25]);
     }
   });
@@ -46,9 +46,9 @@ describe("thesis probability display (catalog + live merge)", () => {
     const display = buildDisplayScenariosFromThesis(merged, rows);
     const [c, m, b] = displayScenarioTripleCleanMessyBroken(display);
     expect([c, m, b]).toEqual([52, 28, 20]);
-    expect(leadScenarioProbabilityFromDbTriple(liveDb)).toBe(52);
-    expect(merged.probability).toBe(52);
-    expect(currentThesisProbabilityFromThesis(merged)).toBe(52);
+    expect(thesisConvictionPctFromDbTriple(liveDb)).toBe(80);
+    expect(merged.probability).toBe(80);
+    expect(currentThesisProbabilityFromThesis(merged)).toBe(80);
   });
 
   it("C: refresh / re-merge — seed base does not overwrite when patch is re-applied from persisted live state", () => {
@@ -59,18 +59,18 @@ describe("thesis probability display (catalog + live merge)", () => {
     const patched = overlayDbScenarioProbabilities(seeded, liveDb);
     const once = thesisWithSyncedLiveProbability(mergeThesis(raw, { scenarioOverrides: patched }));
     const twice = thesisWithSyncedLiveProbability(mergeThesis(raw, { scenarioOverrides: patched }));
-    expect(once.probability).toBe(52);
-    expect(twice.probability).toBe(52);
+    expect(once.probability).toBe(80);
+    expect(twice.probability).toBe(80);
     expect(displayScenarioTripleCleanMessyBroken(buildDisplayScenariosFromThesis(twice, rows))).toEqual([52, 28, 20]);
   });
 
-  it("E: evidence headline alignment — hero matches lead of the same triple used for cards", () => {
+  it("E: evidence headline alignment — hero matches thesis conviction of the same triple used for cards", () => {
     const raw = getThesisBySlug("fed-pivot-delayed-tlt-weakness")!;
     const rows = narrativeFallbackScenariosForThesis(raw);
     const patched = overlayDbScenarioProbabilities(scenarioOverridesFromRows(rows), { base: 48, bull: 32, bear: 20 });
     const live = thesisWithSyncedLiveProbability(mergeThesis(raw, { scenarioOverrides: patched }));
-    const lead = leadScenarioProbabilityFromDbTriple({ base: 48, bull: 32, bear: 20 });
-    expect(live.probability).toBe(lead);
-    expect(currentThesisProbabilityFromThesis(live)).toBe(lead);
+    const conv = thesisConvictionPctFromDbTriple({ base: 48, bull: 32, bear: 20 });
+    expect(live.probability).toBe(conv);
+    expect(currentThesisProbabilityFromThesis(live)).toBe(conv);
   });
 });
