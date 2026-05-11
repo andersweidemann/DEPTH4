@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { averageTrueRange, computeLiveTradePlan, mapAssetToQuoteSymbol } from "./live-trade-plan";
+import { averageTrueRange, computeLiveTradePlan, mapAssetToQuoteSymbol, minRewardRiskForConviction } from "./live-trade-plan";
 import type { OhlcvBar } from "@/lib/market-data";
 
 function synthBars(spot: number, atrHint: number, n = 20): OhlcvBar[] {
@@ -79,5 +79,33 @@ describe("live-trade-plan", () => {
       quoteSymbol: "TEST",
     });
     expect(p.ready).toBe(false);
+  });
+
+  it("blocks entry geometry when conviction is below 50%", () => {
+    const bars = synthBars(200, 4, 22);
+    const { trade_plan: p } = computeLiveTradePlan({
+      bars,
+      direction: "short",
+      status: "ready",
+      quoteSymbol: "TEST",
+      convictionPct: 42,
+    });
+    expect(p.ready).toBe(false);
+    expect(p.conviction_blocked).toBe(true);
+  });
+
+  it("attaches R/R policy fields for high conviction", () => {
+    const bars = synthBars(200, 4, 22);
+    const { trade_plan: p } = computeLiveTradePlan({
+      bars,
+      direction: "short",
+      status: "ready",
+      quoteSymbol: "TEST",
+      convictionPct: 75,
+    });
+    expect(p.ready).toBe(true);
+    expect(minRewardRiskForConviction(75)).toBe(2);
+    expect(p.min_rr_for_conviction).toBe(2);
+    expect(p.rr_check_label).toBeTruthy();
   });
 });

@@ -100,11 +100,13 @@ export function ThesisTableRow({
                 <span className="text-[12px] font-semibold tabular-nums text-zinc-300">{thesis.probability}%</span>
               </Tooltip>
             </div>
-            <div className="mt-1 text-[10px] tabular-nums text-zinc-600">
-              <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
-                <span>score {mispricing.score}</span>
-              </Tooltip>
-            </div>
+            {Math.abs(mispricing.score - thesis.probability) >= 2 ? (
+              <div className="mt-1 text-[10px] tabular-nums text-zinc-600">
+                <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+                  <span>Mispricing {mispricing.score}/100</span>
+                </Tooltip>
+              </div>
+            ) : null}
           </div>
 
           <div className="hidden text-right font-mono text-[11px] tabular-nums text-zinc-600 sm:block">{thesis.lastUpdated}</div>

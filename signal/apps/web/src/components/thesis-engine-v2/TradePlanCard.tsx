@@ -44,6 +44,7 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
             asset: thesis.asset,
             direction: thesis.direction,
             status: thesis.status,
+            convictionPct: thesis.probability,
           }),
         });
         const j = (await res.json().catch(() => null)) as TradePlanApiOk | { ok?: false } | null;
@@ -63,18 +64,24 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [thesis.asset, thesis.direction, thesis.status]);
+  }, [thesis.asset, thesis.direction, thesis.status, thesis.probability]);
 
-  const showLive = plan != null && levelsComplete(plan);
-  const helperText = showLive ? HELPER_LIVE : HELPER_PENDING;
+  const blocked = plan?.conviction_blocked === true;
+  const showLive = plan != null && levelsComplete(plan) && !blocked;
+  const helperText = blocked
+    ? "Entry zone withheld while thesis conviction is below 50% — raise path conviction or wait for cleaner odds before sizing."
+    : showLive
+      ? HELPER_LIVE
+      : HELPER_PENDING;
 
-  const entryDisplay = showLive && plan ? formatEntryZoneLabel(plan) ?? PENDING_ENTRY : PENDING_ENTRY;
+  const entryDisplay =
+    showLive && plan ? (formatEntryZoneLabel(plan) ?? PENDING_ENTRY) : blocked ? "—" : PENDING_ENTRY;
   const stopDisplay =
-    showLive && plan && plan.stop != null ? formatTradePlanPrice(plan.stop) : PENDING_STOP;
+    showLive && plan && plan.stop != null ? formatTradePlanPrice(plan.stop) : blocked ? "—" : PENDING_STOP;
   const t1Display =
-    showLive && plan && plan.target1 != null ? formatTradePlanPrice(plan.target1) : PENDING_TGT;
+    showLive && plan && plan.target1 != null ? formatTradePlanPrice(plan.target1) : blocked ? "—" : PENDING_TGT;
   const t2Display =
-    showLive && plan && plan.target2 != null ? formatTradePlanPrice(plan.target2) : PENDING_TGT;
+    showLive && plan && plan.target2 != null ? formatTradePlanPrice(plan.target2) : blocked ? "—" : PENDING_TGT;
 
   return (
     <section className="rounded-none bg-zinc-900/25 p-4">
@@ -86,6 +93,13 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
       {showLive ? (
         <p className="mt-1 text-[10px] leading-relaxed text-zinc-600">
           Estimated from the latest daily close and recent volatility (ATR) — not a broker quote or guaranteed fill.
+        </p>
+      ) : null}
+      {plan?.rr_check_label ? (
+        <p
+          className={`mt-2 text-[11px] leading-relaxed ${plan.levels_need_adjustment ? "text-amber-200/85" : "text-zinc-500"}`}
+        >
+          {plan.rr_check_label}
         </p>
       ) : null}
       <dl className="mt-3 grid gap-3 sm:grid-cols-2">

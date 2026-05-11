@@ -26,6 +26,13 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
   const conviction = item.probability;
   const m: ThesisMispricing = {
     score: structural,
+    rawSum: structural,
+    components: [
+      { id: "structural", label: "Structural setup (book scores)", value: structural },
+      { id: "path_shape", label: "Resolution path shape", value: 0 },
+      { id: "conviction_alignment", label: "Conviction alignment vs book", value: 0 },
+      { id: "live_evidence", label: "Live evidence freshness", value: 0 },
+    ],
     thesisProbability: conviction,
     structuralSetupScore: structural,
     convictionVsSetupGap: conviction - structural,

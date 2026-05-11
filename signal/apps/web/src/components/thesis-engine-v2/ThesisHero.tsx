@@ -1,4 +1,4 @@
-import type { AdvisoryAction, Thesis } from "@/lib/thesis-engine-v2/types";
+import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { DirectionBadge } from "./DirectionBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
@@ -19,14 +19,7 @@ import {
   THESIS_CONVICTION_TOOLTIP,
   thesisConvictionActionGuidance,
 } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
-
-const ADVISORY_LABEL: Record<AdvisoryAction, string> = {
-  watch: "Watch — wait for the trigger you wrote.",
-  enter: "Enter — odds and trigger meet the advisory bar.",
-  hold: "Hold — thesis intact; manage risk.",
-  reduce: "Reduce — lock partial; elevated uncertainty.",
-  exit: "Exit — invalidation or thesis closed.",
-};
+import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 
 function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
@@ -53,12 +46,16 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
 }
 
 export function ThesisHero({ thesis }: { thesis: Thesis }) {
-  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
+  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 50;
   const mispricing = getThesisMispricing(thesis);
   const narrativeFallback = narrativeFallbackScenariosForThesis(thesis);
   const displayScenarios = buildDisplayScenariosFromThesis(thesis, narrativeFallback);
   const [cleanPct, messyPct, brokenPct] = displayScenarioTripleCleanMessyBroken(displayScenarios);
   const actionGuidance = thesisConvictionActionGuidance(cleanPct, messyPct, brokenPct);
+  const advisoryCopy = advisoryHeadlineFromResolutionPaths(cleanPct, messyPct, brokenPct, thesis.advisoryAction);
+  const showMispricingHeadline =
+    Number.isFinite(mispricing.score) && Math.abs(Math.round(mispricing.score) - Math.round(thesis.probability)) >= 2;
+
   return (
     <div className="border-b border-white/[0.06] pb-7">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -98,9 +95,17 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
             <Tooltip label={THESIS_CONVICTION_TOOLTIP}>
               <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">{THESIS_CONVICTION_LABEL}</p>
             </Tooltip>
-            <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
-              <span className="text-[10px] tabular-nums text-zinc-500">score {mispricing.score}/100</span>
-            </Tooltip>
+            {showMispricingHeadline ? (
+              <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+                <span className="text-[10px] tabular-nums text-zinc-500">
+                  Mispricing score <span className="font-medium text-zinc-400">{mispricing.score}</span>/100
+                </span>
+              </Tooltip>
+            ) : (
+              <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
+                <span className="text-[10px] text-zinc-600">Mispricing matches conviction — see breakdown</span>
+              </Tooltip>
+            )}
           </div>
           <div className="mt-2 flex items-center gap-3">
             <Tooltip label={THESIS_CONVICTION_TOOLTIP}>
@@ -122,7 +127,7 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
         </div>
         <div className="bg-zinc-900/40 px-3 py-2.5">
           <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Advisory</p>
-          <p className="mt-1 text-sm text-amber-200/90">{ADVISORY_LABEL[thesis.advisoryAction]}</p>
+          <p className="mt-1 text-sm text-amber-200/90">{advisoryCopy}</p>
         </div>
       </div>
       <p className="mt-4 text-[12px] leading-relaxed text-red-400/85">

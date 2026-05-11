@@ -18,6 +18,7 @@ describe("getThesisMispricing", () => {
     expect(m.thesisProbability).toBe(currentThesisProbabilityFromThesis(t));
     // Default template scenarios: clean 40 / messy 35 / broken 25 → conviction 75; residual nudge 75−69 rounds to 0.
     expect(m.score).toBe(69);
+    expect(m.rawSum).toBe(m.components.reduce((a, c) => a + c.value, 0));
     expect(m.convictionVsSetupGap).toBe(m.thesisProbability - 69);
   });
 

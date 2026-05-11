@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
+import {
+  assertZeroSumScenarioShift,
+  redistributeAfterBaseChange,
+  type DbScenarioTriple,
+} from "@/lib/thesis-engine-v2/scenario-triple-zero-sum";
 
 export const runtime = "nodejs";
 
@@ -87,25 +92,12 @@ function computeSuggestedUpdate(args: {
   if (!confirmHit && !contradictHit) return null;
 
   const bump = signalLevel >= 4 ? 12 : 7;
-  const next = { ...prior };
 
-  // Storage keys: base=messy win, bull=clean win, bear=thesis broken. Heuristic only nudges messy (base) up/down.
-  // confirmHit => slightly higher conviction messy path; contradictHit => more weight to tails (clean/broken).
-  if (confirmHit) {
-    next.base = clamp(prior.base + bump, 5, 90);
-    const take = next.base - prior.base;
-    next.bull = clamp(prior.bull - Math.round(take * 0.5), 5, 90);
-    next.bear = clamp(prior.bear - Math.round(take * 0.5), 5, 90);
-  } else {
-    // contradictHit
-    next.base = clamp(prior.base - bump, 5, 90);
-    const give = prior.base - next.base;
-    next.bull = clamp(prior.bull + Math.round(give * 0.5), 5, 90);
-    next.bear = clamp(prior.bear + Math.round(give * 0.5), 5, 90);
-  }
-
-  const sum = next.base + next.bull + next.bear;
-  if (sum !== 100) next.base = clamp(next.base + (100 - sum), 5, 90);
+  // Storage keys: base=messy win, bull=clean win, bear=thesis broken.
+  // Reallocate (100 − base) across bull/bear proportionally so per-leg deltas always sum to zero.
+  const targetBase = confirmHit ? clamp(prior.base + bump, 5, 90) : clamp(prior.base - bump, 5, 90);
+  const next = redistributeAfterBaseChange(prior as DbScenarioTriple, targetBase);
+  assertZeroSumScenarioShift(prior as DbScenarioTriple, next, "thesis-news.computeSuggestedUpdate");
   return { bump, next };
 }
 

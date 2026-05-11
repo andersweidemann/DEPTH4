@@ -11,6 +11,7 @@ import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { ThesisStarButton } from "./ThesisStarButton";
 import { Tooltip } from "./Tooltip";
+import { MispricingTooltipContent } from "./MispricingTooltipContent";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 
 export function ThesisCard({
@@ -30,7 +31,7 @@ export function ThesisCard({
   const live = useThesisLive();
   const tradeable = thesis.qualification === "tradeable";
   const isUser = thesis.origin === "user";
-  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
+  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 50;
   const selected = selectedSlug != null && selectedSlug === thesis.slug;
   const starred = live.isEffectivelyStarred(thesis.id);
   const starDisabled = !!live.starDisabledReason(thesis.id);
@@ -116,17 +117,19 @@ export function ThesisCard({
         <div className="min-w-0 flex-1">
           <ProbabilityBar value={thesis.probability} />
         </div>
-        <div className="flex items-center gap-1 text-[10px] tabular-nums text-zinc-500">
-          <span>score {mispricing.score}</span>
-          <Tooltip label="Signal strength score based on thesis confidence, recency, and evidence count" side="top">
-            <span
-              aria-label="Score info"
-              className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-sm text-[10px] font-semibold text-zinc-400 ring-1 ring-white/[0.08] hover:text-zinc-200"
-            >
-              ?
-            </span>
-          </Tooltip>
-        </div>
+        {Math.abs(mispricing.score - thesis.probability) >= 2 ? (
+          <div className="flex items-center gap-1 text-[10px] tabular-nums text-zinc-500">
+            <span>Mispricing {mispricing.score}/100</span>
+            <Tooltip label={<MispricingTooltipContent m={mispricing} />} side="top">
+              <span
+                aria-label="Mispricing score info"
+                className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-sm text-[10px] font-semibold text-zinc-400 ring-1 ring-white/[0.08] hover:text-zinc-200"
+              >
+                ?
+              </span>
+            </Tooltip>
+          </div>
+        ) : null}
       </div>
       <div className="mt-3 space-y-1.5 border-t border-white/[0.04] pt-3 text-[11px] leading-snug text-zinc-500">
         <p>

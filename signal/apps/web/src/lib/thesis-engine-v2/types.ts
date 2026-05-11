@@ -139,6 +139,18 @@ export type LiveTradePlan = {
   stop: number | null;
   target1: number | null;
   target2: number | null;
+  /** When true, conviction was below the minimum bar for publishing entry geometry. */
+  conviction_blocked?: boolean;
+  /** Reward:risk to target1 from entry-zone midpoint; null if not computable. */
+  rr_to_target1?: number | null;
+  /** Policy minimum R/R for the conviction bucket when `convictionPct` was supplied to the engine. */
+  min_rr_for_conviction?: number | null;
+  /** Meets `min_rr_for_conviction` when both are known. */
+  rr_check_ok?: boolean | null;
+  /** Human-readable R/R check line for Trade plan UI. */
+  rr_check_label?: string | null;
+  /** Raw levels do not meet minimum R/R for this conviction — user should adjust stops/targets. */
+  levels_need_adjustment?: boolean | null;
 };
 
 export type ThesisEvidence = {

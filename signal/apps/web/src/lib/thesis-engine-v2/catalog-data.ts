@@ -93,7 +93,7 @@ export const CATALOG_THESES: Thesis[] = [
     invalidation:
       "New kinetic strike or GLD closes through the weekly invalidation band you keep in Trade plan — stand down the short.",
     timeStop:
-      "If GLD keeps making highs on peaceful headlines for a full quarter, downgrade the thesis — the de-escalation trade is not working on schedule.",
+      "If GLD keeps making highs on peaceful headlines through 4–6 weeks without the calm-stack trigger materializing, downgrade the thesis — the de-escalation trade is not working on schedule.",
     horizon: "Days to weeks (first repricing window)",
     advisoryAction: "enter",
     lastUpdated: "23m ago",

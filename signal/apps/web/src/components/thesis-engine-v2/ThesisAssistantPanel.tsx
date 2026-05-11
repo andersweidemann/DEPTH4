@@ -31,10 +31,10 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
   const statusLine = `Thesis status: ${t.status} · thesis conviction ${t.probability}%.`;
   const lastUpdateLine = ev
     ? ev.logScenarioAfterStored === false
-      ? `Latest evidence: “${ev.headline}” (${ev.source}) · thesis conviction snapshot ${ev.probabilityBefore}% — no modeled scenario after-state on this log row.`
+      ? `Latest evidence: “${ev.headline}” (${ev.source}) — scenarios were not re-modeled on this log row; compare the headline to your trigger.`
       : ev.probabilityBefore === ev.probabilityAfter
-        ? `Latest evidence: “${ev.headline}” (${ev.source}) · thesis conviction ${ev.probabilityBefore}% (no change).`
-        : `Latest evidence: “${ev.headline}” (${ev.source}) · thesis conviction ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
+        ? `Latest evidence: “${ev.headline}” (${ev.source}) · conviction ${ev.probabilityBefore}% (no change).`
+        : `Latest evidence: “${ev.headline}” (${ev.source}) · conviction ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
     : "Latest evidence: none logged yet.";
 
   const mapping =

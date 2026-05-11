@@ -19,9 +19,20 @@ import {
  * (`thesis.scores.total`), then applies **small** scenario / conviction-residual / evidence nudges so conviction
  * can tilt the dial without mirroring it.
  */
+export type MispricingScoreComponent = {
+  id: "structural" | "path_shape" | "conviction_alignment" | "live_evidence";
+  label: string;
+  /** Integer contribution toward the headline score before clamping to 0–100. */
+  value: number;
+};
+
 export type ThesisMispricing = {
   /** 0–100: attractiveness of the setup now (see module docstring). */
   score: number;
+  /** Sum of `components` before clamping to 0–100. */
+  rawSum: number;
+  /** Explicit breakdown; `value`s sum to `rawSum` (then `score` = clamp). */
+  components: MispricingScoreComponent[];
   /** Same dial as hero: Clean win + Messy win. */
   thesisProbability: number;
   /**
@@ -111,10 +122,24 @@ export function getThesisMispricing(thesis: Thesis, options?: { liveEvidenceCoun
   const nConv = convictionResidualNudge(thesisProbability, structuralSetupScore);
   const nEv = userLiveEvidenceNudge(thesis.origin, liveN);
 
-  const score = clampInt(structuralSetupScore + nScenario + nConv + nEv, 0, 100);
+  const components: MispricingScoreComponent[] = [
+    { id: "structural", label: "Structural setup (book scores)", value: structuralSetupScore },
+    { id: "path_shape", label: "Resolution path shape", value: nScenario },
+    { id: "conviction_alignment", label: "Conviction alignment vs book", value: nConv },
+    { id: "live_evidence", label: "Live evidence freshness", value: nEv },
+  ];
+  const rawSum = components.reduce((a, c) => a + c.value, 0);
+  const score = clampInt(rawSum, 0, 100);
+
+  if (typeof process !== "undefined" && process.env.NODE_ENV !== "production") {
+    const chk = components.reduce((a, c) => a + c.value, 0);
+    if (chk !== rawSum) throw new Error("mispricing component sum drift");
+  }
 
   return {
     score,
+    rawSum,
+    components,
     thesisProbability,
     structuralSetupScore,
     convictionVsSetupGap,

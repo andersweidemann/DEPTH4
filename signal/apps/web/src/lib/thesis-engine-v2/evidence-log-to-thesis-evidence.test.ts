@@ -30,7 +30,41 @@ describe("thesisEvidenceFromLogRow", () => {
     expect(ev.probabilityBefore).toBe(75);
     expect(ev.probabilityAfter).toBe(75);
     expect(ev.impact).toBe("neutral");
-    expect(ev.interpretation).toContain("no modeled scenario after-state");
+    expect(ev.interpretation).toContain("were not re-modeled");
+  });
+
+  it("grades cliffhanger-style headlines as neutral even when conviction ticks up slightly", () => {
+    const ev = thesisEvidenceFromLogRow(
+      {
+        id: "r-await",
+        createdAt: Date.now(),
+        thesisId: "th-gold",
+        eventType: "NEWS_DEVELOPMENT",
+        description: "US awaits Iranian response after Hormuz clashes strain ceasefire",
+        probabilityBefore: { base: 40, bull: 35, bear: 25 },
+        probabilityAfter: { base: 40, bull: 37, bear: 23 },
+      },
+      50,
+    );
+    expect(ev.impact).toBe("neutral");
+  });
+
+  it("grades resolution headlines as positive when paths move without conviction sum changing", () => {
+    const ev = thesisEvidenceFromLogRow(
+      {
+        id: "r-res",
+        createdAt: Date.now(),
+        thesisId: "th-gold",
+        eventType: "NEWS_DEVELOPMENT",
+        description: "Iran sends response to US ceasefire proposal via Pakistan",
+        probabilityBefore: { base: 40, bull: 35, bear: 25 },
+        probabilityAfter: { base: 32, bull: 43, bear: 25 },
+      },
+      50,
+    );
+    expect(ev.probabilityBefore).toBe(75);
+    expect(ev.probabilityAfter).toBe(75);
+    expect(ev.impact).toBe("minor_positive");
   });
 
   it("uses thesis conviction when both triples exist and surfaces zero delta when conviction is flat", () => {
@@ -49,7 +83,7 @@ describe("thesisEvidenceFromLogRow", () => {
     expect(ev.logScenarioAfterStored).toBe(true);
     expect(ev.probabilityBefore).toBe(75);
     expect(ev.probabilityAfter).toBe(75);
-    expect(ev.interpretation).toContain("Thesis conviction unchanged");
+    expect(ev.interpretation).toContain("unchanged");
   });
 });
 

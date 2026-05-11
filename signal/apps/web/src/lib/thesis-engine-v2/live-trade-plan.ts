@@ -73,13 +73,20 @@ export function averageTrueRange(bars: OhlcvBar[], period = 14): number {
   return atr > 0 && Number.isFinite(atr) ? atr : 0;
 }
 
-function emptyPlan(): LiveTradePlan {
+function emptyPlan(extra: Partial<LiveTradePlan> = {}): LiveTradePlan {
   return {
     ready: false,
     entry_zone: { min: null, max: null, mid: null },
     stop: null,
     target1: null,
     target2: null,
+    conviction_blocked: false,
+    rr_to_target1: null,
+    min_rr_for_conviction: null,
+    rr_check_ok: null,
+    rr_check_label: null,
+    levels_need_adjustment: null,
+    ...extra,
   };
 }
 
@@ -91,6 +98,75 @@ export type ComputeLiveTradePlanResult = {
   atr: number | null;
 };
 
+function entryMidFromZone(plan: LiveTradePlan): number | null {
+  const { min, max, mid } = plan.entry_zone;
+  if (min != null && max != null && Number.isFinite(min) && Number.isFinite(max)) {
+    return (min + max) / 2;
+  }
+  if (mid != null && Number.isFinite(mid)) return mid;
+  return null;
+}
+
+/** Reward:risk to target1 from entry midpoint (null if geometry invalid). */
+export function rewardRiskToTarget1(plan: LiveTradePlan, direction: Thesis["direction"]): number | null {
+  if (!plan.ready || plan.stop == null || plan.target1 == null) return null;
+  const entry = entryMidFromZone(plan);
+  if (entry == null || !Number.isFinite(entry)) return null;
+  if (direction === "short") {
+    const risk = plan.stop - entry;
+    const reward = entry - plan.target1;
+    if (!(risk > 0) || !(reward > 0)) return null;
+    return reward / risk;
+  }
+  if (direction === "long") {
+    const risk = entry - plan.stop;
+    const reward = plan.target1 - entry;
+    if (!(risk > 0) || !(reward > 0)) return null;
+    return reward / risk;
+  }
+  return null;
+}
+
+export function minRewardRiskForConviction(convictionPct: number): number | null {
+  if (!Number.isFinite(convictionPct)) return null;
+  if (convictionPct < 50) return null;
+  if (convictionPct >= 70) return 2;
+  return 1.5;
+}
+
+function attachConvictionRrFields(
+  plan: LiveTradePlan,
+  direction: Thesis["direction"],
+  convictionPct: number | null | undefined,
+): LiveTradePlan {
+  if (convictionPct == null || !Number.isFinite(convictionPct)) {
+    return { ...plan, rr_to_target1: null, min_rr_for_conviction: null, rr_check_ok: null, rr_check_label: null, levels_need_adjustment: null };
+  }
+  const minR = minRewardRiskForConviction(convictionPct);
+  const rr = rewardRiskToTarget1(plan, direction);
+  if (!plan.ready || minR == null) {
+    return {
+      ...plan,
+      rr_to_target1: rr,
+      min_rr_for_conviction: minR,
+      rr_check_ok: null,
+      rr_check_label: null,
+      levels_need_adjustment: null,
+    };
+  }
+  const ok = rr != null && rr + 1e-9 >= minR;
+  const rrStr = rr != null ? `${rr.toFixed(2)}:1` : "—";
+  const label = `R/R check · ${rrStr} (minimum ${minR}:1 for ${convictionPct >= 70 ? "≥70%" : "50–69%"} conviction)${ok ? "" : " — levels need adjustment"}`;
+  return {
+    ...plan,
+    rr_to_target1: rr,
+    min_rr_for_conviction: minR,
+    rr_check_ok: ok,
+    rr_check_label: label,
+    levels_need_adjustment: !ok,
+  };
+}
+
 /**
  * Builds estimated execution levels from the latest daily close and ATR(volatility).
  * Not a broker guarantee — same-session spot for coherence with DEPTH4 market-data feed.
@@ -100,8 +176,10 @@ export function computeLiveTradePlan(args: {
   direction: Thesis["direction"];
   status: Thesis["status"];
   quoteSymbol: string;
+  /** When set, enforces conviction bucket policy (min R/R, blocks entry when &lt;50%). */
+  convictionPct?: number | null;
 }): ComputeLiveTradePlanResult {
-  const { bars, direction, status, quoteSymbol } = args;
+  const { bars, direction, status, quoteSymbol, convictionPct } = args;
   const quote_symbol = quoteSymbol;
   if (!bars.length) {
     return { trade_plan: emptyPlan(), quote_symbol, as_of_ms: null, spot: null, atr: null };
@@ -120,6 +198,20 @@ export function computeLiveTradePlan(args: {
   const directional = direction === "long" || direction === "short";
   const atrOk = atr > 0 && bars.length >= 15;
 
+  if (convictionPct != null && Number.isFinite(convictionPct) && convictionPct < 50) {
+    return {
+      trade_plan: emptyPlan({
+        conviction_blocked: true,
+        rr_check_label: "Entry zone withheld — thesis conviction is below 50%.",
+        rr_check_ok: false,
+      }),
+      quote_symbol,
+      as_of_ms,
+      spot,
+      atr: atrOk ? atr : null,
+    };
+  }
+
   if (!actionableStatus || !directional || !atrOk) {
     return {
       trade_plan: emptyPlan(),
@@ -137,6 +229,8 @@ export function computeLiveTradePlan(args: {
   const kT1 = 1.15;
   const kT2 = 2.25;
 
+  let trade_plan: LiveTradePlan;
+
   if (direction === "long") {
     const mid = spot - kEntry * atr;
     const min = mid - kBandLo * atr;
@@ -144,36 +238,33 @@ export function computeLiveTradePlan(args: {
     const stop = spot - kStop * atr;
     const target1 = spot + kT1 * atr;
     const target2 = spot + kT2 * atr;
-    return {
-      trade_plan: {
-        ready: true,
-        entry_zone: { min, max, mid },
-        stop,
-        target1,
-        target2,
-      },
-      quote_symbol,
-      as_of_ms,
-      spot,
-      atr,
-    };
-  }
-
-  const mid = spot + kEntry * atr;
-  const min = mid - kBandHi * atr;
-  const max = mid + kBandLo * atr;
-  const stop = spot + kStop * atr;
-  const target1 = spot - kT1 * atr;
-  const target2 = spot - kT2 * atr;
-
-  return {
-    trade_plan: {
+    trade_plan = {
       ready: true,
       entry_zone: { min, max, mid },
       stop,
       target1,
       target2,
-    },
+    };
+  } else {
+    const mid = spot + kEntry * atr;
+    const min = mid - kBandHi * atr;
+    const max = mid + kBandLo * atr;
+    const stop = spot + kStop * atr;
+    const target1 = spot - kT1 * atr;
+    const target2 = spot - kT2 * atr;
+    trade_plan = {
+      ready: true,
+      entry_zone: { min, max, mid },
+      stop,
+      target1,
+      target2,
+    };
+  }
+
+  trade_plan = attachConvictionRrFields(trade_plan, direction, convictionPct);
+
+  return {
+    trade_plan,
     quote_symbol,
     as_of_ms,
     spot,

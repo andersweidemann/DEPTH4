@@ -37,6 +37,8 @@ import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-contex
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { evaluateHorizonTimeStopCoherence } from "@/lib/thesis-engine-v2/horizon-time-stop";
+import { dbTripleDeltaSum } from "@/lib/thesis-engine-v2/scenario-triple-zero-sum";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
@@ -330,7 +332,7 @@ export function ThesisDetailClient({
     const p = thesisLive
       ? currentThesisProbabilityFromThesis(thesisLive)
       : currentThesisProbabilityFromThesis(bundle.thesis);
-    return mergeEvidenceTimelineItems(liveEvidence, bundle.evidence, p);
+    return mergeEvidenceTimelineItems(liveEvidence, bundle.evidence, p, { currentConvictionPct: p });
   }, [bundle, liveEvidence, thesisLive]);
 
   /** Scenario View: probabilities from live merged thesis; narrative fallbacks from bundle defaults. */
@@ -490,10 +492,11 @@ export function ThesisDetailClient({
   const isUserThesis = bundle.thesis.origin === "user";
   const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
   const returnToPath = pathname && pathname.length > 0 ? pathname : `/theses/${slug}`;
-  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
+  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 50;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
   const mispricing = getThesisMispricing(thesis, { liveEvidenceCount: liveEvidence.length });
+  const horizonTimeStopReview = evaluateHorizonTimeStopCoherence(thesis.horizon, thesis.timeStop);
 
   const inner = (
     <>
@@ -518,7 +521,7 @@ export function ThesisDetailClient({
             ];
           })()}
         />
-        <MispricingAnalysis m={mispricing} />
+        <MispricingAnalysis m={mispricing} heroConvictionPct={thesis.probability} />
       </div>
 
       {thesis.thesisCascade ? (
@@ -688,7 +691,16 @@ export function ThesisDetailClient({
         <AnswerBlock kicker="What the market hasn't priced in yet">{thesis.whatsUnpriced}</AnswerBlock>
         <AnswerBlock kicker="Trigger">{thesis.trigger}</AnswerBlock>
         <AnswerBlock kicker="Trade">{thesis.trade}</AnswerBlock>
-        {thesis.timeStop ? <AnswerBlock kicker="Time stop">{thesis.timeStop}</AnswerBlock> : null}
+        {thesis.timeStop ? (
+          <AnswerBlock kicker="Time stop">
+            {thesis.timeStop}
+            {horizonTimeStopReview.reviewNote ? (
+              <span className="mt-2 block text-[11px] font-normal leading-relaxed text-amber-200/80">
+                {horizonTimeStopReview.reviewNote}
+              </span>
+            ) : null}
+          </AnswerBlock>
+        ) : null}
       </div>
 
       <div className={cn("mt-3", layout === "drawer" && "px-4 sm:px-5")}>
@@ -895,10 +907,17 @@ export function ThesisDetailClient({
                   </div>
                   <p className="mt-1 text-[12px] text-zinc-200">{r.description}</p>
                   {r.probabilityBefore && r.probabilityAfter ? (
-                    <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
-                      Scenarios · Base {r.probabilityBefore.base}%→{r.probabilityAfter.base}% · Bull {r.probabilityBefore.bull}%→
-                      {r.probabilityAfter.bull}% · Bear {r.probabilityBefore.bear}%→{r.probabilityAfter.bear}%
-                    </p>
+                    <div className="mt-1 text-[11px] tabular-nums text-zinc-400">
+                      <p>
+                        Scenarios · Base {r.probabilityBefore.base}%→{r.probabilityAfter.base}% · Bull {r.probabilityBefore.bull}%→
+                        {r.probabilityAfter.bull}% · Bear {r.probabilityBefore.bear}%→{r.probabilityAfter.bear}%
+                      </p>
+                      {dbTripleDeltaSum(r.probabilityBefore, r.probabilityAfter) !== 0 ? (
+                        <p className="mt-1 text-amber-200/85">
+                          Internal review: scenario deltas should zero-sum (Δbase+Δbull+Δbear≠0) — treat as provisional.
+                        </p>
+                      ) : null}
+                    </div>
                   ) : null}
                 </li>
               ))}

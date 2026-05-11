@@ -27,6 +27,11 @@ export async function POST(req: Request) {
   const asset = typeof o.asset === "string" ? o.asset.trim() : "";
   const direction = o.direction as Thesis["direction"];
   const status = o.status as Thesis["status"];
+  const convictionRaw = o.convictionPct ?? o.probability;
+  const convictionPct =
+    typeof convictionRaw === "number" && Number.isFinite(convictionRaw)
+      ? Math.min(100, Math.max(0, convictionRaw))
+      : null;
 
   if (!asset) {
     return NextResponse.json({ ok: false, error: "asset required" }, { status: 400 });
@@ -61,6 +66,7 @@ export async function POST(req: Request) {
     direction,
     status,
     quoteSymbol,
+    convictionPct,
   });
 
   return NextResponse.json({
@@ -70,5 +76,6 @@ export async function POST(req: Request) {
     as_of_ms: result.as_of_ms,
     spot: result.spot,
     atr: result.atr,
+    conviction_pct: convictionPct,
   });
 }
