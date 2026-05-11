@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ThesisScenario } from "@/lib/thesis-engine-v2/types";
 import {
   displayScenarioTripleCleanMessyBroken,
+  isCatalogThesisId,
   isUncalibratedDisplayScenarioTriple,
   isUncalibratedScenarioTripleCleanMessyBroken,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
@@ -55,5 +56,11 @@ describe("scenario calibration helpers", () => {
 
   it("treats incomplete scenario lists as uncalibrated", () => {
     expect(isUncalibratedDisplayScenarioTriple([])).toBe(true);
+  });
+
+  it("isCatalogThesisId recognizes shipped catalog thesis ids", () => {
+    expect(isCatalogThesisId("th-tlt")).toBe(true);
+    expect(isCatalogThesisId("th-gold")).toBe(true);
+    expect(isCatalogThesisId("user-local-abc")).toBe(false);
   });
 });

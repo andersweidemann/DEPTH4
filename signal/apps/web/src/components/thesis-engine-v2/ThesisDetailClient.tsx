@@ -44,6 +44,7 @@ import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import {
   buildDisplayScenariosFromThesis,
   dbScenarioTripleEqualsSeed,
+  isCatalogThesisId,
   isUncalibratedDisplayScenarioTriple,
   overlayDbScenarioProbabilities,
   scenarioOverridesFromRows,
@@ -387,9 +388,13 @@ export function ThesisDetailClient({
     return { rows, probabilitySource: "evidence_model" as const };
   }, [insider?.applied, scenarioPanelScenarios, bundle, liveEvidence, liveScenarioProbModelEnabled]);
 
+  /** Catalog theses ship curated 40/35/25-style triples on purpose — still show % (see `catalogDefaultScenariosForThesis`). User/session theses stay gated until evidence moves off template. */
   const showAuthoritativeScenarioPercents = useMemo(
-    () => Boolean(insider?.applied) || !isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows),
-    [insider?.applied, scenarioViewScenarios.rows],
+    () =>
+      Boolean(insider?.applied) ||
+      !isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows) ||
+      (bundle ? isCatalogThesisId(bundle.thesis.id) : false),
+    [insider?.applied, scenarioViewScenarios.rows, bundle],
   );
 
   const assistBundle = useMemo(() => {

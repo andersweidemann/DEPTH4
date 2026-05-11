@@ -39,10 +39,10 @@ export function displayScenarioTripleCleanMessyBroken(scenarios: ThesisScenarioL
  * our seed templates (clean, messy, broken probabilities).
  *
  * These templates are useful as authoring defaults but should not be
- * shown as if they were live, thesis-specific probabilities. The UI
- * uses this flag to:
- *   - hide numeric percentages for template triples
- *   - show a calibrating state instead
+ * shown as if they were live, thesis-specific probabilities for **user**
+ * theses. The UI uses this flag to hide % / show calibrating unless
+ * insider override applies or the thesis is a shipped catalog row
+ * (`isCatalogThesisId` in `ThesisDetailClient`).
  *
  * Once DB / evidence / insider overrides move a thesis away from
  * these templates, the triple is no longer considered uncalibrated
@@ -73,7 +73,8 @@ export function dbScenarioTripleEqualsSeed(p: DbScenarioTriple): boolean {
   return p.base === SCENARIO_PROBABILITY_SEED_DB.base && p.bull === SCENARIO_PROBABILITY_SEED_DB.bull && p.bear === SCENARIO_PROBABILITY_SEED_DB.bear;
 }
 
-function isCatalogThesisId(id: string): boolean {
+/** True for shipped `CATALOG_THESES` rows — their default 40/35/25 splits are intentional, not “awaiting calibration”. */
+export function isCatalogThesisId(id: string): boolean {
   return CATALOG_THESES.some((t) => t.id === id);
 }
 
