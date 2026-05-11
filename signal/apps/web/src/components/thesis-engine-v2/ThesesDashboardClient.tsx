@@ -19,12 +19,22 @@ import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-th
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
+import {
+  defaultScenarioOverridesFromThesis,
+  leadScenarioProbabilityFromDbTriple,
+} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 type AssetClass = "all" | "equity" | "rates" | "fx" | "commodities" | "crypto";
 type SortKey = "recent" | "probability" | "biggest_move";
 
-function leadScenarioOf(p: { base: number; bull: number; bear: number }) {
-  return (["base", "bull", "bear"] as const).reduce((best, k) => (p[k] > p[best] ? k : best), "base");
+/** Headline % implied by shipped defaults only (ignores live overrides) — used when a log row has no `probability_before`. */
+function impliedDefaultHeadlineLead(thesis: Thesis): number {
+  const o = defaultScenarioOverridesFromThesis(thesis);
+  return leadScenarioProbabilityFromDbTriple({
+    base: o.base.probability,
+    bull: o.bull.probability,
+    bear: o.bear.probability,
+  });
 }
 
 function parseRelativeMinutes(s: string): number {
@@ -80,30 +90,47 @@ export function ThesesDashboardClient({
 
   const sorted = useMemo(() => sortThesesForDashboard([...systemTheses, ...userTheses]), [systemTheses, userTheses]);
   const liveSorted = useMemo(() => live.sortPinnedFirst(sorted), [live, sorted]);
+  /** Per-thesis evidence rows, newest first — correct “latest” for biggest-move even when the global batch is interleaved. */
+  const evidenceRowsByThesisId = useMemo(() => {
+    const map = new Map<string, (typeof live.evidenceLog)[number][]>();
+    for (const r of live.evidenceLog) {
+      const id = r.thesisId.trim();
+      if (!id) continue;
+      const arr = map.get(id);
+      if (arr) arr.push(r);
+      else map.set(id, [r]);
+    }
+    map.forEach((arr) => {
+      arr.sort((a, b) => b.createdAt - a.createdAt);
+    });
+    return map;
+    // Only evidence rows matter; full `live` identity changes every poll and would thrash this map.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- live.evidenceLog
+  }, [live.evidenceLog]);
+
   const moveBySlug = useMemo(() => {
     const m = new Map<string, number>();
-    const latestByThesisId = new Map<string, (typeof live.evidenceLog)[number]>();
-    for (const r of live.evidenceLog) {
-      if (!latestByThesisId.has(r.thesisId)) latestByThesisId.set(r.thesisId, r);
-    }
-    /** When `probability_before` is null (e.g. some macro rows), compare after-lead to catalog seed lead. */
-    const seedBefore = { base: 40, bull: 35, bear: 25 };
     for (const t of liveSorted) {
-      const row = latestByThesisId.get(t.id);
-      if (!row?.probabilityAfter) {
+      const rows = evidenceRowsByThesisId.get(t.id) ?? [];
+      const latest = rows[0];
+      if (!latest?.probabilityAfter) {
         m.set(t.slug, 0);
         continue;
       }
-      const lead = leadScenarioOf(row.probabilityAfter);
-      const afterVal = row.probabilityAfter[lead];
-      if (row.probabilityBefore) {
-        m.set(t.slug, Math.abs(afterVal - row.probabilityBefore[lead]));
+      const afterLead = leadScenarioProbabilityFromDbTriple(latest.probabilityAfter);
+      let beforeLead: number;
+      if (latest.probabilityBefore) {
+        beforeLead = leadScenarioProbabilityFromDbTriple(latest.probabilityBefore);
+      } else if (rows[1]?.probabilityAfter) {
+        // Prior snapshot on the same thesis (common when `probability_before` was omitted).
+        beforeLead = leadScenarioProbabilityFromDbTriple(rows[1].probabilityAfter);
       } else {
-        m.set(t.slug, Math.abs(afterVal - seedBefore[lead]));
+        beforeLead = impliedDefaultHeadlineLead(t);
       }
+      m.set(t.slug, Math.abs(afterLead - beforeLead));
     }
     return m;
-  }, [live, liveSorted]);
+  }, [evidenceRowsByThesisId, liveSorted]);
 
   const filtered = useMemo(() => {
     let list = liveSorted;
