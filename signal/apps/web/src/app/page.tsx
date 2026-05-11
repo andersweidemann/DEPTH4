@@ -51,10 +51,11 @@ export default function HomePage() {
               DEPTH4 is a macro intelligence engine that reads the news, thinks four steps ahead, and turns narratives
               into tradeable theses with probabilities, mispricing, price levels, and early-warning signals.
             </p>
-            <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-zinc-400">
-              Stop staring at charts. Prices move because of stories. DEPTH4 ingests the news, builds the thesis, estimates
-              the odds, and shows where the market hasn&apos;t caught up yet.
-            </p>
+              <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-zinc-400">
+                Stop staring at charts. Prices move because of stories. DEPTH4 ingests the news, builds the thesis, estimates
+                the odds, and tracks where the market may still be behind — sometimes at the second or third move, not the
+                headline.
+              </p>
 
             <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:items-center">
               <Link
@@ -88,7 +89,7 @@ export default function HomePage() {
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
-                  <span>maps where the market looks mispriced</span>
+                  <span>maps how stories unfold across four future states and where mispricing may live at each depth</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
@@ -131,16 +132,16 @@ export default function HomePage() {
             <div className="lg:col-span-7 space-y-4">
               <p className="text-[14px] leading-relaxed text-zinc-300">
                 DEPTH4 ingests macro news, policy shifts, and data releases, then turns them into a structured trading thesis
-                that thinks four steps ahead.
+                mapped across four future states — from what is confirmed now to third-order spillovers weeks out.
               </p>
               <ul className="list-none space-y-2 text-[14px] leading-relaxed text-zinc-300">
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
-                  <span>Identify the catalyst and follow-on events</span>
+                  <span>Anchor on verified facts (now), then the first market reaction (this week)</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
-                  <span>Structure the narrative across time</span>
+                  <span>Trace second-order spillovers (this month) and systemic shifts (this quarter)</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
@@ -148,11 +149,11 @@ export default function HomePage() {
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
-                  <span>Highlight where the market looks mispriced</span>
+                  <span>Compare DEPTH4&apos;s view vs what appears priced at each depth — mispricing is not always on move one</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
-                  <span>Sketch a live trade plan with entry, stop, and targets</span>
+                  <span>Sketches a trade plan; the expression should target the depth with the best risk-adjusted edge when structured depth is present</span>
                 </li>
               </ul>
               <p className="text-[13px] leading-relaxed text-zinc-400">
@@ -184,20 +185,30 @@ export default function HomePage() {
             <div className="lg:col-span-5">
               <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Think four moves ahead</h2>
               <p className="mt-3 text-[13px] leading-relaxed text-zinc-400">
-                In chess, strong players think four moves ahead. DEPTH4 brings that same edge to macro trading by
-                structuring every idea into four levels:
+                In chess, strong players don&apos;t only see the next move — they see the sequence that follows. DEPTH4 does
+                the same for macro and geopolitical shocks by mapping how each story unfolds across four future states of the
+                world.
               </p>
             </div>
             <div className="lg:col-span-7">
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {[
-                  ["LEVEL 1 — HEADLINE", "The raw news event: bill, speech, data, or shock."],
-                  ["LEVEL 2 — THESIS", "The multi‑event narrative that unfolds across policy, positioning, and flows."],
                   [
-                    "LEVEL 3 — MISPRICING",
-                    "Where DEPTH4’s probability view diverges from what the market appears to have priced in.",
+                    "LEVEL 1 — CONFIRMED (NOW)",
+                    "What is actually true right now: verified events and data — no speculation. (0–24h)",
                   ],
-                  ["LEVEL 4 — TRADE", "A live plan: entry zone, stop, targets, and scenario tree over time."],
+                  [
+                    "LEVEL 2 — THIS WEEK (1–7 DAYS)",
+                    "The first repricing: how obvious markets react as the story hits prices and headlines.",
+                  ],
+                  [
+                    "LEVEL 3 — THIS MONTH (7–30 DAYS)",
+                    "Second-order spillovers: who really wins, who really loses, and which edges survive after the first move.",
+                  ],
+                  [
+                    "LEVEL 4 — THIS QUARTER (30–90+ DAYS)",
+                    "Third-order shift: how policy, positioning, and cross-asset leadership change once the dust settles.",
+                  ],
                 ].map(([k, v]) => (
                   <div key={k} className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{k}</p>
@@ -206,8 +217,9 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="mt-4 text-[13px] leading-relaxed text-zinc-400">
-                Most traders stop at the headline. This stack is how DEPTH4 links headline → thesis → mispricing → trade
-                so the story and the book stay aligned.
+                Most traders stop at the headline. DEPTH4 tracks the chain — from the confirmed event through second- and
+                third-order effects — then surfaces where the market still looks behind. The trade should target the most
+                mispriced, expressible depth — not always the first move.
               </p>
             </div>
           </div>
@@ -227,16 +239,16 @@ export default function HomePage() {
                     "Start from your own idea (“Bitcoin spikes if the Clarity Act passes”) or from DEPTH4’s live macro board of in‑flight theses.",
                   ],
                   [
-                    "2. DEPTH4 structures the narrative",
-                    "The engine maps catalysts, first‑ and second‑order consequences, winners and losers, and what would make the thesis messy or broken.",
+                    "2. DEPTH4 maps four future states",
+                    "Each thesis can be read as a chain: confirmed now → first market move → spillovers → systemic backdrop. That is the same schema the product is converging on end-to-end.",
                   ],
                   [
-                    "3. Get conviction + scenarios and map the mispricing",
-                    "DEPTH4 tracks thesis conviction (Clean + Messy win) and resolution paths, then compares that view to what the market appears to have priced in.",
+                    "3. Compare views at each depth",
+                    "Thesis conviction and scenarios describe whether the idea is broadly right and how it resolves. Per-depth mispricing (where rolled out) compares DEPTH4&apos;s view to what the tape already prices at each step.",
                   ],
                   [
-                    "4. See the trade and monitor it",
-                    "Get a live trade plan with entry zone, stop, targets, and scenario‑based alerts — including early signals of 'premature insider' behavior in related assets.",
+                    "4. Trade the depth with the edge",
+                    "The trade plan expresses the setup — ideally anchored to the depth with the best risk-adjusted, tradable gap, not only the hero headline. Monitor with scenario-based alerts and related-asset signals where enabled.",
                   ],
                 ].map(([k, v]) => (
                   <div key={k} className="bg-zinc-900/20 px-4 py-3">
@@ -266,7 +278,8 @@ export default function HomePage() {
                 <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
                   <p className="text-[12px] font-semibold text-zinc-100">Mispricing analysis</p>
                   <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">
-                    Make the &quot;score&quot; concrete by comparing thesis conviction to market‑implied probability and the gap.
+                    See setup attractiveness versus thesis conviction, and — as structured depth rolls out — compare
+                    DEPTH4&apos;s view to what appears priced at each time layer, not only in one summary bar.
                   </p>
                 </div>
                 <div className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">

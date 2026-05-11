@@ -61,7 +61,7 @@ function SectionBlock({ id, title, children }: { id: string; title: string; chil
 
 export default function HelpPage() {
   return (
-    <div className="te2 min-h-screen bg-[#0c0c0e] text-zinc-100 antialiased">
+    <div className="min-h-screen bg-[#0c0c0e] text-zinc-100 antialiased">
       <PublicTopBar backHref="/theses" backLabel="Back" />
       <main className="mx-auto w-full max-w-6xl px-4 pb-20 pt-10">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
@@ -190,6 +190,78 @@ export default function HelpPage() {
                 the future with certainty. It means the system is tracking whether the evidence is getting stronger or weaker over
                 time.
               </p>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">The four depth levels</h3>
+              <p>
+                DEPTH4 reads a thesis as a <strong className="text-zinc-100">chain of future states</strong>, not a single headline.
+                The canonical model uses four time layers (the same schema the product, prompts, and database are converging on):
+              </p>
+              <ul className="space-y-2">
+                <Bullet>
+                  <strong className="text-zinc-100">Level 1 — Confirmed (now, 0–24h)</strong> · &quot;What changed in the world
+                  today?&quot; Facts only: names, dates, signed documents, verified disruptions.
+                </Bullet>
+                <Bullet>
+                  <strong className="text-zinc-100">Level 2 — This week (1–7 days, direct move)</strong> · &quot;What happens first
+                  in markets?&quot; Where prices and headlines move first if Level 1 is real.
+                </Bullet>
+                <Bullet>
+                  <strong className="text-zinc-100">Level 3 — This month (7–30 days, second-order)</strong> · &quot;What happens
+                  once people react to Level 2?&quot; Supply chains, margins, funding, positioning — who actually wins or loses.
+                </Bullet>
+                <Bullet>
+                  <strong className="text-zinc-100">Level 4 — This quarter (30–90+ days, third-order / systemic)</strong> ·
+                  &quot;What does the new regime look like if Levels 2–3 play out?&quot; Policy path, leadership, and which trades
+                  still make sense after the obvious trades tire out.
+                </Bullet>
+              </ul>
+              <p className="text-zinc-400">
+                <strong className="text-zinc-200">On the thesis page today:</strong> you may still see the legacy &quot;four-level
+                cascade&quot; (confirmed / week–quarter / year / backdrop) on older rows until each thesis is backfilled into the
+                structured <code className="rounded bg-zinc-900/60 px-1 font-mono text-[13px] text-zinc-300">thesis_depth_book</code>{" "}
+                shape. New copy describes the target engine; migration is gradual.
+              </p>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Mispricing at each depth</h3>
+              <p>
+                Mispricing is <strong className="text-zinc-100">not</strong> meant to be a single vague bar forever. At full rollout,
+                DEPTH4 compares its view to what the market appears to price <strong className="text-zinc-100">at each depth</strong>:
+              </p>
+              <ul className="space-y-2">
+                <Bullet>Some stories are fairly priced at Level 2 (the obvious move) but underpriced at Level 3 (spillovers).</Bullet>
+                <Bullet>Others have the edge at Level 4 (policy and leadership) even when Level 2 already repriced violently.</Bullet>
+                <Bullet>
+                  The <strong className="text-zinc-100">Trade</strong> block should tell you which depth the expression is trying to
+                  capture once that wiring is live; until then, use Scenario View + conviction + the cascade prose together.
+                </Bullet>
+              </ul>
+
+              <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Example: Hormuz-style chain (illustrative)</h3>
+              <ExampleBox>
+                <p className="font-semibold text-zinc-100">Not a live forecast — a pattern DEPTH4 is built to track.</p>
+                <ul className="mt-3 list-none space-y-2 text-[15px] text-zinc-300">
+                  <li>
+                    <span className="text-zinc-500">Level 1 · </span>Strait closure confirmed; traffic disruption verified.
+                  </li>
+                  <li>
+                    <span className="text-zinc-500">Level 2 · </span>Crude, tanker rates, and shipping insurance spike.
+                  </li>
+                  <li>
+                    <span className="text-zinc-500">Level 3 · </span>Fertilizer, food inputs, airlines, and EM importers absorb higher
+                    energy costs — margins compress in a cross-section, not only in oil.
+                  </li>
+                  <li>
+                    <span className="text-zinc-500">Level 4 · </span>Inflation stays stickier, cuts drift later, EM stress rises;
+                    energy exporters and defense can outperform while duration and importers suffer.
+                  </li>
+                </ul>
+                <p className="mt-3 text-zinc-200">
+                  <strong className="text-zinc-100">Key idea:</strong> the best trade may sit in Level 3–4 (e.g. fertilizer vs
+                  airlines, exporters vs importers, duration) even when the narrative starts at Level 1–2. DEPTH4 is designed to
+                  surface that kind of &quot;primary edge is not the headline&quot; case when structured depth and per-depth
+                  mispricing are present.
+                </p>
+              </ExampleBox>
 
               <h3 className="pt-2 text-[16px] font-semibold text-zinc-100">Thesis states</h3>
               <ul className="space-y-2">
