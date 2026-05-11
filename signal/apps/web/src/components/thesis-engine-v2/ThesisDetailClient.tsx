@@ -501,15 +501,29 @@ export function ThesisDetailClient({
         <ThesisHero thesis={thesis} />
       </div>
 
+      <div className={cn("mt-6 space-y-8", layout === "drawer" && "px-4 sm:px-5")}>
+        <ScenarioPanel
+          scenarios={scenarioViewScenarios.rows}
+          showPercentages={showAuthoritativeScenarioPercents}
+          probabilitySource={scenarioViewScenarios.probabilitySource}
+        />
+        <AdvisoryLog
+          updates={(() => {
+            if (!insider?.latest || (!insider.applied && !insider.suggested)) return advisoryLog;
+            const eff = insider.applied ?? insider.suggested;
+            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Messy win ${eff!.base}%, Clean win ${eff!.bull}%, Thesis broken ${eff!.bear}%.`;
+            return [
+              { id: `${thesis.id}-if-${insider.latest.id}`, thesisId: thesis.id, timestamp: "Now", text: line },
+              ...advisoryLog,
+            ];
+          })()}
+        />
+        <MispricingAnalysis m={mispricing} />
+      </div>
+
       {thesis.thesisCascade ? (
         <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
           <ThesisFourLevelCascade thesis={thesis} />
-        </div>
-      ) : null}
-
-      {layout === "drawer" ? (
-        <div className="mt-3">
-          <MispricingAnalysis m={mispricing} />
         </div>
       ) : null}
 
@@ -669,12 +683,6 @@ export function ThesisDetailClient({
         </div>
       </div>
 
-      {layout === "drawer" && assistBundle ? (
-        <div className={cn("mt-3", "px-4 sm:px-5")}>
-          <ThesisAssistantPanel variant="drawer" bundle={assistBundle} openBookPosition={bookSnap.open} />
-        </div>
-      ) : null}
-
       <div className={cn("mt-6 grid gap-3 sm:grid-cols-2", layout === "drawer" && "px-4 sm:px-5")}>
         <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
         <AnswerBlock kicker="What the market hasn't priced in yet">{thesis.whatsUnpriced}</AnswerBlock>
@@ -690,8 +698,12 @@ export function ThesisDetailClient({
       </div>
 
       <div className={cn("mt-9 space-y-10", layout === "drawer" && "px-4 sm:px-5")}>
-        {layout !== "drawer" && assistBundle ? (
-          <ThesisAssistantPanel bundle={assistBundle} openBookPosition={bookSnap.open} />
+        {assistBundle ? (
+          <ThesisAssistantPanel
+            bundle={assistBundle}
+            openBookPosition={bookSnap.open}
+            variant={layout === "drawer" ? "drawer" : "default"}
+          />
         ) : null}
 
         <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
@@ -938,23 +950,6 @@ export function ThesisDetailClient({
           </div>
         ) : null}
 
-        <ScenarioPanel
-          scenarios={scenarioViewScenarios.rows}
-          showPercentages={showAuthoritativeScenarioPercents}
-          probabilitySource={scenarioViewScenarios.probabilitySource}
-        />
-
-        <AdvisoryLog
-          updates={(() => {
-            if (!insider?.latest || (!insider.applied && !insider.suggested)) return advisoryLog;
-            const eff = insider.applied ?? insider.suggested;
-            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Messy win ${eff!.base}%, Clean win ${eff!.bull}%, Thesis broken ${eff!.bear}%.`;
-            return [
-              { id: `${thesis.id}-if-${insider.latest.id}`, thesisId: thesis.id, timestamp: "Now", text: line },
-              ...advisoryLog,
-            ];
-          })()}
-        />
         <ThesisOutcomePanel thesis={thesis} layout={layout} />
         <section>
           <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Related assets</h2>
