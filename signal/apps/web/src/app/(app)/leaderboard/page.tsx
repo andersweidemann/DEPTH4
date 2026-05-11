@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { LeaderboardClient } from "@/components/thesis-engine-v2/LeaderboardClient";
-import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Leaderboard",
@@ -8,16 +6,14 @@ export const metadata: Metadata = {
 };
 
 export default function LeaderboardPage() {
-  const liveLine = thesesLiveHeaderNeutral();
-
   return (
-    <>
-      {liveLine.trim() ? (
-        <p className="mb-4 text-[12px] leading-snug text-zinc-500 sm:text-[11px]">{liveLine}</p>
-      ) : null}
-      <div className="pb-12 pt-2">
-        <LeaderboardClient />
-      </div>
-    </>
+    <div className="py-20 text-center">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Leaderboard</p>
+      <h1 className="mt-2 text-xl font-semibold tracking-tight text-zinc-50">Leaderboard</h1>
+      <p className="mt-3 text-[13px] text-zinc-400">Not live yet.</p>
+      <p className="mt-1 text-[12px] text-zinc-500">
+        When it launches, this is where public thesis performance rankings will appear.
+      </p>
+    </div>
   );
 }
