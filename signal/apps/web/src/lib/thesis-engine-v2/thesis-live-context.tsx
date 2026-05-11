@@ -41,6 +41,17 @@ import {
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { hydrateDepth4AccountState } from "@/lib/thesis-engine-v2/depth4-account-hydration";
 import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
+import { persistDepth4AlertStates } from "@/lib/thesis-engine-v2/depth4-alert-state-persist";
+import {
+  applyDepth4AlertStateMapToAlerts,
+  mergeDepth4AlertStateRecords,
+  type Depth4AlertPersistedState,
+} from "@/lib/thesis-engine-v2/depth4-alert-state-utils";
+import {
+  buildThesisAlertFromEvidenceRow,
+  evidenceLogRowStableAlertId,
+  manualOutcomeStableAlertId,
+} from "@/lib/thesis-engine-v2/thesis-alert-from-evidence";
 import { DEPTH4_NOTIFY_PREFS_SESSION_KEY, DEPTH4_STARRED_SESSION_KEY } from "@/lib/thesis-engine-v2/depth4-session-keys";
 
 const MAX_TICKER = 14;
@@ -336,6 +347,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const prefsRef = useRef(prefs);
   prefsRef.current = prefs;
 
+  const alertAccountStateRef = useRef<Record<string, Depth4AlertPersistedState>>({});
+  const alertsReplayedRef = useRef(false);
+
   const evidenceBootRef = useRef(false);
   const evidenceHighWaterRef = useRef(0);
   /** Detail drawer / thesis page — polled first; avoids empty Evidence Timeline on busy accounts. */
@@ -439,11 +453,13 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     void (async () => {
       const snap = await hydrateDepth4AccountState(sb);
       if (cancelled) return;
+      alertAccountStateRef.current = mergeDepth4AlertStateRecords(alertAccountStateRef.current, snap.alertState);
       setStarred(snap.starred);
       setPrefs(snap.notifyPrefs);
       setUserTheses(loadUserTheses());
       setOpenIds(openPositionThesisIds());
       setOutcomeEpoch((e) => e + 1);
+      setAlerts((cur) => applyDepth4AlertStateMapToAlerts(cur, snap.alertState));
     })();
     return () => {
       cancelled = true;
@@ -455,13 +471,20 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = sb.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_OUT") {
+        setAlerts([]);
+        alertAccountStateRef.current = {};
+        return;
+      }
       if (event !== "SIGNED_IN" || !session?.user) return;
       const snap = await hydrateDepth4AccountState(sb);
+      alertAccountStateRef.current = mergeDepth4AlertStateRecords(alertAccountStateRef.current, snap.alertState);
       setStarred(snap.starred);
       setPrefs(snap.notifyPrefs);
       setUserTheses(loadUserTheses());
       setOpenIds(openPositionThesisIds());
       setOutcomeEpoch((e) => e + 1);
+      setAlerts((cur) => applyDepth4AlertStateMapToAlerts(cur, snap.alertState));
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -493,14 +516,22 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const pushAlert = useCallback((a: Omit<ThesisAlertEntry, "id" | "createdAt" | "read">) => {
+  const pushAlert = useCallback((a: Omit<ThesisAlertEntry, "createdAt" | "read">) => {
+    if (alertAccountStateRef.current[a.id] === "dismissed") return;
+    const read = alertAccountStateRef.current[a.id] === "read";
     const entry: ThesisAlertEntry = {
       ...a,
-      id: newAlertId(),
+      read,
       createdAt: Date.now(),
-      read: false,
     };
-    setAlerts((cur) => [entry, ...cur].slice(0, MAX_ALERTS));
+    setAlerts((cur) => {
+      const idx = cur.findIndex((x) => x.id === entry.id);
+      if (idx >= 0) {
+        const prev = cur[idx]!;
+        return cur.map((x, i) => (i === idx ? { ...entry, read: x.read || entry.read } : x));
+      }
+      return [entry, ...cur].slice(0, MAX_ALERTS);
+    });
   }, []);
 
   const pushToast = useCallback((message: string) => {
@@ -513,6 +544,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     evidenceBootRef.current = false;
+    alertsReplayedRef.current = false;
   }, [starredKey]);
 
   useEffect(() => {
@@ -570,6 +602,30 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       if (!evidenceBootRef.current) {
         evidenceBootRef.current = true;
         evidenceHighWaterRef.current = rows.reduce((m, r) => Math.max(m, r.createdAt), Date.now());
+        if (!alertsReplayedRef.current) {
+          alertsReplayedRef.current = true;
+          const userPollIdsBoot = collectEligibleUserThesisPollIdSet(loadUserTheses());
+          const nextAlerts: ThesisAlertEntry[] = [];
+          for (const r of rows) {
+            const pending = buildThesisAlertFromEvidenceRow(r, {
+              starred: starredRef.current,
+              openIds: openIdsRef.current,
+              userPollIds: userPollIdsBoot,
+              prefs: prefsRef.current,
+              titleForThesisId: resolveThesisDisplayTitle,
+            });
+            if (!pending) continue;
+            const st = alertAccountStateRef.current[pending.id];
+            if (st === "dismissed") continue;
+            nextAlerts.push({
+              ...pending,
+              read: st === "read",
+              createdAt: r.createdAt,
+            });
+            if (nextAlerts.length >= MAX_ALERTS) break;
+          }
+          setAlerts(nextAlerts);
+        }
         return;
       }
 
@@ -625,6 +681,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
                   ? "Flow confirmed by headline"
                   : "Flow invalidated";
             pushAlert({
+              id: evidenceLogRowStableAlertId(r.id),
               thesisId: r.thesisId,
               thesisTitle: title,
               type: "system",
@@ -676,6 +733,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
                 : "Same thesis, choppier path — keep size cautious until drivers line up cleanly.";
 
           pushAlert({
+            id: evidenceLogRowStableAlertId(r.id),
             thesisId: r.thesisId,
             thesisTitle: title,
             type: "probability_change",
@@ -695,6 +753,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
           if (!should) continue;
 
           pushAlert({
+            id: evidenceLogRowStableAlertId(r.id),
             thesisId: r.thesisId,
             thesisTitle: title,
             type: "system",
@@ -849,18 +908,23 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
           return next;
         });
       }
+      let outcomeAtIso: string | null = null;
       if (status === null) setThesisOutcome(thesisId, null);
-      else setThesisOutcome(thesisId, { status, at: new Date().toISOString() });
+      else {
+        outcomeAtIso = new Date().toISOString();
+        setThesisOutcome(thesisId, { status, at: outcomeAtIso });
+      }
       setOutcomeEpoch((e) => e + 1);
       setPulseMap((m) => ({ ...m, [thesisId]: (m[thesisId] ?? 0) + 1 }));
 
-      if (status !== null) {
+      if (status !== null && outcomeAtIso) {
         const human = status === "resolved" ? "Resolved" : "Invalidated";
         const line =
           status === "resolved"
             ? "You marked this thesis resolved — optional context only unless you reopen the idea."
             : "You marked this thesis invalidated — stand down on new risk from this thread until you rebuild the case.";
         pushAlert({
+          id: manualOutcomeStableAlertId(thesisId, outcomeAtIso),
           thesisId,
           thesisTitle,
           type: status === "invalidated" ? "invalidation" : "system",
@@ -879,15 +943,31 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   );
 
   const dismissAlert = useCallback((id: string) => {
+    alertAccountStateRef.current[id] = "dismissed";
+    void persistDepth4AlertStates([{ alert_key: id, state: "dismissed" }]);
     setAlerts((cur) => cur.filter((x) => x.id !== id));
   }, []);
 
   const markAllRead = useCallback(() => {
-    setAlerts((cur) => cur.map((x) => ({ ...x, read: true })));
+    setAlerts((cur) => {
+      const unread = cur.filter((x) => !x.read);
+      if (unread.length > 0) {
+        void persistDepth4AlertStates(unread.map((x) => ({ alert_key: x.id, state: "read" })));
+        for (const x of unread) alertAccountStateRef.current[x.id] = "read";
+      }
+      return cur.map((x) => ({ ...x, read: true }));
+    });
   }, []);
 
   const markReadOnOpen = useCallback(() => {
-    setAlerts((cur) => cur.map((x) => (x.read ? x : { ...x, read: true })));
+    setAlerts((cur) => {
+      const unread = cur.filter((x) => !x.read);
+      if (unread.length > 0) {
+        void persistDepth4AlertStates(unread.map((x) => ({ alert_key: x.id, state: "read" })));
+        for (const x of unread) alertAccountStateRef.current[x.id] = "read";
+      }
+      return cur.map((x) => (x.read ? x : { ...x, read: true }));
+    });
   }, []);
 
   const syncOpenIdsFromBook = useCallback(() => {

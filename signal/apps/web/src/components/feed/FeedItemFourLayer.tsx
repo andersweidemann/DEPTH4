@@ -45,6 +45,7 @@ function VerificationHint({ v }: { v: FeedVerification }) {
   );
 }
 
+/** Per-device feed annotation (traffic lights on lead list). Intentionally `localStorage`, not account data. */
 const LEAD_LIGHTS_STORAGE = "depth4.leadLights.v1";
 
 type LeadStore = Record<string, LeadTrafficLight[]>;

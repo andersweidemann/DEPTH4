@@ -1,11 +1,14 @@
 /**
  * Hydrates DEPTH4 personal state from the authenticated Supabase account after sign-in.
  *
- * **Source of truth:** `thesis_stars`, `depth4_user_book`, `public.theses` (user rows),
- * `public.users.notification_preferences` keys `depth4ThesisNotifyPrefs` + `depth4ManualThesisOutcomes`.
+ * **Source of truth:** `thesis_stars`, `depth4_user_book`, `depth4_user_alert_state`,
+ * `public.theses` (user rows), `public.users.notification_preferences` keys `depth4ThesisNotifyPrefs` +
+ * `depth4ManualThesisOutcomes`.
  * **Session keys** (`depth4-session-keys.ts`) are caches for responsiveness — not authoritative.
  *
  * Ephemeral UI (drawer open, unsaved drafts) intentionally stays client-only.
+ *
+ * Full matrix of what is account vs device vs ephemeral: `depth4-personal-state-inventory.ts`.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -21,6 +24,7 @@ import type { ManualThesisOutcome } from "@/lib/thesis-engine-v2/thesis-outcomes
 import type { Position, Thesis } from "@/lib/thesis-engine-v2/types";
 import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
 import { schedulePersistBookPositionsDebounced } from "@/lib/thesis-engine-v2/depth4-book-positions-persist";
+import { parseDepth4AlertStateApiEntries, type Depth4AlertPersistedState } from "@/lib/thesis-engine-v2/depth4-alert-state-utils";
 
 type NotifyPref = "any" | "major" | "consequence" | "mute";
 
@@ -107,6 +111,8 @@ function isNotifyPref(x: unknown): x is NotifyPref {
 export type Depth4AccountHydrationSnapshot = {
   starred: Set<string>;
   notifyPrefs: Record<string, NotifyPref>;
+  /** Account-backed thesis bell read/dismiss flags (stable alert ids). */
+  alertState: Record<string, Depth4AlertPersistedState>;
 };
 
 /** Run once per successful session — merges legacy session cache into Supabase, then refreshes caches from account. */
@@ -115,7 +121,7 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
     data: { user },
   } = await sb.auth.getUser();
   if (!user) {
-    return { starred: readStarredSession(), notifyPrefs: readNotifyPrefsSession() };
+    return { starred: readStarredSession(), notifyPrefs: readNotifyPrefsSession(), alertState: {} };
   }
 
   const { data: sess } = await sb.auth.getSession();
@@ -152,6 +158,16 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
         body: JSON.stringify({ positions: local }),
       });
     }
+  }
+
+  let alertState: Record<string, Depth4AlertPersistedState> = {};
+  if (tok) {
+    const alertRes = await fetch("/api/user/alert-state", {
+      credentials: "include",
+      headers: { authorization: `Bearer ${tok}` },
+    });
+    const alertJson = (await alertRes.json().catch(() => null)) as { ok?: boolean; entries?: unknown } | null;
+    if (alertJson?.ok) alertState = parseDepth4AlertStateApiEntries(alertJson.entries);
   }
 
   // --- User-owned theses (public.theses) ---
@@ -223,5 +239,5 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
   schedulePersistDepth4AccountPrefsDebounced();
   schedulePersistBookPositionsDebounced();
 
-  return { starred: mergedStars, notifyPrefs: mergedNotify };
+  return { starred: mergedStars, notifyPrefs: mergedNotify, alertState };
 }

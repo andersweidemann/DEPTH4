@@ -41,7 +41,7 @@ export type LeadTrafficLight = "red" | "yellow" | "green";
 
 export type LeadListItem = {
   text: string;
-  /** Model hint; user can override in UI (per device, localStorage). */
+  /** Model hint; user override is **per-device** (`localStorage` in feed UI), not synced to account. */
   light: LeadTrafficLight;
 };
 

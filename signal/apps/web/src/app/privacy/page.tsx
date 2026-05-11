@@ -78,6 +78,11 @@ export default function PrivacyPage() {
           short-lived copy in browser storage for responsiveness; that copy is a cache, not the authoritative record.
           Clearing browser storage alone does not remove your server-backed positions.
         </p>
+        <p className="mt-3">
+          When you are signed in, read and dismissed states for thesis alerts in the bell tray are stored in your
+          account so they persist across sign-out and devices. The in-app list is rebuilt from recent evidence; your
+          dismiss and read choices are applied from that account record.
+        </p>
 
         <h2>5. Data security</h2>
         <p>

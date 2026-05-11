@@ -1,5 +1,9 @@
 "use client";
 
+/**
+ * Plan tier here is **sessionStorage + demo default** — intentional until billing maps plan to
+ * `public.users` (or similar). Not account-durable across logout; switching device does not inherit it.
+ */
 import { useEffect, useState } from "react";
 import type { V2Plan } from "@/lib/thesis-engine-v2/plan";
 
