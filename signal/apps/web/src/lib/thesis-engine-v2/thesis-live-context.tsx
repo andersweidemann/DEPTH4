@@ -33,7 +33,10 @@ import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/typ
 import type { InsiderFlowPatternType, InsiderFlowStatus } from "@/lib/thesis-engine-v2/insider-flow/types";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { createClient as createSbClient } from "@/lib/supabase/client";
-import { defaultScenarioOverridesFromThesis } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import {
+  dbScenarioTripleEqualsSeed,
+  defaultScenarioOverridesFromThesis,
+} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 
 const STAR_KEY = "depth4.v2.starred.v1";
@@ -525,7 +528,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       for (const r of fresh) {
         // Scenario patches: any thesis we poll (catalog + eligible user). Do not gate on star —
         // user theses were incorrectly frozen because only starred ∪ book received merges.
-        if (r.probabilityAfter) {
+        // Many log rows carry the shared DB seed triple as metadata; merging it onto the client
+        // overwrites AI/authored scenario splits and trips isUncalibratedDisplayScenarioTriple → hidden %.
+        if (r.probabilityAfter && !dbScenarioTripleEqualsSeed(r.probabilityAfter)) {
           const bt = baseThesisForId(r.thesisId);
           if (bt) {
             setOverrides((o) => ({
