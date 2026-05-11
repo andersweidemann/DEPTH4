@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
+import { DEPTH_THEME, DEPTH_THEME_ORDER } from "@/lib/thesis-engine-v2/thesis-depth-theme";
 
 export const metadata: Metadata = {
   title: "DEPTH4 — Macro intelligence & trade planning",
@@ -191,35 +192,55 @@ export default function HomePage() {
               </p>
             </div>
             <div className="lg:col-span-7">
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {[
-                  [
-                    "LEVEL 1 — CONFIRMED (NOW)",
-                    "What is actually true right now: verified events and data — no speculation. (0–24h)",
-                  ],
-                  [
-                    "LEVEL 2 — THIS WEEK (1–7 DAYS)",
-                    "The first repricing: how obvious markets react as the story hits prices and headlines.",
-                  ],
-                  [
-                    "LEVEL 3 — THIS MONTH (7–30 DAYS)",
-                    "Second-order spillovers: who really wins, who really loses, and which edges survive after the first move.",
-                  ],
-                  [
-                    "LEVEL 4 — THIS QUARTER (30–90+ DAYS)",
-                    "Third-order shift: how policy, positioning, and cross-asset leadership change once the dust settles.",
-                  ],
-                ].map(([k, v]) => (
-                  <div key={k} className="bg-zinc-900/25 px-4 py-3 ring-1 ring-white/[0.06]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{k}</p>
-                    <p className="mt-2 text-[13px] leading-relaxed text-zinc-300">{v}</p>
-                  </div>
-                ))}
+              <div className="-mx-2 overflow-x-auto px-2 pb-2">
+                <div className="flex min-w-[880px] items-stretch gap-3">
+                  {DEPTH_THEME_ORDER.map((k) => {
+                    const t = DEPTH_THEME[k];
+                    const event =
+                      k === "depth_1"
+                        ? "Fed pauses; statement verifies higher-for-longer bias."
+                        : k === "depth_2"
+                          ? "Rates reprice first; duration whipsaws as cuts drift."
+                          : k === "depth_3"
+                            ? "Spillovers hit funding + margins; credit and cyclicals diverge."
+                            : "Systemic shift: leadership rotates toward cashflows/defensives as policy stays tight.";
+                    const trade =
+                      k === "depth_1"
+                        ? "Example action: wait for verification, then size into the chain."
+                        : k === "depth_2"
+                          ? "Example expression: duration reacts (e.g. TLT / curve proxies)."
+                          : k === "depth_3"
+                            ? "Example expression: credit vs quality (HYG vs cashflows) if funding stays tight."
+                            : "Example expression: delayed cuts + USD strength pressure duration and EM importers.";
+
+                    return (
+                      <div key={k} className={cn("flex-1 rounded-lg border p-4 ring-1", t.cardClassName)}>
+                        <div className="flex items-start justify-between gap-3">
+                          <span
+                            className={cn(
+                              "inline-flex rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+                              t.badgeClassName,
+                            )}
+                          >
+                            {t.longLabel}
+                          </span>
+                          <span className={cn("mt-1 h-2.5 w-2.5 shrink-0 rounded-full", t.dotClassName)} aria-hidden />
+                        </div>
+                        <p className="mt-3 text-[13px] font-semibold leading-snug text-zinc-100">{event}</p>
+                        <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{trade}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
               <p className="mt-4 text-[13px] leading-relaxed text-zinc-400">
                 Most traders stop at the headline. DEPTH4 tracks the chain — from the confirmed event through second- and
                 third-order effects — then surfaces where the market still looks behind. The trade should target the most
                 mispriced, expressible depth — not always the first move.
+              </p>
+              <p className="mt-3 text-[12px] leading-relaxed text-zinc-500">
+                The moat is depth selection: the same story can be fully priced at Level 2 while the real edge survives at Level
+                3–4.
               </p>
             </div>
           </div>
@@ -330,16 +351,23 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* TRUST / LEGAL */}
-        <section className="mx-auto max-w-6xl px-5 py-14">
+        {/* TRUST / LEGAL (footer-style) */}
+        <footer className="border-t border-white/[0.06]">
+          <section className="mx-auto max-w-6xl px-5 py-14">
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
             <div className="lg:col-span-5">
               <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Trust & disclosure</h2>
             </div>
             <div className="lg:col-span-7">
-              <p className="text-[13px] leading-relaxed text-zinc-300">
-                DEPTH4 is a macro analysis and information tool. Not a broker. Not personalized investment advice.
-              </p>
+              <div className="rounded-lg border border-white/[0.08] bg-zinc-900/25 px-4 py-4 ring-1 ring-white/[0.05]">
+                <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Not investment advice</p>
+                <p className="mt-2 text-[13px] leading-relaxed text-zinc-300">
+                  DEPTH4 is a macro analysis and information tool. Not a broker. Not personalized investment advice.
+                </p>
+                <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">
+                  Data sourcing: news ingested from Reuters, Bloomberg, and primary sources.
+                </p>
+              </div>
               <div className="mt-4 flex flex-wrap gap-x-3 gap-y-2 text-[12px]">
                 <Link href="/terms" className="text-zinc-400 hover:text-zinc-200">
                   Terms
@@ -355,7 +383,8 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </section>
+          </section>
+        </footer>
 
         {/* FINAL CTA */}
         <section className="mx-auto max-w-6xl px-5 pb-16 pt-10">
