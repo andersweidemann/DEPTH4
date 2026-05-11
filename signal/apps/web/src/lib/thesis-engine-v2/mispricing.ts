@@ -1,40 +1,63 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import {
+  currentThesisProbabilityFromThesis,
+  defaultScenarioOverridesFromThesis,
+} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
+/**
+ * DEPTH4 **mispricing score** (headline 0–100) measures how attractive the **trade setup is right now**
+ * (timing, how much is still unpriced, trigger/trade clarity). It is **not** thesis conviction (Clean + Messy).
+ *
+ * **Audit (legacy):** The MVP used `|thesis.probability − seedMarketImplied| × qualificationMultiplier`, with a
+ * default implied ~50. After conviction became Clean+Messy, that formula still read `thesis.probability`, so a
+ * thesis at 79% conviction next to ~50% implied produced ~58 **even when** the qualification bars summed to 69 —
+ * two unrelated numbers. The headline score now **anchors on the same book scores** as “Qualification breakdown”
+ * (`thesis.scores.total`), then applies **small** scenario / conviction-residual / evidence nudges so conviction
+ * can tilt the dial without mirroring it.
+ */
 export type ThesisMispricing = {
-  score: number; // 0–100 (dummy)
+  /** 0–100: attractiveness of the setup now (see module docstring). */
+  score: number;
+  /** Same dial as hero: Clean win + Messy win. */
   thesisProbability: number;
-  marketImplied: number;
-  gap: number;
+  /**
+   * Sum of the five qualification components (driver, time compression, market hasn’t caught up, trade clarity,
+   * trigger clarity) — same total as the “Qualification breakdown” card. Updates when book scores change
+   * (generation / editorial / merge), not on every conviction tick.
+   */
+  structuralSetupScore: number;
+  /**
+   * `thesisProbability − structuralSetupScore` (percentage points). Positive ≈ live conviction/scenarios ran
+   * ahead of the frozen book scores (edge may be messier or more priced); negative ≈ book scores assume a
+   * stronger setup than current paths imply.
+   */
+  convictionVsSetupGap: number;
   explanation: string;
 };
 
-type MispricingSeed = { marketImplied: number; explanation: string };
+type MispricingSeed = { explanation: string };
 
 const DEFAULT_SEED: MispricingSeed = {
-  marketImplied: 50,
   explanation:
-    "Market-implied odds sit near a neutral baseline; thesis conviction from DEPTH4 can diverge from that implied view. Mispricing score is separate from conviction — it reflects how attractive the setup looks now (timing, underreaction, trigger and trade clarity), not only whether the story is broadly right.",
+    "Mispricing scores the **trade** (timing, what is still unpriced, trigger and plan clarity). Thesis conviction scores whether the **idea** is broadly right. They can diverge: high conviction with only moderate mispricing often means the story is right but part of the move is priced, the path is messy, or execution is noisy.",
 };
 
-// Dummy MVP: hard-coded per thesis slug (can be refined or moved server-side later).
 const SEED_BY_SLUG: Record<string, MispricingSeed> = {
-  // Peace thesis (example from UX brief)
   "war-short-peace-gold-short": {
-    marketImplied: 40,
     explanation:
-      "Implied pricing still embeds more tail-risk than a steady peace track suggests; thesis conviction can be higher while mispricing stays moderate if the edge is messy, late, or already partly priced.",
+      "Geopolitical paths can show high conviction while mispricing stays moderate — tail risk is hard to time and peace headlines often reprice in chunks.",
   },
-  // Defense reset thesis (example)
   "defense-reset-repricing": {
-    marketImplied: 35,
     explanation:
-      "Implied odds treat the defense reset as still unlikely; thesis conviction can run higher as evidence stacks, without forcing mispricing to max — clarity on timing and flow still matters for the score.",
+      "Defense dollars can be visible in filings before the tape fully reprices; conviction can lead while award timing still caps how clean the entry is.",
   },
-  // Rates / cuts (example)
   "rate-cuts-not-priced": {
-    marketImplied: 50,
     explanation:
-      "Implied pricing sits mid-range; thesis conviction encodes a directional read on cuts that can diverge from futures. Mispricing stays its own dial — high conviction with only moderate mispricing is normal when part of the story is priced.",
+      "Rates theses often split **curve vs Fed tone**; conviction can track the macro read while mispricing reflects how much of that is already in price and how choppy data windows are.",
+  },
+  "fed-pivot-delayed-tlt-weakness": {
+    explanation:
+      "Futures can still lean dovish while prints and speakers stay firm — conviction can be high because Clean+Messy dominates, while mispricing reflects how much of the late-cut repricing is already in TLT and how violent data rips can be between prints.",
   },
 };
 
@@ -42,38 +65,60 @@ function clampInt(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, Math.round(n)));
 }
 
-function convictionMultiplier(thesis: Thesis) {
-  // Dummy: tradeable ideas amplify the gap more than early-stage themes.
-  if (thesis.qualification === "tradeable") return 2.0;
-  if (thesis.qualification === "emerging") return 1.6;
-  return 1.3;
+/** How resolution-path shape nudges “attractiveness now” (bounded). */
+function scenarioPathAttractivenessNudge(thesis: Thesis): number {
+  const o = thesis.scenarioOverrides ?? defaultScenarioOverridesFromThesis(thesis);
+  const clean = o.bull.probability;
+  const messy = o.base.probability;
+  const broken = o.bear.probability;
+  let n = 0;
+  if (messy >= clean + 8) n -= Math.min(4, Math.round((messy - clean - 6) / 6));
+  if (clean >= messy + 8) n += Math.min(3, Math.round((clean - messy - 6) / 7));
+  if (broken >= 32) n -= Math.min(3, Math.round((broken - 28) / 4));
+  return n;
 }
 
-export function getThesisMispricing(
-  thesis: Thesis,
-  options?: { liveEvidenceCount?: number },
-): ThesisMispricing {
+/**
+ * When live conviction diverges from frozen book scores, apply a **small** tilt (evidence moved paths; book
+ * scores are not recomputed every snapshot). Capped so changing conviction alone cannot swing the headline
+ * by double digits.
+ */
+function convictionResidualNudge(conviction: number, structural: number): number {
+  const d = conviction - structural;
+  if (d >= 12) return Math.min(6, Math.round(d * 0.12));
+  if (d <= -12) return Math.max(-5, Math.round(d * 0.12));
+  return Math.round(d * 0.08);
+}
+
+function userLiveEvidenceNudge(origin: Thesis["origin"] | undefined, liveEvidenceCount: number): number {
+  if (origin !== "user") return 0;
+  return Math.min(4, liveEvidenceCount);
+}
+
+export function getThesisMispricing(thesis: Thesis, options?: { liveEvidenceCount?: number }): ThesisMispricing {
   const liveN = options?.liveEvidenceCount ?? 0;
-  let seed = SEED_BY_SLUG[thesis.slug] ?? DEFAULT_SEED;
-  // Catalog slugs get curated seeds; user theses rarely match — still move implied as evidence arrives.
-  if (thesis.origin === "user") {
-    const drift = Math.min(20, liveN * 5);
-    seed = {
-      marketImplied: clampInt(54 - drift, 28, 78),
-      explanation:
-        liveN > 0
-          ? "User thesis: implied pricing nudges as DEPTH4 logs server-matched evidence against your tags — conviction can move separately from this mispricing score; sanity-check vs spot and flows."
-          : DEFAULT_SEED.explanation,
-    };
-  }
-  const thesisProbability = clampInt(thesis.probability, 0, 100);
-  const marketImplied = clampInt(seed.marketImplied, 0, 100);
-  const gap = clampInt(thesisProbability - marketImplied, -100, 100);
-  const score = clampInt(Math.abs(gap) * convictionMultiplier(thesis), 0, 100);
-  return { score, thesisProbability, marketImplied, gap, explanation: seed.explanation };
+  const seed = SEED_BY_SLUG[thesis.slug] ?? DEFAULT_SEED;
+
+  const structuralSetupScore = clampInt(thesis.scores.total, 0, 100);
+  const thesisProbability = clampInt(currentThesisProbabilityFromThesis(thesis), 0, 100);
+  const convictionVsSetupGap = clampInt(thesisProbability - structuralSetupScore, -100, 100);
+
+  const nScenario = scenarioPathAttractivenessNudge(thesis);
+  const nConv = convictionResidualNudge(thesisProbability, structuralSetupScore);
+  const nEv = userLiveEvidenceNudge(thesis.origin, liveN);
+
+  const score = clampInt(structuralSetupScore + nScenario + nConv + nEv, 0, 100);
+
+  return {
+    score,
+    thesisProbability,
+    structuralSetupScore,
+    convictionVsSetupGap,
+    explanation: seed.explanation,
+  };
 }
 
+/** @deprecated Seeds no longer carry a synthetic “market implied %”; kept for slug → explainer copy. */
 export function getMispricingSeedBySlug(slug: string): MispricingSeed {
   return SEED_BY_SLUG[slug] ?? DEFAULT_SEED;
 }
-

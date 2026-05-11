@@ -9,7 +9,7 @@ import { ProbabilityBar } from "@/components/thesis-engine-v2/ProbabilityBar";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
-import { getMispricingSeedBySlug } from "@/lib/thesis-engine-v2/mispricing";
+import { getMispricingSeedBySlug, type ThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 
 function badgeTone(b: string) {
   // Text-only badges (avoid decorative filled pills).
@@ -22,12 +22,13 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
   const [followed, setFollowed] = useState(false);
   useEffect(() => setFollowed(isFollowed(item.id)), [item.id]);
   const seed = getMispricingSeedBySlug(item.thesisSlug);
-  const gap = item.probability - seed.marketImplied;
-  const m = {
-    score: item.scoreTotal,
-    thesisProbability: item.probability,
-    marketImplied: seed.marketImplied,
-    gap,
+  const structural = item.scoreTotal;
+  const conviction = item.probability;
+  const m: ThesisMispricing = {
+    score: structural,
+    thesisProbability: conviction,
+    structuralSetupScore: structural,
+    convictionVsSetupGap: conviction - structural,
     explanation: seed.explanation,
   };
 

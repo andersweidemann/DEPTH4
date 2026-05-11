@@ -8,8 +8,8 @@ function barWidth(pct: number) {
 }
 
 export function MispricingAnalysis({ m }: { m: ThesisMispricing }) {
-  const gapAbs = Math.abs(m.gap);
-  const gapLabel = `${m.gap >= 0 ? "+" : "−"}${gapAbs} percentage points`;
+  const gapAbs = Math.abs(m.convictionVsSetupGap);
+  const gapLabel = `${m.convictionVsSetupGap >= 0 ? "+" : "−"}${gapAbs} pts`;
 
   return (
     <section className="bg-zinc-900/25 px-4 py-3.5">
@@ -21,7 +21,10 @@ export function MispricingAnalysis({ m }: { m: ThesisMispricing }) {
         </div>
       </div>
       <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
-        Conviction (above in the hero) answers whether the idea is broadly right. This block answers how much edge the tape may still offer versus implied pricing — high conviction with a moderate score is normal.
+        <span className="text-zinc-400">How attractive is this setup right now</span> — timing, what is still unpriced,
+        and how clear the trigger and plan are. Thesis conviction (hero) is whether the idea is broadly right; high
+        conviction with only moderate mispricing means the story may be right while edge is late, messy, or partly
+        priced.
       </p>
 
       <div className="mt-3 grid gap-3">
@@ -37,17 +40,22 @@ export function MispricingAnalysis({ m }: { m: ThesisMispricing }) {
 
         <div className="grid gap-2">
           <div className="flex items-baseline justify-between gap-2 text-[11px]">
-            <span className="text-zinc-500">Market-implied view (~%)</span>
-            <span className="tabular-nums font-semibold text-zinc-200">~{m.marketImplied}%</span>
+            <span className="text-zinc-500">Structural setup (book scores)</span>
+            <span className="tabular-nums font-semibold text-zinc-200">{m.structuralSetupScore}/100</span>
           </div>
           <div className="h-1 w-full bg-white/[0.08]">
-            <div className="h-1 bg-zinc-500/80" style={{ width: barWidth(m.marketImplied) }} aria-hidden />
+            <div className="h-1 bg-zinc-500/80" style={{ width: barWidth(m.structuralSetupScore) }} aria-hidden />
           </div>
         </div>
 
         <div className="flex flex-wrap items-baseline justify-between gap-2 text-[11px]">
-          <span className="text-zinc-500">Gap</span>
-          <span className={cn("tabular-nums font-semibold", m.gap >= 0 ? "text-emerald-200/90" : "text-red-200/90")}>
+          <span className="text-zinc-500">Conviction vs setup</span>
+          <span
+            className={cn(
+              "tabular-nums font-semibold",
+              m.convictionVsSetupGap >= 0 ? "text-emerald-200/90" : "text-red-200/90",
+            )}
+          >
             {gapLabel}
           </span>
         </div>
@@ -60,4 +68,3 @@ export function MispricingAnalysis({ m }: { m: ThesisMispricing }) {
     </section>
   );
 }
-

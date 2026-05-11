@@ -3,31 +3,37 @@
 import type { ThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 
 export function MispricingTooltipContent({ m }: { m: ThesisMispricing }) {
-  const gapAbs = Math.abs(m.gap);
-  const gapLabel = `${m.gap >= 0 ? "+" : "−"}${gapAbs} points`;
+  const gapAbs = Math.abs(m.convictionVsSetupGap);
+  const gapLabel = `${m.convictionVsSetupGap >= 0 ? "+" : "−"}${gapAbs} pts`;
   return (
     <div className="space-y-1">
-      <div className="text-[11px] font-semibold text-zinc-100">Mispricing Score</div>
+      <div className="text-[11px] font-semibold text-zinc-100">Mispricing score</div>
       <div className="text-zinc-300">
-        <span className="font-medium text-zinc-200">Thesis conviction</span> = chance this thesis is broadly right (shown in the hero).
+        <span className="font-medium text-zinc-200">Thesis conviction</span> — chance this thesis is broadly right
+        (Clean + Messy), same as the hero.
         <br />
-        <span className="font-medium text-zinc-200">Mispricing score</span> = how attractive the setup looks right now versus what price implies — not the same dial as conviction.
+        <span className="font-medium text-zinc-200">Mispricing score</span> — how attractive the <em>trade</em> looks
+        now versus the book-style setup scores, with small nudges from resolution paths and live conviction. Not a
+        second conviction dial.
         <br />
-        A thesis can show high conviction but only moderate mispricing if part of the story is already priced, the path is messy, or triggers are still soft.
-        <br />
-        <span className="text-zinc-500">Score mechanics:</span> gap between conviction and market-implied view, scaled for how tradeable the idea is.
+        <span className="text-zinc-500">Patterns:</span> high conviction + moderate mispricing → likely right, edge may
+        be late or noisy. High conviction + high mispricing → strong, still-underpriced setup. Moderate conviction +
+        high mispricing → contrarian, higher risk.
       </div>
       <div className="pt-1 text-zinc-300">
-        <span className="text-zinc-500">This thesis (conviction):</span>{" "}
-        <span className="tabular-nums">{m.thesisProbability}%</span> likely
+        <span className="text-zinc-500">Conviction:</span>{" "}
+        <span className="tabular-nums">{m.thesisProbability}%</span>
       </div>
       <div className="text-zinc-300">
-        <span className="text-zinc-500">Market pricing:</span> <span className="tabular-nums">~{m.marketImplied}%</span>
+        <span className="text-zinc-500">Structural setup (sum of qualification bars):</span>{" "}
+        <span className="tabular-nums">{m.structuralSetupScore}/100</span>
       </div>
       <div className="text-zinc-300">
-        <span className="text-zinc-500">Gap:</span> <span className="tabular-nums">{gapLabel}</span>
+        <span className="text-zinc-500">Conviction vs setup:</span> <span className="tabular-nums">{gapLabel}</span>
+      </div>
+      <div className="text-zinc-400">
+        <span className="text-zinc-500">Headline score:</span> <span className="tabular-nums">{m.score}/100</span>
       </div>
     </div>
   );
 }
-

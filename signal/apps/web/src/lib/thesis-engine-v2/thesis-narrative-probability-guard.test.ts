@@ -10,6 +10,7 @@ import {
   stripEmbeddedProbabilityPhrasesFromText,
 } from "@/lib/thesis-engine-v2/thesis-narrative-probability-guard";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { currentThesisProbabilityFromThesis } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
 describe("stripEmbeddedProbabilityPhrasesFromText", () => {
@@ -84,6 +85,8 @@ describe("catalog + normalize pipeline", () => {
     expect(typeof m.score).toBe("number");
     expect(m.score).toBeGreaterThanOrEqual(0);
     expect(m.score).toBeLessThanOrEqual(100);
-    expect(m.thesisProbability).toBe(t.probability);
+    expect(m.thesisProbability).toBe(currentThesisProbabilityFromThesis(t));
+    expect(m.score).not.toBe(m.thesisProbability);
+    expect(m.structuralSetupScore).toBe(t.scores.total);
   });
 });
