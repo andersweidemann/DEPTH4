@@ -86,14 +86,21 @@ export function ThesesDashboardClient({
     for (const r of live.evidenceLog) {
       if (!latestByThesisId.has(r.thesisId)) latestByThesisId.set(r.thesisId, r);
     }
+    /** When `probability_before` is null (e.g. some macro rows), compare after-lead to catalog seed lead. */
+    const seedBefore = { base: 40, bull: 35, bear: 25 };
     for (const t of liveSorted) {
       const row = latestByThesisId.get(t.id);
-      if (!row?.probabilityBefore || !row?.probabilityAfter) {
+      if (!row?.probabilityAfter) {
         m.set(t.slug, 0);
         continue;
       }
       const lead = leadScenarioOf(row.probabilityAfter);
-      m.set(t.slug, Math.abs(row.probabilityAfter[lead] - row.probabilityBefore[lead]));
+      const afterVal = row.probabilityAfter[lead];
+      if (row.probabilityBefore) {
+        m.set(t.slug, Math.abs(afterVal - row.probabilityBefore[lead]));
+      } else {
+        m.set(t.slug, Math.abs(afterVal - seedBefore[lead]));
+      }
     }
     return m;
   }, [live, liveSorted]);
@@ -105,10 +112,18 @@ export function ThesesDashboardClient({
     if (assetClass !== "all") list = list.filter((t) => assetClassFor(t) === assetClass);
 
     const next = [...list];
+    const tieSlug = (a: Thesis, b: Thesis) => a.slug.localeCompare(b.slug);
     next.sort((a, b) => {
-      if (sortKey === "probability") return b.probability - a.probability;
-      if (sortKey === "biggest_move") return (moveBySlug.get(b.slug) ?? 0) - (moveBySlug.get(a.slug) ?? 0);
-      return parseRelativeMinutes(a.lastUpdated) - parseRelativeMinutes(b.lastUpdated);
+      if (sortKey === "probability") {
+        const d = b.probability - a.probability;
+        return d !== 0 ? d : tieSlug(a, b);
+      }
+      if (sortKey === "biggest_move") {
+        const d = (moveBySlug.get(b.slug) ?? 0) - (moveBySlug.get(a.slug) ?? 0);
+        return d !== 0 ? d : tieSlug(a, b);
+      }
+      const d = parseRelativeMinutes(a.lastUpdated) - parseRelativeMinutes(b.lastUpdated);
+      return d !== 0 ? d : tieSlug(a, b);
     });
     return next;
   }, [assetClass, live, moveBySlug, show, sortKey, liveSorted]);
@@ -136,15 +151,30 @@ export function ThesesDashboardClient({
 
   const focusTieBreak = useCallback(
     (a: Thesis, b: Thesis) => {
-      if (sortKey === "probability") return b.probability - a.probability;
-      if (sortKey === "biggest_move") return (moveBySlug.get(b.slug) ?? 0) - (moveBySlug.get(a.slug) ?? 0);
-      return parseRelativeMinutes(a.lastUpdated) - parseRelativeMinutes(b.lastUpdated);
+      const tieSlug = (x: Thesis, y: Thesis) => x.slug.localeCompare(y.slug);
+      if (sortKey === "probability") {
+        const d = b.probability - a.probability;
+        return d !== 0 ? d : tieSlug(a, b);
+      }
+      if (sortKey === "biggest_move") {
+        const d = (moveBySlug.get(b.slug) ?? 0) - (moveBySlug.get(a.slug) ?? 0);
+        return d !== 0 ? d : tieSlug(a, b);
+      }
+      const d = parseRelativeMinutes(a.lastUpdated) - parseRelativeMinutes(b.lastUpdated);
+      return d !== 0 ? d : tieSlug(a, b);
     },
     [moveBySlug, sortKey],
   );
 
-  /** Ready/Active: catalog theses follow fixed macro breadth; user theses follow current sort. */
-  const focusOrdered = useMemo(() => orderFocusThesesCuratedThen(focus, focusTieBreak), [focus, focusTieBreak]);
+  /**
+   * Ready/Active ordering:
+   * - **Most recent update:** curated macro map first (breadth), then user rows by recency.
+   * - **Probability / biggest move:** same comparator as the main list so Sort applies to Focus catalog rows.
+   */
+  const focusOrdered = useMemo(() => {
+    if (sortKey === "recent") return orderFocusThesesCuratedThen(focus, focusTieBreak);
+    return [...focus].sort(focusTieBreak);
+  }, [focus, focusTieBreak, sortKey]);
 
   /** First Focus window size on the full ready/active list (used with Monitoring overflow split). */
   const focusWindowRows = useMemo(() => focusInitialVisibleCount(focusOrdered.length), [focusOrdered.length]);
