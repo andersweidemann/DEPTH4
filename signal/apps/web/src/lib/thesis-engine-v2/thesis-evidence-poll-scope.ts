@@ -43,3 +43,33 @@ export function buildEvidencePollThesisIds(args: {
 
   return out.slice(0, maxTotal);
 }
+
+/** IDs for user theses that participate in evidence polling (same status gate as `buildEvidencePollThesisIds`). */
+export function collectEligibleUserThesisPollIdSet(userTheses: Thesis[]): Set<string> {
+  const s = new Set<string>();
+  for (const t of userTheses) {
+    if (USER_THESIS_EVIDENCE_POLL_STATUSES.has(t.status)) s.add(t.id);
+  }
+  return s;
+}
+
+/**
+ * Bell / toast eligibility for *new* evidence rows. Scenario overrides apply to all polled theses;
+ * notifications stay scoped to followed catalog (star/book) plus eligible user theses the owner has in-session.
+ */
+export function isFreshEvidenceAlertEligible(args: {
+  thesisId: string;
+  starred: Iterable<string>;
+  openIds: Iterable<string>;
+  userPollIds: Set<string>;
+}): boolean {
+  const id = args.thesisId.trim();
+  if (!id) return false;
+  for (const x of Array.from(args.starred)) {
+    if (x === id) return true;
+  }
+  for (const x of Array.from(args.openIds)) {
+    if (x === id) return true;
+  }
+  return args.userPollIds.has(id);
+}

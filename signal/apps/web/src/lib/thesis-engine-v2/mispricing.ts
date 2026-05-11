@@ -49,8 +49,23 @@ function convictionMultiplier(thesis: Thesis) {
   return 1.3;
 }
 
-export function getThesisMispricing(thesis: Thesis): ThesisMispricing {
-  const seed = SEED_BY_SLUG[thesis.slug] ?? DEFAULT_SEED;
+export function getThesisMispricing(
+  thesis: Thesis,
+  options?: { liveEvidenceCount?: number },
+): ThesisMispricing {
+  const liveN = options?.liveEvidenceCount ?? 0;
+  let seed = SEED_BY_SLUG[thesis.slug] ?? DEFAULT_SEED;
+  // Catalog slugs get curated seeds; user theses rarely match — still move implied as evidence arrives.
+  if (thesis.origin === "user") {
+    const drift = Math.min(20, liveN * 5);
+    seed = {
+      marketImplied: clampInt(54 - drift, 28, 78),
+      explanation:
+        liveN > 0
+          ? "User thesis: implied pricing nudges as DEPTH4 logs server-matched evidence against your tags — not a live order book; sanity-check vs spot and flows."
+          : DEFAULT_SEED.explanation,
+    };
+  }
   const thesisProbability = clampInt(thesis.probability, 0, 100);
   const marketImplied = clampInt(seed.marketImplied, 0, 100);
   const gap = clampInt(thesisProbability - marketImplied, -100, 100);

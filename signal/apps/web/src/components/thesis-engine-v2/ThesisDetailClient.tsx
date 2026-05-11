@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 import type { ThesisDetailBundle, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
+import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
@@ -303,6 +304,13 @@ export function ThesisDetailClient({
     return liveOpt.evidenceLog.filter((r) => r.thesisId === bundle.thesis.id);
   }, [bundle, liveOpt]);
 
+  /** Feed assistant + Evidence timeline from `thesis_evidence_log` rows, not only static bundle.evidence. */
+  const mergedEvidenceTimeline = useMemo(() => {
+    if (!bundle) return [];
+    const p = thesisLive?.probability ?? bundle.thesis.probability;
+    return mergeEvidenceTimelineItems(liveEvidence, bundle.evidence, p);
+  }, [bundle, liveEvidence, thesisLive]);
+
   /** Scenario View: probabilities from live merged thesis; narrative fallbacks from bundle defaults. */
   const displayScenarios = useMemo(() => {
     if (!bundle || !thesisLive) return [];
@@ -386,8 +394,8 @@ export function ThesisDetailClient({
 
   const assistBundle = useMemo(() => {
     if (!bundle || !thesisLive) return null;
-    return { ...bundle, thesis: thesisLive };
-  }, [bundle, thesisLive]);
+    return { ...bundle, thesis: thesisLive, evidence: mergedEvidenceTimeline };
+  }, [bundle, thesisLive, mergedEvidenceTimeline]);
 
   const liveLine = useMemo(() => thesesLiveHeaderNeutral(), []);
 
@@ -451,7 +459,7 @@ export function ThesisDetailClient({
     );
   }
 
-  const { evidence, advisoryLog, relatedAssets } = bundle;
+  const { advisoryLog, relatedAssets } = bundle;
   const thesis = thesisLive!;
   const isUserThesis = bundle.thesis.origin === "user";
   const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
@@ -459,7 +467,7 @@ export function ThesisDetailClient({
   const entrySetupValid = thesis.status === "ready" && thesis.probability >= 55;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
-  const mispricing = getThesisMispricing(thesis);
+  const mispricing = getThesisMispricing(thesis, { liveEvidenceCount: liveEvidence.length });
 
   const inner = (
     <>
@@ -859,7 +867,7 @@ export function ThesisDetailClient({
             </ul>
           </section>
         ) : null}
-        <EvidenceTimeline items={evidence} />
+        <EvidenceTimeline items={mergedEvidenceTimeline} />
         {/* Insider Flow row (thesis-aware) */}
         {insider?.latest ? (
           <div className="rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-3">

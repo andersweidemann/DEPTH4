@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildEvidencePollThesisIds, EVIDENCE_POLL_MAX_THESIS_IDS } from "@/lib/thesis-engine-v2/thesis-evidence-poll-scope";
+import {
+  buildEvidencePollThesisIds,
+  collectEligibleUserThesisPollIdSet,
+  EVIDENCE_POLL_MAX_THESIS_IDS,
+  isFreshEvidenceAlertEligible,
+} from "@/lib/thesis-engine-v2/thesis-evidence-poll-scope";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
 function thesisStub(id: string, status: Thesis["status"]): Thesis {
@@ -37,5 +42,30 @@ describe("buildEvidencePollThesisIds", () => {
       userTheses: users,
     });
     expect(ids.length).toBe(EVIDENCE_POLL_MAX_THESIS_IDS);
+  });
+});
+
+describe("isFreshEvidenceAlertEligible", () => {
+  it("allows eligible user thesis ids without star", () => {
+    const userPoll = collectEligibleUserThesisPollIdSet([thesisStub("u-watch", "watching")]);
+    expect(
+      isFreshEvidenceAlertEligible({
+        thesisId: "u-watch",
+        starred: new Set(),
+        openIds: new Set(),
+        userPollIds: userPoll,
+      }),
+    ).toBe(true);
+  });
+
+  it("denies random thesis ids", () => {
+    expect(
+      isFreshEvidenceAlertEligible({
+        thesisId: "stranger",
+        starred: new Set(),
+        openIds: new Set(),
+        userPollIds: new Set(),
+      }),
+    ).toBe(false);
   });
 });

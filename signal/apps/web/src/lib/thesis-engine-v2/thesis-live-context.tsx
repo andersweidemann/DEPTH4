@@ -23,7 +23,11 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-outcomes-store";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
-import { buildEvidencePollThesisIds } from "@/lib/thesis-engine-v2/thesis-evidence-poll-scope";
+import {
+  buildEvidencePollThesisIds,
+  collectEligibleUserThesisPollIdSet,
+  isFreshEvidenceAlertEligible,
+} from "@/lib/thesis-engine-v2/thesis-evidence-poll-scope";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { InsiderFlowAnomaly } from "@/lib/thesis-engine-v2/insider-flow/types";
 import type { InsiderFlowPatternType, InsiderFlowStatus } from "@/lib/thesis-engine-v2/insider-flow/types";
@@ -516,15 +520,11 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
       const hw = evidenceHighWaterRef.current;
       const fresh = rows.filter((r) => r.createdAt > hw).sort((a, b) => a.createdAt - b.createdAt);
+      const userPollIds = collectEligibleUserThesisPollIdSet(loadUserTheses());
 
       for (const r of fresh) {
-        if (!starredRef.current.has(r.thesisId) && !openIdsRef.current.has(r.thesisId)) continue;
-        const pref = prefsRef.current[r.thesisId] ?? "major";
-        if (pref === "mute") continue;
-
-        const title = resolveThesisDisplayTitle(r.thesisId);
-        const signalLevel = typeof r.metadata?.signal_level === "number" ? r.metadata.signal_level : 0;
-
+        // Scenario patches: any thesis we poll (catalog + eligible user). Do not gate on star —
+        // user theses were incorrectly frozen because only starred ∪ book received merges.
         if (r.probabilityAfter) {
           const bt = baseThesisForId(r.thesisId);
           if (bt) {
@@ -534,6 +534,23 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
             }));
           }
         }
+
+        if (
+          !isFreshEvidenceAlertEligible({
+            thesisId: r.thesisId,
+            starred: starredRef.current,
+            openIds: openIdsRef.current,
+            userPollIds,
+          })
+        ) {
+          continue;
+        }
+
+        const pref = prefsRef.current[r.thesisId] ?? "major";
+        if (pref === "mute") continue;
+
+        const title = resolveThesisDisplayTitle(r.thesisId);
+        const signalLevel = typeof r.metadata?.signal_level === "number" ? r.metadata.signal_level : 0;
 
         const insiderEvt =
           r.eventType === "insider_flow" ||
