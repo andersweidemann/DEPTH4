@@ -2,7 +2,8 @@
  * Hydrates DEPTH4 personal state from the authenticated Supabase account after sign-in.
  *
  * **Source of truth:** `thesis_stars`, `depth4_user_book`, `depth4_user_alert_state`,
- * `public.theses` (user rows), `public.users.notification_preferences` keys `depth4ThesisNotifyPrefs` +
+ * `depth4_thesis_star_events` (append-only star/unstar toggle audit), `public.theses` (user rows),
+ * `public.users.notification_preferences` keys `depth4ThesisNotifyPrefs` +
  * `depth4ManualThesisOutcomes`.
  * **Session keys** (`depth4-session-keys.ts`) are caches for responsiveness — not authoritative.
  *

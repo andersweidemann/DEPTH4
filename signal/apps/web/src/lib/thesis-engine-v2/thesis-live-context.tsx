@@ -55,6 +55,7 @@ import {
   manualOutcomeStableAlertId,
 } from "@/lib/thesis-engine-v2/thesis-alert-from-evidence";
 import { DEPTH4_NOTIFY_PREFS_SESSION_KEY, DEPTH4_STARRED_SESSION_KEY } from "@/lib/thesis-engine-v2/depth4-session-keys";
+import { appendDepth4ThesisStarEvent } from "@/lib/thesis-engine-v2/depth4-thesis-star-events";
 
 const MAX_TICKER = 14;
 const MAX_ALERTS = 20;
@@ -867,6 +868,10 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   const toggleStar = useCallback((thesisId: string) => {
     if (openIds.has(thesisId)) return;
+    // Snapshot before setState so async persist matches the click (avoids ref/state race with getUser()).
+    const wasStarred = starredRef.current.has(thesisId);
+    const willStar = !wasStarred;
+
     setStarred((prev) => {
       const next = new Set(prev);
       if (next.has(thesisId)) next.delete(thesisId);
@@ -877,14 +882,15 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
     // Best-effort: persist star to Supabase for server-side cron scanning (only if signed in).
     const sb = createSbClient();
-    void sb.auth.getUser().then(({ data }) => {
+    void sb.auth.getUser().then(async ({ data }) => {
       const uid = data.user?.id;
       if (!uid) return;
-      const willStar = !starredRef.current.has(thesisId);
       if (willStar) {
-        void sb.from("thesis_stars").upsert({ user_id: uid, thesis_id: thesisId });
+        const r = await sb.from("thesis_stars").upsert({ user_id: uid, thesis_id: thesisId });
+        if (!r.error) await appendDepth4ThesisStarEvent(sb, { userId: uid, thesisId, action: "star" });
       } else {
-        void sb.from("thesis_stars").delete().eq("user_id", uid).eq("thesis_id", thesisId);
+        const r = await sb.from("thesis_stars").delete().eq("user_id", uid).eq("thesis_id", thesisId);
+        if (!r.error) await appendDepth4ThesisStarEvent(sb, { userId: uid, thesisId, action: "unstar" });
       }
     });
   }, [openIds]);
