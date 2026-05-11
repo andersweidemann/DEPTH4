@@ -18,6 +18,7 @@ import {
 import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
+import { shouldHideDashboardNumericProbability } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 
 type AssetClass = "all" | "equity" | "rates" | "fx" | "commodities" | "crypto";
@@ -25,6 +26,12 @@ type SortKey = "recent" | "probability" | "biggest_move";
 
 function leadScenarioOf(p: { base: number; bull: number; bear: number }) {
   return (["base", "bull", "bear"] as const).reduce((best, k) => (p[k] > p[best] ? k : best), "base");
+}
+
+function hideDashboardRowNumericProbability(t: Thesis, live: ReturnType<typeof useThesisLive>): boolean {
+  if (live.insiderFlowScenarioOverride(t.id)) return false;
+  if (t.status === "resolved" || t.status === "invalidated") return false;
+  return shouldHideDashboardNumericProbability(t);
 }
 
 function parseRelativeMinutes(s: string): number {
@@ -329,6 +336,7 @@ export function ThesesDashboardClient({
                   pulseKey={live.pulseKey(t.id)}
                   starred={live.isEffectivelyStarred(t.id)}
                   starDisabled={!!live.starDisabledReason(t.id)}
+                  hideNumericProbability={hideDashboardRowNumericProbability(t, live)}
                   onToggleStar={() => live.toggleStar(t.id)}
                   onSelect={() => setDrawerSlug(t.slug)}
                 />
@@ -381,6 +389,7 @@ export function ThesesDashboardClient({
                     pulseKey={live.pulseKey(t.id)}
                     starred={live.isEffectivelyStarred(t.id)}
                     starDisabled={!!live.starDisabledReason(t.id)}
+                    hideNumericProbability={hideDashboardRowNumericProbability(t, live)}
                     onToggleStar={() => live.toggleStar(t.id)}
                     onSelect={() => setDrawerSlug(t.slug)}
                   />
@@ -424,6 +433,7 @@ export function ThesesDashboardClient({
                   pulseKey={live.pulseKey(t.id)}
                   starred={live.isEffectivelyStarred(t.id)}
                   starDisabled={!!live.starDisabledReason(t.id)}
+                  hideNumericProbability={hideDashboardRowNumericProbability(t, live)}
                   onToggleStar={() => live.toggleStar(t.id)}
                   onSelect={() => setDrawerSlug(t.slug)}
                 />

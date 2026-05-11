@@ -169,3 +169,13 @@ export function thesisWithSyncedLiveProbability<T extends Thesis>(thesis: T): T 
   if (p === thesis.probability) return thesis;
   return { ...thesis, probability: p };
 }
+
+/**
+ * List/dashboard rows: `thesis.probability` is synced to the **lead** scenario %, which collapses to the same
+ * value for every thesis still on a known seed/template triple. Hide exact % in those rows so we do not imply
+ * thesis-specific calibration (detail pages may still show scenario cards per existing rules).
+ */
+export function shouldHideDashboardNumericProbability(thesis: Thesis): boolean {
+  const rows = buildDisplayScenariosFromThesis(thesis, narrativeFallbackScenariosForThesis(thesis));
+  return isUncalibratedDisplayScenarioTriple(rows);
+}
