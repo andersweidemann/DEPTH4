@@ -17,6 +17,14 @@ const nextConfig = {
   transpilePackages: ["@signal/shared", "@signal/ai"],
   /** Stops /_next static chunk loads from failing when the tab uses 127.0.0.1 but the visit was started as localhost (or the reverse). */
   allowedDevOrigins: ["127.0.0.1", "localhost"],
+  async redirects() {
+    return [
+      { source: "/feed-2", destination: "/feed", permanent: true },
+      { source: "/feed-2/:path*", destination: "/feed/:path*", permanent: true },
+      { source: "/book-2", destination: "/book", permanent: true },
+      { source: "/book-2/:path*", destination: "/book/:path*", permanent: true },
+    ];
+  },
 };
 
 export default withPWA(nextConfig);

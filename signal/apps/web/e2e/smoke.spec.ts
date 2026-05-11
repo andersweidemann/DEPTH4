@@ -43,7 +43,7 @@ test("depth4 theses → drawer → book critical path", async ({ page }) => {
   await page.getByTestId("thesis-alert-dismiss").click();
   await expect(page.getByTestId("thesis-alert-row")).toBeHidden();
 
-  await page.goto("/book-2");
+  await page.goto("/book");
   await expect(page.getByTestId("book-session-open-count")).toHaveText("1");
 
   await page.locator('[data-testid^="book-close-position-"]').click();

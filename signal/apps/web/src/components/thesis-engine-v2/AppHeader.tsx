@@ -77,8 +77,8 @@ export function AppHeader({
           aria-label="Primary"
         >
           {tab("theses", "/theses", "Theses")}
-          {tab("feed", "/feed-2", "Feed")}
-          {tab("book", "/book-2", "Positions")}
+          {tab("feed", "/feed", "Feed")}
+          {tab("book", "/book", "Positions")}
           {tab("community", "/community", "Community")}
           {tab("leaderboard", "/leaderboard", "Leaderboard")}
           {tab("help", "/help", "Help")}

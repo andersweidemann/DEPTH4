@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AppHeader } from "@/components/thesis-engine-v2/AppHeader";
-import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { AdvisoryLog } from "@/components/thesis-engine-v2/AdvisoryLog";
 import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
@@ -468,8 +466,10 @@ export function ThesisDetailClient({
     }
     return (
       <>
-        <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
-        <main className="mx-auto max-w-3xl px-5 pb-24 pt-8">
+        {liveLine.trim() ? (
+          <p className="mb-4 text-[12px] leading-snug text-zinc-500 sm:text-[11px]">{liveLine}</p>
+        ) : null}
+        <div className="pb-24 pt-2">
           <Link
             href="/theses"
             className="text-[11px] font-medium text-zinc-500 transition-colors hover:text-amber-500/90"
@@ -482,7 +482,7 @@ export function ThesisDetailClient({
               This slug doesn&apos;t match a system thesis or a stored user thesis in this browser session.
             </p>
           </div>
-        </main>
+        </div>
       </>
     );
   }
@@ -573,7 +573,7 @@ export function ThesisDetailClient({
                   })}
                 </span>
               ) : null}
-              <Link href="/book-2" className="ml-auto text-[11px] font-semibold text-amber-200/90 hover:text-amber-100">
+              <Link href="/book" className="ml-auto text-[11px] font-semibold text-amber-200/90 hover:text-amber-100">
                 View in Book →
               </Link>
             </div>
@@ -1023,13 +1023,15 @@ export function ThesisDetailClient({
 
   return (
     <>
-      <AppHeader active="theses" liveLine={liveLine} alertsSlot={<ThesisAlertsBell />} />
-      <main className="mx-auto max-w-3xl px-5 pb-24 pt-8">
+      {liveLine.trim() ? (
+        <p className="mb-4 text-[12px] leading-snug text-zinc-500 sm:text-[11px]">{liveLine}</p>
+      ) : null}
+      <div className="pb-24 pt-2">
         <Link href="/theses" className="text-[11px] font-medium text-zinc-500 transition-colors hover:text-amber-500/90">
           ← All theses
         </Link>
         {inner}
-      </main>
+      </div>
       {modals}
     </>
   );

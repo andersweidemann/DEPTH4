@@ -48,7 +48,7 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
     >
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Outcome & history</h2>
-        <Link href="/book-2" className="text-[10px] font-semibold text-amber-200/90 hover:text-amber-100">
+        <Link href="/book" className="text-[10px] font-semibold text-amber-200/90 hover:text-amber-100">
           Book →
         </Link>
       </div>

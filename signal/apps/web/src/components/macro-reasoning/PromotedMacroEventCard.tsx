@@ -72,7 +72,7 @@ export function PromotedMacroEventCard({
 
       <div className="mt-4">
         <Link
-          href={`/feed-2/events/${row.news_event_id}`}
+          href={`/feed/events/${row.news_event_id}`}
           className="inline-flex min-h-11 items-center justify-center rounded-md border border-white/[0.08] bg-zinc-900/40 px-4 py-2.5 text-[12px] font-semibold text-zinc-100 transition-colors hover:border-[#E8473F]/35 hover:bg-zinc-900/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E8473F] sm:min-h-0"
         >
           Open reasoning
