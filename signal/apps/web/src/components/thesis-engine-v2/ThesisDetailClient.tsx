@@ -206,15 +206,17 @@ export function ThesisDetailClient({
   }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities]);
 
   /** Ensure this thesis_id is polled first for `thesis_evidence_log` (system + user); avoids empty timeline under global row caps. */
+  const registerEvidencePollPriority = liveOpt?.registerEvidenceLogPollPriorityThesisId;
   useEffect(() => {
-    const reg = liveOpt?.registerEvidenceLogPollPriorityThesisId;
-    if (!reg) return;
+    if (!registerEvidencePollPriority) return;
     const id = bundle?.thesis.id?.trim() || null;
-    reg(id);
+    registerEvidencePollPriority(id);
     return () => {
-      reg(null);
+      registerEvidencePollPriority(null);
     };
-  }, [liveOpt, bundle?.thesis.id]);
+    // Do not depend on `liveOpt` — context value identity changes every evidence tick and would
+    // re-fire this effect, spamming priority registration and restarting pollers (drawer freeze).
+  }, [registerEvidencePollPriority, bundle?.thesis.id]);
 
   /** Re-fetch user thesis row from Supabase so scenario_probabilities / body match cron + evidence updates. */
   useEffect(() => {

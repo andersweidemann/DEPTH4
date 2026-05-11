@@ -364,7 +364,11 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   const registerEvidenceLogPollPriorityThesisId = useCallback((thesisId: string | null) => {
     const next = thesisId?.trim() || null;
+    const prev = evidencePollPriorityThesisIdRef.current;
+    if (prev === next) return;
     evidencePollPriorityThesisIdRef.current = next;
+    // Bump only on real changes so evidence/insider poll effects are not torn down on every
+    // ThesisLiveProvider re-render (was freezing /theses when closing the detail drawer).
     setEvidencePollPriorityNonce((n) => n + 1);
   }, []);
 
