@@ -220,7 +220,7 @@ function generateDraftFromPrompt(prompt: string): Pick<
   const oilTheme = /\bopec\b|\bbrent\b|\bwti\b|\boil\b/i.test(p);
 
   const firstClause = p.length ? p.split(/[.!?]/)[0]!.trim() : "";
-  let title =
+  const title =
     asset === "BTC" && clarityAct
       ? "BTC rerating risk if US crypto clarity legislation lands clean"
       : asset !== "—" && firstClause
