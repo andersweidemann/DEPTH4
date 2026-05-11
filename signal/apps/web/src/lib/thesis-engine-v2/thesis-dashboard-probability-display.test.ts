@@ -8,7 +8,6 @@ import {
   narrativeFallbackScenariosForThesis,
   overlayDbScenarioProbabilities,
   scenarioOverridesFromRows,
-  shouldHideDashboardNumericProbability,
   thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { mergeThesis } from "@/lib/thesis-engine-v2/thesis-merge";
@@ -22,8 +21,8 @@ const SEED_CATALOG_SLUGS = [
   { slug: "china-stimulus-copper-long", label: "copper" },
 ] as const;
 
-describe("dashboard row probability (seed regression guard)", () => {
-  it("marks all five catalog defaults as hide-numeric (template triple) and synced lead is 40", () => {
+describe("thesis probability display (catalog + live merge)", () => {
+  it("A: initial catalog state — template triple, hero synced to lead 40", () => {
     for (const { slug } of SEED_CATALOG_SLUGS) {
       const raw = getThesisBySlug(slug);
       expect(raw, slug).toBeTruthy();
@@ -31,22 +30,47 @@ describe("dashboard row probability (seed regression guard)", () => {
       const fallback = narrativeFallbackScenariosForThesis(t);
       const display = buildDisplayScenariosFromThesis(t, fallback);
       const [c, m, b] = displayScenarioTripleCleanMessyBroken(display);
-      expect(shouldHideDashboardNumericProbability(t), slug).toBe(true);
       expect(currentThesisProbabilityFromThesis(t)).toBe(40);
       expect(t.probability).toBe(40);
       expect([c, m, b]).toEqual([40, 35, 25]);
     }
   });
 
-  it("shows numeric again when scenario triple diverges from templates", () => {
+  it("B + D: first live analysis — non-seed DB triple updates Scenario View and hero (dashboard/detail same helpers)", () => {
     const raw = getThesisBySlug("war-peace-gold-short")!;
     const rows = narrativeFallbackScenariosForThesis(raw);
     const seeded = scenarioOverridesFromRows(rows);
-    const patched = overlayDbScenarioProbabilities(seeded, { base: 48, bull: 32, bear: 20 });
-    const merged = mergeThesis(raw, { scenarioOverrides: patched });
-    const live = thesisWithSyncedLiveProbability(merged);
-    expect(shouldHideDashboardNumericProbability(live)).toBe(false);
-    expect(leadScenarioProbabilityFromDbTriple({ base: 48, bull: 32, bear: 20 })).toBe(48);
-    expect(live.probability).toBe(48);
+    const liveDb = { base: 28, bull: 52, bear: 20 };
+    const patched = overlayDbScenarioProbabilities(seeded, liveDb);
+    const merged = thesisWithSyncedLiveProbability(mergeThesis(raw, { scenarioOverrides: patched }));
+    const display = buildDisplayScenariosFromThesis(merged, rows);
+    const [c, m, b] = displayScenarioTripleCleanMessyBroken(display);
+    expect([c, m, b]).toEqual([52, 28, 20]);
+    expect(leadScenarioProbabilityFromDbTriple(liveDb)).toBe(52);
+    expect(merged.probability).toBe(52);
+    expect(currentThesisProbabilityFromThesis(merged)).toBe(52);
+  });
+
+  it("C: refresh / re-merge — seed base does not overwrite when patch is re-applied from persisted live state", () => {
+    const raw = getThesisBySlug("war-peace-gold-short")!;
+    const rows = narrativeFallbackScenariosForThesis(raw);
+    const seeded = scenarioOverridesFromRows(rows);
+    const liveDb = { base: 28, bull: 52, bear: 20 };
+    const patched = overlayDbScenarioProbabilities(seeded, liveDb);
+    const once = thesisWithSyncedLiveProbability(mergeThesis(raw, { scenarioOverrides: patched }));
+    const twice = thesisWithSyncedLiveProbability(mergeThesis(raw, { scenarioOverrides: patched }));
+    expect(once.probability).toBe(52);
+    expect(twice.probability).toBe(52);
+    expect(displayScenarioTripleCleanMessyBroken(buildDisplayScenariosFromThesis(twice, rows))).toEqual([52, 28, 20]);
+  });
+
+  it("E: evidence headline alignment — hero matches lead of the same triple used for cards", () => {
+    const raw = getThesisBySlug("fed-pivot-delayed-tlt-weakness")!;
+    const rows = narrativeFallbackScenariosForThesis(raw);
+    const patched = overlayDbScenarioProbabilities(scenarioOverridesFromRows(rows), { base: 48, bull: 32, bear: 20 });
+    const live = thesisWithSyncedLiveProbability(mergeThesis(raw, { scenarioOverrides: patched }));
+    const lead = leadScenarioProbabilityFromDbTriple({ base: 48, bull: 32, bear: 20 });
+    expect(live.probability).toBe(lead);
+    expect(currentThesisProbabilityFromThesis(live)).toBe(lead);
   });
 });

@@ -42,7 +42,6 @@ export function ThesisTableRow({
   pulseKey,
   starred,
   starDisabled,
-  hideNumericProbability,
   onToggleStar,
   onSelect,
 }: {
@@ -51,8 +50,6 @@ export function ThesisTableRow({
   pulseKey?: number;
   starred: boolean;
   starDisabled?: boolean;
-  /** When true, row probability still matches a seed/template scenario mix — show “Calibrating”, not a fake exact %. */
-  hideNumericProbability?: boolean;
   onToggleStar: () => void;
   onSelect: () => void;
 }) {
@@ -97,21 +94,11 @@ export function ThesisTableRow({
           <div className="min-w-[140px] text-right">
             <div className="flex items-center gap-3">
               <div className="flex-1 h-[1px] bg-white/10">
-                {hideNumericProbability ? (
-                  <div className="h-full w-full bg-zinc-700/45" aria-hidden />
-                ) : (
-                  <div className="h-full bg-amber-400/90" style={{ width: `${Math.max(0, Math.min(100, thesis.probability))}%` }} />
-                )}
+                <div className="h-full bg-amber-400/90" style={{ width: `${Math.max(0, Math.min(100, thesis.probability))}%` }} />
               </div>
-              {hideNumericProbability ? (
-                <Tooltip label="Scenario mix is still on the default template; a precise headline % appears once live evidence moves weights off the seed.">
-                  <span className="text-[12px] font-semibold tabular-nums text-zinc-500">Calibrating</span>
-                </Tooltip>
-              ) : (
-                <Tooltip label="Likelihood estimate based on current evidence">
-                  <span className="text-[12px] font-semibold tabular-nums text-zinc-300">{thesis.probability}%</span>
-                </Tooltip>
-              )}
+              <Tooltip label="Likelihood estimate from current scenario weights (updates as evidence arrives)">
+                <span className="text-[12px] font-semibold tabular-nums text-zinc-300">{thesis.probability}%</span>
+              </Tooltip>
             </div>
             <div className="mt-1 text-[10px] tabular-nums text-zinc-600">
               <Tooltip label={<MispricingTooltipContent m={mispricing} />}>

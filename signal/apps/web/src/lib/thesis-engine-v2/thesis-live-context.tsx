@@ -40,6 +40,7 @@ import {
   leadScenarioProbabilityFromDbTriple,
   thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { latestNonSeedScenarioTripleByThesisId } from "@/lib/thesis-engine-v2/thesis-evidence-scenario-bootstrap";
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { hydrateDepth4AccountState } from "@/lib/thesis-engine-v2/depth4-account-hydration";
 import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
@@ -606,6 +607,22 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       if (!evidenceBootRef.current) {
         evidenceBootRef.current = true;
         evidenceHighWaterRef.current = rows.reduce((m, r) => Math.max(m, r.createdAt), Date.now());
+        // First poll: merge latest non-seed scenario triple per thesis from **historical** rows too.
+        // Previously only "fresh" rows after boot updated overrides — evidence never applied → stuck 40/35/25.
+        const latestByThesis = latestNonSeedScenarioTripleByThesisId(
+          rows.map((r) => ({ thesisId: r.thesisId, createdAt: r.createdAt, probabilityAfter: r.probabilityAfter })),
+        );
+        if (latestByThesis.size > 0) {
+          setOverrides((prev) => {
+            const next = { ...prev };
+            latestByThesis.forEach((triple, thesisId) => {
+              const bt = baseThesisForId(thesisId);
+              if (!bt) return;
+              next[thesisId] = { ...(next[thesisId] ?? {}), ...scenarioProbPatchFromDb(bt, triple) };
+            });
+            return next;
+          });
+        }
         if (!alertsReplayedRef.current) {
           alertsReplayedRef.current = true;
           const userPollIdsBoot = collectEligibleUserThesisPollIdSet(loadUserTheses());

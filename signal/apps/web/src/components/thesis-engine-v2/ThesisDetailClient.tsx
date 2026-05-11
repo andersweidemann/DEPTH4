@@ -64,8 +64,9 @@ import { logScenarioProbabilitySnapshot } from "@/lib/thesis-engine-v2/scenario-
  * across all catalog theses until evidence/cron writes a divergent value;
  * overlaying it only rotated the template (e.g. 35/40/25 on cards) without
  * adding information. Skipping the overlay keeps catalog-authored weights
- * until the DB moves off the seed. `isUncalibratedDisplayScenarioTriple`
- * still hides percentages while the visible triple matches a known template.
+ * until the DB moves off the seed. The server header fetch also lifts the latest
+ * non-seed `probability_after` from `thesis_evidence_log` when the DB column is
+ * still the seed, so first paint matches live analysis.
  */
 function withCatalogHeader(
   bundle: ThesisDetailBundle,

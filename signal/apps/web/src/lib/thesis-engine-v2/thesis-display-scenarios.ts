@@ -38,15 +38,12 @@ export function displayScenarioTripleCleanMessyBroken(scenarios: ThesisScenarioL
  * Treats a scenario triple as "uncalibrated" when it matches one of
  * our seed templates (clean, messy, broken probabilities).
  *
- * These templates are useful as authoring defaults but should not be
- * shown as if they were live, thesis-specific probabilities for **user**
- * theses. The UI uses this flag to hide % / show calibrating unless
- * insider override applies or the thesis is a shipped catalog row
- * (`isCatalogThesisId` in `ThesisDetailClient`).
+ * These templates are useful as authoring defaults. **User** thesis Scenario View
+ * may keep template gating until weights diverge, insider flow applies, or the
+ * evidence model emits a provisional triple (`ThesisDetailClient` + `ScenarioPanel`).
  *
  * Once DB / evidence / insider overrides move a thesis away from
- * these templates, the triple is no longer considered uncalibrated
- * and we can safely display numbers.
+ * these templates, the triple is no longer considered uncalibrated.
  *
  * Callers that also apply an **insider-flow suggestion** should treat
  * the scenario as authoritative regardless of this helper (see
@@ -168,14 +165,4 @@ export function thesisWithSyncedLiveProbability<T extends Thesis>(thesis: T): T 
   const p = currentThesisProbabilityFromThesis(thesis);
   if (p === thesis.probability) return thesis;
   return { ...thesis, probability: p };
-}
-
-/**
- * List/dashboard rows: `thesis.probability` is synced to the **lead** scenario %, which collapses to the same
- * value for every thesis still on a known seed/template triple. Hide exact % in those rows so we do not imply
- * thesis-specific calibration (detail pages may still show scenario cards per existing rules).
- */
-export function shouldHideDashboardNumericProbability(thesis: Thesis): boolean {
-  const rows = buildDisplayScenariosFromThesis(thesis, narrativeFallbackScenariosForThesis(thesis));
-  return isUncalibratedDisplayScenarioTriple(rows);
 }
