@@ -527,7 +527,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     setAlerts((cur) => {
       const idx = cur.findIndex((x) => x.id === entry.id);
       if (idx >= 0) {
-        const prev = cur[idx]!;
         return cur.map((x, i) => (i === idx ? { ...entry, read: x.read || entry.read } : x));
       }
       return [entry, ...cur].slice(0, MAX_ALERTS);
