@@ -1,3 +1,4 @@
+import { authPostSignOutUrl } from "@/lib/auth/sign-out-landing";
 import {
   isLikelySupabaseJwtAnonKey,
   normalizeSupabaseAnonKey,
@@ -12,7 +13,7 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const supabaseKey = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  const welcome = new URL("/", request.url);
+  const welcome = authPostSignOutUrl(request.url);
 
   if (!supabaseUrl || !supabaseKey || !isLikelySupabaseJwtAnonKey(supabaseKey)) {
     return NextResponse.redirect(welcome);
