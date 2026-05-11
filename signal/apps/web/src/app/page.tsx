@@ -7,7 +7,7 @@ import { buttonVariants } from "@/components/ui/button";
 export const metadata: Metadata = {
   title: "DEPTH4 — Macro intelligence & trade planning",
   description:
-    "DEPTH4 reads the news, thinks four steps ahead, and turns narratives into tradeable theses with probabilities, price levels, and early-warning signals.",
+    "DEPTH4 is a macro intelligence engine that reads the news, thinks four steps ahead, and turns narratives into tradeable theses with probabilities, mispricing, price levels, and early-warning signals.",
 };
 
 export default function HomePage() {
@@ -49,11 +49,11 @@ export default function HomePage() {
             </h1>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-zinc-300">
               DEPTH4 is a macro intelligence engine that reads the news, thinks four steps ahead, and turns narratives
-              into tradeable theses with probabilities, price levels, and early-warning signals.
+              into tradeable theses with probabilities, mispricing, price levels, and early-warning signals.
             </p>
             <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-zinc-400">
-              Stop staring at charts. Prices move because of stories. DEPTH4 analyzes news, builds a thesis, estimates the
-              odds, and shows where the market hasn&apos;t caught up yet.
+              Stop staring at charts. Prices move because of stories. DEPTH4 ingests the news, builds the thesis, estimates
+              the odds, and shows where the market hasn&apos;t caught up yet.
             </p>
 
             <div className="mt-8 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -66,6 +66,35 @@ export default function HomePage() {
               >
                 Start free
               </Link>
+            </div>
+
+            <div className="mt-10 max-w-xl rounded-lg border border-white/[0.08] bg-zinc-900/30 px-4 py-5 ring-1 ring-white/[0.05] sm:px-5">
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-50">What DEPTH4 does</h2>
+              <p className="mt-2 text-[14px] leading-relaxed text-zinc-300">
+                DEPTH4 is a macro intelligence + thesis engine that:
+              </p>
+              <ul className="mt-3 list-none space-y-2 text-[14px] leading-relaxed text-zinc-300">
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>ingests live news and macro events</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>structures them into tradeable narratives</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>assigns probabilities to each thesis</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>maps where the market looks mispriced</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>sketches trade plans with entry, stop, and targets</span>
+                </li>
+              </ul>
             </div>
           </div>
 
@@ -101,14 +130,30 @@ export default function HomePage() {
             </div>
             <div className="lg:col-span-7 space-y-4">
               <p className="text-[14px] leading-relaxed text-zinc-300">
-                DEPTH4 analyzes macro news, policy shifts, and data releases, then builds a structured trading thesis that
-                thinks four steps ahead:
+                DEPTH4 ingests macro news, policy shifts, and data releases, then turns them into a structured trading thesis
+                that thinks four steps ahead.
               </p>
-              <ul className="list-disc space-y-2 pl-5 text-[14px] leading-relaxed text-zinc-300">
-                <li>identifies the catalyst and follow-on events,</li>
-                <li>estimates a probability for the thesis to play out,</li>
-                <li>highlights where the market looks mispriced,</li>
-                <li>and sketches a live trade plan with entry, stop, and targets.</li>
+              <ul className="list-none space-y-2 text-[14px] leading-relaxed text-zinc-300">
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>Identify the catalyst and follow-on events</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>Structure the narrative across time</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>Estimate the probability of the thesis playing out</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>Highlight where the market looks mispriced</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="mt-[0.35em] h-1 w-1 shrink-0 rounded-full bg-zinc-500" aria-hidden />
+                  <span>Sketch a live trade plan with entry, stop, and targets</span>
+                </li>
               </ul>
               <p className="text-[13px] leading-relaxed text-zinc-400">
                 The news is the fuel. The thesis — and the trade tied to it — is the product.
@@ -125,13 +170,9 @@ export default function HomePage() {
             </div>
             <div className="lg:col-span-7">
               <p className="text-[14px] leading-relaxed text-zinc-300">
-                A macro thesis is not one headline. It is a multi‑event narrative that unfolds across policy shifts,
-                speeches, data, positioning, and flows. DEPTH4 tracks that story across the full news cycle, updates
-                probability in real time, and shows what the market still has not priced in.
-              </p>
-              <p className="mt-4 text-[14px] leading-relaxed text-zinc-300">
-                DEPTH4 ties that narrative to a probability view and a concrete trade plan so you can see both the story
-                and the pricing gap — not just the last headline.
+                A macro thesis is not one headline — it is a multi‑event arc across policy, data, positioning, and flows.
+                DEPTH4 follows that arc so you see the story and the gap versus what is priced in, not just the last
+                headline.
               </p>
             </div>
           </div>
@@ -165,8 +206,8 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="mt-4 text-[13px] leading-relaxed text-zinc-400">
-                Most traders stop at the news. DEPTH4 connects all four levels so you can see the narrative, the pricing
-                gap, and the trade.
+                Most traders stop at the headline. This stack is how DEPTH4 links headline → thesis → mispricing → trade
+                so the story and the book stay aligned.
               </p>
             </div>
           </div>
@@ -186,11 +227,11 @@ export default function HomePage() {
                     "Start from your own idea (“Bitcoin spikes if the Clarity Act passes”) or from DEPTH4’s live macro board of in‑flight theses.",
                   ],
                   [
-                    "2. DEPTH4 thinks through the narrative",
+                    "2. DEPTH4 structures the narrative",
                     "The engine maps catalysts, first‑ and second‑order consequences, winners and losers, and what would make the thesis messy or broken.",
                   ],
                   [
-                    "3. Get probabilities and see the mispricing",
+                    "3. Get probabilities and map the mispricing",
                     "DEPTH4 assigns a probability path to your thesis and compares it to what the market appears to have priced in.",
                   ],
                   [
@@ -238,9 +279,9 @@ export default function HomePage() {
               <div className="mt-6 border-t border-white/[0.06] pt-6">
                 <h3 className="text-[13px] font-semibold text-zinc-200">For serious retail traders</h3>
                 <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">
-                  Stop doom‑scrolling charts. News drives prices. DEPTH4 helps you learn what&apos;s happening in the world,
-                  why it matters for the assets you care about, and how to express that view with a structured plan — instead
-                  of chasing every candle.
+                  Stop staring at charts all day. News drives prices. DEPTH4 helps you understand what&apos;s happening in
+                  the world, why it matters for the assets you care about, and how to turn that view into a structured trade
+                  — instead of chasing every candle.
                 </p>
               </div>
             </div>
