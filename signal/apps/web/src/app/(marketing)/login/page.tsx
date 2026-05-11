@@ -7,8 +7,29 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { safeAppPath } from "@/lib/app-paths";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
-import { Depth4Wordmark } from "@/components/brand/Depth4Wordmark";
+
+function GoogleIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden>
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
+    </svg>
+  );
+}
 
 function isValidEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
@@ -60,7 +81,6 @@ function LoginPageInner() {
       setSubmitting(true);
       try {
         const origin = typeof window !== "undefined" ? window.location.origin : "";
-        // Password reset email; dedicated reset UI may be added separately.
         const { error } = await supa.auth.resetPasswordForEmail(email.trim(), {
           redirectTo: `${origin}/login?next=${encodeURIComponent(next)}`,
         });
@@ -92,7 +112,6 @@ function LoginPageInner() {
         setErr(error.message);
         return;
       }
-      // Supabase persists session by default; keep "remember me" as a UX hint for future wiring.
       void remember;
       router.push(next);
     } catch (caught) {
@@ -127,165 +146,158 @@ function LoginPageInner() {
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 py-12 lg:grid-cols-12 lg:gap-12">
-        <div className="lg:col-span-5">
-          <div className="mt-2 flex justify-center lg:hidden">
-            <div className="text-center">
-              <Depth4Wordmark size="lg" align="center" />
-              <span className="mt-1 block text-[10px] font-medium uppercase tracking-[2.5px] text-zinc-600">
-                Your macro thesis engine
-              </span>
+    <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-5 py-12 lg:grid-cols-2">
+      <div className="hidden lg:block">
+        <h1 className="text-3xl font-semibold tracking-tight text-zinc-50">Log in</h1>
+        <p className="mt-2 text-[14px] leading-relaxed text-zinc-400">
+          Access your macro theses, live thesis conviction updates, and trade review.
+        </p>
+      </div>
+
+      <div>
+        <div className="rounded-lg border border-white/[0.06] bg-zinc-900/30 p-6 sm:p-8">
+          <form onSubmit={onSubmit} className="space-y-0" aria-label="Log in form">
+            <button
+              type="button"
+              onClick={() => void google()}
+              disabled={submitting}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-white py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-100 disabled:opacity-60"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </button>
+
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-white/[0.06]" />
+              <span className="text-[12px] text-zinc-500">or</span>
+              <div className="h-px flex-1 bg-white/[0.06]" />
             </div>
-          </div>
-          <h1 className="mt-6 text-3xl font-semibold tracking-tight text-zinc-50">Log in</h1>
-          <p className="mt-3 max-w-md text-[13px] leading-relaxed text-zinc-300">
-            Access your macro theses, live thesis conviction updates, and trade review.
-          </p>
-        </div>
 
-        <div className="lg:col-span-7">
-          <div className="max-w-xl bg-zinc-950/35 p-6 ring-1 ring-white/[0.08] sm:p-7">
-            <form onSubmit={onSubmit} className="space-y-4" aria-label="Log in form">
-              <button
-                type="button"
-                onClick={() => void google()}
-                disabled={submitting}
-                className={cn(
-                  buttonVariants({ size: "lg" }),
-                  "w-full justify-center rounded-md bg-white text-zinc-900 hover:bg-zinc-200 disabled:opacity-60",
-                )}
-              >
-                Continue with Google
-              </button>
+            <div>
+              <label className="mb-1.5 block text-[10px] uppercase tracking-[0.14em] text-zinc-500" htmlFor="login-email">
+                Email
+              </label>
+              <input
+                id="login-email"
+                type="email"
+                placeholder="you@domain.com"
+                autoComplete="email"
+                inputMode="email"
+                value={email}
+                onChange={(e2) => setEmail(e2.target.value)}
+                className="w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              />
+            </div>
 
-              <div className="flex items-center gap-3 py-1">
-                <div className="h-px flex-1 bg-white/[0.06]" />
-                <span className="text-[11px] text-zinc-500">or</span>
-                <div className="h-px flex-1 bg-white/[0.06]" />
-              </div>
-
-              <div className="grid gap-3">
-                <div>
-                  <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Email</label>
-                  <input
-                    className="mt-2 w-full rounded-md bg-zinc-900/30 px-3 py-3 text-[16px] text-zinc-100 ring-1 ring-white/[0.08] focus:outline-none focus:ring-amber-500/25 sm:py-2 sm:text-[13px]"
-                    type="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    placeholder="you@domain.com"
-                    value={email}
-                    onChange={(e2) => setEmail(e2.target.value)}
-                  />
+            {mode === "login" ? (
+              <>
+                <div className="mt-4">
+                  <label className="mb-1.5 block text-[10px] uppercase tracking-[0.14em] text-zinc-500" htmlFor="login-password">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="login-password"
+                      type={showPw ? "text" : "password"}
+                      placeholder="Password"
+                      autoComplete="current-password"
+                      value={pw}
+                      onChange={(e2) => setPw(e2.target.value)}
+                      className="w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 pr-16 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] text-zinc-400 hover:text-zinc-200"
+                      onClick={() => setShowPw((v) => !v)}
+                      aria-label={showPw ? "Hide password" : "Show password"}
+                    >
+                      {showPw ? "Hide" : "Show"}
+                    </button>
+                  </div>
                 </div>
 
-                {mode === "login" ? (
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Password</label>
-                    <div className="mt-2 grid grid-cols-[1fr_auto] items-stretch gap-2">
-                      <input
-                        className="w-full rounded-md bg-zinc-900/30 px-3 py-3 text-[16px] text-zinc-100 ring-1 ring-white/[0.08] focus:outline-none focus:ring-amber-500/25 sm:py-2 sm:text-[13px]"
-                        type={showPw ? "text" : "password"}
-                        autoComplete="current-password"
-                        placeholder="Password"
-                        value={pw}
-                        onChange={(e2) => setPw(e2.target.value)}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPw((v) => !v)}
-                        className="min-h-11 rounded-md bg-zinc-900/40 px-3 text-[12px] font-medium text-zinc-300 ring-1 ring-white/[0.08] hover:bg-zinc-900/55 sm:min-h-0 sm:text-[11px]"
-                        aria-label={showPw ? "Hide password" : "Show password"}
-                      >
-                        {showPw ? "Hide" : "Show"}
-                      </button>
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[12px]">
-                      <label className="flex items-center gap-2 text-zinc-500">
-                        <input
-                          type="checkbox"
-                          checked={remember}
-                          onChange={(e2) => setRemember(e2.target.checked)}
-                          className="h-4 w-4 accent-amber-500"
-                        />
-                        Remember me
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMode("reset");
-                          setMsg("");
-                          setErr("");
-                        }}
-                        className="font-medium text-zinc-300 hover:text-zinc-100"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="bg-zinc-900/20 px-4 py-3 text-[12px] text-zinc-300">
-                    <p className="font-medium text-zinc-100">Reset password</p>
-                    <p className="mt-1 text-zinc-400">We’ll email you a reset link.</p>
-                    <div className="mt-3">
-                      <button
-                        type="button"
-                        className="text-[12px] font-medium text-zinc-300 hover:text-zinc-100"
-                        onClick={() => {
-                          setMode("login");
-                          setMsg("");
-                          setErr("");
-                        }}
-                      >
-                        ← Back to login
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className="mt-4 flex items-center justify-between">
+                  <label className="flex items-center gap-2 text-[12px] text-zinc-400">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e2) => setRemember(e2.target.checked)}
+                      className="h-3.5 w-3.5 rounded border-white/[0.08] bg-zinc-900/50 accent-amber-500"
+                    />
+                    Remember me
+                  </label>
+                  <button
+                    type="button"
+                    className="text-[12px] text-zinc-400 hover:text-zinc-200"
+                    onClick={() => {
+                      setMode("reset");
+                      setMsg("");
+                      setErr("");
+                    }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-4 rounded-md border border-white/[0.06] bg-zinc-900/40 px-4 py-3 text-[13px] text-zinc-300">
+                <p className="font-medium text-zinc-100">Reset password</p>
+                <p className="mt-1 text-zinc-400">We&apos;ll email you a reset link.</p>
+                <button
+                  type="button"
+                  className="mt-3 text-[12px] font-medium text-zinc-400 hover:text-zinc-200"
+                  onClick={() => {
+                    setMode("login");
+                    setMsg("");
+                    setErr("");
+                  }}
+                >
+                  ← Back to login
+                </button>
               </div>
+            )}
 
-              {err ? <p className="text-[12px] text-red-300/90">{err}</p> : null}
-              {msg ? <p className="text-[12px] text-emerald-200/90">{msg}</p> : null}
+            {err ? <p className="mt-4 text-[12px] text-red-300/90">{err}</p> : null}
+            {msg ? <p className="mt-4 text-[12px] text-emerald-200/90">{msg}</p> : null}
 
-              <button
-                type="submit"
-                disabled={mode === "login" ? !canLogin : !canReset}
-                className={cn(
-                  buttonVariants({ size: "lg" }),
-                  "w-full justify-center rounded-md bg-amber-500 text-zinc-950 hover:bg-amber-400 disabled:opacity-50",
-                )}
-              >
-                {submitting ? (mode === "login" ? "Logging in…" : "Sending reset link…") : mode === "login" ? "Log in" : "Send reset link"}
-              </button>
+            <button
+              type="submit"
+              disabled={mode === "login" ? !canLogin : !canReset}
+              className={cn(
+                "mt-6 w-full rounded-md bg-amber-500 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400 disabled:opacity-50",
+              )}
+            >
+              {submitting ? (mode === "login" ? "Logging in…" : "Sending reset link…") : mode === "login" ? "Log in" : "Send reset link"}
+            </button>
 
-              <p className="text-[12px] text-zinc-500">
-                Don&apos;t have an account?{" "}
-                <Link href={`/signup?next=${encodeURIComponent(next)}`} className="font-medium text-zinc-300 hover:text-zinc-100">
-                  Create account
-                </Link>
-              </p>
+            <p className="mt-4 text-center text-[12px] text-zinc-400">
+              Don&apos;t have an account?{" "}
+              <Link href={`/signup?next=${encodeURIComponent(next)}`} className="text-zinc-200 hover:text-white">
+                Create account
+              </Link>
+            </p>
 
-              <div className="pt-2 text-[11px] leading-relaxed text-zinc-500">
-                By continuing, you agree to DEPTH4&apos;s{" "}
-                <Link href="/terms" className="font-medium text-zinc-300 hover:text-zinc-100">
-                  Terms of Use
-                </Link>
-                ,{" "}
-                <Link href="/privacy" className="font-medium text-zinc-300 hover:text-zinc-100">
-                  Privacy Policy
-                </Link>
-                , and{" "}
-                <Link href="/risk-disclosure" className="font-medium text-zinc-300 hover:text-zinc-100">
-                  Risk Disclosure
-                </Link>
-                .
-              </div>
-              <p className="text-[11px] leading-relaxed text-zinc-500">
-                DEPTH4 is an analysis and information tool, not personalized investment advice.
-              </p>
-            </form>
-          </div>
+            <p className="mt-6 text-center text-[11px] leading-relaxed text-zinc-500">
+              By continuing, you agree to DEPTH4&apos;s{" "}
+              <Link href="/terms" className="text-zinc-400 underline hover:text-zinc-200">
+                Terms of Use
+              </Link>
+              ,{" "}
+              <Link href="/privacy" className="text-zinc-400 underline hover:text-zinc-200">
+                Privacy Policy
+              </Link>
+              , and{" "}
+              <Link href="/risk-disclosure" className="text-zinc-400 underline hover:text-zinc-200">
+                Risk Disclosure
+              </Link>
+              .
+            </p>
+            <p className="mt-2 text-center text-[11px] text-zinc-600">
+              DEPTH4 is an analysis and information tool, not personalized investment advice.
+            </p>
+          </form>
         </div>
       </div>
+    </div>
   );
 }

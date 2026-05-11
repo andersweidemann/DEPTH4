@@ -10,6 +10,31 @@ export function MarketingHeader() {
   const pathname = usePathname();
   const isLogin = pathname === "/login";
   const isSignup = pathname === "/signup";
+  const isPricing = pathname === "/pricing";
+
+  if (isPricing) {
+    return (
+      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-[#0c0c0e]/95 backdrop-blur-sm">
+        <div className="mx-auto grid h-14 max-w-6xl grid-cols-3 items-center gap-3 px-5">
+          <Link
+            href="/"
+            className="justify-self-start inline-flex shrink-0 items-center gap-1 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200"
+          >
+            <ArrowLeft className="h-3 w-3" aria-hidden />
+            Back
+          </Link>
+          <Link href="/" className="justify-self-center truncate text-center text-[12px] font-semibold tracking-tight text-zinc-100">
+            DEPTH4
+          </Link>
+          <nav className="justify-self-end text-[12px]">
+            <Link href="/login" className="px-2 py-1 text-zinc-400 transition-colors hover:text-zinc-200">
+              Sign in
+            </Link>
+          </nav>
+        </div>
+      </header>
+    );
+  }
 
   if (isLogin || isSignup) {
     return (
