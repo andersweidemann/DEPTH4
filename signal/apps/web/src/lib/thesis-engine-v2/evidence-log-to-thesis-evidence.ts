@@ -83,10 +83,9 @@ function buildInterpretation(args: {
   before: number;
   after: number;
   d: number;
-  logScenarioAfterStored: boolean;
   opts?: ThesisEvidenceFromLogOpts;
 }): string {
-  const { row, before, after, d, logScenarioAfterStored, opts } = args;
+  const { row, before, after, d, opts } = args;
 
   if (row.probabilityBefore && row.probabilityAfter) {
     return d === 0
@@ -145,7 +144,6 @@ export function thesisEvidenceFromLogRow(
     before,
     after,
     d,
-    logScenarioAfterStored,
     opts,
   });
 
