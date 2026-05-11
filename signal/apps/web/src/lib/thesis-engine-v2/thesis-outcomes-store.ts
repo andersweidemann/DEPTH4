@@ -1,5 +1,11 @@
 "use client";
 
+import {
+  DEPTH4_THESIS_OUTCOMES_CHANGED_EVENT,
+  DEPTH4_THESIS_OUTCOMES_SESSION_KEY,
+} from "@/lib/thesis-engine-v2/depth4-session-keys";
+import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
+
 export type ManualThesisOutcomeStatus = "resolved" | "invalidated";
 
 export type ManualThesisOutcome = {
@@ -8,9 +14,9 @@ export type ManualThesisOutcome = {
   at: string;
 };
 
-const KEY = "depth4.v2.thesisOutcomes.v1";
+const KEY = DEPTH4_THESIS_OUTCOMES_SESSION_KEY;
 
-export const DEPTH4_THESIS_OUTCOMES_CHANGED = "depth4:thesis-outcomes-changed";
+export const DEPTH4_THESIS_OUTCOMES_CHANGED = DEPTH4_THESIS_OUTCOMES_CHANGED_EVENT;
 
 function safeParse(raw: string | null): Record<string, ManualThesisOutcome> {
   if (!raw) return {};
@@ -49,6 +55,7 @@ export function setThesisOutcome(thesisId: string, outcome: ManualThesisOutcome 
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent(DEPTH4_THESIS_OUTCOMES_CHANGED));
+    schedulePersistDepth4AccountPrefsDebounced();
   } catch {
     // ignore
   }

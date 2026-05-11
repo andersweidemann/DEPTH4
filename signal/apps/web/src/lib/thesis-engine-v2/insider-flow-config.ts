@@ -58,6 +58,20 @@ export function insiderFlowFromCommaFields(fields: {
   };
 }
 
+/** Parse `public.theses.insider_flow` jsonb into client shape. */
+export function insiderFlowFromDb(raw: unknown): Thesis["insiderFlow"] | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const o = raw as Record<string, unknown>;
+  const asStrArr = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map((x) => String(x ?? "").trim()).filter(Boolean) : [];
+  const bull = asStrArr(o.bullInstruments);
+  const bear = asStrArr(o.bearInstruments);
+  const confirm = asStrArr(o.confirmTags);
+  const contradict = asStrArr(o.contradictTags);
+  if (!bull.length && !bear.length && !confirm.length && !contradict.length) return undefined;
+  return { bullInstruments: bull, bearInstruments: bear, confirmTags: confirm, contradictTags: contradict };
+}
+
 export function commaFieldsFromInsiderFlow(insiderFlow?: Thesis["insiderFlow"]): {
   bullInstruments: string;
   bearInstruments: string;

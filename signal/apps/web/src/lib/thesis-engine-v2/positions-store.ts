@@ -50,13 +50,18 @@ export function loadPositions(): Position[] {
   return parsed.filter(isPosition);
 }
 
-export function savePositions(next: Position[]) {
+export type SavePositionsOptions = { /** Skip PATCH to `depth4_user_book` (e.g. when applying server hydration). */ skipRemote?: boolean };
+
+export function savePositions(next: Position[], opts?: SavePositionsOptions) {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify(next));
     window.dispatchEvent(new CustomEvent(DEPTH4_POSITIONS_CHANGED));
   } catch {
     // ignore
+  }
+  if (!opts?.skipRemote) {
+    void import("@/lib/thesis-engine-v2/depth4-book-positions-persist").then((m) => m.schedulePersistBookPositionsDebounced());
   }
 }
 

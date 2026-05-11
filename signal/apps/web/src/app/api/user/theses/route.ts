@@ -70,6 +70,19 @@ export async function GET(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   const { sb, user } = auth;
 
+  const list = req.nextUrl.searchParams.get("list");
+  if (list === "1") {
+    const { data, error } = await sb
+      .from("theses")
+      .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow")
+      .eq("owner_user_id", user.id)
+      .eq("thesis_origin", "user")
+      .order("updated_at", { ascending: false })
+      .limit(200);
+    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true, theses: data ?? [] });
+  }
+
   const slug = (req.nextUrl.searchParams.get("slug") || "").trim();
   if (!slug || slug.length > 240) {
     return NextResponse.json({ ok: false, error: "invalid_slug" }, { status: 400 });
@@ -77,7 +90,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await sb
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow")
     .eq("slug", slug)
     .eq("owner_user_id", user.id)
     .eq("thesis_origin", "user")

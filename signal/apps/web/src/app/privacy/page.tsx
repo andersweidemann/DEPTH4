@@ -71,14 +71,12 @@ export default function PrivacyPage() {
           We do not sell your personal information to third parties.
         </p>
 
-        <h2>4. Position and trade data (current MVP)</h2>
+        <h2>4. Positions and your Book</h2>
         <p>
-          In the current MVP, positions and performance metrics are stored locally in your browser (for example via{" "}
-          <code>sessionStorage</code>). This data is used to render your Book and related session-only features. Clearing
-          your browser storage may remove this data.
-        </p>
-        <p>
-          In a future version, we may offer encrypted cloud storage so you can access your data across devices.
+          When you are signed in, open positions and book-related state are stored in your account (for example in our
+          database) so they persist across sign-out, new devices, and browser refreshes. The app may also keep a
+          short-lived copy in browser storage for responsiveness; that copy is a cache, not the authoritative record.
+          Clearing browser storage alone does not remove your server-backed positions.
         </p>
 
         <h2>5. Data security</h2>

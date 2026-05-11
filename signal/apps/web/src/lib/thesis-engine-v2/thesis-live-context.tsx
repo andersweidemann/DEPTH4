@@ -39,11 +39,12 @@ import {
   defaultScenarioOverridesFromThesis,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
+import { hydrateDepth4AccountState } from "@/lib/thesis-engine-v2/depth4-account-hydration";
+import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
+import { DEPTH4_NOTIFY_PREFS_SESSION_KEY, DEPTH4_STARRED_SESSION_KEY } from "@/lib/thesis-engine-v2/depth4-session-keys";
 
-const STAR_KEY = "depth4.v2.starred.v1";
 const MAX_TICKER = 14;
 const MAX_ALERTS = 20;
-const PREF_KEY = "depth4.v2.notify.prefs.v1";
 const LIVE_EVIDENCE_POLL_MS = 20_000;
 
 type NotifyPref = "any" | "major" | "consequence" | "mute";
@@ -77,7 +78,7 @@ export type ThesisAlertEntry = {
 function loadPrefs(): Record<string, NotifyPref> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = window.sessionStorage.getItem(PREF_KEY);
+    const raw = window.sessionStorage.getItem(DEPTH4_NOTIFY_PREFS_SESSION_KEY);
     const j = raw ? (JSON.parse(raw) as unknown) : null;
     if (!j || typeof j !== "object") return {};
     const out: Record<string, NotifyPref> = {};
@@ -93,7 +94,8 @@ function loadPrefs(): Record<string, NotifyPref> {
 function savePrefs(next: Record<string, NotifyPref>) {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(PREF_KEY, JSON.stringify(next));
+    window.sessionStorage.setItem(DEPTH4_NOTIFY_PREFS_SESSION_KEY, JSON.stringify(next));
+    schedulePersistDepth4AccountPrefsDebounced();
   } catch {
     // ignore
   }
@@ -102,7 +104,7 @@ function savePrefs(next: Record<string, NotifyPref>) {
 function loadStarred(): Set<string> {
   if (typeof window === "undefined") return new Set();
   try {
-    const raw = window.sessionStorage.getItem(STAR_KEY);
+    const raw = window.sessionStorage.getItem(DEPTH4_STARRED_SESSION_KEY);
     const j = raw ? (JSON.parse(raw) as unknown) : null;
     if (!Array.isArray(j)) return new Set();
     return new Set(j.filter((x): x is string => typeof x === "string"));
@@ -114,7 +116,7 @@ function loadStarred(): Set<string> {
 function saveStarred(ids: Set<string>) {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(STAR_KEY, JSON.stringify(Array.from(ids)));
+    window.sessionStorage.setItem(DEPTH4_STARRED_SESSION_KEY, JSON.stringify(Array.from(ids)));
   } catch {
     // ignore
   }
@@ -431,6 +433,37 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     setOpenIds(openPositionThesisIds());
     setPrefs(loadPrefs());
     setUserTheses(loadUserTheses());
+
+    const sb = createSbClient();
+    let cancelled = false;
+    void (async () => {
+      const snap = await hydrateDepth4AccountState(sb);
+      if (cancelled) return;
+      setStarred(snap.starred);
+      setPrefs(snap.notifyPrefs);
+      setUserTheses(loadUserTheses());
+      setOpenIds(openPositionThesisIds());
+      setOutcomeEpoch((e) => e + 1);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const sb = createSbClient();
+    const {
+      data: { subscription },
+    } = sb.auth.onAuthStateChange(async (event, session) => {
+      if (event !== "SIGNED_IN" || !session?.user) return;
+      const snap = await hydrateDepth4AccountState(sb);
+      setStarred(snap.starred);
+      setPrefs(snap.notifyPrefs);
+      setUserTheses(loadUserTheses());
+      setOpenIds(openPositionThesisIds());
+      setOutcomeEpoch((e) => e + 1);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const insiderFlowScenarioOverride = useCallback(
