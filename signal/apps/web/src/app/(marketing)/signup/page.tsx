@@ -4,8 +4,8 @@ import type { FormEvent } from "react";
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 import { safeAppPath } from "@/lib/app-paths";
-import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 function GoogleIcon() {
@@ -35,15 +35,6 @@ function isValidEmail(s: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 }
 
-function passwordMeetsRules(pw: string) {
-  const p = pw;
-  return {
-    length: p.length >= 8,
-    number: /\d/.test(p),
-    letter: /[a-zA-Z]/.test(p),
-  };
-}
-
 export default function SignupPage() {
   return (
     <Suspense
@@ -62,79 +53,54 @@ function SignupPageInner() {
   const router = useRouter();
   const sp = useSearchParams();
   const next = useMemo(() => safeAppPath(sp.get("next") || "/theses"), [sp]);
-
-  const supa = useMemo(() => createClient(), []);
+  const { signup } = useAuth();
 
   const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState("");
 
-  const rules = passwordMeetsRules(pw);
-  const canSubmit =
-    isValidEmail(email) && rules.length && rules.number && rules.letter && pw2.length > 0 && pw === pw2 && !submitting;
+  const googleHref = `/api/auth/google?next=${encodeURIComponent(next)}`;
+  const loginHref =
+    next !== "/theses" ? `/login?next=${encodeURIComponent(next)}` : "/login";
 
-  async function onSubmit(e: FormEvent) {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    setErr("");
+    setError(null);
 
     if (!isValidEmail(email)) {
-      setErr("Enter a valid email.");
+      setError("Enter a valid email.");
       return;
     }
-    if (pw !== pw2) {
-      setErr("Passwords do not match.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
       return;
     }
-    if (!(rules.length && rules.number && rules.letter)) {
-      setErr("Password does not meet requirements.");
+    if (!/[a-zA-Z]/.test(password)) {
+      setError("Password must contain a letter");
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError("Password must contain a number");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
       return;
     }
 
     setSubmitting(true);
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const cb = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-      const { error } = await supa.auth.signUp({
-        email: email.trim(),
-        password: pw,
-        options: { emailRedirectTo: cb },
-      });
-      if (error) {
-        setErr(error.message);
-        return;
-      }
-      router.push(`/login?next=${encodeURIComponent(next)}&intent=signin`);
-    } catch (caught) {
-      setErr(caught instanceof Error ? caught.message : "Sign up failed.");
+      await signup({ email: email.trim(), password });
+      router.push(next);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Sign up failed.");
     } finally {
       setSubmitting(false);
     }
-  }
-
-  async function google() {
-    setErr("");
-    setSubmitting(true);
-    try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const cb = `${origin}/auth/callback?next=${encodeURIComponent(next)}`;
-      const { data, error } = await supa.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: cb },
-      });
-      if (error) {
-        setErr(error.message);
-        return;
-      }
-      if (data.url) window.location.assign(data.url);
-      else setErr("Could not start Google sign-in. Try again.");
-    } catch (caught) {
-      setErr(caught instanceof Error ? caught.message : "Sign up failed.");
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  };
 
   return (
     <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-5 py-12 lg:grid-cols-2">
@@ -147,16 +113,20 @@ function SignupPageInner() {
 
       <div>
         <div className="rounded-lg border border-white/[0.06] bg-zinc-900/30 p-6 sm:p-8">
-          <form onSubmit={onSubmit} className="space-y-0" aria-label="Create account form">
-            <button
-              type="button"
-              onClick={() => void google()}
-              disabled={submitting}
-              className="flex w-full items-center justify-center gap-2 rounded-md bg-white py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-100 disabled:opacity-60"
+          <form onSubmit={handleSubmit} className="space-y-0" aria-label="Create account form">
+            {error ? (
+              <div className="mb-4 rounded-md border border-red-500/20 bg-red-500/5 px-3 py-2">
+                <p className="text-[12px] text-red-400">{error}</p>
+              </div>
+            ) : null}
+
+            <a
+              href={googleHref}
+              className="flex w-full items-center justify-center gap-2 rounded-md bg-white py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-zinc-100"
             >
               <GoogleIcon />
               Continue with Google
-            </button>
+            </a>
 
             <div className="my-6 flex items-center gap-3">
               <div className="h-px flex-1 bg-white/[0.06]" />
@@ -176,6 +146,7 @@ function SignupPageInner() {
                 inputMode="email"
                 value={email}
                 onChange={(e2) => setEmail(e2.target.value)}
+                required
                 className="w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
               />
             </div>
@@ -184,19 +155,35 @@ function SignupPageInner() {
               <label className="mb-1.5 block text-[10px] uppercase tracking-[0.14em] text-zinc-500" htmlFor="signup-password">
                 Password
               </label>
-              <input
-                id="signup-password"
-                type="password"
-                placeholder="Minimum 8 characters"
-                autoComplete="new-password"
-                value={pw}
-                onChange={(e2) => setPw(e2.target.value)}
-                className="w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
-              />
+              <div className="relative">
+                <input
+                  id="signup-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Minimum 8 characters"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e2) => setPassword(e2.target.value)}
+                  required
+                  className="w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 pr-16 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-[12px] text-zinc-400 hover:text-zinc-200"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
               <div className="mt-2 space-y-1">
-                <p className="text-[11px] text-zinc-500">- At least 8 characters</p>
-                <p className="text-[11px] text-zinc-500">- Contains a letter</p>
-                <p className="text-[11px] text-zinc-500">- Contains a number</p>
+                <p className={cn("text-[11px]", password.length >= 8 ? "text-emerald-400" : "text-zinc-500")}>
+                  - At least 8 characters
+                </p>
+                <p className={cn("text-[11px]", /[a-zA-Z]/.test(password) ? "text-emerald-400" : "text-zinc-500")}>
+                  - Contains a letter
+                </p>
+                <p className={cn("text-[11px]", /[0-9]/.test(password) ? "text-emerald-400" : "text-zinc-500")}>
+                  - Contains a number
+                </p>
               </div>
             </div>
 
@@ -209,27 +196,24 @@ function SignupPageInner() {
                 type="password"
                 placeholder="Repeat password"
                 autoComplete="new-password"
-                value={pw2}
-                onChange={(e2) => setPw2(e2.target.value)}
+                value={confirmPassword}
+                onChange={(e2) => setConfirmPassword(e2.target.value)}
+                required
                 className="w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
               />
             </div>
 
-            {err ? <p className="mt-4 text-[12px] text-red-300/90">{err}</p> : null}
-
             <button
               type="submit"
-              disabled={!canSubmit}
-              className={cn(
-                "mt-6 w-full rounded-md bg-amber-500 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400 disabled:opacity-50",
-              )}
+              disabled={submitting}
+              className="mt-6 w-full rounded-md bg-amber-500 py-2.5 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
             >
               {submitting ? "Creating account…" : "Create account"}
             </button>
 
             <p className="mt-4 text-center text-[12px] text-zinc-400">
               Already have an account?{" "}
-              <Link href={`/login?next=${encodeURIComponent(next)}`} className="text-zinc-200 hover:text-white">
+              <Link href={loginHref} className="text-zinc-200 hover:text-white">
                 Log in
               </Link>
             </p>

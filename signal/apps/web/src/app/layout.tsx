@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import "@/styles/depth4.css";
 import { ReactNode } from "react";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin", "latin-ext"], variable: "--font-sans" });
 
@@ -32,7 +33,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={cn(inter.variable, "dark")} suppressHydrationWarning>
       <body className={cn(inter.className, "d4-skin")} style={{ margin: 0, minHeight: "100dvh" }} suppressHydrationWarning>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

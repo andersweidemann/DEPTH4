@@ -7,6 +7,7 @@ import {
 } from "@/lib/thesis-engine-v2/live-trade-plan";
 import { StatusBadge } from "./StatusBadge";
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/api";
 
 const PENDING_ENTRY = "Awaiting live setup";
 const PENDING_STOP = "Will appear with a valid trigger";
@@ -37,9 +38,9 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
     let cancelled = false;
     const run = async () => {
       try {
-        const res = await fetch("/api/theses/trade-plan", {
+        const res = await authFetch("/api/theses/trade-plan", {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             asset: thesis.asset,
             direction: thesis.direction,

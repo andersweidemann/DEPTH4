@@ -3,6 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useMemo, useState } from "react";
+import { authFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { InsiderFlowSetupFields, type InsiderFlowFieldKey } from "@/components/thesis-engine-v2/InsiderFlowSetupFields";
@@ -641,9 +642,9 @@ export function CreateThesisModal({
                         setAiErr(null);
                         setAiBusy(true);
                         try {
-                          const res = await fetch("/api/user/thesis-draft-expand", {
+                          const res = await authFetch("/api/user/thesis-draft-expand", {
                             method: "POST",
-                            headers: { "content-type": "application/json" },
+                            headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ idea: raw }),
                           });
                           const j = (await res.json().catch(() => null)) as {

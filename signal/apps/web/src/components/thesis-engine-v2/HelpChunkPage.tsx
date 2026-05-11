@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/api";
 import type { HelpSection } from "@/types/help";
 
 export function HelpChunkPage() {
@@ -11,7 +12,7 @@ export function HelpChunkPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch("/api/help")
+    authFetch("/api/help")
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed to load help"))))
       .then((data: { sections?: HelpSection[]; lastUpdated?: string }) => {
         setSections(data.sections || []);

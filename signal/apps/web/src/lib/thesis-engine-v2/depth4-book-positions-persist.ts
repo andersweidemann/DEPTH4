@@ -1,4 +1,5 @@
 /** Debounced PATCH of session Book positions to `public.depth4_user_book`. */
+import { authFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 
@@ -20,10 +21,9 @@ async function flushBookPositions(): Promise<void> {
     const tok = sess.session?.access_token;
     if (!tok) return;
     const positions = loadPositions();
-    await fetch("/api/user/book-positions", {
+    await authFetch("/api/user/book-positions", {
       method: "PATCH",
-      credentials: "include",
-      headers: { authorization: `Bearer ${tok}`, "content-type": "application/json" },
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ positions }),
     });
   } catch {

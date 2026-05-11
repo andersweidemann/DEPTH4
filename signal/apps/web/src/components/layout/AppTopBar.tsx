@@ -3,9 +3,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
-import { V2_PLAN_LABEL } from "@/lib/thesis-engine-v2/plan";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { useAuth } from "@/contexts/AuthContext";
 import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell";
 
 function GearIcon({ className }: { className?: string }) {
@@ -22,8 +20,7 @@ function GearIcon({ className }: { className?: string }) {
 }
 
 export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
-  const { plan } = useV2Plan();
-  const planLabel = V2_PLAN_LABEL[plan] ?? plan;
+  const { logout, user } = useAuth();
   const bell = alertsSlot ?? <ThesisAlertsBell />;
 
   return (
@@ -61,12 +58,19 @@ export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
           </div>
 
           <span className="text-[12px] text-zinc-400" aria-label="Current tier">
-            {planLabel}
+            {user?.tier ?? "Free"}
           </span>
 
-          <LogoutButton
-            buttonClassName={cn("text-[12px] text-zinc-400 transition-colors hover:text-zinc-200", "min-h-8 px-0 py-1")}
-          />
+          <button
+            type="button"
+            onClick={() => void logout()}
+            className={cn(
+              "text-[12px] text-zinc-400 transition-colors hover:text-zinc-200",
+              "min-h-8 px-0 py-1",
+            )}
+          >
+            Log out
+          </button>
         </div>
       </div>
     </header>

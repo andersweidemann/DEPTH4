@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Radar, X } from "lucide-react";
 import Link from "next/link";
+import { authFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
@@ -156,9 +157,9 @@ export function InsiderFlowPanel({
     const { data: { session } } = await sb.auth.getSession();
     const tok = session?.access_token;
     if (!tok) return;
-    await fetch("/api/user/preferences", {
+    await authFetch("/api/user/preferences", {
       method: "PATCH",
-      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
       body: JSON.stringify({ notification_preferences: { insiderFlowPush: { enabled: mode !== "mute", mode } } }),
     });
     await loadPushState();
@@ -182,17 +183,17 @@ export function InsiderFlowPanel({
       applicationServerKey: toUint8(vapid),
     });
 
-    const r = await fetch("/api/push/subscribe", {
+    const r = await authFetch("/api/push/subscribe", {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
       body: JSON.stringify(sub),
     });
     if (!r.ok) return setPushState({ kind: "error", message: "Failed to enable push notifications." });
 
     // Ensure prefs enabled by default.
-    await fetch("/api/user/preferences", {
+    await authFetch("/api/user/preferences", {
       method: "PATCH",
-      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
       body: JSON.stringify({ notification_preferences: { insiderFlowPush: { enabled: true, mode: "major" } } }),
     });
 
@@ -209,9 +210,9 @@ export function InsiderFlowPanel({
 
     const ok = await sub.unsubscribe();
     if (!ok) return setPushState({ kind: "error", message: "Failed to disable push notifications." });
-    await fetch("/api/push/unsubscribe", {
+    await authFetch("/api/push/unsubscribe", {
       method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${tok}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
       body: JSON.stringify({ endpoint: sub.endpoint }),
     });
     await loadPushState();

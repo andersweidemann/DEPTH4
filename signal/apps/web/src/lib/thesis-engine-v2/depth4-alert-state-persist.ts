@@ -2,6 +2,7 @@
  * Write-through PATCH for `public.depth4_user_alert_state` (account source of truth).
  * Bounded retry (one replay after short backoff) + tiny in-memory pending map — never browser storage.
  */
+import { authFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import type { Depth4AlertPersistedState } from "@/lib/thesis-engine-v2/depth4-alert-state-utils";
 
@@ -59,10 +60,9 @@ async function patchAlertStateOnce(
   entries: { alert_key: string; state: Depth4AlertPersistedState }[],
 ): Promise<{ ok: boolean; status: number; errorKind: "http" | "network" }> {
   try {
-    const res = await fetch("/api/user/alert-state", {
+    const res = await authFetch("/api/user/alert-state", {
       method: "PATCH",
-      credentials: "include",
-      headers: { authorization: `Bearer ${tok}`, "content-type": "application/json" },
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({ entries }),
     });
     return { ok: res.ok, status: res.status, errorKind: "http" };

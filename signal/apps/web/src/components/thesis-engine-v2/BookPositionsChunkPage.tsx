@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { authFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Position, PositionStats, ResolvedThesis, WatchlistItem } from "@/types/position";
 
@@ -22,11 +23,8 @@ export function BookPositionsChunkPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch("/api/book")
-      .then((r) => {
-        if (r.status === 401) throw new Error("Sign in to view positions.");
-        return r.ok ? r.json() : Promise.reject(new Error("Failed to load book"));
-      })
+    authFetch("/api/book")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed to load book"))))
       .then((data: BookApiPayload) => {
         setPositions(data.positions || []);
         setStats(data.stats || null);

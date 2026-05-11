@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ChevronDown } from "lucide-react";
+import { authFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type {
   ChatMessage,
@@ -32,7 +33,7 @@ export function ThesisDetailChunkPage() {
   const refetchPositions = useCallback(async () => {
     if (!slug) return;
     try {
-      const res = await fetch(`/api/theses/${slug}/positions`);
+      const res = await authFetch(`/api/theses/${slug}/positions`);
       if (!res.ok) {
         setPositions(null);
         return;
@@ -50,16 +51,16 @@ export function ThesisDetailChunkPage() {
     setError(null);
 
     Promise.all([
-      fetch(`/api/theses/${slug}`).then((r) =>
+      authFetch(`/api/theses/${slug}`).then((r) =>
         r.ok ? r.json() : Promise.reject(new Error("Failed to load thesis")),
       ),
-      fetch(`/api/theses/${slug}/assessment`)
+      authFetch(`/api/theses/${slug}/assessment`)
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
-      fetch(`/api/theses/${slug}/evidence`)
+      authFetch(`/api/theses/${slug}/evidence`)
         .then((r) => (r.ok ? r.json() : []))
         .catch(() => []),
-      fetch(`/api/theses/${slug}/positions`)
+      authFetch(`/api/theses/${slug}/positions`)
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
     ])
@@ -84,7 +85,7 @@ export function ThesisDetailChunkPage() {
     setChatLoading(true);
 
     try {
-      const res = await fetch(`/api/theses/${slug}/chat`, {
+      const res = await authFetch(`/api/theses/${slug}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg }),
@@ -746,7 +747,7 @@ export function ThesisDetailChunkPage() {
           <button
             type="button"
             onClick={async () => {
-              await fetch(`/api/theses/${slug}/resolve`, {
+              await authFetch(`/api/theses/${slug}/resolve`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ outcome: "resolved" }),
@@ -774,7 +775,7 @@ export function ThesisDetailChunkPage() {
           <button
             type="button"
             onClick={async () => {
-              await fetch(`/api/theses/${slug}/clear-outcome`, { method: "POST" });
+              await authFetch(`/api/theses/${slug}/clear-outcome`, { method: "POST" });
               await refetchPositions();
             }}
             className="rounded-md border border-white/[0.06] px-3 py-1.5 text-[11px] text-zinc-500 transition-colors hover:text-zinc-300"

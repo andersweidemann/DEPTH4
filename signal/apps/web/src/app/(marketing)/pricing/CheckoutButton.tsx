@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { authFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 
 export function CheckoutButton({
@@ -27,7 +28,7 @@ export function CheckoutButton({
     sLoad(true);
     sErr("");
     try {
-      const res = await fetch("/api/billing/checkout", {
+      const res = await authFetch("/api/billing/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -2,6 +2,7 @@
  * Persists DEPTH4 per-thesis notify prefs + manual thesis outcomes into `public.users.notification_preferences`
  * (account source of truth). Session keys remain a local cache after hydration.
  */
+import { authFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { DEPTH4_NOTIFY_PREFS_SESSION_KEY, DEPTH4_THESIS_OUTCOMES_SESSION_KEY } from "@/lib/thesis-engine-v2/depth4-session-keys";
 
@@ -53,10 +54,9 @@ async function flushDepth4AccountPrefs(): Promise<void> {
     const depth4ThesisNotifyPrefs = readNotifyPrefsJson();
     const depth4ManualThesisOutcomes = readOutcomesJson();
 
-    await fetch("/api/user/preferences", {
+    await authFetch("/api/user/preferences", {
       method: "PATCH",
-      credentials: "include",
-      headers: { authorization: `Bearer ${tok}`, "content-type": "application/json" },
+      headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         notification_preferences: {
           depth4ThesisNotifyPrefs,

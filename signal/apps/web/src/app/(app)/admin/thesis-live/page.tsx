@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { authFetch } from "@/lib/api";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { CATALOG_THESES, TID } from "@/lib/thesis-engine-v2/catalog-data";
@@ -65,7 +66,7 @@ export default function ThesisLiveAdminPage() {
     if (!ready) return;
     const run = async () => {
       setLoadErr(null);
-      const res = await fetch("/api/admin/thesis-live-summary", { credentials: "include" });
+      const res = await authFetch("/api/admin/thesis-live-summary");
       const j = (await res.json()) as ApiOk | { ok: false; error: string };
       if (!res.ok || !j || typeof j !== "object" || !("ok" in j) || !j.ok) {
         setLoadErr((j as { error?: string }).error ?? `HTTP ${res.status}`);

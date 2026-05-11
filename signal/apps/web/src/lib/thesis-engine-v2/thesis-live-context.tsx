@@ -1,5 +1,6 @@
 "use client";
 
+import { authFetch } from "@/lib/api";
 import {
   createContext,
   useCallback,
@@ -396,7 +397,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/theses/catalog-titles")
+    void authFetch("/api/theses/catalog-titles")
       .then((r) => r.json())
       .then((j: unknown) => {
         if (cancelled) return;

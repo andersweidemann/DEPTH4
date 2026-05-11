@@ -12,6 +12,7 @@
  * Full matrix of what is account vs device vs ephemeral: `depth4-personal-state-inventory.ts`.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { authFetch } from "@/lib/api";
 import {
   DEPTH4_STARRED_SESSION_KEY,
   DEPTH4_NOTIFY_PREFS_SESSION_KEY,
@@ -143,9 +144,8 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
 
   // --- Book positions (depth4_user_book) ---
   if (tok) {
-    const bookRes = await fetch("/api/user/book-positions", {
-      credentials: "include",
-      headers: { authorization: `Bearer ${tok}` },
+    const bookRes = await authFetch("/api/user/book-positions", {
+      headers: { Authorization: `Bearer ${tok}` },
     });
     const bookJson = (await bookRes.json().catch(() => null)) as { ok?: boolean; positions?: unknown } | null;
     const serverPositions = Array.isArray(bookJson?.positions) ? bookJson!.positions : [];
@@ -153,10 +153,9 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
     if (serverPositions.length > 0) {
       savePositions(serverPositions as Position[], { skipRemote: true });
     } else if (local.length > 0) {
-      await fetch("/api/user/book-positions", {
+      await authFetch("/api/user/book-positions", {
         method: "PATCH",
-        credentials: "include",
-        headers: { authorization: `Bearer ${tok}`, "content-type": "application/json" },
+        headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
         body: JSON.stringify({ positions: local }),
       });
     }
@@ -164,9 +163,8 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
 
   let alertState: Record<string, Depth4AlertPersistedState> = {};
   if (tok) {
-    const alertRes = await fetch("/api/user/alert-state", {
-      credentials: "include",
-      headers: { authorization: `Bearer ${tok}` },
+    const alertRes = await authFetch("/api/user/alert-state", {
+      headers: { Authorization: `Bearer ${tok}` },
     });
     const alertJson = (await alertRes.json().catch(() => null)) as { ok?: boolean; entries?: unknown } | null;
     if (alertJson?.ok) alertState = parseDepth4AlertStateApiEntries(alertJson.entries);
@@ -174,9 +172,8 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
 
   // --- User-owned theses (public.theses) ---
   if (tok) {
-    const listRes = await fetch("/api/user/theses?list=1", {
-      credentials: "include",
-      headers: { authorization: `Bearer ${tok}` },
+    const listRes = await authFetch("/api/user/theses?list=1", {
+      headers: { Authorization: `Bearer ${tok}` },
     });
     const listJson = (await listRes.json().catch(() => null)) as { ok?: boolean; theses?: unknown } | null;
     const rows = Array.isArray(listJson?.theses) ? listJson!.theses : [];
