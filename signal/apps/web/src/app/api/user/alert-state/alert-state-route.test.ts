@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAlertStatePatchBody } from "@/app/api/user/alert-state/parse-alert-state-patch-body";
+import { parseAlertStatePatchBody } from "@/lib/thesis-engine-v2/parse-alert-state-patch-body";
 
 describe("parseAlertStatePatchBody", () => {
   it("accepts valid batch", () => {

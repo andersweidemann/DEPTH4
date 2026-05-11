@@ -3,7 +3,7 @@ import { createClient as createSupabaseJsClient, type SupabaseClient } from "@su
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
 import type { Depth4AlertPersistedState } from "@/lib/thesis-engine-v2/depth4-alert-state-utils";
-import { parseAlertStatePatchBody } from "@/app/api/user/alert-state/parse-alert-state-patch-body";
+import { parseAlertStatePatchBody } from "@/lib/thesis-engine-v2/parse-alert-state-patch-body";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
