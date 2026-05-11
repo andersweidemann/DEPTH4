@@ -3,6 +3,7 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { createClient } from "@/lib/supabase/server";
 import { getDailyBars } from "@/lib/market-data";
 import { NextResponse } from "next/server";
+import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 const STATUSES: Thesis["status"][] = ["forming", "watching", "ready", "active", "resolved", "invalidated"];
 const DIRECTIONS: Thesis["direction"][] = ["long", "short", "watch"];
@@ -12,7 +13,7 @@ export async function POST(req: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
+  if (!user && !isDepth4PublicReadMode()) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 

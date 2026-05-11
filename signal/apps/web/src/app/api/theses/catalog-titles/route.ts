@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { fetchCatalogThesisTitleRows } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 /**
  * Returns `public.theses.title`, `micro_label`, and optional `body` JSON for catalog thesis IDs (authenticated reads).
@@ -11,7 +12,7 @@ export async function GET() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
+  if (!user && !isDepth4PublicReadMode()) {
     return NextResponse.json({
       titlesByThesisId: {} as Record<string, string>,
       microLabelsByThesisId: {} as Record<string, string>,

@@ -8,6 +8,7 @@ import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy
 import { createClient } from "@/lib/supabase/server";
 import { fetchReasoningByNewsEventId, parseReasoningPayload } from "@/lib/feed/promoted-macro-events";
 import { fetchThesisMetaMap } from "@/lib/feed/thesis-slugs";
+import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -35,7 +36,7 @@ export default async function FeedEventReasoningPage({ params }: Props) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (!user && !isDepth4PublicReadMode()) {
     return (
       <>
         <AppHeader active="feed" liveLine={thesesLiveHeaderNeutral()} alertsSlot={<ThesisAlertsBell />} />

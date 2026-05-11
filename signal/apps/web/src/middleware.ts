@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
+import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 const PUBLIC_PREFIXES = [
   "/",
@@ -29,6 +30,12 @@ const LEGACY_REDIRECTS = ["/dashboard", "/onboarding", "/demo"] as const;
 function isCronApiPath(pathname: string): boolean {
   const p = pathname.toLowerCase();
   return p === "/api/cron" || p.startsWith("/api/cron/");
+}
+
+/** Ops routes stay login-gated even when public read mode is on. */
+function isAdminProtectedPath(pathname: string): boolean {
+  const p = pathname.toLowerCase();
+  return p.startsWith("/admin") || p.startsWith("/api/admin");
 }
 
 export async function middleware(req: NextRequest) {
@@ -66,6 +73,10 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isPublicPath(pathname)) return NextResponse.next();
+
+  if (isDepth4PublicReadMode() && !isAdminProtectedPath(pathname)) {
+    return NextResponse.next();
+  }
 
   const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const supabaseKey = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);

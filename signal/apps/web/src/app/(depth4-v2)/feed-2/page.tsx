@@ -13,6 +13,7 @@ import {
   type PromotedCardModel,
 } from "@/lib/feed/promoted-macro-events";
 import { fetchThesisMetaMap, type ThesisMeta } from "@/lib/feed/thesis-slugs";
+import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Feed",
@@ -27,10 +28,13 @@ export default async function Feed2Page() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  const publicRead = isDepth4PublicReadMode();
+  const loadPromoted = !!user || publicRead;
+
   let promotedCards: PromotedCardModel[] = [];
   let thesisMetaById = new Map<string, ThesisMeta>();
 
-  if (user) {
+  if (loadPromoted) {
     const rows = await fetchPromotedMacroReasoningRows(supabase);
     promotedCards = rows.map(toPromotedCardModel).filter((c): c is NonNullable<typeof c> => c !== null);
     const thesisIds = promotedCards.flatMap((c) => c.reasoning.affected_theses);
@@ -51,7 +55,7 @@ export default async function Feed2Page() {
               purpose.
             </p>
 
-            {user && promotedCards.length > 0 ? (
+            {loadPromoted && promotedCards.length > 0 ? (
               <div className="mt-10">
                 <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
                   <div>
@@ -72,7 +76,7 @@ export default async function Feed2Page() {
               </div>
             ) : null}
 
-            {user && promotedCards.length === 0 ? (
+            {loadPromoted && promotedCards.length === 0 ? (
               <div className="mt-10 rounded-lg border border-dashed border-white/[0.08] bg-zinc-900/20 px-4 py-6 sm:px-5">
                 <p className="text-[13px] font-medium text-zinc-300">No promoted reasoning yet</p>
                 <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-zinc-500">
@@ -89,7 +93,7 @@ export default async function Feed2Page() {
               </div>
             ) : null}
 
-            {!user ? (
+            {!user && !publicRead ? (
               <div className="mt-6 rounded-lg border border-[#E8473F]/20 bg-[#E8473F]/[0.06] px-4 py-3 text-[12px] leading-relaxed text-zinc-300">
                 <Link href="/login" className="font-medium text-[#E8473F] underline-offset-2 hover:underline">
                   Sign in
