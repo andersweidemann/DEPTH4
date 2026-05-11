@@ -5,7 +5,7 @@ import { ThesisDetailChunkPage } from "@/components/thesis-engine-v2/ThesisDetai
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Metadata {
-  return { title: "Thesis · DEPTH4" };
+  return { title: "DEPTH4 · Thesis" };
 }
 
 export default function ThesisDetailPage() {

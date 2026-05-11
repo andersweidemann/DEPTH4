@@ -6,13 +6,14 @@ import { AppTopBar } from "@/components/layout/AppTopBar";
 import { AppSubNav } from "@/components/layout/AppSubNav";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { RouteGuard } from "@/components/RouteGuard";
+import { PageHeaderSkeleton } from "@/components/shared/Skeleton";
 
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#0c0c0e]">
-          <div className="h-4 w-32 animate-pulse rounded bg-zinc-800" />
+        <div className="min-h-screen bg-[#0c0c0e] px-5 py-8">
+          <PageHeaderSkeleton />
         </div>
       }
     >

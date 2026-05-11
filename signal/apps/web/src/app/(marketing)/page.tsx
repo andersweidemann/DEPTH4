@@ -3,9 +3,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "DEPTH4 — Macro intelligence & trade planning",
+  title: "DEPTH4 — Macro intelligence engine",
   description:
-    "DEPTH4 is a macro intelligence engine that reads the news, thinks four steps ahead, and turns narratives into tradeable theses with probabilities, mispricing, price levels, and early-warning signals.",
+    "DEPTH4 is a macro intelligence engine that reads the news, thinks four steps ahead, and turns narratives into tradeable theses.",
 };
 
 export default function HomePage() {
@@ -29,7 +29,7 @@ export default function HomePage() {
 
           <Link
             href="/signup"
-            className="mt-8 inline-flex h-10 items-center justify-center rounded-md bg-amber-500 px-6 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline focus-visible:ring-2 focus-visible:ring-slate-400"
+            className="mt-8 inline-flex h-10 items-center justify-center rounded-md bg-amber-500 px-6 text-sm font-medium text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
           >
             Start free
           </Link>

@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
+import { toast } from "sonner";
 import { authFetch } from "@/lib/api";
+import { friendlyApiMessage } from "@/lib/api-error-message";
 import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { formatTimeAgo, getDirectionBadgeClasses, getStatusDotColor, getStatusTextColor } from "@/lib/thesis-helpers";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
+import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 
@@ -51,12 +55,13 @@ function ProbColumn({ mispricing, conviction }: { mispricing: number; conviction
           <span className="text-zinc-500">%</span>
         </span>
       </div>
-      <p className="mt-1 text-[10px] text-zinc-600">Mispricing {mispricing}/100</p>
+      <p className="mt-1 hidden text-[10px] text-zinc-600 sm:block">Mispricing {mispricing}/100</p>
     </div>
   );
 }
 
-const TABLE_GRID = "grid grid-cols-[1fr_80px_80px_80px_40px] gap-3";
+const TABLE_GRID =
+  "grid grid-cols-[minmax(0,1fr)_72px_40px] gap-3 sm:grid-cols-[1fr_80px_80px_80px_40px]";
 
 function formatListTime(isoOrText: string): string {
   if (isoOrText && !Number.isNaN(Date.parse(isoOrText))) return formatTimeAgo(isoOrText);
@@ -70,6 +75,10 @@ function statusLane(s: ThesisStatus): "ready" | "active" | "watch" {
 }
 
 export function LiveThesesListPage() {
+  useEffect(() => {
+    document.title = "DEPTH4 · Theses";
+  }, []);
+
   const requireFeature = useRequireFeature();
   const [activeFilter, setActiveFilter] = useState<"all" | "starred" | "ready">("all");
   const [assetClass, setAssetClass] = useState("All");
@@ -104,9 +113,14 @@ export function LiveThesesListPage() {
     return all.filter((t) => t.starred).length;
   }, [data]);
 
-  const toggleStar = async (slug: string) => {
-    await authFetch(`/api/theses/${slug}/star`, { method: "POST" });
-    await mutate();
+  const toggleStar = async (slug: string, starred: boolean) => {
+    try {
+      await authFetch(`/api/theses/${slug}/star`, { method: "POST" });
+      await mutate();
+      toast.success(starred ? "Thesis unstarred" : "Thesis starred");
+    } catch {
+      toast.error("Could not update star");
+    }
   };
 
   const submitNewThesis = async () => {
@@ -131,6 +145,7 @@ export function LiveThesesListPage() {
       setNewAsset("");
       setNewDirection("long");
       await mutate();
+      toast.success("Thesis created");
     } catch (e: unknown) {
       setCreateErr(e instanceof Error ? e.message : "Create failed");
     } finally {
@@ -140,27 +155,33 @@ export function LiveThesesListPage() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4 py-6">
-        <div className="h-4 w-1/3 rounded bg-zinc-800" />
-        <div className="h-3 w-1/2 rounded bg-zinc-800" />
-        <div className="h-3 w-2/3 rounded bg-zinc-800" />
+      <div className="pb-8">
+        <PageHeaderSkeleton />
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Skeleton className="h-8 w-24 rounded-full" />
+          <Skeleton className="h-8 w-28 rounded-full" />
+        </div>
+        <section className="mt-8">
+          <Skeleton className="h-2.5 w-16" />
+          <div className="mt-3 space-y-0">
+            <TableRowSkeleton />
+            <TableRowSkeleton />
+            <TableRowSkeleton />
+          </div>
+        </section>
+        <section className="mt-10">
+          <Skeleton className="h-2.5 w-20" />
+          <div className="mt-3 space-y-0">
+            <TableRowSkeleton />
+            <TableRowSkeleton />
+          </div>
+        </section>
       </div>
     );
   }
 
   if (error || !data) {
-    return (
-      <div className="py-20 text-center">
-        <p className="text-[14px] text-red-400">{error instanceof Error ? error.message : "Failed to load theses"}</p>
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorBanner message={friendlyApiMessage(error)} onRetry={() => void mutate()} />;
   }
 
   return (
@@ -173,7 +194,7 @@ export function LiveThesesListPage() {
         </div>
         <button
           type="button"
-          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20"
+          className="no-print inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
           onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setShowNewThesisModal(true))}
         >
           <PlusIcon className="h-3.5 w-3.5" />
@@ -181,14 +202,14 @@ export function LiveThesesListPage() {
         </button>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="no-print mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1">
           {(["all", "starred", "ready"] as const).map((f) => (
             <button
               key={f}
               type="button"
               className={cn(
-                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors",
+                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]",
                 activeFilter === f ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
               )}
               onClick={() => setActiveFilter(f)}
@@ -202,7 +223,7 @@ export function LiveThesesListPage() {
           <div className="flex items-center gap-1.5">
             <label className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Asset class</label>
             <select
-              className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
+              className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
               value={assetClass}
               onChange={(e) => setAssetClass(e.target.value)}
             >
@@ -216,7 +237,7 @@ export function LiveThesesListPage() {
           <div className="flex items-center gap-1.5">
             <label className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Sort</label>
             <select
-              className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
+              className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -243,15 +264,15 @@ export function LiveThesesListPage() {
             >
               <span>Thesis</span>
               <span className="text-right">Prob</span>
-              <span>Status</span>
-              <span className="text-right">Update</span>
+              <span className="hidden sm:block">Status</span>
+              <span className="hidden text-right sm:block">Update</span>
               <span />
             </div>
             {data.focus.length === 0 ? (
               <p className="mt-4 text-[12px] text-zinc-600">No theses in this view.</p>
             ) : (
               data.focus.map((t) => (
-                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug)} />
+                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug, t.starred)} />
               ))
             )}
           </div>
@@ -273,15 +294,15 @@ export function LiveThesesListPage() {
             >
               <span>Thesis</span>
               <span className="text-right">Prob</span>
-              <span>Status</span>
-              <span className="text-right">Update</span>
+              <span className="hidden sm:block">Status</span>
+              <span className="hidden text-right sm:block">Update</span>
               <span />
             </div>
             {data.monitor.length === 0 ? (
               <p className="mt-4 text-[12px] text-zinc-600">No monitor rows.</p>
             ) : (
               data.monitor.map((t) => (
-                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug)} />
+                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug, t.starred)} />
               ))
             )}
           </div>
@@ -289,7 +310,7 @@ export function LiveThesesListPage() {
       </section>
 
       {showNewThesisModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className="w-full max-w-md rounded-lg border border-white/[0.06] bg-zinc-900 p-6">
             <h3 className="text-lg font-semibold text-zinc-100">New thesis</h3>
             <p className="mt-1 text-[12px] text-zinc-500">Creates a draft row via POST /api/theses — refine on the detail page.</p>
@@ -299,20 +320,20 @@ export function LiveThesesListPage() {
               value={newStatement}
               onChange={(e) => setNewStatement(e.target.value)}
               rows={4}
-              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
             <label className="mt-3 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Asset</label>
             <input
               value={newAsset}
               onChange={(e) => setNewAsset(e.target.value)}
-              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
               placeholder="e.g. XAUUSD"
             />
             <label className="mt-3 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Direction</label>
             <select
               value={newDirection}
               onChange={(e) => setNewDirection(e.target.value as "long" | "short")}
-              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
             >
               <option value="long">long</option>
               <option value="short">short</option>
@@ -321,7 +342,7 @@ export function LiveThesesListPage() {
               <button
                 type="button"
                 onClick={() => setShowNewThesisModal(false)}
-                className="rounded-md px-3 py-1.5 text-[12px] text-zinc-400 hover:text-zinc-200"
+                className="rounded-md bg-zinc-800 px-3 py-1.5 text-[12px] text-zinc-200 transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
               >
                 Cancel
               </button>
@@ -329,7 +350,7 @@ export function LiveThesesListPage() {
                 type="button"
                 disabled={createBusy || !newStatement.trim() || !newAsset.trim()}
                 onClick={() => void submitNewThesis()}
-                className="rounded-md bg-amber-500 px-3 py-1.5 text-[12px] font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+                className="rounded-md bg-amber-500 px-3 py-1.5 text-[12px] font-medium text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50"
               >
                 {createBusy ? "Saving…" : "Create"}
               </button>
@@ -347,7 +368,10 @@ function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar:
     <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
       <div>
         <p className="text-[10px] text-zinc-500">{item.asset}</p>
-        <Link href={`/theses/${item.slug}`} className="mt-0.5 block text-[13px] font-medium text-zinc-100 hover:text-amber-200/90">
+        <Link
+          href={`/theses/${item.slug}`}
+          className="mt-0.5 block text-[13px] font-medium text-zinc-100 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
+        >
           {item.title}
         </Link>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -376,23 +400,27 @@ function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar:
         <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
       </div>
       <ProbColumn mispricing={item.mispricingScore} conviction={item.conviction} />
-      <div>
+      <div className="hidden sm:block">
         <span className={cn("inline-flex items-center gap-1 text-[10px] uppercase", getStatusTextColor(item.status))}>
           <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDotColor(item.status))} />
           {item.status}
         </span>
       </div>
-      <div className="text-right">
+      <div className="hidden text-right sm:block">
         <span className="text-[11px] text-zinc-500">{formatListTime(item.lastUpdated)}</span>
       </div>
       <div className="flex justify-end">
         <button
           type="button"
           onClick={onToggleStar}
-          className="text-zinc-600 transition-colors hover:text-amber-400"
+          className="no-print text-zinc-600 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
           aria-label={item.starred ? "Unstar thesis" : "Star thesis"}
         >
-          {item.starred ? <StarSolidIcon className="h-4 w-4 text-amber-400" /> : <StarOutlineIcon className="h-4 w-4" />}
+          {item.starred ? (
+            <StarSolidIcon className="h-4 w-4 fill-amber-400 text-amber-400" />
+          ) : (
+            <StarOutlineIcon className="h-4 w-4" />
+          )}
         </button>
       </div>
     </div>

@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { authFetch } from "@/lib/api";
+import { friendlyApiMessage } from "@/lib/api-error-message";
+import { HttpError } from "@/lib/http-error";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
+import { ThesisDetailPageSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 import type {
   ChatMessage,
@@ -47,14 +52,19 @@ export function ThesisDetailChunkPage() {
   }, [slug]);
 
   useEffect(() => {
+    if (thesis) document.title = `DEPTH4 · ${thesis.title}`;
+  }, [thesis]);
+
+  useEffect(() => {
     if (!slug) return;
     setLoading(true);
     setError(null);
 
     Promise.all([
-      authFetch(`/api/theses/${slug}`).then((r) =>
-        r.ok ? r.json() : Promise.reject(new Error("Failed to load thesis")),
-      ),
+      authFetch(`/api/theses/${slug}`).then(async (r) => {
+        if (!r.ok) throw new HttpError(r.status);
+        return r.json() as Promise<Thesis>;
+      }),
       authFetch(`/api/theses/${slug}/assessment`)
         .then((r) => (r.ok ? r.json() : null))
         .catch(() => null),
@@ -73,7 +83,7 @@ export function ThesisDetailChunkPage() {
         setLoading(false);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load thesis");
+        setError(friendlyApiMessage(err));
         setLoading(false);
       });
   }, [slug, reloadToken]);
@@ -91,10 +101,12 @@ export function ThesisDetailChunkPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: msg }),
       });
-      if (!res.ok) throw new Error("Chat failed");
+      if (!res.ok) throw new HttpError(res.status);
       const data: ChatResponse = await res.json();
       setChatMessages((prev) => [...prev, { role: "assistant", content: data.reply }]);
+      toast.success("Message sent");
     } catch {
+      toast.error("Failed to send message");
       setChatMessages((prev) => [
         ...prev,
         {
@@ -108,30 +120,18 @@ export function ThesisDetailChunkPage() {
   };
 
   if (loading) {
-    return (
-      <div className="animate-pulse space-y-4 py-6">
-        <div className="h-4 w-1/3 rounded bg-zinc-800" />
-        <div className="h-3 w-1/2 rounded bg-zinc-800" />
-        <div className="h-3 w-2/3 rounded bg-zinc-800" />
-      </div>
-    );
+    return <ThesisDetailPageSkeleton />;
   }
 
   if (error || !thesis) {
     return (
-      <div className="py-20 text-center">
-        <p className="text-[14px] text-red-400">{error || "Failed to load thesis."}</p>
-        <button
-          type="button"
-          onClick={() => {
-            setError(null);
-            setReloadToken((n) => n + 1);
-          }}
-          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
-        >
-          Retry
-        </button>
-      </div>
+      <ErrorBanner
+        message={error || "Failed to load. Please try again."}
+        onRetry={() => {
+          setError(null);
+          setReloadToken((n) => n + 1);
+        }}
+      />
     );
   }
 
@@ -139,7 +139,7 @@ export function ThesisDetailChunkPage() {
     <div className="pb-16">
       <Link
         href="/theses"
-        className="inline-flex items-center gap-1 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200"
+        className="inline-flex items-center gap-1 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
       >
         <ArrowLeft className="h-3 w-3" /> All theses
       </Link>
@@ -246,7 +246,7 @@ export function ThesisDetailChunkPage() {
           </div>
           <button
             type="button"
-            className="rounded-md border border-white/[0.08] px-3 py-1 text-[11px] text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-zinc-200"
+            className="rounded-md border border-white/[0.08] px-3 py-1 text-[11px] text-zinc-400 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
           >
             How to read these
           </button>
@@ -490,7 +490,7 @@ export function ThesisDetailChunkPage() {
               key={prompt}
               type="button"
               onClick={() => handleSend(prompt)}
-              className="rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-300 transition-colors hover:bg-white/[0.04] hover:text-zinc-100"
+              className="no-print rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-300 transition-colors hover:bg-white/[0.04] hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
             >
               {prompt}
             </button>
@@ -515,19 +515,19 @@ export function ThesisDetailChunkPage() {
           </div>
         )}
 
-        <div className="mt-4 flex gap-2">
+        <div className="no-print mt-4 flex gap-2">
           <input
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend(chatInput)}
             placeholder="Ask a question about this thesis..."
-            className="flex-1 rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[12px] text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            className="flex-1 rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[12px] text-zinc-100 placeholder:text-zinc-600 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
           />
           <button
             type="button"
             onClick={() => handleSend(chatInput)}
             disabled={!chatInput.trim() || chatLoading}
-            className="rounded-md bg-amber-500 px-4 py-2 text-[12px] font-medium text-zinc-950 transition-colors hover:bg-amber-400 disabled:opacity-50"
+            className="rounded-md bg-amber-500 px-4 py-2 text-[12px] font-medium text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50"
           >
             Send
           </button>
@@ -727,7 +727,10 @@ export function ThesisDetailChunkPage() {
       <div className="mt-8 rounded-lg border border-white/[0.06] bg-zinc-900/30 p-5">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Outcome &amp; history</p>
-          <Link href="/book" className="text-[11px] text-amber-400 transition-colors hover:text-amber-300">
+          <Link
+            href="/book"
+            className="text-[11px] text-amber-400 transition-colors hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
+          >
             Book →
           </Link>
         </div>
@@ -746,42 +749,60 @@ export function ThesisDetailChunkPage() {
           story to your Book review.
         </p>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="no-print mt-4 flex flex-wrap gap-2">
           <button
             type="button"
             onClick={async () => {
-              await authFetch(`/api/theses/${slug}/resolve`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ outcome: "resolved" }),
-              });
-              await refetchPositions();
+              try {
+                const res = await authFetch(`/api/theses/${slug}/resolve`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ outcome: "resolved" }),
+                });
+                if (!res.ok) throw new HttpError(res.status);
+                await refetchPositions();
+                toast.success("Marked resolved");
+              } catch {
+                toast.error("Could not update outcome");
+              }
             }}
-            className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20"
+            className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[11px] font-medium text-emerald-400 transition-colors hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
           >
             Mark resolved
           </button>
           <button
             type="button"
             onClick={async () => {
-              await fetch(`/api/theses/${slug}/resolve`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ outcome: "invalidated" }),
-              });
-              await refetchPositions();
+              try {
+                const res = await authFetch(`/api/theses/${slug}/resolve`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ outcome: "invalidated" }),
+                });
+                if (!res.ok) throw new HttpError(res.status);
+                await refetchPositions();
+                toast.success("Marked invalidated");
+              } catch {
+                toast.error("Could not update outcome");
+              }
             }}
-            className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/20"
+            className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-[11px] font-medium text-red-400 transition-colors hover:bg-red-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
           >
             Mark invalidated
           </button>
           <button
             type="button"
             onClick={async () => {
-              await authFetch(`/api/theses/${slug}/clear-outcome`, { method: "POST" });
-              await refetchPositions();
+              try {
+                const res = await authFetch(`/api/theses/${slug}/clear-outcome`, { method: "POST" });
+                if (!res.ok) throw new HttpError(res.status);
+                await refetchPositions();
+                toast("Outcome cleared");
+              } catch {
+                toast.error("Could not clear outcome");
+              }
             }}
-            className="rounded-md border border-white/[0.06] px-3 py-1.5 text-[11px] text-zinc-500 transition-colors hover:text-zinc-300"
+            className="rounded-md border border-white/[0.06] px-3 py-1.5 text-[11px] text-zinc-500 transition-colors hover:bg-white/[0.04] hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
           >
             Clear session outcome
           </button>

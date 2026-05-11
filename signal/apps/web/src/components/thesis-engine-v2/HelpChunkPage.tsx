@@ -1,37 +1,46 @@
 "use client";
 
+import { useEffect } from "react";
 import useSWR from "swr";
+import { friendlyApiMessage } from "@/lib/api-error-message";
 import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
+import { ErrorBanner } from "@/components/shared/ErrorBanner";
+import { CardSkeleton, PageHeaderSkeleton } from "@/components/shared/Skeleton";
+import { cn } from "@/lib/utils";
 import type { HelpResponse } from "@/types/help";
 
 export function HelpChunkPage() {
+  useEffect(() => {
+    document.title = "DEPTH4 · Help";
+  }, []);
+
   const { data, error, isLoading, mutate } = useSWR<HelpResponse>("/api/help", swrJsonFetcher);
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-4 py-6">
-        <div className="h-4 w-1/3 rounded bg-zinc-800" />
-        <div className="h-3 w-1/2 rounded bg-zinc-800" />
-        <div className="h-3 w-2/3 rounded bg-zinc-800" />
+      <div className="flex gap-8 pb-16">
+        <div className="hidden w-56 shrink-0 lg:block">
+          <div className="sticky top-20 space-y-2">
+            <div className="h-2.5 w-20 rounded bg-zinc-800" />
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-3 w-full rounded bg-zinc-800" />
+            ))}
+          </div>
+        </div>
+        <div className="min-w-0 flex-1">
+          <PageHeaderSkeleton />
+          <div className="mt-8 space-y-4">
+            <CardSkeleton />
+            <CardSkeleton />
+            <CardSkeleton />
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
-    return (
-      <div className="py-20 text-center">
-        <p className="text-[14px] text-red-400">
-          {error instanceof Error ? error.message : "Failed to load help"}
-        </p>
-        <button
-          type="button"
-          onClick={() => void mutate()}
-          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
-        >
-          Retry
-        </button>
-      </div>
-    );
+    return <ErrorBanner message={friendlyApiMessage(error)} onRetry={() => void mutate()} />;
   }
 
   const sections = data.sections || [];
@@ -47,7 +56,7 @@ export function HelpChunkPage() {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className="block py-0.5 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200"
+                className="block py-0.5 text-[12px] text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
               >
                 {section.title}
               </a>
@@ -61,12 +70,17 @@ export function HelpChunkPage() {
         <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Help center</h1>
         <p className="mt-1 text-[13px] text-zinc-400">How to use DEPTH4.</p>
 
-        <nav className="mt-6 flex flex-nowrap gap-2 overflow-x-auto pb-2 lg:hidden" aria-label="On this page">
+        <nav
+          className="no-print mt-6 flex flex-nowrap gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
+          aria-label="On this page"
+        >
           {sections.map((section) => (
             <a
               key={section.id}
               href={`#${section.id}`}
-              className="shrink-0 rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 py-1.5 text-[11px] text-zinc-300"
+              className={cn(
+                "shrink-0 rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 py-1.5 text-[11px] text-zinc-300 transition-colors hover:border-white/[0.12] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+              )}
             >
               {section.title}
             </a>

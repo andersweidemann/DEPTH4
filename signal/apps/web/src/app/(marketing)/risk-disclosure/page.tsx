@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "DEPTH4 · Risk Disclosure",
+  title: "DEPTH4 — Risk Disclosure",
   description: "Risk Disclosure and Educational Notice.",
 };
 

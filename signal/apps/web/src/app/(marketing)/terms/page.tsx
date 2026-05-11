@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "DEPTH4 · Terms of Use",
+  title: "DEPTH4 — Terms of Use",
   description: "Terms governing use of DEPTH4.",
 };
 

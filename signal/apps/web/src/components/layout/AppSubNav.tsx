@@ -22,7 +22,7 @@ export function AppSubNav() {
   const pathname = usePathname() || "";
 
   return (
-    <nav className="border-b border-white/[0.06]" aria-label="App sections">
+    <nav className="no-print border-b border-white/[0.06]" aria-label="App sections">
       <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-5 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map((tab) => {
           const active = tabIsActive(pathname, tab.path);
@@ -31,7 +31,7 @@ export function AppSubNav() {
               key={tab.path}
               href={tab.path}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-[12px] transition-colors",
+                "shrink-0 rounded-full px-3 py-1.5 text-[12px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]",
                 active && "bg-white/[0.08] text-zinc-100",
                 !active && "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
               )}

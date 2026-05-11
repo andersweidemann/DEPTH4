@@ -24,10 +24,13 @@ export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
   const bell = alertsSlot ?? <ThesisAlertsBell />;
 
   return (
-    <header className="border-b border-white/[0.06]">
+    <header className="no-print border-b border-white/[0.06]">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-5">
         <div className="flex min-w-0 items-center gap-2">
-          <Link href="/theses" className="flex min-w-0 items-center gap-2">
+          <Link
+            href="/theses"
+            className="flex min-w-0 items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
+          >
             <svg width={18} height={18} viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
               <path d="M1 4h16M1 9h11M1 14h7" stroke="url(#grad-app-topbar)" strokeWidth={2.5} strokeLinecap="round" />
               <defs>
@@ -38,7 +41,7 @@ export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
               </defs>
             </svg>
             <span className="text-[12px] font-semibold tracking-tight text-zinc-100">DEPTH4</span>
-            <span className="ml-1 hidden text-[10px] uppercase tracking-[0.18em] text-zinc-500 md:inline">
+            <span className="ml-1 hidden text-[10px] uppercase tracking-[0.18em] text-zinc-500 sm:inline">
               YOUR MACRO THESIS ENGINE
             </span>
           </Link>
@@ -47,13 +50,13 @@ export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200"
+            className="no-print inline-flex h-8 w-8 items-center justify-center rounded-md text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
             aria-label="Settings"
           >
             <GearIcon className="h-4 w-4" />
           </button>
 
-          <div className="[&_button]:flex [&_button]:h-8 [&_button]:w-8 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-md [&_button]:text-zinc-400 [&_button]:ring-0 [&_button]:hover:bg-white/[0.06] [&_button]:hover:text-zinc-200">
+          <div className="no-print [&_button]:flex [&_button]:h-8 [&_button]:w-8 [&_button]:items-center [&_button]:justify-center [&_button]:rounded-md [&_button]:text-zinc-400 [&_button]:ring-0 [&_button]:hover:bg-white/[0.06] [&_button]:hover:text-zinc-200 [&_button]:focus-visible:outline-none [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-slate-400 [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-offset-[#0c0c0e]">
             {bell}
           </div>
 
@@ -65,7 +68,7 @@ export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
             type="button"
             onClick={() => void logout()}
             className={cn(
-              "text-[12px] text-zinc-400 transition-colors hover:text-zinc-200",
+              "text-[12px] text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm",
               "min-h-8 px-0 py-1",
             )}
           >
