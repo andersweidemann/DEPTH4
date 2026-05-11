@@ -1,3 +1,6 @@
+export type ThesisDirection = "short" | "long";
+export type ThesisStatus = "Ready" | "Active" | "Watching" | "Draft";
+
 export interface Thesis {
   slug: string;
   title: string;
@@ -5,8 +8,9 @@ export interface Thesis {
   summary: string;
   description: string;
   asset: string;
-  direction: "short" | "long";
-  status: "Ready" | "Active" | "Watching" | "Draft";
+  assetClass: "Equity" | "Rates" | "FX" | "Commodities" | "Crypto";
+  direction: ThesisDirection;
+  status: ThesisStatus;
   tradeable: boolean;
   conviction: number;
   convictionRationale: string;
@@ -28,37 +32,58 @@ export interface Thesis {
   timeStop: string;
   isEntryValid: boolean;
   resolutionPaths: {
-    cleanWin: { probability: number; whatHappens: string; tradeImpact: string };
-    messyWin: { probability: number; whatHappens: string; tradeImpact: string };
-    thesisBroken: { probability: number; whatHappens: string; tradeImpact: string };
+    cleanWin: ResolutionPath;
+    messyWin: ResolutionPath;
+    thesisBroken: ResolutionPath;
   };
   fourLevelCascade: {
-    l1: { timeframe: string; label: string; description: string };
-    l2: { timeframe: string; label: string; description: string };
-    l3: { timeframe: string; label: string; description: string };
-    l4: { timeframe: string; label: string; description: string };
+    l1: CascadeLevel;
+    l2: CascadeLevel;
+    l3: CascadeLevel;
+    l4: CascadeLevel;
   };
-  tradePlan: {
-    status: string;
-    rrCheck: string;
-    rrWarning: string;
-    entryZone: string;
-    stop: string;
-    stopColor: "red" | "zinc";
-    target1: string;
-    target2: string;
-    timeHorizon: string;
-    recommendation: string;
-    recommendationColor: "emerald" | "amber" | "red";
-  };
-  insiderFlow: {
-    bullInstruments: string[];
-    bearInstruments: string[];
-    confirmTags: string[];
-    contradictTags: string[];
-  };
-  relatedAssets: Array<{ symbol: string; type: "Primary" | "Secondary" }>;
+  tradePlan: TradePlan;
+  insiderFlow: InsiderFlow;
+  relatedAssets: RelatedAsset[];
   lastUpdated: string;
+}
+
+export interface ResolutionPath {
+  probability: number;
+  whatHappens: string;
+  tradeImpact: string;
+}
+
+export interface CascadeLevel {
+  timeframe: string;
+  label: string;
+  description: string;
+}
+
+export interface TradePlan {
+  status: string;
+  rrCheck: string;
+  rrWarning: string;
+  entryZone: string;
+  stop: string;
+  stopColor: "red" | "zinc";
+  target1: string;
+  target2: string;
+  timeHorizon: string;
+  recommendation: string;
+  recommendationColor: "emerald" | "amber" | "red";
+}
+
+export interface InsiderFlow {
+  bullInstruments: string[];
+  bearInstruments: string[];
+  confirmTags: string[];
+  contradictTags: string[];
+}
+
+export interface RelatedAsset {
+  symbol: string;
+  type: "Primary" | "Secondary";
 }
 
 export interface ThesisAssessment {
@@ -90,4 +115,24 @@ export interface ChatMessage {
 
 export interface ChatResponse {
   reply: string;
+}
+
+/** List row; `starred` is returned when the request is authenticated. */
+export interface ThesisListItem {
+  slug: string;
+  title: string;
+  statement: string;
+  asset: string;
+  direction: ThesisDirection;
+  status: ThesisStatus;
+  conviction: number;
+  mispricingScore: number;
+  whyNow: string;
+  lastUpdated: string;
+  starred: boolean;
+}
+
+export interface ThesisListResponse {
+  focus: ThesisListItem[];
+  monitor: ThesisListItem[];
 }

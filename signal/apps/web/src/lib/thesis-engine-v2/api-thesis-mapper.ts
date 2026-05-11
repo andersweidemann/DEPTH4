@@ -1,4 +1,5 @@
 import type { Thesis as ApiThesis, ThesisAssessment } from "@/types/thesis";
+import { inferAssetClassFromTicker } from "@/lib/thesis-helpers";
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 import {
   formatEntryZoneLabel,
@@ -15,7 +16,7 @@ import type {
   ThesisScenario,
 } from "@/lib/thesis-engine-v2/types";
 
-function mapStatus(status: Thesis["status"]): ApiThesis["status"] {
+export function mapStatus(status: Thesis["status"]): ApiThesis["status"] {
   switch (status) {
     case "ready":
       return "Ready";
@@ -283,6 +284,7 @@ export function mapBundleToApiThesis(
     summary,
     description,
     asset: thesis.asset,
+    assetClass: inferAssetClassFromTicker(thesis.asset),
     direction: mapDirection(thesis.direction),
     status: mapStatus(thesis.status),
     tradeable: thesis.qualification === "tradeable",

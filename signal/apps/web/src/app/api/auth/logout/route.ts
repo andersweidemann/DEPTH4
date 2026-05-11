@@ -15,7 +15,7 @@ export async function POST() {
   const supabaseUrl = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const supabaseKey = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-  const res = NextResponse.json({ ok: true });
+  const res = NextResponse.json({ success: true });
 
   if (!supabaseUrl || !supabaseKey || !isLikelySupabaseJwtAnonKey(supabaseKey)) {
     return res;

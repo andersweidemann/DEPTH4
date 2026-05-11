@@ -1,66 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { authFetch } from "@/lib/api";
+import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { cn } from "@/lib/utils";
-import type { Position, PositionStats, ResolvedThesis, WatchlistItem } from "@/types/position";
-
-type BookApiPayload = {
-  positions: Position[];
-  stats: PositionStats;
-  watchlist: WatchlistItem[];
-  resolved: ResolvedThesis[];
-};
+import type { BookResponse } from "@/types/position";
 
 export function BookPositionsChunkPage() {
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [stats, setStats] = useState<PositionStats | null>(null);
-  const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
-  const [resolved, setResolved] = useState<ResolvedThesis[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error, isLoading, mutate } = useSWR<BookResponse>("/api/book", swrJsonFetcher);
 
-  useEffect(() => {
-    setLoading(true);
-    authFetch("/api/book")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed to load book"))))
-      .then((data: BookApiPayload) => {
-        setPositions(data.positions || []);
-        setStats(data.stats || null);
-        setWatchlist(data.watchlist || []);
-        setResolved(data.resolved || []);
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load book");
-        setLoading(false);
-      });
-  }, []);
+  const positions = data?.positions ?? [];
+  const stats = data?.stats ?? null;
+  const watchlist = data?.watchlist ?? [];
+  const resolved = data?.resolved ?? [];
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="py-20 text-center">
-        <div className="mx-auto h-4 w-32 animate-pulse rounded bg-zinc-800" />
-        <div className="mx-auto mt-2 h-3 w-48 animate-pulse rounded bg-zinc-800" />
+      <div className="animate-pulse space-y-4 py-6">
+        <div className="h-4 w-1/3 rounded bg-zinc-800" />
+        <div className="h-3 w-1/2 rounded bg-zinc-800" />
+        <div className="h-3 w-2/3 rounded bg-zinc-800" />
       </div>
     );
   }
 
-  if (error || !stats) {
+  if (error || !data || !stats) {
     return (
       <div className="py-20 text-center">
         <p className="text-[14px] text-red-400">
-          {error || "Unable to load book."}{" "}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="text-amber-400 hover:text-amber-300"
-          >
-            Retry
-          </button>
+          {error instanceof Error ? error.message : "Unable to load book."}
         </p>
-        {error?.includes("Sign in") ? (
+        <button
+          type="button"
+          onClick={() => void mutate()}
+          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
+        >
+          Retry
+        </button>
+        {String(error).includes("Sign in") ? (
           <p className="mt-3 text-[13px] text-zinc-500">
             <Link href="/login" className="text-amber-400 hover:text-amber-300">
               Sign in
@@ -332,6 +310,69 @@ export function BookPositionsChunkPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mt-10 rounded-lg border border-white/[0.06] bg-zinc-900/20 p-4">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Book API</p>
+        <p className="mt-1 text-[11px] text-zinc-600">
+          Exercises POST /api/book/open, /api/book/close, and /api/book/resolve against your signed-in account.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-200 hover:bg-white/[0.04]"
+            onClick={() =>
+              void (async () => {
+                await authFetch("/api/book/open", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    thesisSlug: "war-peace-gold-short",
+                    direction: "long",
+                    entryPrice: 100,
+                  }),
+                });
+                await mutate();
+              })()
+            }
+          >
+            Open demo line
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-200 hover:bg-white/[0.04]"
+            onClick={() =>
+              void (async () => {
+                const open = positions.find((p) => p.status === "open");
+                if (!open) return;
+                await authFetch("/api/book/close", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ positionId: open.id, exitPrice: 101 }),
+                });
+                await mutate();
+              })()
+            }
+          >
+            Close first open
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-200 hover:bg-white/[0.04]"
+            onClick={() =>
+              void (async () => {
+                await authFetch("/api/book/resolve", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ thesisSlug: "war-peace-gold-short", outcome: "resolved" }),
+                });
+                await mutate();
+              })()
+            }
+          >
+            Mark demo resolved
+          </button>
+        </div>
       </div>
     </div>
   );

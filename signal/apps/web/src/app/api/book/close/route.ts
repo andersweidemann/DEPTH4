@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { mapBookPosition } from "@/lib/book/book-api-response";
+import { catalogSlugForSystemThesisId } from "@/lib/thesis-engine-v2/catalog-slugs";
+import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import type { Position } from "@/lib/thesis-engine-v2/types";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +36,7 @@ export async function POST(req: Request) {
   }
   const o = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const positionId = typeof o.positionId === "string" ? o.positionId.trim() : "";
+  const exitPrice = typeof o.exitPrice === "number" && Number.isFinite(o.exitPrice) ? o.exitPrice : undefined;
   if (!positionId) return NextResponse.json({ ok: false, error: "position_id_required" }, { status: 400 });
 
   const { data, error } = await supabase
@@ -56,6 +60,7 @@ export async function POST(req: Request) {
           ...p,
           tradeStatus: "closed" as const,
           closedAt: nowIso,
+          ...(exitPrice !== undefined ? { exitPrice } : {}),
         }
       : p,
   );
@@ -70,5 +75,18 @@ export async function POST(req: Request) {
   );
 
   if (upErr) return NextResponse.json({ ok: false, error: upErr.message }, { status: 400 });
-  return NextResponse.json({ ok: true });
+
+  const closed = next[idx]!;
+  let slug = catalogSlugForSystemThesisId(closed.linkedThesisId) ?? "";
+  let title = "Thesis";
+  if (slug) {
+    const detail = getThesisDetail(slug);
+    title = detail?.thesis.title ?? title;
+  } else {
+    const { data: row } = await supabase.from("theses").select("slug,title").eq("id", closed.linkedThesisId).maybeSingle();
+    const r = row as { slug?: string; title?: string } | null;
+    if (r?.slug) slug = r.slug;
+    if (r?.title) title = r.title;
+  }
+  return NextResponse.json({ position: mapBookPosition(closed, slug || closed.linkedThesisId, title) });
 }

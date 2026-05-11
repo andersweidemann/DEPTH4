@@ -94,11 +94,7 @@ function LoginPageInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: forgotEmail.trim() }),
       });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => ({}))) as { message?: string };
-        setError(body.message ?? "Request failed");
-        return;
-      }
+      await res.json().catch(() => ({}));
       setForgotDone(true);
     } catch {
       setError("Request failed");

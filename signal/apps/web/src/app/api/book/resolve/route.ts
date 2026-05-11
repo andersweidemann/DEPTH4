@@ -41,5 +41,5 @@ export async function POST(req: Request) {
     httpOnly: true,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ success: true });
 }

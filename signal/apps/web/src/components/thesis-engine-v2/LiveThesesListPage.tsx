@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
+import { useMemo, useState } from "react";
+import useSWR from "swr";
+import { authFetch } from "@/lib/api";
+import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
-import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
-import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
+import { formatTimeAgo, getDirectionBadgeClasses, getStatusDotColor, getStatusTextColor } from "@/lib/thesis-helpers";
 import { cn } from "@/lib/utils";
+import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 
 function StarOutlineIcon({ className }: { className?: string }) {
   return (
@@ -20,6 +22,14 @@ function StarOutlineIcon({ className }: { className?: string }) {
   );
 }
 
+function StarSolidIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+      <path d="M10.788 3.21c.448-1.077 1.989-1.076 2.437 0l2.358 5.699 6.141.448c1.036.075 1.459 1.405.664 2.124l-4.707 4.597 1.402 6.116c.227 1.002-.848 1.781-1.726 1.302L12 18.678l-5.357 2.808c-.878.46-1.953-.3-1.726-1.302l1.402-6.116-4.707-4.597c-.795-.719-.372-2.049.664-2.124l6.141-.448 2.358-5.699z" />
+    </svg>
+  );
+}
+
 function PlusIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
@@ -28,15 +38,17 @@ function PlusIcon({ className }: { className?: string }) {
   );
 }
 
-function ProbColumn({ mispricing }: { mispricing: number }) {
+function ProbColumn({ mispricing, conviction }: { mispricing: number; conviction: number }) {
+  const pct = Math.max(0, Math.min(100, conviction));
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
         <div className="h-1 w-12 overflow-hidden rounded-full bg-zinc-800">
-          <div className="h-full w-[75%] rounded-full bg-amber-500/60" />
+          <div className="h-full rounded-full bg-amber-500/60" style={{ width: `${pct}%` }} />
         </div>
         <span className="text-[12px] font-medium text-zinc-300">
-          75<span className="text-zinc-500">%</span>
+          {pct}
+          <span className="text-zinc-500">%</span>
         </span>
       </div>
       <p className="mt-1 text-[10px] text-zinc-600">Mispricing {mispricing}/100</p>
@@ -46,11 +58,110 @@ function ProbColumn({ mispricing }: { mispricing: number }) {
 
 const TABLE_GRID = "grid grid-cols-[1fr_80px_80px_80px_40px] gap-3";
 
+function formatListTime(isoOrText: string): string {
+  if (isoOrText && !Number.isNaN(Date.parse(isoOrText))) return formatTimeAgo(isoOrText);
+  return isoOrText;
+}
+
+function statusLane(s: ThesisStatus): "ready" | "active" | "watch" {
+  if (s === "Ready") return "ready";
+  if (s === "Active") return "active";
+  return "watch";
+}
+
 export function LiveThesesListPage() {
   const requireFeature = useRequireFeature();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [filter, setFilter] = useState<"all" | "starred" | "ready">("all");
-  const [starredCount] = useState(0);
+  const [activeFilter, setActiveFilter] = useState<"all" | "starred" | "ready">("all");
+  const [assetClass, setAssetClass] = useState("All");
+  const [sortBy, setSortBy] = useState("recent");
+  const [showNewThesisModal, setShowNewThesisModal] = useState(false);
+  const [newStatement, setNewStatement] = useState("");
+  const [newAsset, setNewAsset] = useState("");
+  const [newDirection, setNewDirection] = useState<"long" | "short">("long");
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createErr, setCreateErr] = useState<string | null>(null);
+
+  const listKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (activeFilter === "starred") params.set("starred", "true");
+    if (activeFilter === "ready") params.set("status", "Ready");
+    if (assetClass !== "All") params.set("assetClass", assetClass);
+    const sortMap: Record<string, string> = {
+      recent: "recent",
+      conviction: "conviction",
+      mispricing: "mispricing",
+    };
+    params.set("sort", sortMap[sortBy] ?? "recent");
+    const qs = params.toString();
+    return `/api/theses${qs ? `?${qs}` : ""}`;
+  }, [activeFilter, assetClass, sortBy]);
+
+  const { data, error, isLoading, mutate } = useSWR<ThesisListResponse>(listKey, swrJsonFetcher);
+
+  const starredCount = useMemo(() => {
+    if (!data) return 0;
+    const all = [...data.focus, ...data.monitor];
+    return all.filter((t) => t.starred).length;
+  }, [data]);
+
+  const toggleStar = async (slug: string) => {
+    await authFetch(`/api/theses/${slug}/star`, { method: "POST" });
+    await mutate();
+  };
+
+  const submitNewThesis = async () => {
+    setCreateErr(null);
+    setCreateBusy(true);
+    try {
+      const res = await authFetch("/api/theses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          statement: newStatement.trim(),
+          asset: newAsset.trim(),
+          direction: newDirection,
+        }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(j.error || "Create failed");
+      }
+      setShowNewThesisModal(false);
+      setNewStatement("");
+      setNewAsset("");
+      setNewDirection("long");
+      await mutate();
+    } catch (e: unknown) {
+      setCreateErr(e instanceof Error ? e.message : "Create failed");
+    } finally {
+      setCreateBusy(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="animate-pulse space-y-4 py-6">
+        <div className="h-4 w-1/3 rounded bg-zinc-800" />
+        <div className="h-3 w-1/2 rounded bg-zinc-800" />
+        <div className="h-3 w-2/3 rounded bg-zinc-800" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-[14px] text-red-400">{error instanceof Error ? error.message : "Failed to load theses"}</p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -63,7 +174,7 @@ export function LiveThesesListPage() {
         <button
           type="button"
           className="inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20"
-          onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setCreateOpen(true))}
+          onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setShowNewThesisModal(true))}
         >
           <PlusIcon className="h-3.5 w-3.5" />
           New thesis
@@ -72,72 +183,56 @@ export function LiveThesesListPage() {
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1">
-          <button
-            type="button"
-            className={cn(
-              "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors",
-              filter === "all" ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
-            )}
-            onClick={() => setFilter("all")}
-          >
-            All theses
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "rounded-full px-3 py-1.5 text-[11px] transition-colors",
-              filter === "starred"
-                ? "bg-white/[0.08] font-medium text-zinc-100"
-                : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
-            )}
-            onClick={() => setFilter("starred")}
-          >
-            Starred ({starredCount})
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "rounded-full px-3 py-1.5 text-[11px] transition-colors",
-              filter === "ready"
-                ? "bg-white/[0.08] font-medium text-zinc-100"
-                : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
-            )}
-            onClick={() => setFilter("ready")}
-          >
-            Ready only
-          </button>
+          {(["all", "starred", "ready"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              className={cn(
+                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors",
+                activeFilter === f ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
+              )}
+              onClick={() => setActiveFilter(f)}
+            >
+              {f === "all" ? "All theses" : f === "starred" ? `Starred (${starredCount})` : "Ready only"}
+            </button>
+          ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
             <label className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Asset class</label>
-            <select className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 focus:outline-none">
-              <option>All</option>
-              <option>Equity</option>
-              <option>Rates</option>
-              <option>FX</option>
-              <option>Commodities</option>
-              <option>Crypto</option>
+            <select
+              className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
+              value={assetClass}
+              onChange={(e) => setAssetClass(e.target.value)}
+            >
+              {["All", "Equity", "Rates", "FX", "Commodities", "Crypto"].map((x) => (
+                <option key={x} value={x}>
+                  {x}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex items-center gap-1.5">
             <label className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Sort</label>
-            <select className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 focus:outline-none">
-              <option>Most recent update</option>
-              <option>Highest probability</option>
-              <option>Biggest move</option>
+            <select
+              className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 focus:outline-none"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="recent">Most recent update</option>
+              <option value="conviction">Highest probability</option>
+              <option value="mispricing">Biggest mispricing</option>
             </select>
           </div>
         </div>
       </div>
 
-      {/* Focus */}
-      <div className="mt-8">
+      <section className="mt-8">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Focus</p>
-          <p className="text-[10px] text-zinc-600">Ready / Active · curated macro map</p>
+          <p className="text-[10px] text-zinc-600">Ready / Active</p>
         </div>
-
         <div className="mt-3 overflow-x-auto">
           <div className="min-w-[640px]">
             <div
@@ -152,90 +247,23 @@ export function LiveThesesListPage() {
               <span className="text-right">Update</span>
               <span />
             </div>
-
-            <FocusRow
-              slug="war-peace-gold-short"
-              micro="War risk keeps gold bid"
-              title="Gold will fall as a peace deal removes the war-risk premium the market has been paying within weeks."
-              dir="short"
-              lane="ready"
-              why="Why now: Peace odds crossed the line where gold should fade — but the metal has not repriced yet."
-              mispricing={81}
-              statusUi="ready"
-              updated="23m ago"
-            />
-            <FocusRow
-              slug="fed-pivot-delayed-tlt-weakness"
-              micro="Rates stay higher for longer"
-              title="TLT will stay under pressure as the Fed delays rate cuts longer than the market expects this year."
-              dir="short"
-              lane="active"
-              why="Why now: The next two prints can move the first-cut date fast — bond longs are early."
-              mispricing={69}
-              statusUi="active"
-              updated="45m ago"
-            />
-            <FocusRow
-              slug="opec-unity-fracturing"
-              micro="Oil supply unity cracking"
-              title="USO will find a floor as OPEC holds barrels tight while US shale slows this quarter."
-              dir="long"
-              lane="ready"
-              why="Why now: Data is starting to show shale fatigue while OPEC keeps the story tight."
-              mispricing={54}
-              statusUi="ready"
-              updated="4h ago"
-            />
-            <FocusRow
-              slug="us-defense-repricing-rtx-lmt"
-              micro="Wars drive steady defense spend"
-              title="RTX will rerate higher as named Pentagon contracts lock in its order book this quarter."
-              dir="long"
-              lane="ready"
-              why="Why now: Award dates are close enough that the next press release can gap the stock."
-              mispricing={61}
-              statusUi="ready"
-              updated="12m ago"
-            />
-            <FocusRow
-              slug="china-stimulus-copper-long"
-              micro="China\u2019s build-out lifts copper"
-              title="Copper will stay bid as China\u2019s infrastructure buildout keeps demand above available supply."
-              dir="long"
-              lane="ready"
-              why="Why now: Policy tone flipped while HG is still priced for no help."
-              mispricing={63}
-              statusUi="ready"
-              updated="50m ago"
-            />
-            <FocusRow
-              slug="eu-tech-crackdown-megacap"
-              micro="Ad machine funding AI dreams"
-              title="META will underperform as EU platform rules tighten within months."
-              dir="short"
-              lane="active"
-              why="Why now: Enforcement is entering the binding phase — that is when the downside path pays."
-              mispricing={47}
-              statusUi="active"
-              updated="2h ago"
-            />
+            {data.focus.length === 0 ? (
+              <p className="mt-4 text-[12px] text-zinc-600">No theses in this view.</p>
+            ) : (
+              data.focus.map((t) => (
+                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug)} />
+              ))
+            )}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Monitor */}
-      <div className="mt-10">
+      <section className="mt-10">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Monitor</p>
-          <p className="text-[10px] text-zinc-600">Watching / forming · plus next ready/active on deck</p>
+          <p className="text-[10px] text-zinc-600">Watching / Draft / next names</p>
         </div>
-        <p className="mt-2 max-w-2xl text-[11px] leading-relaxed text-zinc-600">
-          Two to four high-signal rows: setup watches first, then the next ready/active names after the Focus window (active
-          before ready). If only one strict watch exists, we borrow from the bottom of the Focus strip so the list still feels
-          alive — those names show only here (not duplicated in Focus).
-        </p>
-
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-3 overflow-x-auto">
           <div className="min-w-[640px]">
             <div
               className={cn(
@@ -249,202 +277,122 @@ export function LiveThesesListPage() {
               <span className="text-right">Update</span>
               <span />
             </div>
-
-            <MonitorRow1 />
-            <MonitorRow2 />
+            {data.monitor.length === 0 ? (
+              <p className="mt-4 text-[12px] text-zinc-600">No monitor rows.</p>
+            ) : (
+              data.monitor.map((t) => (
+                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug)} />
+              ))
+            )}
           </div>
         </div>
-      </div>
+      </section>
 
-      <CreateThesisModal
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        onCreate={(t) => {
-          upsertUserThesis(t);
-          void putUserThesisToSupabase(t).then((r) => {
-            if (!r.ok && r.error !== "sign_in_required") {
-              console.warn("[theses] Could not sync thesis to server:", r.error);
-            }
-          });
-        }}
-      />
+      {showNewThesisModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-md rounded-lg border border-white/[0.06] bg-zinc-900 p-6">
+            <h3 className="text-lg font-semibold text-zinc-100">New thesis</h3>
+            <p className="mt-1 text-[12px] text-zinc-500">Creates a draft row via POST /api/theses — refine on the detail page.</p>
+            {createErr ? <p className="mt-2 text-[12px] text-red-400">{createErr}</p> : null}
+            <label className="mt-4 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Statement</label>
+            <textarea
+              value={newStatement}
+              onChange={(e) => setNewStatement(e.target.value)}
+              rows={4}
+              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            />
+            <label className="mt-3 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Asset</label>
+            <input
+              value={newAsset}
+              onChange={(e) => setNewAsset(e.target.value)}
+              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
+              placeholder="e.g. XAUUSD"
+            />
+            <label className="mt-3 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Direction</label>
+            <select
+              value={newDirection}
+              onChange={(e) => setNewDirection(e.target.value as "long" | "short")}
+              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 focus:outline-none focus:ring-2 focus:ring-slate-400"
+            >
+              <option value="long">long</option>
+              <option value="short">short</option>
+            </select>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowNewThesisModal(false)}
+                className="rounded-md px-3 py-1.5 text-[12px] text-zinc-400 hover:text-zinc-200"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={createBusy || !newStatement.trim() || !newAsset.trim()}
+                onClick={() => void submitNewThesis()}
+                className="rounded-md bg-amber-500 px-3 py-1.5 text-[12px] font-medium text-zinc-950 hover:bg-amber-400 disabled:opacity-50"
+              >
+                {createBusy ? "Saving…" : "Create"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
 
-function DirBadge({ dir }: { dir: "short" | "long" }) {
-  if (dir === "short") {
-    return (
-      <span className="rounded-full border border-red-500/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-red-400">
-        short
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full border border-emerald-500/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-emerald-400">
-      long
-    </span>
-  );
-}
-
-function LaneBadge({ lane }: { lane: "ready" | "active" }) {
-  if (lane === "ready") {
-    return (
-      <span className="rounded-full border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-400">
-        ready
-      </span>
-    );
-  }
-  return (
-    <span className="rounded-full border border-zinc-600/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-zinc-400">
-      active
-    </span>
-  );
-}
-
-function FocusRow({
-  slug,
-  micro,
-  title,
-  dir,
-  lane,
-  why,
-  mispricing,
-  statusUi,
-  updated,
-}: {
-  slug: string;
-  micro: string;
-  title: string;
-  dir: "short" | "long";
-  lane: "ready" | "active";
-  why: string;
-  mispricing: number;
-  statusUi: "ready" | "active";
-  updated: string;
-}) {
+function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar: () => void }) {
+  const lane = statusLane(item.status);
   return (
     <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
       <div>
-        <p className="text-[10px] text-zinc-500">{micro}</p>
-        <Link
-          href={`/theses/${slug}`}
-          className="mt-0.5 block text-[13px] font-medium text-zinc-100 hover:text-amber-200/90"
-        >
-          {title}
+        <p className="text-[10px] text-zinc-500">{item.asset}</p>
+        <Link href={`/theses/${item.slug}`} className="mt-0.5 block text-[13px] font-medium text-zinc-100 hover:text-amber-200/90">
+          {item.title}
         </Link>
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
-          <DirBadge dir={dir} />
-          <LaneBadge lane={lane} />
+          <span
+            className={cn(
+              "rounded-full border px-1.5 py-0.5 text-[10px] font-medium uppercase",
+              getDirectionBadgeClasses(item.direction),
+            )}
+          >
+            {item.direction}
+          </span>
+          {lane === "watch" ? (
+            <span className="rounded-full border border-zinc-600/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-zinc-400">
+              watch
+            </span>
+          ) : lane === "ready" ? (
+            <span className="rounded-full border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-400">
+              ready
+            </span>
+          ) : (
+            <span className="rounded-full border border-zinc-600/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-zinc-400">
+              active
+            </span>
+          )}
         </div>
-        <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">{why}</p>
+        <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
       </div>
-      <ProbColumn mispricing={mispricing} />
+      <ProbColumn mispricing={item.mispricingScore} conviction={item.conviction} />
       <div>
-        {statusUi === "ready" ? (
-          <span className="inline-flex items-center gap-1 text-[10px] uppercase text-amber-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-            Ready
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-[10px] uppercase text-zinc-400">
-            <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-            Active
-          </span>
-        )}
-      </div>
-      <div className="text-right">
-        <span className="text-[11px] text-zinc-500">{updated}</span>
-      </div>
-      <div className="flex justify-end">
-        <button type="button" className="text-zinc-600 transition-colors hover:text-amber-400" aria-label="Star thesis">
-          <StarOutlineIcon className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MonitorRow1() {
-  return (
-    <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
-      <div>
-        <Link
-          href="/theses/ai-capex-squeeze-qqq-rotation"
-          className="block text-[13px] font-medium text-zinc-100 hover:text-amber-200/90"
-        >
-          AI costs before AI profits
-        </Link>
-        <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-zinc-400">
-          QQQ will underperform as AI spending squeezes margins before revenue catches up this earnings season.
-        </p>
-        <div className="mt-1.5 flex items-center gap-2">
-          <span className="rounded-full border border-zinc-600/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-zinc-400">
-            watch
-          </span>
-          <span className="text-[10px] text-zinc-500">Watching</span>
-        </div>
-        <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">
-          Why now: Earnings season is the clock. The tape prices smooth AI wins; the prints can say otherwise.
-        </p>
-      </div>
-      <ProbColumn mispricing={50} />
-      <div>
-        <span className="inline-flex items-center gap-1 text-[10px] uppercase text-zinc-500">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
-          Watching
+        <span className={cn("inline-flex items-center gap-1 text-[10px] uppercase", getStatusTextColor(item.status))}>
+          <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDotColor(item.status))} />
+          {item.status}
         </span>
       </div>
       <div className="text-right">
-        <span className="text-[11px] text-zinc-500">3h ago</span>
+        <span className="text-[11px] text-zinc-500">{formatListTime(item.lastUpdated)}</span>
       </div>
       <div className="flex justify-end">
-        <button type="button" className="text-zinc-600 transition-colors hover:text-amber-400" aria-label="Star thesis">
-          <StarOutlineIcon className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function MonitorRow2() {
-  return (
-    <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
-      <div>
-        <Link
-          href="/theses/strait-hormuz-oil-long"
-          className="block text-[13px] font-medium text-zinc-100 hover:text-amber-200/90"
+        <button
+          type="button"
+          onClick={onToggleStar}
+          className="text-zinc-600 transition-colors hover:text-amber-400"
+          aria-label={item.starred ? "Unstar thesis" : "Star thesis"}
         >
-          Gulf routes keep oil on edge
-        </Link>
-        <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-zinc-400">
-          USO will rerate higher as Hormuz chokepoint risk spikes within weeks.
-        </p>
-        <div className="mt-1.5 flex items-center gap-2">
-          <span className="rounded-full border border-emerald-500/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-emerald-400">
-            long
-          </span>
-          <span className="rounded-full border border-zinc-600/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-zinc-400">
-            active
-          </span>
-        </div>
-        <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">
-          Why now: Routing warnings are stacking while crude still trades range-bound — that mismatch breaks fast.
-        </p>
-      </div>
-      <ProbColumn mispricing={71} />
-      <div>
-        <span className="inline-flex items-center gap-1 text-[10px] uppercase text-zinc-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-500" />
-          Active
-        </span>
-      </div>
-      <div className="text-right">
-        <span className="text-[11px] text-zinc-500">1h ago</span>
-      </div>
-      <div className="flex justify-end">
-        <button type="button" className="text-zinc-600 transition-colors hover:text-amber-400" aria-label="Star thesis">
-          <StarOutlineIcon className="h-4 w-4" />
+          {item.starred ? <StarSolidIcon className="h-4 w-4 text-amber-400" /> : <StarOutlineIcon className="h-4 w-4" />}
         </button>
       </div>
     </div>

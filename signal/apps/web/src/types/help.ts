@@ -3,3 +3,8 @@ export interface HelpSection {
   title: string;
   content: string[];
 }
+
+export interface HelpResponse {
+  sections: HelpSection[];
+  lastUpdated: string;
+}

@@ -22,7 +22,7 @@ function pnlPercentFromPrices(p: BookPosition): number | undefined {
   return ((entry - exit) / entry) * 100;
 }
 
-function mapBookPosition(p: BookPosition, slug: string, title: string): ApiPosition {
+export function mapBookPosition(p: BookPosition, slug: string, title: string): ApiPosition {
   const apiStatus: ApiPosition["status"] =
     p.tradeStatus === "open"
       ? "open"

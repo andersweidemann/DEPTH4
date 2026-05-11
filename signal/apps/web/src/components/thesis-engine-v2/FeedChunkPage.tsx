@@ -1,57 +1,45 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { authFetch } from "@/lib/api";
-import type { FeedContext, NewsEvent } from "@/types/feed";
+import { useMemo } from "react";
+import useSWR from "swr";
+import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
+import type { FeedResponse, NewsEvent } from "@/types/feed";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function FeedChunkPage() {
-  const [events, setEvents] = useState<NewsEvent[]>([]);
-  const [promoted, setPromoted] = useState<NewsEvent[]>([]);
-  const [context, setContext] = useState<FeedContext | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const feedKey = useMemo(() => "/api/feed", []);
+  const { data, error, isLoading, mutate } = useSWR<FeedResponse>(feedKey, swrJsonFetcher);
+  useSWR<{ items: NewsEvent[] }>("/api/feed/reasoning", swrJsonFetcher, { revalidateOnFocus: false });
 
-  useEffect(() => {
-    setLoading(true);
-    authFetch("/api/feed")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed to load feed"))))
-      .then((data: { events?: NewsEvent[]; promotedReasoning?: NewsEvent[]; context?: FeedContext }) => {
-        setEvents(data.events || []);
-        setPromoted(data.promotedReasoning || []);
-        setContext(data.context || null);
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load feed");
-        setLoading(false);
-      });
-  }, []);
+  const events = data?.events ?? [];
+  const promoted = data?.promotedReasoning ?? [];
+  const context = data?.context ?? null;
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="py-20 text-center">
-        <div className="mx-auto h-4 w-32 animate-pulse rounded bg-zinc-800" />
-        <div className="mx-auto mt-2 h-3 w-48 animate-pulse rounded bg-zinc-800" />
+      <div className="animate-pulse space-y-4 py-6">
+        <div className="h-4 w-1/3 rounded bg-zinc-800" />
+        <div className="h-3 w-1/2 rounded bg-zinc-800" />
+        <div className="h-3 w-2/3 rounded bg-zinc-800" />
       </div>
     );
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <div className="py-20 text-center">
         <p className="text-[14px] text-red-400">
-          {error}{" "}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="text-amber-400 hover:text-amber-300"
-          >
-            Retry
-          </button>
+          {error instanceof Error ? error.message : "Failed to load feed"}
         </p>
+        <button
+          type="button"
+          onClick={() => void mutate()}
+          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
+        >
+          Retry
+        </button>
       </div>
     );
   }

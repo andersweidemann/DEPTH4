@@ -1,10 +1,14 @@
+export type UserTier = "Free" | "Analyst" | "Pro";
+export type BillingCycle = "monthly" | "annual";
+export type SubscriptionStatus = "active" | "cancelled";
+
 export interface User {
   id: string;
   email: string;
-  tier: "Free" | "Analyst" | "Pro";
+  tier: UserTier;
   subscription?: {
-    billingCycle: "monthly" | "annual";
-    status: "active" | "cancelled";
+    billingCycle: BillingCycle;
+    status: SubscriptionStatus;
   };
   starredTheses: string[];
   preferences: {
@@ -28,4 +32,9 @@ export interface AuthSession {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+}
+
+export interface AuthResponse {
+  user: User;
+  token: string;
 }

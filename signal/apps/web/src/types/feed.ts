@@ -15,3 +15,9 @@ export interface FeedContext {
   note: string;
   sources: string[];
 }
+
+export interface FeedResponse {
+  events: NewsEvent[];
+  promotedReasoning: NewsEvent[];
+  context: FeedContext;
+}

@@ -1,16 +1,20 @@
+export type PositionDirection = "long" | "short";
+export type PositionStatus = "open" | "closed" | "stopped";
+export type PositionSession = "browser" | "synced";
+
 export interface Position {
   id: string;
   thesisSlug: string;
   thesisTitle: string;
-  direction: "long" | "short";
-  status: "open" | "closed" | "stopped";
+  direction: PositionDirection;
+  status: PositionStatus;
   entryPrice: number;
   exitPrice?: number;
   pnl?: number;
   pnlPercent?: number;
   openedAt: string;
   closedAt?: string;
-  session: "browser" | "synced";
+  session: PositionSession;
 }
 
 export interface PositionStats {
@@ -27,7 +31,7 @@ export interface WatchlistItem {
   thesisSlug: string;
   thesisTitle: string;
   asset: string;
-  direction: "long" | "short";
+  direction: PositionDirection;
   status: "Ready" | "Active" | "Watching";
   conviction: number;
   lastUpdated: string;
@@ -38,4 +42,11 @@ export interface ResolvedThesis {
   thesisTitle: string;
   outcome: "resolved" | "invalidated";
   resolvedAt: string;
+}
+
+export interface BookResponse {
+  positions: Position[];
+  stats: PositionStats;
+  watchlist: WatchlistItem[];
+  resolved: ResolvedThesis[];
 }

@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { User } from "@/types/auth";
+import type { User, UserTier } from "@/types/auth";
 
-function mapDbTierToUserTier(raw: string | undefined | null): User["tier"] {
+function mapDbTierToUserTier(raw: string | undefined | null): UserTier {
   const t = (raw ?? "free").toLowerCase();
   if (t === "pro") return "Pro";
   if (t === "institutional") return "Analyst";

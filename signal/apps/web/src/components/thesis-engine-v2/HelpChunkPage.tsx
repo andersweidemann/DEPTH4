@@ -1,55 +1,41 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { authFetch } from "@/lib/api";
-import type { HelpSection } from "@/types/help";
+import useSWR from "swr";
+import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
+import type { HelpResponse } from "@/types/help";
 
 export function HelpChunkPage() {
-  const [sections, setSections] = useState<HelpSection[]>([]);
-  const [lastUpdated, setLastUpdated] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error, isLoading, mutate } = useSWR<HelpResponse>("/api/help", swrJsonFetcher);
 
-  useEffect(() => {
-    setLoading(true);
-    authFetch("/api/help")
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Failed to load help"))))
-      .then((data: { sections?: HelpSection[]; lastUpdated?: string }) => {
-        setSections(data.sections || []);
-        setLastUpdated(data.lastUpdated || "");
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load help");
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="py-20 text-center">
-        <div className="mx-auto h-4 w-32 animate-pulse rounded bg-zinc-800" />
-        <div className="mx-auto mt-2 h-3 w-48 animate-pulse rounded bg-zinc-800" />
+      <div className="animate-pulse space-y-4 py-6">
+        <div className="h-4 w-1/3 rounded bg-zinc-800" />
+        <div className="h-3 w-1/2 rounded bg-zinc-800" />
+        <div className="h-3 w-2/3 rounded bg-zinc-800" />
       </div>
     );
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <div className="py-20 text-center">
         <p className="text-[14px] text-red-400">
-          {error}{" "}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="text-amber-400 hover:text-amber-300"
-          >
-            Retry
-          </button>
+          {error instanceof Error ? error.message : "Failed to load help"}
         </p>
+        <button
+          type="button"
+          onClick={() => void mutate()}
+          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
+        >
+          Retry
+        </button>
       </div>
     );
   }
+
+  const sections = data.sections || [];
+  const lastUpdated = data.lastUpdated || "";
 
   return (
     <div className="flex gap-8 pb-16">

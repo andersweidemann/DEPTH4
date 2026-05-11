@@ -32,12 +32,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "Email and password are required." }, { status: 400 });
   }
 
+  if (password.length < 8) {
+    return NextResponse.json({ message: "Password too weak." }, { status: 422 });
+  }
+
   const sb = createClient(url, anon, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
   const { data, error } = await sb.auth.signUp({ email, password });
   if (error) {
+    const em = error.message.toLowerCase();
+    if (em.includes("already") || em.includes("registered")) {
+      return NextResponse.json({ message: error.message }, { status: 409 });
+    }
     return NextResponse.json({ message: error.message }, { status: 400 });
   }
 

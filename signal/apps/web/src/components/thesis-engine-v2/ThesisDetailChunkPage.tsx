@@ -25,6 +25,7 @@ export function ThesisDetailChunkPage() {
   const [positions, setPositions] = useState<LinkedPosition | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadToken, setReloadToken] = useState(0);
 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
@@ -75,7 +76,7 @@ export function ThesisDetailChunkPage() {
         setError(err instanceof Error ? err.message : "Failed to load thesis");
         setLoading(false);
       });
-  }, [slug]);
+  }, [slug, reloadToken]);
 
   const handleSend = async (text: string) => {
     if (!text.trim() || chatLoading || !slug) return;
@@ -108,9 +109,10 @@ export function ThesisDetailChunkPage() {
 
   if (loading) {
     return (
-      <div className="py-20 text-center">
-        <div className="mx-auto h-4 w-32 animate-pulse rounded bg-zinc-800" />
-        <div className="mx-auto mt-2 h-3 w-48 animate-pulse rounded bg-zinc-800" />
+      <div className="animate-pulse space-y-4 py-6">
+        <div className="h-4 w-1/3 rounded bg-zinc-800" />
+        <div className="h-3 w-1/2 rounded bg-zinc-800" />
+        <div className="h-3 w-2/3 rounded bg-zinc-800" />
       </div>
     );
   }
@@ -118,16 +120,17 @@ export function ThesisDetailChunkPage() {
   if (error || !thesis) {
     return (
       <div className="py-20 text-center">
-        <p className="text-[14px] text-red-400">
-          Failed to load thesis.{" "}
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="text-amber-400 hover:text-amber-300"
-          >
-            Retry
-          </button>
-        </p>
+        <p className="text-[14px] text-red-400">{error || "Failed to load thesis."}</p>
+        <button
+          type="button"
+          onClick={() => {
+            setError(null);
+            setReloadToken((n) => n + 1);
+          }}
+          className="mt-2 text-[12px] text-amber-400 hover:text-amber-300"
+        >
+          Retry
+        </button>
       </div>
     );
   }

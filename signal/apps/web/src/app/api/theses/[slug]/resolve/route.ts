@@ -45,5 +45,5 @@ export async function POST(req: Request, context: { params: { slug: string } }) 
     httpOnly: true,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ success: true });
 }
