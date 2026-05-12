@@ -1,10 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
-import { catalogResolvedTriplesLookLikeBulkWriterCollapse } from "@/lib/thesis-engine-v2/catalog-scenario-universal-collapse-guard";
-import { resolveCatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
 import {
-  applyDbScenarioTripleToThesisWithBundleScenarios,
-  dbScenarioTripleEqualsSeed,
   defaultScenarioOverridesFromThesis,
   isCatalogThesisId,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
@@ -15,6 +11,13 @@ import type { Thesis as EngineThesis, ThesisStatus as EngineStatus } from "@/lib
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import { inferAssetClassFromTicker } from "@/lib/thesis-helpers";
 import type { ThesisDirection, ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
+import {
+  deriveLifecycleState,
+  partitionHomeBuckets,
+  surfacedBucketForEngineThesis,
+  thesisScoreV0,
+} from "@/lib/theses/thesis-home-surfacing";
+import { loadCatalogEngineTheses } from "@/lib/theses/load-catalog-engine-theses";
 
 function mapDirection(d: EngineThesis["direction"]): ThesisDirection {
   return d === "short" ? "short" : "long";
@@ -64,6 +67,22 @@ function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIs
   };
 }
 
+function listItemFromEngine(
+  t: EngineThesis,
+  starred: boolean,
+  lastUpdatedIso: string | null,
+  partition: ReturnType<typeof partitionHomeBuckets>,
+): ThesisListItem {
+  const base = engineThesisToListItem(t, starred, lastUpdatedIso);
+  const bucket = surfacedBucketForEngineThesis(t, partition);
+  return {
+    ...base,
+    lifecycle_state: deriveLifecycleState(t.status),
+    surfaced_bucket: bucket,
+    thesis_score: Math.round(thesisScoreV0(t)),
+  };
+}
+
 function parseUpdatedMs(v: string): number {
   const d = new Date(v);
   if (!Number.isNaN(d.getTime())) return d.getTime();
@@ -103,54 +122,13 @@ export async function buildThesesListResponse(
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
 
-  const slugs = CATALOG_THESES.map((t) => t.slug);
-  const { data: headerRows } = await sb
-    .from("theses")
-    .select("id, slug, updated_at, scenario_probabilities")
-    .in("slug", slugs)
-    .eq("thesis_origin", "seeded_system");
-
-  const catalogHeaderBySlug = new Map<
-    string,
-    { id?: string; updated_at?: string | null; scenario_probabilities?: unknown }
-  >();
-  for (const r of headerRows ?? []) {
-    const o = r as { id?: string; slug?: string; updated_at?: string | null; scenario_probabilities?: unknown };
-    if (typeof o.slug === "string") catalogHeaderBySlug.set(o.slug, o);
-  }
-
-  const catalogRows = await Promise.all(
-    CATALOG_THESES.map(async (t) => {
-      const detail = getThesisDetail(t.slug);
-      if (!detail) return null;
-      const hdr = catalogHeaderBySlug.get(t.slug);
-      const thesisId = typeof hdr?.id === "string" && hdr.id.trim() ? hdr.id.trim() : t.id;
-      const resolved = await resolveCatalogThesisScenarioProbabilities(sb, thesisId, hdr?.scenario_probabilities);
-      return { detail, hdr, resolved };
-    }),
-  );
-
-  const resolvedForGuard = catalogRows.map((row) => row?.resolved ?? null);
-  const discardBulkWriterCollapse = catalogResolvedTriplesLookLikeBulkWriterCollapse(resolvedForGuard);
+  const { catalogEngine, discardBulkWriterCollapse } = await loadCatalogEngineTheses(sb);
   if (discardBulkWriterCollapse && process.env.NODE_ENV === "development") {
     console.warn(
       "[DEPTH4] Discarding unanimous catalog scenario triple 80/15/5 across many theses — treat as corrupt DB/evidence stamp; fix writers in Supabase.",
-      { catalogRowCount: resolvedForGuard.filter(Boolean).length },
+      { catalogRowCount: catalogEngine.length },
     );
   }
-
-  const catalogParts = catalogRows.map((row) => {
-    if (!row) return null;
-    const { detail, hdr, resolved } = row;
-    const iso = hdr?.updated_at?.trim() ? hdr.updated_at : null;
-    let thesis = detail.thesis;
-    const effective = discardBulkWriterCollapse ? null : resolved;
-    if (effective && !dbScenarioTripleEqualsSeed(effective)) {
-      thesis = applyDbScenarioTripleToThesisWithBundleScenarios(thesis, detail.scenarios, effective);
-    }
-    return { ...thesis, lastUpdated: iso ? iso : thesis.lastUpdated };
-  });
-  const catalogEngine: EngineThesis[] = catalogParts.filter((x): x is EngineThesis => x != null);
 
   let combined = sortThesesForDashboard([...catalogEngine, ...userTheses]);
 
@@ -182,7 +160,9 @@ export async function buildThesesListResponse(
   const focusSlugSet = new Set(focusEngine.map((t) => t.slug));
   const monitorEngine = combined.filter((t) => !focusSlugSet.has(t.slug));
 
-  const toItem = (t: EngineThesis) => engineThesisToListItem(t, starredIds.has(t.id), null);
+  const partition = partitionHomeBuckets(combined);
+
+  const mapEngine = (t: EngineThesis) => listItemFromEngine(t, starredIds.has(t.id), null, partition);
 
   if (process.env.NODE_ENV === "development" && userTheses.length >= 3) {
     const signatures = userTheses.map((t) => {
@@ -227,7 +207,13 @@ export async function buildThesesListResponse(
   }
 
   return {
-    focus: focusEngine.slice(0, 12).map(toItem),
-    monitor: monitorEngine.slice(0, 12).map(toItem),
+    focus: focusEngine.map(mapEngine),
+    monitor: monitorEngine.map(mapEngine),
+    home: {
+      tradable: partition.tradable.map(mapEngine),
+      emerging: partition.emerging.map(mapEngine),
+      monitoring: partition.monitoring.map(mapEngine),
+      archivePreview: partition.archivePreview.map(mapEngine),
+    },
   };
 }
