@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { dbScenarioTripleFromMacroHeadlineLeadPct } from "@/lib/macro-reasoning/macro-headline-probability-to-db-triple";
+import { shouldWriteScenarioProbabilitiesColumnFromNewsCron } from "@/lib/thesis-engine-v2/thesis-scenario-column-writers";
 
 export type PersistEventReasoningToThesisStateParams = {
   reasoning: MacroEventReasoning;
@@ -16,7 +17,8 @@ export type PersistEventReasoningToThesisStateParams = {
  *
  * Writes:
  * - `thesis_evidence_log` — `probability_before` / `probability_after` JSON triples (client bootstrap + timeline)
- * - `public.theses.scenario_probabilities` — conviction-aligned triple (Clean + Messy = headline; Broken = remainder)
+ * - `public.theses.scenario_probabilities` — only when the thesis is **not** `seeded_system` (catalog column stays
+ *   seed/ops-owned; evidence log is the automation surface for shipped catalog rows).
  */
 export async function persistEventReasoningToThesisState(
   admin: SupabaseClient,
@@ -59,13 +61,17 @@ export async function persistEventReasoningToThesisState(
     console.warn("[event-reasoning] thesis_evidence_log insert failed", { message: evErr.message, thesisId });
   }
 
-  const { error: thErr } = await admin
-    .from("theses")
-    .update({ scenario_probabilities: afterTriple, updated_at: new Date().toISOString() })
-    .eq("id", thesisId);
+  const { data: originRow } = await admin.from("theses").select("thesis_origin").eq("id", thesisId).maybeSingle();
+  const origin = (originRow as { thesis_origin?: string | null } | null)?.thesis_origin;
+  if (shouldWriteScenarioProbabilitiesColumnFromNewsCron(origin)) {
+    const { error: thErr } = await admin
+      .from("theses")
+      .update({ scenario_probabilities: afterTriple, updated_at: new Date().toISOString() })
+      .eq("id", thesisId);
 
-  if (thErr) {
-    console.warn("[event-reasoning] theses scenario_probabilities update failed", { message: thErr.message, thesisId });
+    if (thErr) {
+      console.warn("[event-reasoning] theses scenario_probabilities update failed", { message: thErr.message, thesisId });
+    }
   }
 
   return { ok: true, thesisId };

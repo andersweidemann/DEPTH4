@@ -7,6 +7,7 @@ import {
   redistributeAfterBaseChange,
   type DbScenarioTriple,
 } from "@/lib/thesis-engine-v2/scenario-triple-zero-sum";
+import { shouldWriteScenarioProbabilitiesColumnFromNewsCron } from "@/lib/thesis-engine-v2/thesis-scenario-column-writers";
 
 export const runtime = "nodejs";
 
@@ -293,37 +294,42 @@ async function runThesisNews(req: NextRequest) {
 
       const dedupeKey = `news:${ev.id}:${t.id}:r:${reasons.slice().sort().join("+")}:c:${confirmMatched.join("|")}:x:${contradictMatched.join("|")}:t:${tickerHits.join("|")}`;
 
-      // Always persist modeled `probability_after` on the log row when we have a suggestion so the
-      // client can merge scenario weights from evidence without requiring THESIS_NEWS_AUTO_APPLY=1.
-      // Updating `public.theses.scenario_probabilities` stays gated by `shouldApply` below.
-      const insertRes = await admin.from("thesis_evidence_log").insert({
-        thesis_id: t.id,
-        event_type: "NEWS_DEVELOPMENT",
-        description: ev.headline,
-        probability_before: prior,
-        probability_after: suggestion ? suggestion.next : null,
-        metadata: {
-          source: "news_events",
-          event_id: ev.id,
-          signal_level: ev.signal_level,
-          published_at: ev.published_at,
-          ticker_hits: tickerHits,
-          confirm_tags: confirmMatched,
-          contradict_tags: contradictMatched,
-          reasons,
-          tree: treeByEvent.get(ev.id) ? { present: true } : { present: false },
-        },
-        dedupe_key: dedupeKey,
-      } as never);
+      // Only insert when we have a modeled triple. Rows with `probability_after = null` became the newest row per
+      // thesis and hid older calibrated evidence from "latest row" tooling while adding no scenario signal.
+      if (suggestion) {
+        const insertRes = await admin.from("thesis_evidence_log").insert({
+          thesis_id: t.id,
+          event_type: "NEWS_DEVELOPMENT",
+          description: ev.headline,
+          probability_before: prior,
+          probability_after: suggestion.next,
+          metadata: {
+            source: "news_events",
+            event_id: ev.id,
+            signal_level: ev.signal_level,
+            published_at: ev.published_at,
+            ticker_hits: tickerHits,
+            confirm_tags: confirmMatched,
+            contradict_tags: contradictMatched,
+            reasons,
+            tree: treeByEvent.get(ev.id) ? { present: true } : { present: false },
+          },
+          dedupe_key: dedupeKey,
+        } as never);
 
-      if (insertRes.error) {
-        // Most likely unique violation due to retries.
-        evidenceDeduped += 1;
-      } else {
-        evidenceInserted += 1;
+        if (insertRes.error) {
+          // Most likely unique violation due to retries.
+          evidenceDeduped += 1;
+        } else {
+          evidenceInserted += 1;
+        }
       }
 
-      if (shouldApply && suggestion) {
+      if (
+        shouldApply &&
+        suggestion &&
+        shouldWriteScenarioProbabilitiesColumnFromNewsCron(t.thesis_origin)
+      ) {
         const up = await admin
           .from("theses")
           .update({ scenario_probabilities: suggestion.next, updated_at: new Date().toISOString() })
