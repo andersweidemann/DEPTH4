@@ -20,6 +20,7 @@ import { MispricingTooltipContent } from "@/components/thesis-engine-v2/Misprici
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { bundleForUserThesis, getUserThesisBySlug, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
@@ -212,6 +213,61 @@ export function ThesisDetailClient({
       ),
     );
   }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities]);
+
+  /**
+   * Direct navigation to `/theses/[user-slug]` without a prior session row: `initialBundleForSlug` is null.
+   * Hydrate from `GET /api/user/theses?slug=` so `bundle.thesis.id` exists for evidence polling + overrides.
+   */
+  useEffect(() => {
+    if (getThesisDetail(slug)) return;
+    if (getUserThesisBySlug(slug)) return;
+    let cancelled = false;
+    void (async () => {
+      const sb = createBrowserSupabaseClient();
+      const { data: sess } = await sb.auth.getSession();
+      const tok = sess.session?.access_token;
+      if (!tok || cancelled) return;
+      const r = await fetch(`/api/user/theses?slug=${encodeURIComponent(slug)}`, {
+        credentials: "include",
+        headers: { authorization: `Bearer ${tok}` },
+      });
+      const j = (await r.json().catch(() => null)) as {
+        ok?: boolean;
+        thesis?: {
+          id?: string | null;
+          slug?: string | null;
+          title?: string | null;
+          micro_label?: string | null;
+          body?: unknown;
+          scenario_probabilities?: unknown;
+          insider_flow?: unknown;
+          updated_at?: string | null;
+          status?: string | null;
+        } | null;
+      } | null;
+      if (cancelled || !j?.ok || !j.thesis?.id || !j.thesis.slug) return;
+      const row = j.thesis;
+      const id = row.id as string;
+      const slugRow = row.slug as string;
+      const engine = userThesisFromSupabaseRow({
+        id,
+        slug: slugRow,
+        title: (row.title ?? "").trim() || "Thesis",
+        micro_label: row.micro_label,
+        body: row.body ?? null,
+        scenario_probabilities: row.scenario_probabilities,
+        status: typeof row.status === "string" ? row.status : "forming",
+        insider_flow: row.insider_flow,
+        updated_at: row.updated_at ?? null,
+      });
+      upsertUserThesis(engine);
+      if (cancelled) return;
+      setBundle(bundleForUserThesis(engine));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   /** Ensure this thesis_id is polled first for `thesis_evidence_log` (system + user); avoids empty timeline under global row caps. */
   const registerEvidencePollPriority = liveOpt?.registerEvidenceLogPollPriorityThesisId;

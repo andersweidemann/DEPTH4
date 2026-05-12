@@ -15,6 +15,8 @@ import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 import { displayConvictionPctFromListItem } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
+import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
 function StarOutlineIcon({ className }: { className?: string }) {
   return (
@@ -155,6 +157,48 @@ export function LiveThesesListPage() {
       if (!res.ok) {
         const j = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(j.error || "Create failed");
+      }
+      const created = (await res.json().catch(() => null)) as {
+        success?: boolean;
+        thesis?: { id?: string; slug?: string };
+      } | null;
+      const createdSlug = created?.thesis?.slug;
+      if (createdSlug) {
+        try {
+          const tr = await authFetch(`/api/user/theses?slug=${encodeURIComponent(createdSlug)}`);
+          const tj = (await tr.json().catch(() => null)) as {
+            ok?: boolean;
+            thesis?: {
+              id?: string | null;
+              slug?: string | null;
+              title?: string | null;
+              micro_label?: string | null;
+              body?: unknown;
+              scenario_probabilities?: unknown;
+              insider_flow?: unknown;
+              updated_at?: string | null;
+              status?: string | null;
+            } | null;
+          } | null;
+          const th = tj?.ok ? tj.thesis : null;
+          if (th?.id && th.slug) {
+            upsertUserThesis(
+              userThesisFromSupabaseRow({
+                id: th.id,
+                slug: th.slug,
+                title: (th.title ?? "").trim() || "Thesis",
+                micro_label: th.micro_label,
+                body: th.body ?? null,
+                scenario_probabilities: th.scenario_probabilities,
+                status: typeof th.status === "string" ? th.status : "forming",
+                insider_flow: th.insider_flow,
+                updated_at: th.updated_at ?? null,
+              }),
+            );
+          }
+        } catch {
+          /* List still refreshes via mutate; detail bootstrap can load from API */
+        }
       }
       setShowNewThesisModal(false);
       setNewStatement("");

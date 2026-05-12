@@ -109,6 +109,7 @@ export async function GET(req: NextRequest) {
     updated_at?: unknown;
     status?: unknown;
     thesis_origin?: unknown;
+    insider_flow?: unknown;
   };
 
   return NextResponse.json({
@@ -120,6 +121,7 @@ export async function GET(req: NextRequest) {
       micro_label: typeof row.micro_label === "string" ? row.micro_label : null,
       body: row.body !== undefined && row.body !== null ? row.body : null,
       scenario_probabilities: parseScenarioProbabilities(row.scenario_probabilities),
+      insider_flow: row.insider_flow !== undefined && row.insider_flow !== null ? row.insider_flow : null,
       updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
       status: typeof row.status === "string" ? row.status : null,
       thesis_origin: typeof row.thesis_origin === "string" ? row.thesis_origin : null,

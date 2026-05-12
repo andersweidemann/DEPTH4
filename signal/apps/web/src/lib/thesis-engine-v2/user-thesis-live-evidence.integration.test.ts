@@ -84,12 +84,15 @@ function peaceGoldUserThesis(): Thesis {
 const FIRST_NEWS_PROBABILITY_AFTER = { base: 52, bull: 28, bear: 20 };
 
 describe("user thesis live evidence + scenarios (integration)", () => {
-  it("ThesisDetailClient wires registerEvidenceLogPollPriorityThesisId(bundle.thesis.id)", () => {
+  it("slug page renders ThesisDetailClient under ThesisSlugDetailPage (live evidence path)", () => {
     const dir = dirname(fileURLToPath(import.meta.url));
-    const path = join(dir, "../../components/thesis-engine-v2/ThesisDetailClient.tsx");
-    const src = readFileSync(path, "utf8");
-    expect(src).toContain("registerEvidenceLogPollPriorityThesisId");
-    expect(src).toContain("bundle?.thesis.id");
+    const pagePath = join(dir, "../../app/(app)/theses/[slug]/page.tsx");
+    const shellPath = join(dir, "../../components/thesis-engine-v2/ThesisSlugDetailPage.tsx");
+    const detailPath = join(dir, "../../components/thesis-engine-v2/ThesisDetailClient.tsx");
+    expect(readFileSync(pagePath, "utf8")).toContain("ThesisSlugDetailPage");
+    expect(readFileSync(shellPath, "utf8")).toContain("ThesisDetailClient");
+    expect(readFileSync(detailPath, "utf8")).toContain("registerEvidenceLogPollPriorityThesisId");
+    expect(readFileSync(detailPath, "utf8")).toContain("bundle?.thesis.id");
   });
 
   it("prepends viewed thesis id into buildEvidencePollThesisIds (priorityIds)", () => {
@@ -108,6 +111,14 @@ describe("user thesis live evidence + scenarios (integration)", () => {
 
   it(`uses EVIDENCE_LOG_POLL_ROW_LIMIT=${EVIDENCE_LOG_POLL_ROW_LIMIT} for the client poll batch size constant`, () => {
     expect(EVIDENCE_LOG_POLL_ROW_LIMIT).toBe(480);
+  });
+
+  it("GET /api/user/theses slug handler exposes insider_flow for client hydration", () => {
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const path = join(dir, "../../app/api/user/theses/route.ts");
+    const s = readFileSync(path, "utf8");
+    expect(s).toContain("insider_flow");
+    expect(s).toContain("insider_flow:");
   });
 
   it("filters global evidence log batch to liveEvidence for that thesis only", () => {

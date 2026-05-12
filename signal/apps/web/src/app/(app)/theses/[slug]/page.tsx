@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { ThesisDetailChunkPage } from "@/components/thesis-engine-v2/ThesisDetailChunkPage";
+import { ThesisSlugDetailPage } from "@/components/thesis-engine-v2/ThesisSlugDetailPage";
 
-/** Thesis detail reads live APIs on the client — do not cache the shell. */
+/** Thesis detail uses live evidence polling + merged scenarios — do not cache the shell. */
 export const dynamic = "force-dynamic";
 
 export function generateMetadata(): Metadata {
@@ -9,5 +9,5 @@ export function generateMetadata(): Metadata {
 }
 
 export default function ThesisDetailPage() {
-  return <ThesisDetailChunkPage />;
+  return <ThesisSlugDetailPage />;
 }
