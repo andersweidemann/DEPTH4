@@ -12,7 +12,7 @@ export default function HomePage() {
   return (
     <div>
       {/* Section A — Hero */}
-      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 pb-14 pt-12 lg:grid-cols-12 lg:gap-12">
+      <section className="mx-auto grid max-w-6xl grid-cols-1 gap-10 px-5 pb-20 pt-12 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-6">
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-zinc-50 md:text-5xl">
@@ -87,7 +87,7 @@ export default function HomePage() {
       </section>
 
       {/* Section B */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Your macro intelligence engine</h2>
@@ -130,7 +130,7 @@ export default function HomePage() {
       </section>
 
       {/* Section C */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Trade the narrative, not just the headline</h2>
@@ -145,7 +145,7 @@ export default function HomePage() {
       </section>
 
       {/* Section D */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Think four moves ahead</h2>
@@ -198,7 +198,7 @@ export default function HomePage() {
       </section>
 
       {/* Section E */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">How it works</h2>
@@ -239,7 +239,7 @@ export default function HomePage() {
       </section>
 
       {/* Section F */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Built for macro traders and serious retail</h2>
@@ -269,7 +269,7 @@ export default function HomePage() {
       </section>
 
       {/* Section G */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="mx-auto max-w-2xl">
           <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">For serious retail traders</h2>
           <p className="mt-3 max-w-xl text-[14px] leading-relaxed text-zinc-400">
@@ -281,7 +281,7 @@ export default function HomePage() {
       </section>
 
       {/* Section H */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Simple pricing</h2>
@@ -315,7 +315,7 @@ export default function HomePage() {
       </section>
 
       {/* Section I */}
-      <section className="mx-auto max-w-6xl px-5 py-14">
+      <section className="mx-auto max-w-6xl px-5 py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <h2 className="text-2xl font-semibold tracking-tight text-zinc-50">Trust & disclosure</h2>

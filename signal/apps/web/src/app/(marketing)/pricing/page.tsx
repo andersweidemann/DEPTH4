@@ -281,7 +281,7 @@ function PricingPageInner() {
         <div className="mt-6 overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="border-b border-white/[0.06] text-zinc-500 [&_th]:uppercase [&_th]:tracking-wider">
+              <tr className="border-b border-white/[0.06] text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                 <th className="py-3 text-left font-medium">Capability</th>
                 <th className="py-3 text-center font-medium">Free</th>
                 <th className="py-3 text-center font-medium">Analyst</th>
@@ -300,11 +300,11 @@ function PricingPageInner() {
             </tbody>
           </table>
         </div>
-      </div>
 
-      <p className="mt-10 text-center text-xs text-zinc-600">
-        Prices shown in USD. Free tier limits and feature availability may change as DEPTH4 evolves.
-      </p>
+        <p className="mt-8 text-[11px] text-zinc-600">
+          Prices shown in USD. Free tier limits and feature availability may change as DEPTH4 evolves.
+        </p>
+      </div>
     </main>
   );
 }

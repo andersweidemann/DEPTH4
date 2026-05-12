@@ -65,6 +65,7 @@ export function MarketingHeader() {
             Your macro thesis engine
           </p>
           <nav className="flex min-w-0 flex-1 justify-end text-[12px]">
+            {/* Login: text link to signup. Signup: amber CTA to login (matches depth4.com). */}
             {isLogin ? (
               <Link
                 href="/signup"
