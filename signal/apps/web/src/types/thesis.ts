@@ -130,6 +130,14 @@ export interface ChatResponse {
 
 /** List row; `starred` is returned when the request is authenticated. */
 export interface ThesisListItem {
+  /** Stable id for catalog + user theses — aligns list UI with `ThesisLiveProvider.mergeThesis`. */
+  thesisId: string;
+  /**
+   * Server-merged `{base,bull,bear}` (DB keys) matching `scenarioOverrides` on the engine thesis used to
+   * compute `conviction`. Lets the client replay the same baseline as `buildThesesListResponse` before
+   * applying live evidence overrides (which are not present on `GET /api/theses`).
+   */
+  listBaselineScenarioTriple: { base: number; bull: number; bear: number } | null;
   slug: string;
   title: string;
   statement: string;

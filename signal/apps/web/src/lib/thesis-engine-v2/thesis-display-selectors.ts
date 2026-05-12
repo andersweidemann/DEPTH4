@@ -11,6 +11,9 @@
  * - **`displayConvictionPctFromApiThesis` / `displayConvictionPctFromListItem`** are thin **transport** adapters:
  *   they return the same numeric contract already computed server-side (`mapBundleToApiThesis`, list API). They are
  *   not alternate math — use them so chunk/list stay tied to the API payload without re-deriving.
+ * - **`displayConvictionPctFromThesesListItemWithLive`** (`theses-list-live-conviction.ts`): main `/theses` table
+ *   overrides the list API’s frozen `conviction` with `mergeThesis` + `getThesisDisplayModel` so rows match
+ *   `/theses/[slug]` while evidence polls update `ThesisLiveProvider` overrides.
  *
  * ## Single source of truth (semantics)
  *

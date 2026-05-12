@@ -9,11 +9,15 @@ import { friendlyApiMessage } from "@/lib/api-error-message";
 import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { formatTimeAgo, getDirectionBadgeClasses, getStatusDotColor, getStatusTextColor } from "@/lib/thesis-helpers";
+import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
+import {
+  convictionIsTemplateEstimateForThesesListItemWithLive,
+  displayConvictionPctFromThesesListItemWithLive,
+} from "@/lib/theses/theses-list-live-conviction";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
-import { displayConvictionPctFromListItem } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
@@ -47,7 +51,12 @@ function PlusIcon({ className }: { className?: string }) {
 }
 
 function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: number }) {
-  const pct = Math.max(0, Math.min(100, displayConvictionPctFromListItem(item)));
+  const { mergeThesis } = useThesisLive();
+  const pct = Math.max(
+    0,
+    Math.min(100, displayConvictionPctFromThesesListItemWithLive(item, mergeThesis)),
+  );
+  const templateNote = convictionIsTemplateEstimateForThesesListItemWithLive(item, mergeThesis);
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
@@ -60,7 +69,7 @@ function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: nu
         </span>
       </div>
       <p className="mt-1 hidden text-[10px] text-zinc-600 sm:block">Mispricing {mispricing}/100</p>
-      {item.convictionIsTemplateEstimate ? (
+      {templateNote ? (
         <p
           className="mt-1 text-[9px] leading-tight text-zinc-600"
           title={THESIS_CONVICTION_TEMPLATE_NOTE_SHORT}
@@ -124,6 +133,28 @@ export function LiveThesesListPage() {
   }, [activeFilter, assetClass, sortBy]);
 
   const { data, error, isLoading, mutate } = useSWR<ThesisListResponse>(listKey, swrJsonFetcher);
+
+  const { mergeThesis } = useThesisLive();
+
+  const focusRows = useMemo(() => {
+    if (!data) return [];
+    if (sortBy !== "conviction") return data.focus;
+    return [...data.focus].sort(
+      (a, b) =>
+        displayConvictionPctFromThesesListItemWithLive(b, mergeThesis) -
+        displayConvictionPctFromThesesListItemWithLive(a, mergeThesis),
+    );
+  }, [data, sortBy, mergeThesis]);
+
+  const monitorRows = useMemo(() => {
+    if (!data) return [];
+    if (sortBy !== "conviction") return data.monitor;
+    return [...data.monitor].sort(
+      (a, b) =>
+        displayConvictionPctFromThesesListItemWithLive(b, mergeThesis) -
+        displayConvictionPctFromThesesListItemWithLive(a, mergeThesis),
+    );
+  }, [data, sortBy, mergeThesis]);
 
   const starredCount = useMemo(() => {
     if (!data) return 0;
@@ -331,7 +362,7 @@ export function LiveThesesListPage() {
             {data.focus.length === 0 ? (
               <p className="mt-4 text-[12px] text-zinc-600">No theses in this view.</p>
             ) : (
-              data.focus.map((t) => (
+              focusRows.map((t) => (
                 <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug, t.starred)} />
               ))
             )}
@@ -361,7 +392,7 @@ export function LiveThesesListPage() {
             {data.monitor.length === 0 ? (
               <p className="mt-4 text-[12px] text-zinc-600">No monitor rows.</p>
             ) : (
-              data.monitor.map((t) => (
+              monitorRows.map((t) => (
                 <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug, t.starred)} />
               ))
             )}

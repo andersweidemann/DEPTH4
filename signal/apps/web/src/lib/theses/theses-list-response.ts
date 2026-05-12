@@ -18,6 +18,16 @@ function mapListStatus(st: EngineStatus): ThesisStatus {
   return mapStatus(st);
 }
 
+function listBaselineScenarioTripleFromEngineThesis(t: EngineThesis): { base: number; bull: number; bear: number } | null {
+  const o = t.scenarioOverrides;
+  if (!o) return null;
+  return {
+    base: o.base.probability,
+    bull: o.bull.probability,
+    bear: o.bear.probability,
+  };
+}
+
 function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIso: string | null): ThesisListItem {
   const mp = getThesisMispricing(t, {});
   const dm = getThesisDisplayModel(t);
@@ -26,6 +36,8 @@ function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIs
     lastUpdatedIso && !Number.isNaN(Date.parse(lastUpdatedIso)) ? lastUpdatedIso : t.lastUpdated;
 
   return {
+    thesisId: t.id,
+    listBaselineScenarioTriple: listBaselineScenarioTripleFromEngineThesis(t),
     slug: t.slug,
     title: t.title,
     statement: t.thesisStatement,
