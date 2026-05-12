@@ -46,14 +46,14 @@ export function EvidenceTimeline({ items }: { items: ThesisEvidence[] }) {
               <p className="mt-1.5 text-[13px] font-medium leading-snug text-zinc-200">{ev.headline}</p>
               <p className="mt-1 text-[11px] tabular-nums text-zinc-500">
                 {ev.logScenarioAfterStored === false ? (
-                  <>Conviction path: not re-modeled on this row (before-state only).</>
+                  <>Headline odds: not re-modeled on this row (before-state only).</>
                 ) : ev.probabilityBefore === ev.probabilityAfter ? (
                   <>
-                    Conviction {ev.probabilityBefore}% → {ev.probabilityAfter}% (no change)
+                    Headline odds {ev.probabilityBefore}% → {ev.probabilityAfter}% (no change)
                   </>
                 ) : (
                   <>
-                    Conviction {ev.probabilityBefore}% → {ev.probabilityAfter}%
+                    Headline odds {ev.probabilityBefore}% → {ev.probabilityAfter}%
                   </>
                 )}
               </p>
