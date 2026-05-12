@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
   fetchCatalogThesisTitleRows,
-  parseScenarioProbabilities,
+  resolveCatalogThesisScenarioProbabilities,
 } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
@@ -31,20 +31,22 @@ export async function GET() {
   const bodiesByThesisId: Record<string, unknown> = {};
   const slugsByThesisId: Record<string, string> = {};
   const scenarioProbabilitiesByThesisId: Record<string, { base: number; bull: number; bear: number }> = {};
-  for (const r of rows) {
-    const id = r.id.trim();
-    const title = (r.title ?? "").trim();
-    const micro = (r.micro_label ?? "").trim();
-    const slug = (r.slug ?? "").trim();
-    if (id && title) titlesByThesisId[id] = title;
-    if (id && micro) microLabelsByThesisId[id] = micro;
-    if (id && slug) slugsByThesisId[id] = slug;
-    if (id && r.body !== undefined && r.body !== null && typeof r.body === "object") {
-      bodiesByThesisId[id] = r.body as Record<string, unknown>;
-    }
-    const parsed = parseScenarioProbabilities(r.scenario_probabilities);
-    if (id && parsed) scenarioProbabilitiesByThesisId[id] = parsed;
-  }
+  await Promise.all(
+    rows.map(async (r) => {
+      const id = r.id.trim();
+      const title = (r.title ?? "").trim();
+      const micro = (r.micro_label ?? "").trim();
+      const slug = (r.slug ?? "").trim();
+      if (id && title) titlesByThesisId[id] = title;
+      if (id && micro) microLabelsByThesisId[id] = micro;
+      if (id && slug) slugsByThesisId[id] = slug;
+      if (id && r.body !== undefined && r.body !== null && typeof r.body === "object") {
+        bodiesByThesisId[id] = r.body as Record<string, unknown>;
+      }
+      const resolved = id ? await resolveCatalogThesisScenarioProbabilities(supabase, id, r.scenario_probabilities) : null;
+      if (id && resolved) scenarioProbabilitiesByThesisId[id] = resolved;
+    }),
+  );
   return NextResponse.json({
     titlesByThesisId,
     microLabelsByThesisId,

@@ -101,6 +101,35 @@ export async function fetchLatestNonSeedScenarioTripleFromEvidenceLog(
   return null;
 }
 
+/**
+ * Same scenario resolution as {@link fetchCatalogThesisHeaderBySlug}: use the DB column when it carries a
+ * non-seed triple; otherwise prefer the latest non-seed `probability_after` from evidence (batch list + client
+ * catalog-titles must match this or `/theses` and `/theses/[slug]` drift from `loadThesisDetailBundleForApi`).
+ */
+export function mergeCatalogDbScenarioColumnWithEvidenceFallback(
+  scenarioProbabilitiesColumn: unknown,
+  evidenceTriple: CatalogThesisScenarioProbabilities | null,
+): CatalogThesisScenarioProbabilities | null {
+  let p = parseScenarioProbabilities(scenarioProbabilitiesColumn);
+  if (!p || dbScenarioTripleEqualsSeed(p)) {
+    if (evidenceTriple) p = evidenceTriple;
+  }
+  return p;
+}
+
+export async function resolveCatalogThesisScenarioProbabilities(
+  supabase: SupabaseClient,
+  thesisId: string,
+  scenarioProbabilitiesColumn: unknown,
+): Promise<CatalogThesisScenarioProbabilities | null> {
+  const id = thesisId.trim();
+  if (!id) return null;
+  const parsed = parseScenarioProbabilities(scenarioProbabilitiesColumn);
+  const evidence =
+    !parsed || dbScenarioTripleEqualsSeed(parsed) ? await fetchLatestNonSeedScenarioTripleFromEvidenceLog(supabase, id) : null;
+  return mergeCatalogDbScenarioColumnWithEvidenceFallback(scenarioProbabilitiesColumn, evidence);
+}
+
 export async function fetchCatalogThesisHeaderBySlug(supabase: SupabaseClient, slug: string): Promise<CatalogThesisHeader> {
   const s = slug.trim();
   if (!s) return { title: null, microLabel: null, body: null, scenarioProbabilities: null };
@@ -123,13 +152,9 @@ export async function fetchCatalogThesisHeaderBySlug(supabase: SupabaseClient, s
   const title = typeof row.title === "string" ? row.title.trim() : "";
   const microLabel = typeof row.micro_label === "string" ? row.micro_label.trim() : "";
   const body = row.body !== undefined && row.body !== null ? row.body : null;
-  let scenarioProbabilities = parseScenarioProbabilities(row.scenario_probabilities);
-  if (!scenarioProbabilities || dbScenarioTripleEqualsSeed(scenarioProbabilities)) {
-    if (thesisId) {
-      const fromEvidence = await fetchLatestNonSeedScenarioTripleFromEvidenceLog(supabase, thesisId);
-      if (fromEvidence) scenarioProbabilities = fromEvidence;
-    }
-  }
+  const scenarioProbabilities = thesisId
+    ? await resolveCatalogThesisScenarioProbabilities(supabase, thesisId, row.scenario_probabilities)
+    : mergeCatalogDbScenarioColumnWithEvidenceFallback(row.scenario_probabilities, null);
   return {
     title: title || null,
     microLabel: microLabel || null,

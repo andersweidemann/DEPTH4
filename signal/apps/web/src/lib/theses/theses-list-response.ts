@@ -1,8 +1,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
-import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { resolveCatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import {
   applyDbScenarioTripleToThesisWithBundleScenarios,
+  dbScenarioTripleEqualsSeed,
   defaultScenarioOverridesFromThesis,
   isCatalogThesisId,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
@@ -104,32 +105,35 @@ export async function buildThesesListResponse(
   const slugs = CATALOG_THESES.map((t) => t.slug);
   const { data: headerRows } = await sb
     .from("theses")
-    .select("slug, updated_at, scenario_probabilities")
+    .select("id, slug, updated_at, scenario_probabilities")
     .in("slug", slugs)
     .eq("thesis_origin", "seeded_system");
 
   const catalogHeaderBySlug = new Map<
     string,
-    { updated_at?: string | null; scenario_probabilities?: unknown }
+    { id?: string; updated_at?: string | null; scenario_probabilities?: unknown }
   >();
   for (const r of headerRows ?? []) {
-    const o = r as { slug?: string; updated_at?: string | null; scenario_probabilities?: unknown };
+    const o = r as { id?: string; slug?: string; updated_at?: string | null; scenario_probabilities?: unknown };
     if (typeof o.slug === "string") catalogHeaderBySlug.set(o.slug, o);
   }
 
-  const catalogEngine: EngineThesis[] = [];
-  for (const t of CATALOG_THESES) {
-    const detail = getThesisDetail(t.slug);
-    if (!detail) continue;
-    const hdr = catalogHeaderBySlug.get(t.slug);
-    const iso = hdr?.updated_at?.trim() ? hdr.updated_at : null;
-    let thesis = detail.thesis;
-    const parsed = parseScenarioProbabilities(hdr?.scenario_probabilities);
-    if (parsed) {
-      thesis = applyDbScenarioTripleToThesisWithBundleScenarios(thesis, detail.scenarios, parsed);
-    }
-    catalogEngine.push({ ...thesis, lastUpdated: iso ? iso : thesis.lastUpdated });
-  }
+  const catalogParts = await Promise.all(
+    CATALOG_THESES.map(async (t) => {
+      const detail = getThesisDetail(t.slug);
+      if (!detail) return null;
+      const hdr = catalogHeaderBySlug.get(t.slug);
+      const iso = hdr?.updated_at?.trim() ? hdr.updated_at : null;
+      const thesisId = typeof hdr?.id === "string" && hdr.id.trim() ? hdr.id.trim() : t.id;
+      let thesis = detail.thesis;
+      const resolved = await resolveCatalogThesisScenarioProbabilities(sb, thesisId, hdr?.scenario_probabilities);
+      if (resolved && !dbScenarioTripleEqualsSeed(resolved)) {
+        thesis = applyDbScenarioTripleToThesisWithBundleScenarios(thesis, detail.scenarios, resolved);
+      }
+      return { ...thesis, lastUpdated: iso ? iso : thesis.lastUpdated };
+    }),
+  );
+  const catalogEngine: EngineThesis[] = catalogParts.filter((x): x is EngineThesis => x != null);
 
   let combined = sortThesesForDashboard([...catalogEngine, ...userTheses]);
 
