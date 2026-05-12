@@ -34,8 +34,8 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
     ? ev.logScenarioAfterStored === false
       ? `Latest evidence: “${ev.headline}” (${ev.source}) — scenarios were not re-modeled on this log row; compare the headline to your trigger.`
       : ev.probabilityBefore === ev.probabilityAfter
-        ? `Latest evidence: “${ev.headline}” (${ev.source}) · conviction ${ev.probabilityBefore}% (no change).`
-        : `Latest evidence: “${ev.headline}” (${ev.source}) · conviction ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
+        ? `Latest evidence: “${ev.headline}” (${ev.source}) · headline odds ${ev.probabilityBefore}% (no change).`
+        : `Latest evidence: “${ev.headline}” (${ev.source}) · headline odds ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
     : "Latest evidence: none logged yet.";
 
   const mapping =
@@ -68,7 +68,7 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
       assessment: "The latest evidence row is what moved the probability print.",
       context: `${statusLine} ${lastUpdateLine}`,
       considerations:
-        "Back-to-back confirming headlines can add conviction. One ugly headline, dead price, or a sharp probability cut can kill the read fast.",
+        "Back-to-back confirming headlines can lift headline odds. One ugly headline, dead price, or a sharp odds cut can kill the read fast.",
       riskFactors: `${invalidationRef} Watch headline whipsaws and shocks outside your written story.`,
     };
   }

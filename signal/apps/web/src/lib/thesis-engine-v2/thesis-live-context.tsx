@@ -753,9 +753,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
           const consequenceText =
             scenarioLabel === "bull"
-              ? "Conviction tilts toward this thesis paying roughly on plan — still size and trail per Trade plan; do not invent a new entry here."
+              ? "Branch odds tilt toward this thesis paying roughly on plan — still size and trail per Trade plan; do not invent a new entry here."
               : scenarioLabel === "bear"
-                ? "Conviction tilts toward invalidation — follow Invalidation and Book; trim or retire the line per your rules."
+                ? "Branch odds tilt toward invalidation — follow Invalidation and Book; trim or retire the line per your rules."
                 : "Same thesis, choppier path — keep size cautious until drivers line up cleanly.";
 
           pushAlert({

@@ -248,7 +248,7 @@ export function LiveThesesListPage() {
               onChange={(e) => setSortBy(e.target.value)}
             >
               <option value="recent">Most recent update</option>
-              <option value="conviction">Highest probability</option>
+              <option value="conviction">Highest path conviction</option>
               <option value="mispricing">Biggest mispricing</option>
             </select>
           </div>
