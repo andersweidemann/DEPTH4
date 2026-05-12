@@ -179,3 +179,8 @@ export interface ThesisListResponse {
   /** Bucketed homepage sections; per-section caps only, no global thesis cap. */
   home: ThesisHomeBuckets;
 }
+
+/** GET /api/theses/archive — terminal user-owned theses only. */
+export interface ThesisArchiveListResponse {
+  items: ThesisListItem[];
+}

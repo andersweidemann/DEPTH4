@@ -88,12 +88,65 @@ function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: nu
   );
 }
 
-const TABLE_GRID =
+export const TABLE_GRID =
   "grid grid-cols-[minmax(0,1fr)_72px_40px] gap-3 sm:grid-cols-[1fr_80px_80px_80px_40px]";
 
 function formatListTime(isoOrText: string): string {
   if (isoOrText && !Number.isNaN(Date.parse(isoOrText))) return formatTimeAgo(isoOrText);
   return isoOrText;
+}
+
+function HomeBucketSection({
+  title,
+  subtitle,
+  rows,
+  onToggleStar,
+  accent,
+}: {
+  title: string;
+  subtitle: string;
+  rows: ThesisListItem[];
+  onToggleStar: (slug: string, starred: boolean) => void;
+  accent?: "accent";
+}) {
+  return (
+    <section
+      className={cn(
+        "mt-8 rounded-lg border border-white/[0.06] bg-zinc-950/20 p-4 sm:p-5",
+        accent === "accent" && "border-[#E8473F]/25",
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{title}</p>
+          <p className="mt-0.5 text-[10px] text-zinc-600">{subtitle}</p>
+        </div>
+      </div>
+      <div className="mt-3 overflow-x-auto">
+        <div className="min-w-[640px]">
+          <div
+            className={cn(
+              TABLE_GRID,
+              "border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600",
+            )}
+          >
+            <span>Thesis</span>
+            <span className="text-right">Prob</span>
+            <span className="hidden sm:block">Status</span>
+            <span className="hidden text-right sm:block">Update</span>
+            <span />
+          </div>
+          {rows.length === 0 ? (
+            <p className="mt-4 text-[12px] text-zinc-600">Nothing in this bucket for the current filters.</p>
+          ) : (
+            rows.map((t) => (
+              <ThesisRow key={t.slug} item={t} onToggleStar={() => void onToggleStar(t.slug, t.starred)} />
+            ))
+          )}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function statusLane(s: ThesisStatus): "ready" | "active" | "watch" {
@@ -104,7 +157,7 @@ function statusLane(s: ThesisStatus): "ready" | "active" | "watch" {
 
 export function LiveThesesListPage() {
   useEffect(() => {
-    document.title = "DEPTH4 · Theses";
+    document.title = "DEPTH4 · Thesis map";
   }, []);
 
   const requireFeature = useRequireFeature();
@@ -140,7 +193,9 @@ export function LiveThesesListPage() {
   const warnedStaleListTriple = useRef(false);
   useEffect(() => {
     if (process.env.NODE_ENV === "production" || !data || warnedStaleListTriple.current) return;
-    const rows = [...data.focus, ...data.monitor];
+    const rows = data?.home
+      ? [...data.home.tradable, ...data.home.emerging, ...data.home.monitoring, ...data.home.archivePreview]
+      : [...(data?.focus ?? []), ...(data?.monitor ?? [])];
     const missing = rows.filter((r) => r.thesisId && isSystemThesisId(r.thesisId) && !r.listBaselineScenarioTriple);
     if (missing.length > 0) {
       warnedStaleListTriple.current = true;
@@ -151,30 +206,54 @@ export function LiveThesesListPage() {
     }
   }, [data]);
 
-  const focusRows = useMemo(() => {
-    if (!data) return [];
-    if (sortBy !== "conviction") return data.focus;
-    return [...data.focus].sort(
-      (a, b) =>
-        displayConvictionPctFromThesesListItemWithLive(b, mergeThesis) -
-        displayConvictionPctFromThesesListItemWithLive(a, mergeThesis),
-    );
-  }, [data, sortBy, mergeThesis]);
+  const sortListRows = useMemo(() => {
+    return (rows: ThesisListItem[]) => {
+      if (sortBy === "conviction") {
+        return [...rows].sort(
+          (a, b) =>
+            displayConvictionPctFromThesesListItemWithLive(b, mergeThesis) -
+            displayConvictionPctFromThesesListItemWithLive(a, mergeThesis),
+        );
+      }
+      if (sortBy === "mispricing") {
+        return [...rows].sort((a, b) => b.mispricingScore - a.mispricingScore);
+      }
+      return [...rows].sort((a, b) => (Date.parse(b.lastUpdated) || 0) - (Date.parse(a.lastUpdated) || 0));
+    };
+  }, [sortBy, mergeThesis]);
 
-  const monitorRows = useMemo(() => {
-    if (!data) return [];
-    if (sortBy !== "conviction") return data.monitor;
-    return [...data.monitor].sort(
-      (a, b) =>
-        displayConvictionPctFromThesesListItemWithLive(b, mergeThesis) -
-        displayConvictionPctFromThesesListItemWithLive(a, mergeThesis),
-    );
-  }, [data, sortBy, mergeThesis]);
+  const homeTradable = useMemo(() => {
+    if (!data?.home) return [];
+    return sortListRows(data.home.tradable);
+  }, [data, sortListRows]);
+
+  const homeEmerging = useMemo(() => {
+    if (!data?.home) return [];
+    return sortListRows(data.home.emerging);
+  }, [data, sortListRows]);
+
+  const homeMonitoring = useMemo(() => {
+    if (!data?.home) return [];
+    return sortListRows(data.home.monitoring);
+  }, [data, sortListRows]);
+
+  const homeArchive = useMemo(() => {
+    if (!data?.home) return [];
+    return sortListRows(data.home.archivePreview);
+  }, [data, sortListRows]);
 
   const starredCount = useMemo(() => {
     if (!data) return 0;
-    const all = [...data.focus, ...data.monitor];
-    return all.filter((t) => t.starred).length;
+    if (data.home) {
+      const all = [
+        ...data.home.tradable,
+        ...data.home.emerging,
+        ...data.home.monitoring,
+        ...data.home.archivePreview,
+      ];
+      return all.filter((t) => t.starred).length;
+    }
+    return [...data.focus, ...data.monitor].filter((t) => t.starred).length;
   }, [data]);
 
   const toggleStar = async (slug: string, starred: boolean) => {
@@ -268,17 +347,29 @@ export function LiveThesesListPage() {
           <Skeleton className="h-8 w-28 rounded-full" />
         </div>
         <section className="mt-8">
-          <Skeleton className="h-2.5 w-16" />
+          <Skeleton className="h-2.5 w-28" />
           <div className="mt-3 space-y-0">
-            <TableRowSkeleton />
             <TableRowSkeleton />
             <TableRowSkeleton />
           </div>
         </section>
-        <section className="mt-10">
+        <section className="mt-8">
+          <Skeleton className="h-2.5 w-24" />
+          <div className="mt-3 space-y-0">
+            <TableRowSkeleton />
+            <TableRowSkeleton />
+          </div>
+        </section>
+        <section className="mt-8">
           <Skeleton className="h-2.5 w-20" />
           <div className="mt-3 space-y-0">
             <TableRowSkeleton />
+            <TableRowSkeleton />
+          </div>
+        </section>
+        <section className="mt-8">
+          <Skeleton className="h-2.5 w-32" />
+          <div className="mt-3 space-y-0">
             <TableRowSkeleton />
           </div>
         </section>
@@ -295,8 +386,11 @@ export function LiveThesesListPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
-          <h1 className="text-xl font-semibold tracking-tight text-zinc-50">Live theses</h1>
-          <p className="mt-1 text-[13px] text-zinc-400">Tracks macro events the market hasn&apos;t priced in yet.</p>
+          <h1 className="text-xl font-semibold tracking-tight text-zinc-50">Thesis map</h1>
+          <p className="mt-1 text-[13px] text-zinc-400">
+            Tradable opportunities, emerging narratives, monitoring, and recent outcomes — ranked, not capped as a
+            single list.
+          </p>
         </div>
         <button
           type="button"
@@ -326,6 +420,12 @@ export function LiveThesesListPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/theses/archive"
+            className="rounded-full border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-400 transition-colors hover:border-[#E8473F]/35 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
+          >
+            Archive
+          </Link>
           <div className="flex items-center gap-1.5">
             <label className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Asset class</label>
             <select
@@ -355,40 +455,37 @@ export function LiveThesesListPage() {
         </div>
       </div>
 
-      <section className="mt-8">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Focus</p>
-          <p className="text-[10px] text-zinc-600">Ready / Active</p>
-        </div>
-        <div className="mt-3 overflow-x-auto">
-          <div className="min-w-[640px]">
-            <div
-              className={cn(
-                TABLE_GRID,
-                "border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600",
-              )}
-            >
-              <span>Thesis</span>
-              <span className="text-right">Prob</span>
-              <span className="hidden sm:block">Status</span>
-              <span className="hidden text-right sm:block">Update</span>
-              <span />
-            </div>
-            {data.focus.length === 0 ? (
-              <p className="mt-4 text-[12px] text-zinc-600">No theses in this view.</p>
-            ) : (
-              focusRows.map((t) => (
-                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug, t.starred)} />
-              ))
-            )}
+      <HomeBucketSection
+        title="Tradable now"
+        subtitle="Highest-priority ready / active theses (ranked slots)."
+        rows={homeTradable}
+        accent="accent"
+        onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
+      />
+      <HomeBucketSection
+        title="Emerging"
+        subtitle="Watching & drafts — narratives forming or not yet in top tradable slots."
+        rows={homeEmerging}
+        onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
+      />
+      <HomeBucketSection
+        title="Monitoring"
+        subtitle="Still in play, lower urgency — ready/active not in the tradable cut, plus overflow."
+        rows={homeMonitoring}
+        onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
+      />
+      <section className="mt-8 rounded-lg border border-white/[0.06] bg-zinc-950/15 p-4 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Archive & outcomes</p>
+            <p className="mt-0.5 text-[10px] text-zinc-600">Recent resolved / invalidated — forecast track record.</p>
           </div>
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Monitor</p>
-          <p className="text-[10px] text-zinc-600">Watching / Draft / next names</p>
+          <Link
+            href="/theses/archive"
+            className="text-[11px] text-zinc-400 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-[#E8473F]"
+          >
+            Full archive
+          </Link>
         </div>
         <div className="mt-3 overflow-x-auto">
           <div className="min-w-[640px]">
@@ -404,10 +501,10 @@ export function LiveThesesListPage() {
               <span className="hidden text-right sm:block">Update</span>
               <span />
             </div>
-            {data.monitor.length === 0 ? (
-              <p className="mt-4 text-[12px] text-zinc-600">No monitor rows.</p>
+            {homeArchive.length === 0 ? (
+              <p className="mt-4 text-[12px] text-zinc-600">No recent resolved or invalidated rows.</p>
             ) : (
-              monitorRows.map((t) => (
+              homeArchive.map((t) => (
                 <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug, t.starred)} />
               ))
             )}
@@ -468,7 +565,7 @@ export function LiveThesesListPage() {
   );
 }
 
-function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar: () => void }) {
+export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar: () => void }) {
   const lane = statusLane(item.status);
   return (
     <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
@@ -504,6 +601,11 @@ function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar:
           )}
         </div>
         <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
+        {item.outcome_label ? (
+          <p className="mt-1.5 text-[10px] text-zinc-500">
+            Outcome · <span className="text-zinc-300">{item.outcome_label}</span>
+          </p>
+        ) : null}
       </div>
       <ProbColumn mispricing={item.mispricingScore} item={item} />
       <div className="hidden sm:block">
