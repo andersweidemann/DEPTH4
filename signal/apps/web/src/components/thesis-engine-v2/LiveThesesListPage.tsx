@@ -18,7 +18,7 @@ import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
-import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
+import type { ThesisHomeSignalsResponse, ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
@@ -187,6 +187,7 @@ export function LiveThesesListPage() {
   }, [activeFilter, assetClass, sortBy]);
 
   const { data, error, isLoading, mutate } = useSWR<ThesisListResponse>(listKey, swrJsonFetcher);
+  const { data: homeSignals } = useSWR<ThesisHomeSignalsResponse>("/api/theses/home-signals", swrJsonFetcher);
 
   const { mergeThesis } = useThesisLive();
 
@@ -391,6 +392,18 @@ export function LiveThesesListPage() {
             Tradable opportunities, emerging narratives, monitoring, and recent outcomes — ranked, not capped as a
             single list.
           </p>
+          {homeSignals?.catalogLeader ? (
+            <p className="mt-2 text-[11px] text-zinc-600">
+              System surfacing · top catalog slot{" "}
+              <Link
+                href={`/theses/${homeSignals.catalogLeader.slug}`}
+                className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-[#E8473F]"
+              >
+                {homeSignals.catalogLeader.slug}
+              </Link>{" "}
+              (score {homeSignals.catalogLeader.thesisScore})
+            </p>
+          ) : null}
         </div>
         <button
           type="button"

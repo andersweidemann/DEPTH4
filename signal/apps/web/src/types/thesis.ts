@@ -184,3 +184,8 @@ export interface ThesisListResponse {
 export interface ThesisArchiveListResponse {
   items: ThesisListItem[];
 }
+
+/** GET /api/theses/home-signals — lightweight catalog surfacing utility (Phase 6). */
+export interface ThesisHomeSignalsResponse {
+  catalogLeader: { thesisId: string; slug: string; thesisScore: number } | null;
+}
