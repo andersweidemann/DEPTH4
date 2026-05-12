@@ -7,7 +7,7 @@
  *
  * **Live product verification** (Supabase + browser) is not run in CI — use this checklist locally:
  * - Pick a user thesis with `insider_flow` + `status` in forming|watching|ready|active.
- * - Open `/theses/[slug]`; confirm `thesis_evidence_log` has rows for that `thesis_id`.
+ * - Open `/theses/[slug]` (ThesisSlugDetailPage → ThesisDetailClient); confirm `thesis_evidence_log` has rows for that `thesis_id`.
  * - After cron, rows should carry `probability_after` when `computeSuggestedUpdate` returns a suggestion.
  * - Hard refresh: scenario triple should not revert to DB seed if server still sends seed (merge skips seed overlay).
  */
