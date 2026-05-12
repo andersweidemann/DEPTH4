@@ -17,7 +17,11 @@ import {
   surfacedBucketForEngineThesis,
   thesisScoreV0,
 } from "@/lib/theses/thesis-home-surfacing";
-import { loadCatalogEngineTheses } from "@/lib/theses/load-catalog-engine-theses";
+import {
+  buildSurfacingPreferenceFromRow,
+  loadCatalogEngineTheses,
+  type ThesisDbSurfacingPreference,
+} from "@/lib/theses/load-catalog-engine-theses";
 
 function mapDirection(d: EngineThesis["direction"]): ThesisDirection {
   return d === "short" ? "short" : "long";
@@ -67,19 +71,26 @@ function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIs
   };
 }
 
-function listItemFromEngine(
+/** List row merge: prefers DB surfacing columns when present (Phase 4). */
+export function thesisListItemFromEngine(
   t: EngineThesis,
   starred: boolean,
   lastUpdatedIso: string | null,
   partition: ReturnType<typeof partitionHomeBuckets>,
+  db?: ThesisDbSurfacingPreference,
 ): ThesisListItem {
   const base = engineThesisToListItem(t, starred, lastUpdatedIso);
-  const bucket = surfacedBucketForEngineThesis(t, partition);
+  const bucket =
+    db?.surfaced_bucket !== undefined ? db.surfaced_bucket : surfacedBucketForEngineThesis(t, partition);
+  const lifecycle_state = db?.lifecycle_state ?? deriveLifecycleState(t.status);
+  const thesis_score = db?.thesis_score !== undefined ? db.thesis_score : Math.round(thesisScoreV0(t));
+  const outcome_label = db?.outcome_label;
   return {
     ...base,
-    lifecycle_state: deriveLifecycleState(t.status),
+    lifecycle_state,
     surfaced_bucket: bucket,
-    thesis_score: Math.round(thesisScoreV0(t)),
+    thesis_score,
+    ...(outcome_label != null ? { outcome_label } : {}),
   };
 }
 
@@ -112,7 +123,9 @@ export async function buildThesesListResponse(
 
   const { data: userRows } = await sb
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow")
+    .select(
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label",
+    )
     .eq("owner_user_id", userId)
     .eq("thesis_origin", "user")
     .order("updated_at", { ascending: false })
@@ -122,7 +135,13 @@ export async function buildThesesListResponse(
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
 
-  const { catalogEngine, discardBulkWriterCollapse } = await loadCatalogEngineTheses(sb);
+  const { catalogEngine, discardBulkWriterCollapse, dbSurfacingByThesisId } = await loadCatalogEngineTheses(sb);
+  const surfacingByThesisId = new Map<string, ThesisDbSurfacingPreference>(dbSurfacingByThesisId);
+  for (const row of userRows ?? []) {
+    const r = row as Record<string, unknown>;
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
+  }
   if (discardBulkWriterCollapse && process.env.NODE_ENV === "development") {
     console.warn(
       "[DEPTH4] Discarding unanimous catalog scenario triple 80/15/5 across many theses — treat as corrupt DB/evidence stamp; fix writers in Supabase.",
@@ -162,7 +181,8 @@ export async function buildThesesListResponse(
 
   const partition = partitionHomeBuckets(combined);
 
-  const mapEngine = (t: EngineThesis) => listItemFromEngine(t, starredIds.has(t.id), null, partition);
+  const mapEngine = (t: EngineThesis) =>
+    thesisListItemFromEngine(t, starredIds.has(t.id), null, partition, surfacingByThesisId.get(t.id));
 
   if (process.env.NODE_ENV === "development" && userTheses.length >= 3) {
     const signatures = userTheses.map((t) => {

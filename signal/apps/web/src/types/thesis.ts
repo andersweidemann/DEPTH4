@@ -1,6 +1,12 @@
 export type ThesisDirection = "short" | "long";
 export type ThesisStatus = "Ready" | "Active" | "Watching" | "Draft";
 
+/** Phase 1 derived registry / terminal state (DB column in Phase 2). */
+export type ThesisLifecycleState = "discovered" | "live" | "resolved" | "invalidated" | "archived";
+
+/** Phase 1 homepage bucket (DB column in Phase 2). */
+export type ThesisSurfacedBucket = "tradable" | "emerging" | "monitoring";
+
 export interface Thesis {
   slug: string;
   title: string;
@@ -150,9 +156,26 @@ export interface ThesisListItem {
   whyNow: string;
   lastUpdated: string;
   starred: boolean;
+  /** Derived Phase 1 — not written to DB yet. */
+  lifecycle_state?: ThesisLifecycleState;
+  /** Derived Phase 1 — `null` when not in tradable/emerging/monitoring (e.g. archive rows). */
+  surfaced_bucket?: ThesisSurfacedBucket | null;
+  /** Derived Phase 1 ranking input (rounded). */
+  thesis_score?: number;
+  /** When set on resolved/invalidated rows (DB or admin). */
+  outcome_label?: string | null;
+}
+
+export interface ThesisHomeBuckets {
+  tradable: ThesisListItem[];
+  emerging: ThesisListItem[];
+  monitoring: ThesisListItem[];
+  archivePreview: ThesisListItem[];
 }
 
 export interface ThesisListResponse {
   focus: ThesisListItem[];
   monitor: ThesisListItem[];
+  /** Bucketed homepage sections; per-section caps only, no global thesis cap. */
+  home: ThesisHomeBuckets;
 }
