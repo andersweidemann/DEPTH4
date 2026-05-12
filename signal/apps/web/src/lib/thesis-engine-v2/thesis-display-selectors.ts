@@ -82,6 +82,11 @@ export type ThesisDisplayModel = {
   scenarios: ThesisScenario[];
   narrativeFallback: ThesisScenario[];
   scenarioSource: ThesisScenarioDisplaySource;
+  /**
+   * True when merged display path weights still match a shipped template triple (40/35/25-style).
+   * Conviction % can match other theses for that reason — not a distinct AI calibration yet.
+   */
+  convictionIsTemplateEstimate: boolean;
 };
 
 /** Single entry point: canonical conviction + display scenarios + coarse debug source. */
@@ -93,6 +98,7 @@ export function getThesisDisplayModel(thesis: Thesis, opts?: { liveEvidenceAppli
     scenarios,
     narrativeFallback,
     scenarioSource: inferThesisScenarioDisplaySource(thesis, opts),
+    convictionIsTemplateEstimate: isUncalibratedDisplayScenarioTriple(scenarios),
   };
 }
 
@@ -135,4 +141,10 @@ export function inferThesisScenarioDisplaySourceFromApiThesis(t: ApiThesis): The
   const rows = apiResolutionPathsToScenarioLikes(t);
   if (isUncalibratedDisplayScenarioTriple(rows)) return "fallback-template";
   return "db";
+}
+
+/** Chunk/API shell: same template detection as `getThesisDisplayModel` / `mapBundleToApiThesis`. */
+export function convictionIsTemplateEstimateFromApiThesis(t: ApiThesis): boolean {
+  if (typeof t.convictionIsTemplateEstimate === "boolean") return t.convictionIsTemplateEstimate;
+  return isUncalibratedDisplayScenarioTriple(apiResolutionPathsToScenarioLikes(t));
 }

@@ -14,6 +14,7 @@ import { Tooltip } from "./Tooltip";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { displayConvictionPctFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 
 export function ThesisCard({
@@ -136,6 +137,11 @@ export function ThesisCard({
         ) : null}
       </div>
       <ThesisDisplaySourceDebug convictionPct={displayModel.convictionPct} scenarioSource={displayModel.scenarioSource} />
+      {displayModel.convictionIsTemplateEstimate ? (
+        <p className="mt-2 text-[10px] leading-snug text-zinc-600" data-testid="thesis-card-template-note">
+          {THESIS_CONVICTION_TEMPLATE_NOTE_SHORT}
+        </p>
+      ) : null}
       <div className="mt-3 space-y-1.5 border-t border-white/[0.04] pt-3 text-[11px] leading-snug text-zinc-500">
         <p>
           <span className="text-zinc-400">Why now · </span>

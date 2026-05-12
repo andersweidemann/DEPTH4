@@ -13,6 +13,7 @@ import {
   THESIS_CONVICTION_EXPLAINER_PREFERRED,
   THESIS_CONVICTION_EXPLAINER_SHORT,
   THESIS_CONVICTION_LABEL,
+  THESIS_CONVICTION_TEMPLATE_NOTE_SHORT,
   THESIS_CONVICTION_TOOLTIP,
   thesisConvictionActionGuidance,
 } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
@@ -121,6 +122,14 @@ export function ThesisHero({
             </div>
           </div>
           <ThesisDisplaySourceDebug convictionPct={dm.convictionPct} scenarioSource={dm.scenarioSource} />
+          {dm.convictionIsTemplateEstimate ? (
+            <p
+              className="mt-2 text-[10px] leading-relaxed text-zinc-600"
+              data-testid="thesis-conviction-template-note"
+            >
+              {THESIS_CONVICTION_TEMPLATE_NOTE_SHORT}
+            </p>
+          ) : null}
           <p className="mt-2 text-[11px] leading-relaxed text-zinc-500 sm:hidden">{THESIS_CONVICTION_EXPLAINER_SHORT}</p>
           <p className="mt-2 hidden text-[11px] leading-relaxed text-zinc-500 sm:block">{THESIS_CONVICTION_EXPLAINER_PREFERRED}</p>
           <p className="mt-2 text-[11px] leading-relaxed text-amber-200/75">{actionGuidance}</p>

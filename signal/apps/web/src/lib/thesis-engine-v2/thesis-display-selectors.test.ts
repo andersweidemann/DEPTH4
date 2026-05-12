@@ -7,10 +7,12 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import {
   displayConvictionPctFromEngineThesis,
+  convictionIsTemplateEstimateFromApiThesis,
   getThesisDisplayModel,
   inferThesisScenarioDisplaySource,
   scenarioDisplayTriplesProbabilitiesEqual,
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import type { Thesis as ApiThesisShape } from "@/types/thesis";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
 import { bundleForUserThesis } from "@/lib/thesis-engine-v2/user-theses";
@@ -41,7 +43,7 @@ function baseUserThesis(): Thesis {
       bull: { probability: 30, confirmation: "clean c", marketConsequence: "clean m" },
       bear: { probability: 25, confirmation: "bear c", marketConsequence: "bear m" },
     },
-  } as Thesis;
+  } as unknown as Thesis;
 }
 
 describe("thesis-display-selectors", () => {
@@ -74,6 +76,38 @@ describe("thesis-display-selectors", () => {
     expect(inferThesisScenarioDisplaySource(t, { liveEvidenceApplied: true })).toBe("live-evidence");
   });
 
+  it("getThesisDisplayModel sets convictionIsTemplateEstimate for shipped catalog defaults", () => {
+    const detail = getThesisDetail("strait-hormuz-oil-long");
+    expect(detail).toBeTruthy();
+    const dm = getThesisDisplayModel(detail!.thesis);
+    expect(dm.convictionIsTemplateEstimate).toBe(true);
+  });
+
+  it("getThesisDisplayModel clears convictionIsTemplateEstimate when merged triple leaves templates", () => {
+    const detail = getThesisDetail("strait-hormuz-oil-long")!;
+    const t = applyDbScenarioTripleToThesisWithBundleScenarios(detail.thesis, detail.scenarios, {
+      base: 52,
+      bull: 28,
+      bear: 20,
+    });
+    expect(getThesisDisplayModel(t).convictionIsTemplateEstimate).toBe(false);
+  });
+
+  it("mapBundleToApiThesis: seed DB triple keeps convictionIsTemplateEstimate true", () => {
+    const detail = getThesisDetail("strait-hormuz-oil-long")!;
+    const seeded = applyDbScenarioTripleToThesisWithBundleScenarios(detail.thesis, detail.scenarios, SCENARIO_PROBABILITY_SEED_DB);
+    const api = mapBundleToApiThesis({ ...detail, thesis: seeded }, null);
+    expect(api.convictionIsTemplateEstimate).toBe(true);
+  });
+
+  it("convictionIsTemplateEstimateFromApiThesis matches API field; falls back from resolution paths if omitted", () => {
+    const detail = getThesisDetail("strait-hormuz-oil-long")!;
+    const api = mapBundleToApiThesis(detail, null);
+    expect(convictionIsTemplateEstimateFromApiThesis(api)).toBe(api.convictionIsTemplateEstimate);
+    const { convictionIsTemplateEstimate: _drop, ...rest } = api;
+    expect(convictionIsTemplateEstimateFromApiThesis(rest as ApiThesisShape)).toBe(true);
+  });
+
   it("list conviction equals detail API conviction for same catalog thesis with DB triple overlay", () => {
     const detail = getThesisDetail("strait-hormuz-oil-long");
     expect(detail).toBeTruthy();
@@ -90,6 +124,7 @@ describe("thesis-display-selectors", () => {
     expect(api.resolutionPaths.messyWin.probability).toBe(52);
     expect(api.resolutionPaths.thesisBroken.probability).toBe(20);
     expect(api.showResolutionPathPercentages).toBe(true);
+    expect(api.convictionIsTemplateEstimate).toBe(false);
   });
 
   it("user thesis from Supabase row applies seed triple on hydration (force merge)", () => {

@@ -241,6 +241,7 @@ export function mapBundleToApiThesis(
   const cleanPct = displayScenarios.find((s) => s.pathKey === "clean_win")?.probability ?? 0;
   const messyPct = displayScenarios.find((s) => s.pathKey === "messy_win")?.probability ?? 0;
   const brokenPct = displayScenarios.find((s) => s.pathKey === "thesis_broken")?.probability ?? 0;
+  const convictionIsTemplateEstimate = isUncalibratedDisplayScenarioTriple(displayScenarios);
 
   const showResolutionPathPercentages =
     !isUncalibratedDisplayScenarioTriple(displayScenarios) ||
@@ -291,6 +292,7 @@ export function mapBundleToApiThesis(
     status: mapStatus(thesis.status),
     tradeable: thesis.qualification === "tradeable",
     conviction,
+    convictionIsTemplateEstimate,
     convictionRationale: thesis.probabilityRationale,
     mispricingScore: mp.score,
     mispricingComponents: mispricingComponents(mp),

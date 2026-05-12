@@ -9,10 +9,10 @@
  * NOT `thesis.probability` for UI (legacy hero dial; `thesisWithSyncedLiveProbability` may overwrite it to match path math).  
  * Compute: `currentThesisProbabilityFromThesis` → `thesisConvictionPctFromDbTriple` = round(base + bull).  
  * List: `buildThesesListResponse` → `engineThesisToListItem` → `item.conviction` = `displayConvictionPctFromEngineThesis(t)`.  
- * API detail: `mapBundleToApiThesis` → `conviction` = same.  
+ * API detail: `mapBundleToApiThesis` → `conviction` = same; `convictionIsTemplateEstimate` when merged triple is still a shipped template.  
  * UI list: `displayConvictionPctFromListItem(item)` → `item.conviction`.  
  * UI engine surfaces: `displayConvictionPctFromEngineThesis(thesis)` / `getThesisDisplayModel`.  
- * Chunk API shell: `displayConvictionPctFromApiThesis(api)` → `api.conviction`.
+ * Chunk API shell: `displayConvictionPctFromApiThesis(api)` → `api.conviction`; `convictionIsTemplateEstimateFromApiThesis(api)` for template honesty.
  *
  * **Resolution path %**  
  * Raw narrative rows: `catalogDefaultScenariosForThesis(thesis)` (per-slug copy; many slugs share **40/35/25** weights by design).  
@@ -45,6 +45,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import {
   displayConvictionPctFromEngineThesis,
+  convictionIsTemplateEstimateFromApiThesis,
   getThesisDisplayModel,
   inferThesisScenarioDisplaySource,
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
@@ -70,9 +71,14 @@ describe("thesis conviction + resolution path trace (catalog)", () => {
     expect(inferThesisScenarioDisplaySource(da.thesis)).toBe("fallback-template");
     expect(inferThesisScenarioDisplaySource(db.thesis)).toBe("fallback-template");
     expect(isUncalibratedDisplayScenarioTriple(dmA.scenarios)).toBe(true);
+    expect(dmA.convictionIsTemplateEstimate).toBe(true);
+    expect(dmB.convictionIsTemplateEstimate).toBe(true);
 
     const apiA = mapBundleToApiThesis(da, null);
     const apiB = mapBundleToApiThesis(db, null);
+    expect(apiA.convictionIsTemplateEstimate).toBe(true);
+    expect(apiB.convictionIsTemplateEstimate).toBe(true);
+    expect(convictionIsTemplateEstimateFromApiThesis(apiA)).toBe(true);
     expect(apiA.conviction).toBe(75);
     expect(apiB.conviction).toBe(75);
     expect(apiA.resolutionPaths.cleanWin.probability).toBe(40);
@@ -103,6 +109,8 @@ describe("thesis conviction + resolution path trace (catalog)", () => {
 
     const apiA = mapBundleToApiThesis({ ...da, thesis: ta }, null);
     const apiB = mapBundleToApiThesis({ ...db, thesis: tb }, null);
+    expect(apiA.convictionIsTemplateEstimate).toBe(false);
+    expect(apiB.convictionIsTemplateEstimate).toBe(false);
     expect(apiA.resolutionPaths.messyWin.probability).toBe(52);
     expect(apiB.resolutionPaths.messyWin.probability).toBe(30);
     expect(apiA.resolutionPaths.cleanWin.probability).toBe(28);

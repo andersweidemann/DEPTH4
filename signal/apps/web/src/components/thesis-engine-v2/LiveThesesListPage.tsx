@@ -14,6 +14,7 @@ import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/sha
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 import { displayConvictionPctFromListItem } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 
 function StarOutlineIcon({ className }: { className?: string }) {
   return (
@@ -57,6 +58,15 @@ function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: nu
         </span>
       </div>
       <p className="mt-1 hidden text-[10px] text-zinc-600 sm:block">Mispricing {mispricing}/100</p>
+      {item.convictionIsTemplateEstimate ? (
+        <p
+          className="mt-1 text-[9px] leading-tight text-zinc-600"
+          title={THESIS_CONVICTION_TEMPLATE_NOTE_SHORT}
+          data-testid="thesis-list-template-note"
+        >
+          Starter template
+        </p>
+      ) : null}
       {process.env.NODE_ENV !== "production" ? (
         <p className="mt-0.5 font-mono text-[8px] uppercase tracking-wider text-zinc-700" aria-hidden>
           dev · row:list · {pct}%

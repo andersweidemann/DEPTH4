@@ -22,8 +22,10 @@ import type {
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 import {
   displayConvictionPctFromApiThesis,
+  convictionIsTemplateEstimateFromApiThesis,
   inferThesisScenarioDisplaySourceFromApiThesis,
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 
 export function ThesisDetailChunkPage() {
   const params = useParams();
@@ -143,6 +145,7 @@ export function ThesisDetailChunkPage() {
   const pathConvictionPct = displayConvictionPctFromApiThesis(thesis);
   const showResolutionPercents = thesis.showResolutionPathPercentages;
   const apiScenarioSource = inferThesisScenarioDisplaySourceFromApiThesis(thesis);
+  const convictionIsTemplate = convictionIsTemplateEstimateFromApiThesis(thesis);
 
   return (
     <div className="pb-16">
@@ -212,6 +215,14 @@ export function ThesisDetailChunkPage() {
             </div>
           </div>
           <ThesisDisplaySourceDebug convictionPct={pathConvictionPct} scenarioSource={apiScenarioSource} />
+          {convictionIsTemplate ? (
+            <p
+              className="mt-2 text-[11px] leading-relaxed text-zinc-500"
+              data-testid="thesis-chunk-conviction-template-note"
+            >
+              {THESIS_CONVICTION_TEMPLATE_NOTE_SHORT}
+            </p>
+          ) : null}
           <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
             Thesis conviction is DEPTH4&apos;s estimate that this idea is broadly right over this horizon. It equals
             Clean win + Messy win. The paths below show how that payoff is most likely to arrive.

@@ -37,6 +37,11 @@ export interface Thesis {
    * with no DB `scenario_probabilities`). Otherwise show Clean/Messy/Broken % from the merged display triple.
    */
   showResolutionPathPercentages: boolean;
+  /**
+   * True when merged resolution-path weights still match a shipped template triple (shared starter defaults).
+   * Not a per-thesis AI calibration signal — see `THESIS_CONVICTION_TEMPLATE_NOTE_SHORT` in UI.
+   */
+  convictionIsTemplateEstimate: boolean;
   resolutionPaths: {
     cleanWin: ResolutionPath;
     messyWin: ResolutionPath;
@@ -132,6 +137,8 @@ export interface ThesisListItem {
   direction: ThesisDirection;
   status: ThesisStatus;
   conviction: number;
+  /** Same semantics as detail API `convictionIsTemplateEstimate` — list/detail stay aligned. */
+  convictionIsTemplateEstimate: boolean;
   mispricingScore: number;
   whyNow: string;
   lastUpdated: string;

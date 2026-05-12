@@ -70,7 +70,7 @@ export function dbScenarioTripleEqualsSeed(p: DbScenarioTriple): boolean {
   return p.base === SCENARIO_PROBABILITY_SEED_DB.base && p.bull === SCENARIO_PROBABILITY_SEED_DB.bull && p.bear === SCENARIO_PROBABILITY_SEED_DB.bear;
 }
 
-/** True for shipped `CATALOG_THESES` rows — their default 40/35/25 splits are intentional, not “awaiting calibration”. */
+/** True for shipped `CATALOG_THESES` rows — used so catalog Scenario View may show path % even when the triple is still a known template (see `api-thesis-mapper` + `ThesisDetailClient` honesty line). */
 export function isCatalogThesisId(id: string): boolean {
   return CATALOG_THESES.some((t) => t.id === id);
 }

@@ -7,6 +7,7 @@ import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { displayConvictionPctFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 
@@ -112,6 +113,11 @@ export function ThesisTableRow({
               </div>
             ) : null}
             <ThesisDisplaySourceDebug convictionPct={displayModel.convictionPct} scenarioSource={displayModel.scenarioSource} />
+            {displayModel.convictionIsTemplateEstimate ? (
+              <p className="mt-1 text-[10px] leading-snug text-zinc-600" data-testid="thesis-table-template-note">
+                {THESIS_CONVICTION_TEMPLATE_NOTE_SHORT}
+              </p>
+            ) : null}
           </div>
 
           <div className="hidden text-right font-mono text-[11px] tabular-nums text-zinc-600 sm:block">{thesis.lastUpdated}</div>

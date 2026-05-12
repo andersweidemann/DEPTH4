@@ -28,6 +28,18 @@ export const SCENARIO_PROBABILITIES_POPOVER_DISCLAIMER =
 export const GENERIC_CONVICTION_USE_COPY =
   "Use conviction to judge whether the idea is worth running at all. Use the scenario split to judge how aggressively to size it and how patient to be.";
 
+/** Hero / list / card — headline conviction still uses shared template path weights (not distinct calibration yet). */
+export const THESIS_CONVICTION_TEMPLATE_NOTE_SHORT =
+  "Starter template weights — shared defaults until evidence or calibration moves the split.";
+
+/** Scenario View footnote when catalog rows still show template path % (see `showAuthoritativeScenarioPercents`). */
+export const THESIS_SCENARIO_TEMPLATE_NOTE_CATALOG =
+  "Shared starter weights on catalog theses — numbers update when live evidence or calibration moves you off this template.";
+
+/** Scenario View footnote for user theses on template triple with percents shown. */
+export const THESIS_SCENARIO_TEMPLATE_NOTE_USER =
+  "Template probabilities — not yet narrowed by live evidence for this thesis.";
+
 const HIGH_CONVICTION_MIN = 55;
 
 /**

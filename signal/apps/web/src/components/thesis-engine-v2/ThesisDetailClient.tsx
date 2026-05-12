@@ -55,6 +55,10 @@ import {
   displayConvictionPctFromEngineThesis,
   scenarioDisplayTriplesProbabilitiesEqual,
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import {
+  THESIS_SCENARIO_TEMPLATE_NOTE_CATALOG,
+  THESIS_SCENARIO_TEMPLATE_NOTE_USER,
+} from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { applyProvisionalTripleToScenarios, runScenarioEvidenceModelPipeline } from "@/lib/thesis-engine-v2/scenario-evidence-model";
 import { liveScenarioProbabilitiesForThesesEnabled } from "@/lib/thesis-engine-v2/scenario-evidence-flags";
 import { logScenarioProbabilitySnapshot } from "@/lib/thesis-engine-v2/scenario-probability-log";
@@ -511,10 +515,10 @@ export function ThesisDetailClient({
   const horizonTimeStopReview = evaluateHorizonTimeStopCoherence(thesis.horizon, thesis.timeStop);
 
   const scenarioAuthenticityNote =
-    showAuthoritativeScenarioPercents &&
-    isUserThesis &&
-    isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows)
-      ? "Template probabilities — not yet narrowed by live evidence for this thesis."
+    showAuthoritativeScenarioPercents && isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows)
+      ? isUserThesis
+        ? THESIS_SCENARIO_TEMPLATE_NOTE_USER
+        : THESIS_SCENARIO_TEMPLATE_NOTE_CATALOG
       : null;
 
   const inner = (

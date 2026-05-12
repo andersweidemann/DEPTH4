@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { applyDbScenarioTripleToThesisWithBundleScenarios } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
-import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { mapStatus } from "@/lib/thesis-engine-v2/api-thesis-mapper";
 import type { Thesis as EngineThesis, ThesisStatus as EngineStatus } from "@/lib/thesis-engine-v2/types";
@@ -20,7 +20,8 @@ function mapListStatus(st: EngineStatus): ThesisStatus {
 
 function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIso: string | null): ThesisListItem {
   const mp = getThesisMispricing(t, {});
-  const conviction = displayConvictionPctFromEngineThesis(t);
+  const dm = getThesisDisplayModel(t);
+  const conviction = Math.round(dm.convictionPct);
   const lastUpdated =
     lastUpdatedIso && !Number.isNaN(Date.parse(lastUpdatedIso)) ? lastUpdatedIso : t.lastUpdated;
 
@@ -31,7 +32,8 @@ function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIs
     asset: t.asset,
     direction: mapDirection(t.direction),
     status: mapListStatus(t.status),
-    conviction: Math.round(conviction),
+    conviction,
+    convictionIsTemplateEstimate: dm.convictionIsTemplateEstimate,
     mispricingScore: mp.score,
     whyNow: t.whyNow,
     lastUpdated,
@@ -124,7 +126,7 @@ export async function buildThesesListResponse(
   const sort = query.sort?.trim() || "recent";
   if (sort === "conviction") {
     combined = [...combined].sort(
-      (a, b) => displayConvictionPctFromEngineThesis(b) - displayConvictionPctFromEngineThesis(a),
+      (a, b) => getThesisDisplayModel(b).convictionPct - getThesisDisplayModel(a).convictionPct,
     );
   } else if (sort === "mispricing") {
     combined = [...combined].sort(
@@ -142,7 +144,7 @@ export async function buildThesesListResponse(
 
   if (process.env.NODE_ENV === "development" && userTheses.length >= 3) {
     const signatures = userTheses.map((t) => {
-      const c = Math.round(displayConvictionPctFromEngineThesis(t));
+      const c = Math.round(getThesisDisplayModel(t).convictionPct);
       const o = t.scenarioOverrides;
       const triple = o ? `${o.bull.probability}/${o.base.probability}/${o.bear.probability}` : "no-overrides";
       return `${c}|${triple}`;
