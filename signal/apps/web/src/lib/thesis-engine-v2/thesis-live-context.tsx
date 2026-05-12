@@ -16,6 +16,7 @@ import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-type
 export type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
 import { mergeThesis, type ThesisOverrides } from "@/lib/thesis-engine-v2/thesis-merge";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { catalogResolvedTriplesLookLikeBulkWriterCollapse } from "@/lib/thesis-engine-v2/catalog-scenario-universal-collapse-guard";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard, thesisSlugById } from "@/lib/thesis-engine-v2/catalog-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import {
@@ -643,7 +644,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         const latestByThesis = latestNonSeedScenarioTripleByThesisId(
           rows.map((r) => ({ thesisId: r.thesisId, createdAt: r.createdAt, probabilityAfter: r.probabilityAfter })),
         );
-        if (latestByThesis.size > 0) {
+        const bootTriples = Array.from(latestByThesis.values());
+        const discardBootBulk = catalogResolvedTriplesLookLikeBulkWriterCollapse(bootTriples);
+        if (latestByThesis.size > 0 && !discardBootBulk) {
           setOverrides((prev) => {
             const next = { ...prev };
             latestByThesis.forEach((triple, thesisId) => {
@@ -685,12 +688,21 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       const fresh = rows.filter((r) => r.createdAt > hw).sort((a, b) => a.createdAt - b.createdAt);
       const userPollIds = collectEligibleUserThesisPollIdSet(loadUserTheses());
 
+      const freshScenarioRows = fresh.filter((r) => r.probabilityAfter && !dbScenarioTripleEqualsSeed(r.probabilityAfter));
+      const discardFreshBulk = catalogResolvedTriplesLookLikeBulkWriterCollapse(
+        freshScenarioRows.map((r) => r.probabilityAfter!),
+      );
+
       for (const r of fresh) {
         // Scenario patches: any thesis we poll (catalog + eligible user). Do not gate on star —
         // user theses were incorrectly frozen because only starred ∪ book received merges.
         // Skip only the **shared Supabase seed** triple `{base:40,bull:35,bear:25}` — never treat a
         // divergent cron suggestion as "seed" to ignore; that would keep user theses on templates forever.
-        if (r.probabilityAfter && !dbScenarioTripleEqualsSeed(r.probabilityAfter)) {
+        if (
+          !discardFreshBulk &&
+          r.probabilityAfter &&
+          !dbScenarioTripleEqualsSeed(r.probabilityAfter)
+        ) {
           const bt = baseThesisForId(r.thesisId);
           if (bt) {
             setOverrides((o) => ({

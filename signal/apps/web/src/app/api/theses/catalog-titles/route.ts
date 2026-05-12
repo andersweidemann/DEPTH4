@@ -4,6 +4,7 @@ import {
   fetchCatalogThesisTitleRows,
   resolveCatalogThesisScenarioProbabilities,
 } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { catalogResolvedTriplesLookLikeBulkWriterCollapse } from "@/lib/thesis-engine-v2/catalog-scenario-universal-collapse-guard";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 /**
@@ -31,8 +32,9 @@ export async function GET() {
   const bodiesByThesisId: Record<string, unknown> = {};
   const slugsByThesisId: Record<string, string> = {};
   const scenarioProbabilitiesByThesisId: Record<string, { base: number; bull: number; bear: number }> = {};
+  const resolvedByRowIndex: Array<{ base: number; bull: number; bear: number } | null> = new Array(rows.length).fill(null);
   await Promise.all(
-    rows.map(async (r) => {
+    rows.map(async (r, rowIndex) => {
       const id = r.id.trim();
       const title = (r.title ?? "").trim();
       const micro = (r.micro_label ?? "").trim();
@@ -44,9 +46,18 @@ export async function GET() {
         bodiesByThesisId[id] = r.body as Record<string, unknown>;
       }
       const resolved = id ? await resolveCatalogThesisScenarioProbabilities(supabase, id, r.scenario_probabilities) : null;
-      if (id && resolved) scenarioProbabilitiesByThesisId[id] = resolved;
+      resolvedByRowIndex[rowIndex] = resolved;
     }),
   );
+  const discardBulk = catalogResolvedTriplesLookLikeBulkWriterCollapse(resolvedByRowIndex);
+  if (!discardBulk) {
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i]!;
+      const id = r.id.trim();
+      const resolved = resolvedByRowIndex[i] ?? null;
+      if (id && resolved) scenarioProbabilitiesByThesisId[id] = resolved;
+    }
+  }
   return NextResponse.json({
     titlesByThesisId,
     microLabelsByThesisId,

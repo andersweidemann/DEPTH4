@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
+import { catalogResolvedTriplesLookLikeBulkWriterCollapse } from "@/lib/thesis-engine-v2/catalog-scenario-universal-collapse-guard";
 import { resolveCatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import {
   applyDbScenarioTripleToThesisWithBundleScenarios,
@@ -118,21 +119,37 @@ export async function buildThesesListResponse(
     if (typeof o.slug === "string") catalogHeaderBySlug.set(o.slug, o);
   }
 
-  const catalogParts = await Promise.all(
+  const catalogRows = await Promise.all(
     CATALOG_THESES.map(async (t) => {
       const detail = getThesisDetail(t.slug);
       if (!detail) return null;
       const hdr = catalogHeaderBySlug.get(t.slug);
-      const iso = hdr?.updated_at?.trim() ? hdr.updated_at : null;
       const thesisId = typeof hdr?.id === "string" && hdr.id.trim() ? hdr.id.trim() : t.id;
-      let thesis = detail.thesis;
       const resolved = await resolveCatalogThesisScenarioProbabilities(sb, thesisId, hdr?.scenario_probabilities);
-      if (resolved && !dbScenarioTripleEqualsSeed(resolved)) {
-        thesis = applyDbScenarioTripleToThesisWithBundleScenarios(thesis, detail.scenarios, resolved);
-      }
-      return { ...thesis, lastUpdated: iso ? iso : thesis.lastUpdated };
+      return { detail, hdr, resolved };
     }),
   );
+
+  const resolvedForGuard = catalogRows.map((row) => row?.resolved ?? null);
+  const discardBulkWriterCollapse = catalogResolvedTriplesLookLikeBulkWriterCollapse(resolvedForGuard);
+  if (discardBulkWriterCollapse && process.env.NODE_ENV === "development") {
+    console.warn(
+      "[DEPTH4] Discarding unanimous catalog scenario triple 80/15/5 across many theses — treat as corrupt DB/evidence stamp; fix writers in Supabase.",
+      { catalogRowCount: resolvedForGuard.filter(Boolean).length },
+    );
+  }
+
+  const catalogParts = catalogRows.map((row) => {
+    if (!row) return null;
+    const { detail, hdr, resolved } = row;
+    const iso = hdr?.updated_at?.trim() ? hdr.updated_at : null;
+    let thesis = detail.thesis;
+    const effective = discardBulkWriterCollapse ? null : resolved;
+    if (effective && !dbScenarioTripleEqualsSeed(effective)) {
+      thesis = applyDbScenarioTripleToThesisWithBundleScenarios(thesis, detail.scenarios, effective);
+    }
+    return { ...thesis, lastUpdated: iso ? iso : thesis.lastUpdated };
+  });
   const catalogEngine: EngineThesis[] = catalogParts.filter((x): x is EngineThesis => x != null);
 
   let combined = sortThesesForDashboard([...catalogEngine, ...userTheses]);
