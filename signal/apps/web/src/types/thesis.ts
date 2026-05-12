@@ -32,6 +32,11 @@ export interface Thesis {
   trade: string;
   timeStop: string;
   isEntryValid: boolean;
+  /**
+   * When false, resolution path percentages are intentionally suppressed (template-only user thesis
+   * with no DB `scenario_probabilities`). Otherwise show Clean/Messy/Broken % from the merged display triple.
+   */
+  showResolutionPathPercentages: boolean;
   resolutionPaths: {
     cleanWin: ResolutionPath;
     messyWin: ResolutionPath;

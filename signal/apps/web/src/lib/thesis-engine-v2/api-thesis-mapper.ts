@@ -9,6 +9,11 @@ import {
 import { getThesisMispricing, type ThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { THESIS_DEPTH_TIMEFRAMES, type ThesisDepthKey } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
 import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import {
+  buildDisplayScenariosFromThesis,
+  isCatalogThesisId,
+  isUncalibratedDisplayScenarioTriple,
+} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type {
   LiveTradePlan,
   Thesis,
@@ -231,19 +236,16 @@ export function mapBundleToApiThesis(
   const thesis = bundle.thesis;
   const mp = getThesisMispricing(thesis, { liveEvidenceCount: options?.liveEvidenceCount });
   const conviction = displayConvictionPctFromEngineThesis(thesis);
-  const scenarios = bundle.scenarios;
-  const cleanPct =
-    scenarios.find((s) => s.pathKey === "clean_win")?.probability ??
-    thesis.scenarioOverrides?.bull.probability ??
-    0;
-  const messyPct =
-    scenarios.find((s) => s.pathKey === "messy_win")?.probability ??
-    thesis.scenarioOverrides?.base.probability ??
-    0;
-  const brokenPct =
-    scenarios.find((s) => s.pathKey === "thesis_broken")?.probability ??
-    thesis.scenarioOverrides?.bear.probability ??
-    0;
+  /** Same merge as `ThesisDetailClient` / list engine — do not use raw `bundle.scenarios` for API path %. */
+  const displayScenarios = buildDisplayScenariosFromThesis(thesis, bundle.scenarios);
+  const cleanPct = displayScenarios.find((s) => s.pathKey === "clean_win")?.probability ?? 0;
+  const messyPct = displayScenarios.find((s) => s.pathKey === "messy_win")?.probability ?? 0;
+  const brokenPct = displayScenarios.find((s) => s.pathKey === "thesis_broken")?.probability ?? 0;
+
+  const showResolutionPathPercentages =
+    !isUncalibratedDisplayScenarioTriple(displayScenarios) ||
+    isCatalogThesisId(thesis.id) ||
+    Boolean(bundle.scenarioProbabilitiesFromDb);
 
   const advisory = advisoryHeadlineFromResolutionPaths(
     cleanPct,
@@ -301,7 +303,8 @@ export function mapBundleToApiThesis(
     trade: thesis.trade,
     timeStop: thesis.timeStop ?? "",
     isEntryValid,
-    resolutionPaths: scenariosToResolutionPaths(bundle.scenarios),
+    showResolutionPathPercentages,
+    resolutionPaths: scenariosToResolutionPaths(displayScenarios),
     fourLevelCascade: buildFourLevelCascade(thesis),
     tradePlan: mapTradePlan(thesis, live),
     insiderFlow: {

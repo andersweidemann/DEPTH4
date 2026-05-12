@@ -277,6 +277,12 @@ export type ThesisDetailBundle = {
   scenarios: ThesisScenario[];
   advisoryLog: ThesisUpdate[];
   relatedAssets: RelatedAsset[];
+  /**
+   * True when `public.theses.scenario_probabilities` was present and parsed for this row
+   * (any triple, including the shared seed). Used so API/chunk UI can show path % for
+   * user theses backed by DB even when the numeric triple still matches a shipped template.
+   */
+  scenarioProbabilitiesFromDb?: boolean;
 };
 
 export type ResolvedThesisRecord = {

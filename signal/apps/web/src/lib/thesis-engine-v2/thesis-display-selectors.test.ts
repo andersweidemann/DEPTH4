@@ -13,6 +13,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
+import { bundleForUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
 function baseUserThesis(): Thesis {
@@ -25,6 +26,16 @@ function baseUserThesis(): Thesis {
     asset: "GLD",
     direction: "short",
     probability: 55,
+    scores: {
+      driverStrength: 10,
+      timeCompression: 10,
+      marketMispricingScore: 10,
+      tradeClarityScore: 8,
+      triggerClarityScore: 8,
+      total: 46,
+    },
+    theme: "macro",
+    insiderFlow: { bullInstruments: [], bearInstruments: [], confirmTags: [], contradictTags: [] },
     scenarioOverrides: {
       base: { probability: 45, confirmation: "messy c", marketConsequence: "messy m" },
       bull: { probability: 30, confirmation: "clean c", marketConsequence: "clean m" },
@@ -75,6 +86,10 @@ describe("thesis-display-selectors", () => {
     const api = mapBundleToApiThesis({ ...detail!, thesis: t }, null);
     expect(api.conviction).toBe(listConviction);
     expect(api.conviction).toBe(80);
+    expect(api.resolutionPaths.cleanWin.probability).toBe(28);
+    expect(api.resolutionPaths.messyWin.probability).toBe(52);
+    expect(api.resolutionPaths.thesisBroken.probability).toBe(20);
+    expect(api.showResolutionPathPercentages).toBe(true);
   });
 
   it("user thesis from Supabase row applies seed triple on hydration (force merge)", () => {
@@ -114,6 +129,15 @@ describe("thesis-display-selectors", () => {
       scenarioProbabilities: { base: 40, bull: 35, bear: 25 },
     });
     expect(t.scenarioOverrides?.bull.probability).toBe(30);
+  });
+
+  it("user template triple hides path % on API unless DB column backed the row", () => {
+    const b = bundleForUserThesis(baseUserThesis());
+    const hidden = mapBundleToApiThesis(b, null);
+    expect(hidden.showResolutionPathPercentages).toBe(false);
+
+    const shown = mapBundleToApiThesis({ ...b, scenarioProbabilitiesFromDb: true }, null);
+    expect(shown.showResolutionPathPercentages).toBe(true);
   });
 
   it("scenarioDisplayTriplesProbabilitiesEqual detects identical triples", () => {

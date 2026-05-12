@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
-import { fetchCatalogThesisHeaderBySlug } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { fetchCatalogThesisHeaderBySlug, parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { overlayDbScenarioProbabilities, scenarioOverridesFromRows, thesisWithSyncedLiveProbability } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
@@ -33,7 +33,10 @@ function withCatalogHeader(
   }
   thesis = thesisWithSyncedLiveProbability({ ...thesis, scenarioOverrides: seeded });
 
-  return { ...bundle, thesis };
+  const scenarioProbabilitiesFromDb =
+    bundle.scenarioProbabilitiesFromDb === true || catalog.scenarioProbabilities != null;
+
+  return { ...bundle, thesis, scenarioProbabilitiesFromDb };
 }
 
 /**
@@ -70,5 +73,8 @@ export async function loadThesisDetailBundleForApi(
   const thesis = userThesisFromSupabaseRow(
     data as Parameters<typeof userThesisFromSupabaseRow>[0],
   );
-  return bundleForUserThesis(thesis);
+  const parsed = parseScenarioProbabilities(
+    (data as { scenario_probabilities?: unknown }).scenario_probabilities,
+  );
+  return bundleForUserThesis(thesis, { scenarioProbabilitiesFromDb: parsed != null });
 }

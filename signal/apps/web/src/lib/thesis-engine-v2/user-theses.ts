@@ -166,7 +166,10 @@ function mkAdvisoryLog(thesis: Thesis): ThesisUpdate[] {
   ];
 }
 
-export function bundleForUserThesis(thesis: Thesis): ThesisDetailBundle {
+export function bundleForUserThesis(
+  thesis: Thesis,
+  opts?: { scenarioProbabilitiesFromDb?: boolean },
+): ThesisDetailBundle {
   return {
     thesis: normalizeThesisNarrativeFields(thesis),
     evidence: mkEvidence(thesis),
@@ -177,6 +180,9 @@ export function bundleForUserThesis(thesis: Thesis): ThesisDetailBundle {
       { symbol: "SPY", note: "Risk proxy" },
       { symbol: "UUP", note: "USD check" },
     ],
+    ...(opts?.scenarioProbabilitiesFromDb !== undefined
+      ? { scenarioProbabilitiesFromDb: opts.scenarioProbabilitiesFromDb }
+      : {}),
   };
 }
 

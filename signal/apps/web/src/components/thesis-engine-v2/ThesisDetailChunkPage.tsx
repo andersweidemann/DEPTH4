@@ -21,11 +21,9 @@ import type {
 } from "@/types/thesis";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 import {
-  apiResolutionPathsToScenarioLikes,
   displayConvictionPctFromApiThesis,
   inferThesisScenarioDisplaySourceFromApiThesis,
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
-import { isUncalibratedDisplayScenarioTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 export function ThesisDetailChunkPage() {
   const params = useParams();
@@ -143,8 +141,7 @@ export function ThesisDetailChunkPage() {
   }
 
   const pathConvictionPct = displayConvictionPctFromApiThesis(thesis);
-  const apiScenarioLikes = apiResolutionPathsToScenarioLikes(thesis);
-  const resolutionPathsTemplate = isUncalibratedDisplayScenarioTriple(apiScenarioLikes);
+  const showResolutionPercents = thesis.showResolutionPathPercentages;
   const apiScenarioSource = inferThesisScenarioDisplaySourceFromApiThesis(thesis);
 
   return (
@@ -265,7 +262,7 @@ export function ThesisDetailChunkPage() {
           </button>
         </div>
 
-        {resolutionPathsTemplate ? (
+        {!showResolutionPercents ? (
           <p
             className="mb-3 max-w-2xl text-[11px] leading-relaxed text-zinc-500"
             data-testid="chunk-template-probabilities-note"
@@ -296,10 +293,10 @@ export function ThesisDetailChunkPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold text-zinc-200">{label}</span>
                   <span className="text-[10px] text-zinc-500">·</span>
-                  <span className={cn("text-lg font-semibold", textColor, resolutionPathsTemplate && "text-zinc-500")}>
-                    {resolutionPathsTemplate ? "—" : `${pct}%`}
+                  <span className={cn("text-lg font-semibold", textColor, !showResolutionPercents && "text-zinc-500")}>
+                    {!showResolutionPercents ? "—" : `${pct}%`}
                   </span>
-                  {!resolutionPathsTemplate ? (
+                  {showResolutionPercents ? (
                     <div className="ml-auto h-1 w-16 overflow-hidden rounded-full bg-zinc-800">
                       <div className={cn("h-full rounded-full", barColor)} style={{ width: `${pct}%` }} />
                     </div>
