@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { buildFeedApiPayload } from "@/lib/feed/feed-api-response";
+import { buildFeedItems } from "@/lib/feed/build-feed-items";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,6 @@ export async function GET() {
   } = await supabase.auth.getUser();
   const loadPromoted = !!user || isDepth4PublicReadMode();
 
-  const payload = await buildFeedApiPayload(supabase, loadPromoted);
-  return NextResponse.json(payload);
+  const items = await buildFeedItems(supabase, loadPromoted);
+  return NextResponse.json(items);
 }

@@ -31,8 +31,8 @@ Single source of truth for HTTP routes under `signal/apps/web/src/app/api/`. Sha
 
 ## Feed
 
-| GET `/api/feed` | → `FeedResponse` |
-| GET `/api/feed/reasoning` | → `{ items: NewsEvent[] }` |
+| GET `/api/feed` | → `FeedItem[]` |
+| GET `/api/feed/reasoning` | → `{ items: NewsEvent[] }` (reasoning rows only; legacy shape) |
 
 ## Book
 

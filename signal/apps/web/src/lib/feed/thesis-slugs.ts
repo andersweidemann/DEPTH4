@@ -12,17 +12,31 @@ export async function fetchThesisSlugMap(supabase: SupabaseClient, thesisIds: st
   return new Map(data.map((r: { id: string; slug: string }) => [r.id, r.slug]));
 }
 
-export type ThesisMeta = { slug: string; title: string; microLabel: string | null };
+export type ThesisMeta = {
+  slug: string;
+  title: string;
+  microLabel: string | null;
+  asset: string | null;
+  direction: "long" | "short" | null;
+};
+
+function assetDirectionFromBody(body: unknown): { asset: string | null; direction: "long" | "short" | null } {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { asset: null, direction: null };
+  const o = body as Record<string, unknown>;
+  const asset = typeof o.asset === "string" && o.asset.trim() ? o.asset.trim() : null;
+  const d = o.direction === "short" ? "short" : o.direction === "long" ? "long" : null;
+  return { asset, direction: d };
+}
 
 /** Resolve thesis UUIDs for UX (`title` = `public.theses.title`, `microLabel` = `public.theses.micro_label`). */
 export async function fetchThesisMetaMap(supabase: SupabaseClient, thesisIds: string[]): Promise<Map<string, ThesisMeta>> {
   const uniq = Array.from(new Set(thesisIds.map((id) => id.trim()).filter(Boolean)));
   if (!uniq.length) return new Map();
 
-  const { data, error } = await supabase.from("theses").select("id, slug, title, micro_label").in("id", uniq);
+  const { data, error } = await supabase.from("theses").select("id, slug, title, micro_label, body").in("id", uniq);
   if (error || !data) return new Map();
 
-  const rows = data as { id?: unknown; slug?: unknown; title?: unknown; micro_label?: unknown }[];
+  const rows = data as { id?: unknown; slug?: unknown; title?: unknown; micro_label?: unknown; body?: unknown }[];
   const pairs: [string, ThesisMeta][] = [];
   for (const r of rows) {
     const id = typeof r.id === "string" ? r.id : String(r.id ?? "").trim();
@@ -31,7 +45,8 @@ export async function fetchThesisMetaMap(supabase: SupabaseClient, thesisIds: st
     if (!id || !slug || !rawTitle) continue;
     const title = getThesisMetaDisplayTitle({ title: rawTitle });
     const rawMicro = typeof r.micro_label === "string" ? r.micro_label.trim() : "";
-    pairs.push([id, { slug, title, microLabel: rawMicro || null }]);
+    const { asset, direction } = assetDirectionFromBody(r.body);
+    pairs.push([id, { slug, title, microLabel: rawMicro || null, asset, direction }]);
   }
   return new Map(pairs);
 }
