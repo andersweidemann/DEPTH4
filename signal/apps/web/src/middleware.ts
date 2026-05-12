@@ -20,6 +20,8 @@ const PUBLIC_PREFIXES = [
 ];
 
 function isPublicPath(pathname: string): boolean {
+  /** OAuth + password/magic-link auth must reach route handlers without a prior session (edge would 302 to /login). */
+  if (pathname === "/api/auth" || pathname.startsWith("/api/auth/")) return true;
   return PUBLIC_PREFIXES.some((p) => pathname === p || (p !== "/" && pathname.startsWith(`${p}/`)));
 }
 
