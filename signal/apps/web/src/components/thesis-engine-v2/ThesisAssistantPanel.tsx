@@ -65,7 +65,7 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
 
   if (question === "changed") {
     return {
-      assessment: "The latest evidence row is what moved the probability print.",
+      assessment: "The latest evidence row is what moved the headline odds print.",
       context: `${statusLine} ${lastUpdateLine}`,
       considerations:
         "Back-to-back confirming headlines can lift headline odds. One ugly headline, dead price, or a sharp odds cut can kill the read fast.",

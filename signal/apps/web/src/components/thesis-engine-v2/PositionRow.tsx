@@ -149,6 +149,7 @@ export function PositionRow({
         <div className="flex flex-col items-start gap-2 sm:items-end">
           <StatusBadge status={position.thesisStatus} />
           <span className="text-[10px] uppercase tracking-wider text-zinc-600">Rec · {position.recommendation}</span>
+          <span className="text-[10px] uppercase tracking-wider text-zinc-600">Path conviction ·</span>
           <span className="text-sm font-semibold tabular-nums text-zinc-300">{position.probability}%</span>
         </div>
       </div>

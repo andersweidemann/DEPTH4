@@ -352,7 +352,7 @@ export function ThesesDashboardClient({
             className="h-9 rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 text-[11px] font-medium text-zinc-200 outline-none ring-0"
           >
             <option value="recent">Most recent update</option>
-            <option value="probability">Highest probability</option>
+            <option value="probability">Highest path conviction</option>
             <option value="biggest_move">Biggest move</option>
           </select>
         </div>
@@ -372,7 +372,7 @@ export function ThesesDashboardClient({
           <div className="mt-3 bg-zinc-900/20">
             <div className="hidden grid-cols-[1fr_76px_92px_96px_44px] gap-3 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600 sm:grid">
               <span>Thesis</span>
-              <span className="text-right">Prob</span>
+              <span className="text-right">Path</span>
               <span className="text-right">Status</span>
               <span className="text-right">Update</span>
               <span className="text-right">Star</span>

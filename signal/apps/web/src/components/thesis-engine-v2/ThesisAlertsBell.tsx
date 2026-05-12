@@ -82,7 +82,7 @@ export function ThesisAlertsBell() {
             {(
               [
                 ["all", "All"],
-                ["probability", "Probability"],
+                ["probability", "Branch odds"],
                 ["trade", "Trade"],
                 ["system", "System"],
               ] as const

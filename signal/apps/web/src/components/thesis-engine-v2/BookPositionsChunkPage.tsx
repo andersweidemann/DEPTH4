@@ -373,7 +373,8 @@ export function BookPositionsChunkPage() {
                   </span>
                 </div>
                 <div className="flex flex-shrink-0 items-center gap-3">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5" title="Thesis path conviction (Clean + Messy) at snapshot">
+                    <span className="text-[10px] uppercase tracking-wide text-zinc-600">Path</span>
                     <div className="h-1 w-8 overflow-hidden rounded-full bg-zinc-800">
                       <div className="h-full rounded-full bg-amber-500/60" style={{ width: `${item.conviction}%` }} />
                     </div>
