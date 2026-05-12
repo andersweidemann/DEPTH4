@@ -7,7 +7,10 @@ import {
   redistributeAfterBaseChange,
   type DbScenarioTriple,
 } from "@/lib/thesis-engine-v2/scenario-triple-zero-sum";
-import { shouldWriteScenarioProbabilitiesColumnFromNewsCron } from "@/lib/thesis-engine-v2/thesis-scenario-column-writers";
+import {
+  shouldInsertThesisNewsEvidenceLogRow,
+  shouldRunThesisNewsThesesTableScenarioUpdate,
+} from "@/lib/thesis-engine-v2/thesis-news-writer-policy";
 
 export const runtime = "nodejs";
 
@@ -294,9 +297,8 @@ async function runThesisNews(req: NextRequest) {
 
       const dedupeKey = `news:${ev.id}:${t.id}:r:${reasons.slice().sort().join("+")}:c:${confirmMatched.join("|")}:x:${contradictMatched.join("|")}:t:${tickerHits.join("|")}`;
 
-      // Only insert when we have a modeled triple. Rows with `probability_after = null` became the newest row per
-      // thesis and hid older calibrated evidence from "latest row" tooling while adding no scenario signal.
-      if (suggestion) {
+      // Policy: {@link shouldInsertThesisNewsEvidenceLogRow} — no `probability_after = null` NEWS_DEVELOPMENT rows.
+      if (suggestion && shouldInsertThesisNewsEvidenceLogRow(suggestion)) {
         const insertRes = await admin.from("thesis_evidence_log").insert({
           thesis_id: t.id,
           event_type: "NEWS_DEVELOPMENT",
@@ -326,9 +328,12 @@ async function runThesisNews(req: NextRequest) {
       }
 
       if (
-        shouldApply &&
         suggestion &&
-        shouldWriteScenarioProbabilitiesColumnFromNewsCron(t.thesis_origin)
+        shouldRunThesisNewsThesesTableScenarioUpdate({
+          thesisOrigin: t.thesis_origin,
+          shouldApply,
+          suggestion,
+        })
       ) {
         const up = await admin
           .from("theses")

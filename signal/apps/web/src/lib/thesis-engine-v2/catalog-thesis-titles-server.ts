@@ -77,6 +77,26 @@ export function parseScenarioProbabilities(raw: unknown): CatalogThesisScenarioP
 }
 
 /**
+ * Scan evidence-shaped rows **newest first** (same contract as `thesis_evidence_log` ordered `created_at desc`).
+ *
+ * **Precedence:** the first row whose `probability_after` parses to a **non-seed** triple wins. Rows with
+ * **NULL**, invalid JSON, or the **shared seed** `{base:40,bull:35,bear:25}` are skipped — a newer NULL row
+ * never blocks an older evaluated triple.
+ *
+ * {@link fetchLatestNonSeedScenarioTripleFromEvidenceLog} also applies `.not("probability_after","is",null)` at
+ * SQL for efficiency; this function is the canonical scan logic if that filter is ever relaxed.
+ */
+export function pickLatestNonSeedEvidenceTripleFromDescendingRows(
+  rows: ReadonlyArray<{ probability_after?: unknown }>,
+): CatalogThesisScenarioProbabilities | null {
+  for (const row of rows) {
+    const p = parseScenarioProbabilities(row.probability_after);
+    if (p && !dbScenarioTripleEqualsSeed(p)) return p;
+  }
+  return null;
+}
+
+/**
  * Latest non-seed `probability_after` from `thesis_evidence_log` for SSR / first paint.
  * When `theses.scenario_probabilities` is still the shared seed, evidence is the real source of truth.
  */
@@ -94,17 +114,15 @@ export async function fetchLatestNonSeedScenarioTripleFromEvidenceLog(
     .order("created_at", { ascending: false })
     .limit(80);
   if (error || !data?.length) return null;
-  for (const row of data) {
-    const p = parseScenarioProbabilities((row as { probability_after?: unknown }).probability_after);
-    if (p && !dbScenarioTripleEqualsSeed(p)) return p;
-  }
-  return null;
+  return pickLatestNonSeedEvidenceTripleFromDescendingRows(data as { probability_after?: unknown }[]);
 }
 
 /**
- * Same scenario resolution as {@link fetchCatalogThesisHeaderBySlug}: use the DB column when it carries a
- * non-seed triple; otherwise prefer the latest non-seed `probability_after` from evidence (batch list + client
- * catalog-titles must match this or `/theses` and `/theses/[slug]` drift from `loadThesisDetailBundleForApi`).
+ * ## Catalog `scenario_probabilities` + evidence read order
+ *
+ * 1. **`public.theses.scenario_probabilities`** when present and **not** the shared seed `{base:40,bull:35,bear:25}`.
+ * 2. Else **{@link fetchLatestNonSeedScenarioTripleFromEvidenceLog}** (newest non-null rows; first **non-seed** triple).
+ * 3. Else shipped narrative defaults in the app (`catalogDefaultScenariosForThesis` / list baseline replay).
  */
 export function mergeCatalogDbScenarioColumnWithEvidenceFallback(
   scenarioProbabilitiesColumn: unknown,
