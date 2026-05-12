@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireSupabaseUser } from "@/lib/auth/supabase-route-client";
 import { mapBookPosition } from "@/lib/book/book-api-response";
 import { catalogSlugForSystemThesisId } from "@/lib/thesis-engine-v2/catalog-slugs";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
@@ -22,11 +22,9 @@ function isPosition(x: unknown): x is Position {
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  const auth = await requireSupabaseUser(req);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   let body: unknown;
   try {

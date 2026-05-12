@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireSupabaseUser } from "@/lib/auth/supabase-route-client";
 import {
   setOutcomeInCookieJson,
   THESIS_OUTCOME_COOKIE,
@@ -10,11 +10,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  const auth = await requireSupabaseUser(req);
+  if (!auth.ok) return auth.response;
 
   let body: unknown;
   try {

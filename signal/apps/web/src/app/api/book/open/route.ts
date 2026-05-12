@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { loadThesisDetailBundleForApi } from "@/lib/thesis-engine-v2/load-thesis-api-bundle";
+import { requireSupabaseUser } from "@/lib/auth/supabase-route-client";
 import type { Position as BookPosition } from "@/lib/thesis-engine-v2/types";
 import type { Position as ApiPosition } from "@/types/position";
 export const dynamic = "force-dynamic";
@@ -23,11 +23,9 @@ function mapOne(p: BookPosition, slug: string, title: string): ApiPosition {
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const auth = await requireSupabaseUser(req);
+  if (!auth.ok) return auth.response;
+  const { supabase, user } = auth;
 
   let body: unknown;
   try {

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { buildBookApiPayload } from "@/lib/book/book-api-response";
+import { requireSupabaseUser } from "@/lib/auth/supabase-route-client";
 import {
   parseThesisOutcomeCookie,
   THESIS_OUTCOME_COOKIE,
@@ -10,16 +10,13 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-export async function GET() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+export async function GET(req: Request) {
+  const auth = await requireSupabaseUser(req);
+  if (!auth.ok) return auth.response;
 
   const jar = cookies();
   const outcomes = parseThesisOutcomeCookie(jar.get(THESIS_OUTCOME_COOKIE)?.value);
 
-  const payload = await buildBookApiPayload(supabase, user.id, outcomes);
+  const payload = await buildBookApiPayload(auth.supabase, auth.user.id, outcomes);
   return NextResponse.json(payload);
 }

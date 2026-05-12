@@ -1,43 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
-import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
-import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { requireSupabaseUser } from "@/lib/auth/supabase-route-client";
 import type { Position } from "@/lib/thesis-engine-v2/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function bearerToken(req: NextRequest): string {
-  const authHeader = req.headers.get("authorization") ?? "";
-  return authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
-}
-
-async function getAuthed(req: NextRequest): Promise<{ sb: SupabaseClient; user: { id: string } } | NextResponse> {
-  const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  if (!url || !anon) return NextResponse.json({ ok: false, error: "supabase_env_missing" }, { status: 500 });
-
-  const token = bearerToken(req);
-  const cookieSb = await createCookieSupabaseClient();
-  const { data: cookieAuth, error: cookieAuthErr } = await cookieSb.auth.getUser();
-  let sb = cookieSb;
-  let user = cookieAuth.user;
-
-  if ((!user || cookieAuthErr) && token) {
-    const bearerSb = createSupabaseJsClient(url, anon, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: bearerAuth, error: bearerErr } = await bearerSb.auth.getUser(token);
-    if (!bearerErr && bearerAuth.user) {
-      sb = bearerSb;
-      user = bearerAuth.user;
-    }
-  }
-
-  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  return { sb, user };
-}
 
 function isPosition(x: unknown): x is Position {
   if (!x || typeof x !== "object") return false;
@@ -54,9 +21,10 @@ function isPosition(x: unknown): x is Position {
 
 /** GET — account Book positions (source of truth). */
 export async function GET(req: NextRequest) {
-  const auth = await getAuthed(req);
-  if (auth instanceof NextResponse) return auth;
-  const { sb, user } = auth;
+  const auth = await requireSupabaseUser(req);
+  if (!auth.ok) return auth.response;
+  const sb: SupabaseClient = auth.supabase;
+  const { user } = auth;
 
   const { data, error } = await sb.from("depth4_user_book").select("positions,updated_at").eq("user_id", user.id).maybeSingle();
 
@@ -75,9 +43,10 @@ export async function GET(req: NextRequest) {
 
 /** PATCH — replace Book positions for the signed-in user (full array). */
 export async function PATCH(req: NextRequest) {
-  const auth = await getAuthed(req);
-  if (auth instanceof NextResponse) return auth;
-  const { sb, user } = auth;
+  const auth = await requireSupabaseUser(req);
+  if (!auth.ok) return auth.response;
+  const sb: SupabaseClient = auth.supabase;
+  const { user } = auth;
 
   const body = (await req.json().catch(() => null)) as { positions?: unknown } | null;
   const raw = body?.positions;

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { requireSupabaseUser } from "@/lib/auth/supabase-route-client";
 import type { Position } from "@/lib/thesis-engine-v2/types";
 import { requireThesisForSlug } from "@/lib/thesis-engine-v2/thesis-api-route-helpers";
 
@@ -19,16 +19,14 @@ function isPosition(x: unknown): x is Position {
   );
 }
 
-export async function GET(_req: Request, context: { params: { slug: string } }) {
+export async function GET(req: Request, context: { params: { slug: string } }) {
   const slug = context.params.slug?.trim() ?? "";
   if (!slug) return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json(null, { status: 200 });
+  const auth = await requireSupabaseUser(req);
+  if (!auth.ok) return NextResponse.json(null, { status: 200 });
 
+  const { supabase, user } = auth;
   const loaded = await requireThesisForSlug(supabase, slug, user.id);
   if (!loaded) return NextResponse.json(null, { status: 404 });
 
