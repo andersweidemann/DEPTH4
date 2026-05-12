@@ -20,7 +20,7 @@ export function MispricingTooltipContent({ m }: { m: ThesisMispricing }) {
       <div className="text-zinc-300">
         <span className="font-medium text-zinc-200">Mispricing</span> scores how attractive the <em>trade</em> looks now
         versus the book qualification bars, with explicit adjustments that <span className="font-medium">sum</span> to
-        the headline. Hero conviction is whether the <em>idea</em> is broadly right (Clean + Messy).
+        the headline. Path conviction is whether the <em>idea</em> is broadly right (Clean + Messy).
         <br />
         <span className="text-zinc-500">Patterns:</span> high conviction + moderate mispricing → likely right, edge may
         be late or noisy. High conviction + high mispricing → strong, still-underpriced setup. Moderate conviction +

@@ -43,4 +43,21 @@ describe("mergeUserThesisWithServerCatalog", () => {
     expect(t.scenarioOverrides?.bull.probability).toBe(28);
     expect(t.scenarioOverrides?.bear.probability).toBe(20);
   });
+
+  it("with forceApplyDbProbabilities, applies the shared DB seed triple (server row rebuild)", () => {
+    const shell = { ...baseUserThesis(), scenarioOverrides: undefined } as Thesis;
+    const t = mergeUserThesisWithServerCatalog(
+      shell,
+      {
+        title: null,
+        microLabel: null,
+        body: null,
+        scenarioProbabilities: { base: 40, bull: 35, bear: 25 },
+      },
+      { forceApplyDbProbabilities: true },
+    );
+    expect(t.scenarioOverrides?.base.probability).toBe(40);
+    expect(t.scenarioOverrides?.bull.probability).toBe(35);
+    expect(t.scenarioOverrides?.bear.probability).toBe(25);
+  });
 });

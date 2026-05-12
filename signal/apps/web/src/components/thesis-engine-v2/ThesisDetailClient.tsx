@@ -51,6 +51,10 @@ import {
   scenarioOverridesFromRows,
   thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import {
+  displayConvictionPctFromEngineThesis,
+  scenarioDisplayTriplesProbabilitiesEqual,
+} from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { applyProvisionalTripleToScenarios, runScenarioEvidenceModelPipeline } from "@/lib/thesis-engine-v2/scenario-evidence-model";
 import { liveScenarioProbabilitiesForThesesEnabled } from "@/lib/thesis-engine-v2/scenario-evidence-flags";
 import { logScenarioProbabilitySnapshot } from "@/lib/thesis-engine-v2/scenario-probability-log";
@@ -319,6 +323,14 @@ export function ThesisDetailClient({
     return thesisWithSyncedLiveProbability(m);
   }, [bundle, liveOpt]);
 
+  const liveEvidenceApplied = useMemo(() => {
+    if (!bundle || !liveOpt) return false;
+    const baseRows = buildDisplayScenariosFromThesis(bundle.thesis, bundle.scenarios);
+    const merged = liveOpt.mergeThesis(bundle.thesis);
+    const mergedRows = buildDisplayScenariosFromThesis(merged, bundle.scenarios);
+    return !scenarioDisplayTriplesProbabilitiesEqual(baseRows, mergedRows);
+  }, [bundle, liveOpt]);
+
   const liveEvidence = useMemo(() => {
     if (!bundle || !liveOpt) return [];
     return liveOpt.evidenceLog.filter((r) => r.thesisId === bundle.thesis.id);
@@ -492,16 +504,23 @@ export function ThesisDetailClient({
   const isUserThesis = bundle.thesis.origin === "user";
   const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
   const returnToPath = pathname && pathname.length > 0 ? pathname : `/theses/${slug}`;
-  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 50;
+  const entrySetupValid = thesis.status === "ready" && displayConvictionPctFromEngineThesis(thesis) >= 50;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
   const mispricing = getThesisMispricing(thesis, { liveEvidenceCount: liveEvidence.length });
   const horizonTimeStopReview = evaluateHorizonTimeStopCoherence(thesis.horizon, thesis.timeStop);
 
+  const scenarioAuthenticityNote =
+    showAuthoritativeScenarioPercents &&
+    isUserThesis &&
+    isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows)
+      ? "Template probabilities — not yet narrowed by live evidence for this thesis."
+      : null;
+
   const inner = (
     <>
       <div className={cn(layout === "drawer" ? "px-4 pb-6 pt-1 sm:px-5" : "mt-6")}>
-        <ThesisHero thesis={thesis} />
+        <ThesisHero thesis={thesis} displaySourceOpts={{ liveEvidenceApplied }} />
       </div>
 
       <div className={cn("mt-6 space-y-8", layout === "drawer" && "px-4 sm:px-5")}>
@@ -509,6 +528,7 @@ export function ThesisDetailClient({
           scenarios={scenarioViewScenarios.rows}
           showPercentages={showAuthoritativeScenarioPercents}
           probabilitySource={scenarioViewScenarios.probabilitySource}
+          templateAuthenticityNote={scenarioAuthenticityNote}
         />
         <AdvisoryLog
           updates={(() => {
@@ -521,7 +541,7 @@ export function ThesisDetailClient({
             ];
           })()}
         />
-        <MispricingAnalysis m={mispricing} heroConvictionPct={thesis.probability} />
+        <MispricingAnalysis m={mispricing} pathConvictionPct={displayConvictionPctFromEngineThesis(thesis)} />
       </div>
 
       {thesis.thesisCascade ? (

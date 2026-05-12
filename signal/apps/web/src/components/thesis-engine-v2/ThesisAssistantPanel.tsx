@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { Position, ThesisDetailBundle, ThesisEvidence } from "@/lib/thesis-engine-v2/types";
+import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { cn } from "@/lib/utils";
 
 type QuestionId = "suggest" | "entry" | "risk" | "changed" | "simple";
@@ -28,7 +29,7 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
   void evidenceDelta(ev);
   const hasOpenBook = !!(book && book.tradeStatus === "open");
 
-  const statusLine = `Thesis status: ${t.status} · thesis conviction ${t.probability}%.`;
+  const statusLine = `Thesis status: ${t.status} · thesis conviction ${displayConvictionPctFromEngineThesis(t)}%.`;
   const lastUpdateLine = ev
     ? ev.logScenarioAfterStored === false
       ? `Latest evidence: “${ev.headline}” (${ev.source}) — scenarios were not re-modeled on this log row; compare the headline to your trigger.`

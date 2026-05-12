@@ -8,7 +8,7 @@ import {
 } from "@/lib/thesis-engine-v2/live-trade-plan";
 import { getThesisMispricing, type ThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { THESIS_DEPTH_TIMEFRAMES, type ThesisDepthKey } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
-import { currentThesisProbabilityFromThesis } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import type {
   LiveTradePlan,
   Thesis,
@@ -230,7 +230,7 @@ export function mapBundleToApiThesis(
 ): ApiThesis {
   const thesis = bundle.thesis;
   const mp = getThesisMispricing(thesis, { liveEvidenceCount: options?.liveEvidenceCount });
-  const conviction = currentThesisProbabilityFromThesis(thesis);
+  const conviction = displayConvictionPctFromEngineThesis(thesis);
   const scenarios = bundle.scenarios;
   const cleanPct =
     scenarios.find((s) => s.pathKey === "clean_win")?.probability ??

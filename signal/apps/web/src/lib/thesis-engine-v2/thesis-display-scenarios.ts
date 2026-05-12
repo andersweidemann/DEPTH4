@@ -158,7 +158,7 @@ export function thesisConvictionPctFromDbTriple(p: DbScenarioTriple): number {
   return Math.max(0, Math.min(100, Math.round(p.base + p.bull)));
 }
 
-/** Headline thesis number for DEPTH4 UI: conviction (Clean + Messy) from merged overrides (or narrative defaults). */
+/** Headline thesis number for DEPTH4 UI: conviction (Clean + Messy) from merged overrides (or narrative defaults). Prefer `displayConvictionPctFromEngineThesis` in UI modules for a single canonical import path. */
 export function currentThesisProbabilityFromThesis(thesis: Thesis): number {
   const o = thesis.scenarioOverrides ?? defaultScenarioOverridesFromThesis(thesis);
   return thesisConvictionPctFromDbTriple({
@@ -173,4 +173,18 @@ export function thesisWithSyncedLiveProbability<T extends Thesis>(thesis: T): T 
   const p = currentThesisProbabilityFromThesis(thesis);
   if (p === thesis.probability) return thesis;
   return { ...thesis, probability: p };
+}
+
+/**
+ * Apply a DB `scenario_probabilities` triple onto shipped **bundle** scenarios (catalog list / detail header).
+ * Narrative comes from `bundleScenarios`; only numeric weights are replaced.
+ */
+export function applyDbScenarioTripleToThesisWithBundleScenarios(
+  thesis: Thesis,
+  bundleScenarios: ThesisScenario[],
+  probs: DbScenarioTriple,
+): Thesis {
+  let seeded = scenarioOverridesFromRows(bundleScenarios);
+  seeded = overlayDbScenarioProbabilities(seeded, probs);
+  return thesisWithSyncedLiveProbability({ ...thesis, scenarioOverrides: seeded });
 }

@@ -38,12 +38,15 @@ export function ScenarioPanel({
   scenarios,
   showPercentages = true,
   probabilitySource = null,
+  templateAuthenticityNote,
 }: {
   scenarios: ThesisScenarioLike[];
   /** When false, path labels and scenario copy stay; numeric weights and bars are hidden (template / calibrating). */
   showPercentages?: boolean;
   /** When odds are shown, optional lineage for microcopy (see module comment above). */
   probabilitySource?: ScenarioPanelProbabilitySource;
+  /** When odds are visible but the triple is still a shipped template (user thesis), optional honesty line. */
+  templateAuthenticityNote?: string | null;
 }) {
   const ordered = normalizeThesisScenarios(scenarios);
 
@@ -63,7 +66,12 @@ export function ScenarioPanel({
             </p>
           ) : null}
         </div>
-        {showPercentages ? <ScenarioProbabilitiesExplainer /> : null}
+          {showPercentages ? <ScenarioProbabilitiesExplainer /> : null}
+          {showPercentages && templateAuthenticityNote ? (
+            <p className="mt-2 text-[10px] leading-relaxed text-zinc-500" data-testid="scenario-template-authenticity">
+              {templateAuthenticityNote}
+            </p>
+          ) : null}
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {ordered.map((s) => (

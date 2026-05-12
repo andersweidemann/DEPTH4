@@ -6,6 +6,8 @@ import { formatThesisMicroLabel, getThesisDisplayTitle } from "@/lib/thesis-engi
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { displayConvictionPctFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 
 function statusPill(status: Thesis["status"]): { label: string; className: string } {
@@ -55,6 +57,8 @@ export function ThesisTableRow({
 }) {
   const pill = statusPill(thesis.status);
   const mispricing = getThesisMispricing(thesis);
+  const pathConviction = displayConvictionPctFromEngineThesis(thesis);
+  const displayModel = getThesisDisplayModel(thesis);
   return (
     <div
       role="button"
@@ -94,19 +98,20 @@ export function ThesisTableRow({
           <div className="min-w-[140px] text-right">
             <div className="flex items-center gap-3">
               <div className="flex-1 h-[1px] bg-white/10">
-                <div className="h-full bg-amber-400/90" style={{ width: `${Math.max(0, Math.min(100, thesis.probability))}%` }} />
+                <div className="h-full bg-amber-400/90" style={{ width: `${Math.max(0, Math.min(100, pathConviction))}%` }} />
               </div>
               <Tooltip label="Thesis conviction (Clean win + Messy win). Updates as evidence shifts the scenario split.">
-                <span className="text-[12px] font-semibold tabular-nums text-zinc-300">{thesis.probability}%</span>
+                <span className="text-[12px] font-semibold tabular-nums text-zinc-300">{pathConviction}%</span>
               </Tooltip>
             </div>
-            {Math.abs(mispricing.score - thesis.probability) >= 2 ? (
+            {Math.abs(mispricing.score - pathConviction) >= 2 ? (
               <div className="mt-1 text-[10px] tabular-nums text-zinc-600">
                 <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
                   <span>Mispricing {mispricing.score}/100</span>
                 </Tooltip>
               </div>
             ) : null}
+            <ThesisDisplaySourceDebug convictionPct={displayModel.convictionPct} scenarioSource={displayModel.scenarioSource} />
           </div>
 
           <div className="hidden text-right font-mono text-[11px] tabular-nums text-zinc-600 sm:block">{thesis.lastUpdated}</div>

@@ -13,6 +13,7 @@ import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
+import { displayConvictionPctFromListItem } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 
 function StarOutlineIcon({ className }: { className?: string }) {
   return (
@@ -42,8 +43,8 @@ function PlusIcon({ className }: { className?: string }) {
   );
 }
 
-function ProbColumn({ mispricing, conviction }: { mispricing: number; conviction: number }) {
-  const pct = Math.max(0, Math.min(100, conviction));
+function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: number }) {
+  const pct = Math.max(0, Math.min(100, displayConvictionPctFromListItem(item)));
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
@@ -56,6 +57,11 @@ function ProbColumn({ mispricing, conviction }: { mispricing: number; conviction
         </span>
       </div>
       <p className="mt-1 hidden text-[10px] text-zinc-600 sm:block">Mispricing {mispricing}/100</p>
+      {process.env.NODE_ENV !== "production" ? (
+        <p className="mt-0.5 font-mono text-[8px] uppercase tracking-wider text-zinc-700" aria-hidden>
+          dev · row:list · {pct}%
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -399,7 +405,7 @@ function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar:
         </div>
         <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
       </div>
-      <ProbColumn mispricing={item.mispricingScore} conviction={item.conviction} />
+      <ProbColumn mispricing={item.mispricingScore} item={item} />
       <div className="hidden sm:block">
         <span className={cn("inline-flex items-center gap-1 text-[10px] uppercase", getStatusTextColor(item.status))}>
           <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDotColor(item.status))} />

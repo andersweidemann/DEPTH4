@@ -10,11 +10,11 @@ function barWidth(pct: number) {
 
 export function MispricingAnalysis({
   m,
-  heroConvictionPct,
+  pathConvictionPct,
 }: {
   m: ThesisMispricing;
-  /** Hero thesis conviction (Clean + Messy) for alignment note only. */
-  heroConvictionPct?: number;
+  /** Thesis conviction (Clean + Messy) — use `displayConvictionPctFromEngineThesis` / API `conviction`. */
+  pathConvictionPct?: number;
 }) {
   const gapAbs = Math.abs(m.convictionVsSetupGap);
   const gapLabel = `${m.convictionVsSetupGap >= 0 ? "+" : "−"}${gapAbs} pts`;
@@ -30,9 +30,9 @@ export function MispricingAnalysis({
   }
 
   const alignedByChance =
-    heroConvictionPct != null &&
-    Number.isFinite(heroConvictionPct) &&
-    Math.round(heroConvictionPct) === Math.round(m.score);
+    pathConvictionPct != null &&
+    Number.isFinite(pathConvictionPct) &&
+    Math.round(pathConvictionPct) === Math.round(m.score);
 
   return (
     <section className="bg-zinc-900/25 px-4 py-3.5">
@@ -48,8 +48,8 @@ export function MispricingAnalysis({
       </div>
       <p className="mt-2 text-[10px] leading-relaxed text-zinc-500">
         <span className="text-zinc-400">How attractive is this setup right now</span> — timing, what is still unpriced,
-        and how clear the trigger and plan are. Hero conviction is a separate dial (probability the idea is broadly
-        right).
+        and how clear the trigger and plan are. Path conviction (Clean + Messy) comes from resolution paths, not from the
+        legacy book hero dial.
       </p>
 
       {alignedByChance ? (

@@ -3,12 +3,7 @@ import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/
 import { fetchCatalogThesisHeaderBySlug } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
-import {
-  dbScenarioTripleEqualsSeed,
-  overlayDbScenarioProbabilities,
-  scenarioOverridesFromRows,
-  thesisWithSyncedLiveProbability,
-} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { overlayDbScenarioProbabilities, scenarioOverridesFromRows, thesisWithSyncedLiveProbability } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { bundleForUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
@@ -33,7 +28,7 @@ function withCatalogHeader(
   thesis = mergeDbBodyIntoThesis(thesis, catalog.body ?? null);
 
   let seeded = scenarioOverridesFromRows(bundle.scenarios);
-  if (catalog.scenarioProbabilities && !dbScenarioTripleEqualsSeed(catalog.scenarioProbabilities)) {
+  if (catalog.scenarioProbabilities) {
     seeded = overlayDbScenarioProbabilities(seeded, catalog.scenarioProbabilities);
   }
   thesis = thesisWithSyncedLiveProbability({ ...thesis, scenarioOverrides: seeded });

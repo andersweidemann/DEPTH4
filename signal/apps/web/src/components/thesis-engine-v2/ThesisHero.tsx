@@ -7,11 +7,8 @@ import { Tooltip } from "./Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { ThesisHeadingStack } from "@/components/thesis-engine-v2/ThesisHeadingStack";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
-import {
-  buildDisplayScenariosFromThesis,
-  displayScenarioTripleCleanMessyBroken,
-  narrativeFallbackScenariosForThesis,
-} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { displayScenarioTripleCleanMessyBroken } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import {
   THESIS_CONVICTION_EXPLAINER_PREFERRED,
   THESIS_CONVICTION_EXPLAINER_SHORT,
@@ -20,6 +17,7 @@ import {
   thesisConvictionActionGuidance,
 } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
+import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 
 function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
@@ -45,16 +43,23 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   );
 }
 
-export function ThesisHero({ thesis }: { thesis: Thesis }) {
-  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 50;
+export function ThesisHero({
+  thesis,
+  displaySourceOpts,
+}: {
+  thesis: Thesis;
+  /** When live merged thesis differs from bundle base, marks debug source as live-evidence. */
+  displaySourceOpts?: { liveEvidenceApplied?: boolean };
+}) {
+  const dm = getThesisDisplayModel(thesis, displaySourceOpts);
+  const pathConviction = dm.convictionPct;
+  const entrySetupValid = thesis.status === "ready" && pathConviction >= 50;
   const mispricing = getThesisMispricing(thesis);
-  const narrativeFallback = narrativeFallbackScenariosForThesis(thesis);
-  const displayScenarios = buildDisplayScenariosFromThesis(thesis, narrativeFallback);
-  const [cleanPct, messyPct, brokenPct] = displayScenarioTripleCleanMessyBroken(displayScenarios);
+  const [cleanPct, messyPct, brokenPct] = displayScenarioTripleCleanMessyBroken(dm.scenarios);
   const actionGuidance = thesisConvictionActionGuidance(cleanPct, messyPct, brokenPct);
   const advisoryCopy = advisoryHeadlineFromResolutionPaths(cleanPct, messyPct, brokenPct, thesis.advisoryAction);
   const showMispricingHeadline =
-    Number.isFinite(mispricing.score) && Math.abs(Math.round(mispricing.score) - Math.round(thesis.probability)) >= 2;
+    Number.isFinite(mispricing.score) && Math.abs(Math.round(mispricing.score) - Math.round(pathConviction)) >= 2;
 
   return (
     <div className="border-b border-white/[0.06] pb-7">
@@ -109,12 +114,13 @@ export function ThesisHero({ thesis }: { thesis: Thesis }) {
           </div>
           <div className="mt-2 flex items-center gap-3">
             <Tooltip label={THESIS_CONVICTION_TOOLTIP}>
-              <span className="text-base font-semibold tabular-nums text-amber-200/90">{thesis.probability}%</span>
+              <span className="text-base font-semibold tabular-nums text-amber-200/90">{pathConviction}%</span>
             </Tooltip>
             <div className="min-w-0 flex-1">
-              <ProbabilityBar value={thesis.probability} />
+              <ProbabilityBar value={pathConviction} />
             </div>
           </div>
+          <ThesisDisplaySourceDebug convictionPct={dm.convictionPct} scenarioSource={dm.scenarioSource} />
           <p className="mt-2 text-[11px] leading-relaxed text-zinc-500 sm:hidden">{THESIS_CONVICTION_EXPLAINER_SHORT}</p>
           <p className="mt-2 hidden text-[11px] leading-relaxed text-zinc-500 sm:block">{THESIS_CONVICTION_EXPLAINER_PREFERRED}</p>
           <p className="mt-2 text-[11px] leading-relaxed text-amber-200/75">{actionGuidance}</p>

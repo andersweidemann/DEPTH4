@@ -13,6 +13,8 @@ import { ThesisStarButton } from "./ThesisStarButton";
 import { Tooltip } from "./Tooltip";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
+import { displayConvictionPctFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 
 export function ThesisCard({
   thesis,
@@ -31,7 +33,8 @@ export function ThesisCard({
   const live = useThesisLive();
   const tradeable = thesis.qualification === "tradeable";
   const isUser = thesis.origin === "user";
-  const entrySetupValid = thesis.status === "ready" && thesis.probability >= 50;
+  const pathConviction = displayConvictionPctFromEngineThesis(thesis);
+  const entrySetupValid = thesis.status === "ready" && pathConviction >= 50;
   const selected = selectedSlug != null && selectedSlug === thesis.slug;
   const starred = live.isEffectivelyStarred(thesis.id);
   const starDisabled = !!live.starDisabledReason(thesis.id);
@@ -39,6 +42,7 @@ export function ThesisCard({
   const terminal = thesis.status === "resolved" || thesis.status === "invalidated";
   const primary = variant === "primary";
   const mispricing = getThesisMispricing(thesis);
+  const displayModel = getThesisDisplayModel(thesis);
   const className = cn(
     "group relative block w-full rounded-none bg-zinc-900/40 text-left transition-colors hover:bg-zinc-900/55",
     primary ? "p-4 sm:p-5" : "p-3.5 sm:p-4",
@@ -109,15 +113,15 @@ export function ThesisCard({
         </div>
       </div>
       <div className="mt-3 flex items-center gap-2.5">
-        <Tooltip label="Likelihood estimate based on current evidence">
+        <Tooltip label="Thesis conviction (Clean win + Messy win). Updates as evidence shifts the scenario split.">
           <span className={cn("font-semibold tabular-nums text-amber-200/90", primary ? "text-[16px]" : "text-[14px]")}>
-            {thesis.probability}%
+            {pathConviction}%
           </span>
         </Tooltip>
         <div className="min-w-0 flex-1">
-          <ProbabilityBar value={thesis.probability} />
+          <ProbabilityBar value={pathConviction} />
         </div>
-        {Math.abs(mispricing.score - thesis.probability) >= 2 ? (
+        {Math.abs(mispricing.score - pathConviction) >= 2 ? (
           <div className="flex items-center gap-1 text-[10px] tabular-nums text-zinc-500">
             <span>Mispricing {mispricing.score}/100</span>
             <Tooltip label={<MispricingTooltipContent m={mispricing} />} side="top">
@@ -131,6 +135,7 @@ export function ThesisCard({
           </div>
         ) : null}
       </div>
+      <ThesisDisplaySourceDebug convictionPct={displayModel.convictionPct} scenarioSource={displayModel.scenarioSource} />
       <div className="mt-3 space-y-1.5 border-t border-white/[0.04] pt-3 text-[11px] leading-snug text-zinc-500">
         <p>
           <span className="text-zinc-400">Why now · </span>

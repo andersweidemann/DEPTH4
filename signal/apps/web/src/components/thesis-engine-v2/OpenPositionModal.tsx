@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { Position, Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 
 type FormState = {
   direction: "long" | "short";
@@ -77,7 +78,7 @@ export function OpenPositionModal({
       currentPnl: "+0.00",
 
       recommendation: thesis.advisoryAction,
-      probability: thesis.probability,
+      probability: displayConvictionPctFromEngineThesis(thesis),
       latestUpdate: "Position opened. DEPTH4 will track updates against this thesis.",
     };
 

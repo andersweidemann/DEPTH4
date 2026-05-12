@@ -1,5 +1,6 @@
 import { getDailyBars } from "@/lib/market-data";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import {
   computeLiveTradePlan,
   mapAssetToQuoteSymbol,
@@ -15,7 +16,7 @@ export async function computeLivePlanForThesis(thesis: Thesis): Promise<ComputeL
     direction: thesis.direction,
     status: thesis.status,
     quoteSymbol,
-    convictionPct: thesis.probability,
+    convictionPct: displayConvictionPctFromEngineThesis(thesis),
   });
 }
 

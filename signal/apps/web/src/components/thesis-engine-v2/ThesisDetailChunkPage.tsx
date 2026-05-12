@@ -19,6 +19,13 @@ import type {
   Thesis,
   ThesisAssessment,
 } from "@/types/thesis";
+import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
+import {
+  apiResolutionPathsToScenarioLikes,
+  displayConvictionPctFromApiThesis,
+  inferThesisScenarioDisplaySourceFromApiThesis,
+} from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { isUncalibratedDisplayScenarioTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 export function ThesisDetailChunkPage() {
   const params = useParams();
@@ -135,6 +142,11 @@ export function ThesisDetailChunkPage() {
     );
   }
 
+  const pathConvictionPct = displayConvictionPctFromApiThesis(thesis);
+  const apiScenarioLikes = apiResolutionPathsToScenarioLikes(thesis);
+  const resolutionPathsTemplate = isUncalibratedDisplayScenarioTriple(apiScenarioLikes);
+  const apiScenarioSource = inferThesisScenarioDisplaySourceFromApiThesis(thesis);
+
   return (
     <div className="pb-16">
       <Link
@@ -197,11 +209,12 @@ export function ThesisDetailChunkPage() {
         <div>
           <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Thesis conviction</p>
           <div className="mt-1 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-amber-400">{thesis.conviction}%</span>
+            <span className="text-2xl font-semibold text-amber-400">{pathConvictionPct}%</span>
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-800">
-              <div className="h-full rounded-full bg-amber-500" style={{ width: `${thesis.conviction}%` }} />
+              <div className="h-full rounded-full bg-amber-500" style={{ width: `${pathConvictionPct}%` }} />
             </div>
           </div>
+          <ThesisDisplaySourceDebug convictionPct={pathConvictionPct} scenarioSource={apiScenarioSource} />
           <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
             Thesis conviction is DEPTH4&apos;s estimate that this idea is broadly right over this horizon. It equals
             Clean win + Messy win. The paths below show how that payoff is most likely to arrive.
@@ -252,6 +265,15 @@ export function ThesisDetailChunkPage() {
           </button>
         </div>
 
+        {resolutionPathsTemplate ? (
+          <p
+            className="mb-3 max-w-2xl text-[11px] leading-relaxed text-zinc-500"
+            data-testid="chunk-template-probabilities-note"
+          >
+            Template probabilities — defaults until live evidence narrows the split for this thesis.
+          </p>
+        ) : null}
+
         <p className="mb-4 max-w-2xl text-[11px] leading-relaxed text-zinc-500">
           These percentages show how this thesis is most likely to resolve: Clean win pays roughly as planned; Messy
           win is directionally right but slower or choppier; Thesis broken means the thesis is invalidated.
@@ -274,10 +296,16 @@ export function ThesisDetailChunkPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] font-semibold text-zinc-200">{label}</span>
                   <span className="text-[10px] text-zinc-500">·</span>
-                  <span className={cn("text-lg font-semibold", textColor)}>{pct}%</span>
-                  <div className="ml-auto h-1 w-16 overflow-hidden rounded-full bg-zinc-800">
-                    <div className={cn("h-full rounded-full", barColor)} style={{ width: `${pct}%` }} />
-                  </div>
+                  <span className={cn("text-lg font-semibold", textColor, resolutionPathsTemplate && "text-zinc-500")}>
+                    {resolutionPathsTemplate ? "—" : `${pct}%`}
+                  </span>
+                  {!resolutionPathsTemplate ? (
+                    <div className="ml-auto h-1 w-16 overflow-hidden rounded-full bg-zinc-800">
+                      <div className={cn("h-full rounded-full", barColor)} style={{ width: `${pct}%` }} />
+                    </div>
+                  ) : (
+                    <span className="ml-auto text-[10px] text-zinc-600">n/a</span>
+                  )}
                 </div>
                 <div className="mt-4">
                   <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">What happens</p>
@@ -303,14 +331,14 @@ export function ThesisDetailChunkPage() {
           </p>
           <p className="mt-1 max-w-lg text-[11px] text-zinc-500">
             How attractive is this setup right now — timing, what is still unpriced, and how clear the trigger and
-            plan are. Hero conviction is a separate dial (probability the idea is broadly right).
+            plan are. Path conviction (Clean + Messy) is the headline number above, not the legacy book hero dial.
           </p>
         </div>
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Paths-implied edge (Clean + Messy)</p>
-            <p className="mt-1 text-xl font-semibold text-amber-400">{thesis.conviction}%</p>
+            <p className="mt-1 text-xl font-semibold text-amber-400">{pathConvictionPct}%</p>
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Score components (sum = headline)</p>

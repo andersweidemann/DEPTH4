@@ -57,11 +57,15 @@ export function userThesisFromSupabaseRow(row: {
   };
 
   let t = mergeDbBodyIntoThesis(shell, row.body ?? null);
-  t = mergeUserThesisWithServerCatalog(t, {
-    title: row.title,
-    microLabel: row.micro_label ?? null,
-    body: row.body ?? null,
-    scenarioProbabilities: parseScenarioProbabilities(row.scenario_probabilities),
-  });
+  t = mergeUserThesisWithServerCatalog(
+    t,
+    {
+      title: row.title,
+      microLabel: row.micro_label ?? null,
+      body: row.body ?? null,
+      scenarioProbabilities: parseScenarioProbabilities(row.scenario_probabilities),
+    },
+    { forceApplyDbProbabilities: true },
+  );
   return t;
 }

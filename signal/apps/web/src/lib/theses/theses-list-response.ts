@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
-import { currentThesisProbabilityFromThesis } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { applyDbScenarioTripleToThesisWithBundleScenarios } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { mapStatus } from "@/lib/thesis-engine-v2/api-thesis-mapper";
 import type { Thesis as EngineThesis, ThesisStatus as EngineStatus } from "@/lib/thesis-engine-v2/types";
@@ -18,7 +20,7 @@ function mapListStatus(st: EngineStatus): ThesisStatus {
 
 function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIso: string | null): ThesisListItem {
   const mp = getThesisMispricing(t, {});
-  const conviction = currentThesisProbabilityFromThesis(t);
+  const conviction = displayConvictionPctFromEngineThesis(t);
   const lastUpdated =
     lastUpdatedIso && !Number.isNaN(Date.parse(lastUpdatedIso)) ? lastUpdatedIso : t.lastUpdated;
 
@@ -79,22 +81,31 @@ export async function buildThesesListResponse(
   const slugs = CATALOG_THESES.map((t) => t.slug);
   const { data: headerRows } = await sb
     .from("theses")
-    .select("slug, updated_at")
+    .select("slug, updated_at, scenario_probabilities")
     .in("slug", slugs)
     .eq("thesis_origin", "seeded_system");
 
-  const updatedBySlug = new Map<string, string>();
+  const catalogHeaderBySlug = new Map<
+    string,
+    { updated_at?: string | null; scenario_probabilities?: unknown }
+  >();
   for (const r of headerRows ?? []) {
-    const o = r as { slug?: string; updated_at?: string | null };
-    if (typeof o.slug === "string" && o.updated_at) updatedBySlug.set(o.slug, o.updated_at);
+    const o = r as { slug?: string; updated_at?: string | null; scenario_probabilities?: unknown };
+    if (typeof o.slug === "string") catalogHeaderBySlug.set(o.slug, o);
   }
 
   const catalogEngine: EngineThesis[] = [];
   for (const t of CATALOG_THESES) {
     const detail = getThesisDetail(t.slug);
     if (!detail) continue;
-    const iso = updatedBySlug.get(t.slug) ?? null;
-    catalogEngine.push({ ...detail.thesis, lastUpdated: iso ? iso : detail.thesis.lastUpdated });
+    const hdr = catalogHeaderBySlug.get(t.slug);
+    const iso = hdr?.updated_at?.trim() ? hdr.updated_at : null;
+    let thesis = detail.thesis;
+    const parsed = parseScenarioProbabilities(hdr?.scenario_probabilities);
+    if (parsed) {
+      thesis = applyDbScenarioTripleToThesisWithBundleScenarios(thesis, detail.scenarios, parsed);
+    }
+    catalogEngine.push({ ...thesis, lastUpdated: iso ? iso : thesis.lastUpdated });
   }
 
   let combined = sortThesesForDashboard([...catalogEngine, ...userTheses]);
@@ -112,7 +123,9 @@ export async function buildThesesListResponse(
 
   const sort = query.sort?.trim() || "recent";
   if (sort === "conviction") {
-    combined = [...combined].sort((a, b) => currentThesisProbabilityFromThesis(b) - currentThesisProbabilityFromThesis(a));
+    combined = [...combined].sort(
+      (a, b) => displayConvictionPctFromEngineThesis(b) - displayConvictionPctFromEngineThesis(a),
+    );
   } else if (sort === "mispricing") {
     combined = [...combined].sort(
       (a, b) => getThesisMispricing(b, {}).score - getThesisMispricing(a, {}).score,
@@ -125,8 +138,23 @@ export async function buildThesesListResponse(
   const focusSlugSet = new Set(focusEngine.map((t) => t.slug));
   const monitorEngine = combined.filter((t) => !focusSlugSet.has(t.slug));
 
-  const toItem = (t: EngineThesis) =>
-    engineThesisToListItem(t, starredIds.has(t.id), updatedBySlug.get(t.slug) ?? null);
+  const toItem = (t: EngineThesis) => engineThesisToListItem(t, starredIds.has(t.id), null);
+
+  if (process.env.NODE_ENV === "development" && userTheses.length >= 3) {
+    const signatures = userTheses.map((t) => {
+      const c = Math.round(displayConvictionPctFromEngineThesis(t));
+      const o = t.scenarioOverrides;
+      const triple = o ? `${o.bull.probability}/${o.base.probability}/${o.bear.probability}` : "no-overrides";
+      return `${c}|${triple}`;
+    });
+    if (new Set(signatures).size === 1) {
+      console.warn(
+        "[DEPTH4 dev] All loaded user theses share the same conviction + scenario triple — check DB merge / API wiring:",
+        signatures[0],
+        { count: userTheses.length },
+      );
+    }
+  }
 
   return {
     focus: focusEngine.slice(0, 12).map(toItem),

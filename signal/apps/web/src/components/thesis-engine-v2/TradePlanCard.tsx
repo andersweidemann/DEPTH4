@@ -8,6 +8,7 @@ import {
 import { StatusBadge } from "./StatusBadge";
 import { useEffect, useState } from "react";
 import { authFetch } from "@/lib/api";
+import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 
 const PENDING_ENTRY = "Awaiting live setup";
 const PENDING_STOP = "Will appear with a valid trigger";
@@ -33,6 +34,7 @@ function levelsComplete(plan: LiveTradePlan): boolean {
 
 export function TradePlanCard({ thesis }: { thesis: Thesis }) {
   const [plan, setPlan] = useState<LiveTradePlan | null>(null);
+  const pathConviction = displayConvictionPctFromEngineThesis(thesis);
 
   useEffect(() => {
     let cancelled = false;
@@ -45,7 +47,7 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
             asset: thesis.asset,
             direction: thesis.direction,
             status: thesis.status,
-            convictionPct: thesis.probability,
+            convictionPct: pathConviction,
           }),
         });
         const j = (await res.json().catch(() => null)) as TradePlanApiOk | { ok?: false } | null;
@@ -65,7 +67,7 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [thesis.asset, thesis.direction, thesis.status, thesis.probability]);
+  }, [thesis.asset, thesis.direction, thesis.status, pathConviction]);
 
   const blocked = plan?.conviction_blocked === true;
   const showLive = plan != null && levelsComplete(plan) && !blocked;
