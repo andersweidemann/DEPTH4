@@ -32,9 +32,9 @@ export function CompactScanConfidenceProb({
   const c = Math.round(Math.min(1, Math.max(0, reasoning.confidence)) * 100);
   const probPart =
     pb != null && pa != null && pb !== pa
-      ? `Thesis conviction ${pb}% → ${pa}%`
+      ? `Event model · headline odds ${pb}% → ${pa}%`
       : pa != null
-        ? `Thesis conviction ${pa}%`
+        ? `Event model · headline odds ${pa}%`
         : null;
   if (!probPart && !Number.isFinite(reasoning.confidence)) return null;
   return (
@@ -43,7 +43,7 @@ export function CompactScanConfidenceProb({
         <>
           {probPart}
           <span className="text-zinc-600"> · </span>
-          <span className="text-zinc-400">Model {c}%</span>
+          <span className="text-zinc-400">Model confidence {c}%</span>
         </>
       ) : (
         <span className="text-zinc-400">Model confidence {c}%</span>
@@ -57,8 +57,11 @@ export function ConfidenceMeter({ reasoning }: { reasoning: Pick<MacroEventReaso
   const pct = Math.round(Math.min(1, Math.max(0, reasoning.confidence)) * 100);
 
   return (
-    <div className="flex flex-wrap items-center gap-3" aria-label={`Confidence ${pct} percent, ${TIER_LABEL[tier]} confidence`}>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Confidence</span>
+    <div
+      className="flex flex-wrap items-center gap-3"
+      aria-label={`Model confidence ${pct} percent, ${TIER_LABEL[tier]} tier`}
+    >
+      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Model confidence</span>
       <div className="flex h-2 w-36 overflow-hidden rounded-full bg-zinc-800" role="presentation">
         <div
           className={`h-full rounded-full transition-[width] duration-300 ${TIER_COLOR[tier]}`}
@@ -66,7 +69,7 @@ export function ConfidenceMeter({ reasoning }: { reasoning: Pick<MacroEventReaso
         />
       </div>
       <span className="tabular-nums text-[12px] text-zinc-400">
-        {pct}% · <span className="text-zinc-300">{TIER_LABEL[tier]}</span> confidence
+        {pct}% · <span className="text-zinc-300">{TIER_LABEL[tier]}</span> model read
       </span>
     </div>
   );

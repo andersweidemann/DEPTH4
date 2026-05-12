@@ -11,7 +11,8 @@ export type PersistEventReasoningToThesisStateParams = {
 
 /**
  * After `event_reasoning` insert: align thesis engine canonical state with the same headline
- * `probability_*_pct` values the feed shows as **thesis conviction** (`CompactScanConfidenceProb`).
+ * `probability_*_pct` values shown in macro UI as **model headline odds** (`CompactScanConfidenceProb`); persisted
+ * into evidence / scenario state for the thesis timeline — compare to live thesis page for canonical path conviction.
  *
  * Writes:
  * - `thesis_evidence_log` — `probability_before` / `probability_after` JSON triples (client bootstrap + timeline)

@@ -384,6 +384,11 @@ function WatchLineText({ w }: { w: WatchListTrigger3 }) {
 function Layer3Scenarios({ view }: { view: FeedViewModel["layer3"] }) {
   return (
     <div className="space-y-3">
+      {view.scenarios.length > 0 ? (
+        <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-500">
+          Model branch odds — not thesis book conviction.
+        </p>
+      ) : null}
       {view.scenarios.map((s) => (
         <div key={s.id} className="rounded-xl border border-zinc-600/60 bg-zinc-900/50 p-3 space-y-2 shadow-sm">
           <div className="flex items-center justify-between gap-2">
