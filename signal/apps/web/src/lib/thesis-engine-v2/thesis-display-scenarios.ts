@@ -158,7 +158,7 @@ export function thesisConvictionPctFromDbTriple(p: DbScenarioTriple): number {
   return Math.max(0, Math.min(100, Math.round(p.base + p.bull)));
 }
 
-/** Headline thesis number for DEPTH4 UI: conviction (Clean + Messy) from merged overrides (or narrative defaults). Prefer `displayConvictionPctFromEngineThesis` in UI modules for a single canonical import path. */
+/** Headline thesis number for DEPTH4 UI: conviction (Clean + Messy) from merged overrides (or narrative defaults). Prefer {@link canonicalConvictionPercentFromEngineThesis} in UI modules for a single canonical import path. */
 export function currentThesisProbabilityFromThesis(thesis: Thesis): number {
   const o = thesis.scenarioOverrides ?? defaultScenarioOverridesFromThesis(thesis);
   return thesisConvictionPctFromDbTriple({
@@ -170,7 +170,7 @@ export function currentThesisProbabilityFromThesis(thesis: Thesis): number {
 
 /**
  * Syncs legacy `thesis.probability` to path conviction (Clean + Messy) when they differ — for code paths that
- * still read `.probability` (trade plan API, snapshots). **Prefer `displayConvictionPctFromEngineThesis` in new UI.**
+ * still read `.probability` (trade plan API, snapshots). **Prefer {@link canonicalConvictionPercentFromEngineThesis} in new UI.**
  */
 export function thesisWithSyncedLiveProbability<T extends Thesis>(thesis: T): T {
   const p = currentThesisProbabilityFromThesis(thesis);

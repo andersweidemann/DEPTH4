@@ -8,10 +8,10 @@
  * or defaults from `scenarioOverridesFromRows(narrativeFallbackScenariosForThesis(thesis))` when overrides absent.  
  * NOT `thesis.probability` for UI (legacy hero dial; `thesisWithSyncedLiveProbability` may overwrite it to match path math).  
  * Compute: `currentThesisProbabilityFromThesis` → `thesisConvictionPctFromDbTriple` = round(base + bull).  
- * List: `buildThesesListResponse` → `engineThesisToListItem` → `item.conviction` = `displayConvictionPctFromEngineThesis(t)`.  
+ * List: `buildThesesListResponse` → `engineThesisToListItem` → `item.conviction` = `canonicalConvictionPercentFromEngineThesis(t)` (rounded path conviction on server thesis).  
  * API detail: `mapBundleToApiThesis` → `conviction` = same; `convictionIsTemplateEstimate` when merged triple is still a shipped template.  
- * UI list: `displayConvictionPctFromListItem(item)` → `item.conviction`.  
- * UI engine surfaces: `displayConvictionPctFromEngineThesis(thesis)` / `getThesisDisplayModel`.  
+ * UI list live: `displayConvictionPctFromThesesListItemWithLive` + `mergeThesis` + `getThesisDisplayModel` (not `displayConvictionPctFromListItem` except baseline-resolution failure).  
+ * UI engine surfaces: `canonicalConvictionPercentFromEngineThesis` / `getThesisDisplayModel` on merged thesis.  
  * Chunk API shell: `displayConvictionPctFromApiThesis(api)` → `api.conviction`; `convictionIsTemplateEstimateFromApiThesis(api)` for template honesty.
  *
  * **Resolution path %**  

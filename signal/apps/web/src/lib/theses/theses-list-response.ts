@@ -1,7 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
-import { applyDbScenarioTripleToThesisWithBundleScenarios } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import {
+  applyDbScenarioTripleToThesisWithBundleScenarios,
+  defaultScenarioOverridesFromThesis,
+} from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { mapStatus } from "@/lib/thesis-engine-v2/api-thesis-mapper";
@@ -18,9 +21,14 @@ function mapListStatus(st: EngineStatus): ThesisStatus {
   return mapStatus(st);
 }
 
-function listBaselineScenarioTripleFromEngineThesis(t: EngineThesis): { base: number; bull: number; bear: number } | null {
-  const o = t.scenarioOverrides;
-  if (!o) return null;
+/**
+ * Always emit the triple the list API used to compute `conviction`, even when `t.scenarioOverrides` is absent
+ * (catalog `detail.thesis` often has no overrides — conviction comes from `defaultScenarioOverridesFromThesis`).
+ * Sending `null` here caused stale clients to replay without a triple and fall back to frozen `item.conviction`,
+ * which could collapse visually when that field was wrong or shared.
+ */
+export function listBaselineScenarioTripleFromEngineThesis(t: EngineThesis): { base: number; bull: number; bear: number } {
+  const o = t.scenarioOverrides ?? defaultScenarioOverridesFromThesis(t);
   return {
     base: o.base.probability,
     bull: o.bull.probability,

@@ -8,7 +8,7 @@ import {
 } from "@/lib/thesis-engine-v2/live-trade-plan";
 import { getThesisMispricing, type ThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { THESIS_DEPTH_TIMEFRAMES, type ThesisDepthKey } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
-import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { canonicalConvictionPercentFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import {
   buildDisplayScenariosFromThesis,
   isCatalogThesisId,
@@ -235,7 +235,7 @@ export function mapBundleToApiThesis(
 ): ApiThesis {
   const thesis = bundle.thesis;
   const mp = getThesisMispricing(thesis, { liveEvidenceCount: options?.liveEvidenceCount });
-  const conviction = displayConvictionPctFromEngineThesis(thesis);
+  const conviction = canonicalConvictionPercentFromEngineThesis(thesis);
   /** Same merge as `ThesisDetailClient` / list engine — do not use raw `bundle.scenarios` for API path %. */
   const displayScenarios = buildDisplayScenariosFromThesis(thesis, bundle.scenarios);
   const cleanPct = displayScenarios.find((s) => s.pathKey === "clean_win")?.probability ?? 0;

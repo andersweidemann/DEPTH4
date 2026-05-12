@@ -53,7 +53,7 @@ import {
   thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import {
-  displayConvictionPctFromEngineThesis,
+  canonicalConvictionPercentFromEngineThesis,
   scenarioDisplayTriplesProbabilitiesEqual,
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import {
@@ -564,7 +564,7 @@ export function ThesisDetailClient({
   const isUserThesis = bundle.thesis.origin === "user";
   const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
   const returnToPath = pathname && pathname.length > 0 ? pathname : `/theses/${slug}`;
-  const entrySetupValid = thesis.status === "ready" && displayConvictionPctFromEngineThesis(thesis) >= 50;
+  const entrySetupValid = thesis.status === "ready" && canonicalConvictionPercentFromEngineThesis(thesis) >= 50;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
   const mispricing = getThesisMispricing(thesis, { liveEvidenceCount: liveEvidence.length });
@@ -601,7 +601,7 @@ export function ThesisDetailClient({
             ];
           })()}
         />
-        <MispricingAnalysis m={mispricing} pathConvictionPct={displayConvictionPctFromEngineThesis(thesis)} />
+        <MispricingAnalysis m={mispricing} pathConvictionPct={canonicalConvictionPercentFromEngineThesis(thesis)} />
       </div>
 
       {thesis.thesisCascade ? (

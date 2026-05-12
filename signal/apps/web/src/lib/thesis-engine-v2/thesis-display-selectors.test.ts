@@ -47,10 +47,10 @@ function baseUserThesis(): Thesis {
 }
 
 describe("thesis-display-selectors", () => {
-  it("getThesisDisplayModel conviction matches displayConvictionPctFromEngineThesis", () => {
+  it("getThesisDisplayModel conviction matches rounded engine path conviction", () => {
     const t = baseUserThesis();
     const dm = getThesisDisplayModel(t);
-    expect(dm.convictionPct).toBe(displayConvictionPctFromEngineThesis(t));
+    expect(dm.convictionPct).toBe(Math.round(displayConvictionPctFromEngineThesis(t)));
   });
 
   it("inferThesisScenarioDisplaySource returns fallback-template when display matches narrative only", () => {

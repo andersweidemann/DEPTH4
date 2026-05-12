@@ -14,17 +14,15 @@ import {
   displayConvictionPctFromThesesListItemWithLive,
   resolveListRowBaselineThesis,
 } from "@/lib/theses/theses-list-live-conviction";
+import { listBaselineScenarioTripleFromEngineThesis } from "@/lib/theses/theses-list-response";
 import type { ThesisListItem, ThesisStatus } from "@/types/thesis";
 
 function engineThesisToListItemLikeServer(t: Thesis, starred: boolean): ThesisListItem {
   const dm = getThesisDisplayModel(t);
   const mp = getThesisMispricing(t, {});
-  const o = t.scenarioOverrides;
   return {
     thesisId: t.id,
-    listBaselineScenarioTriple: o
-      ? { base: o.base.probability, bull: o.bull.probability, bear: o.bear.probability }
-      : null,
+    listBaselineScenarioTriple: listBaselineScenarioTripleFromEngineThesis(t),
     slug: t.slug,
     title: t.title,
     statement: t.thesisStatement,

@@ -16,7 +16,7 @@ import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-type
 export type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
 import { mergeThesis, type ThesisOverrides } from "@/lib/thesis-engine-v2/thesis-merge";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
-import { CATALOG_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
+import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard, thesisSlugById } from "@/lib/thesis-engine-v2/catalog-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import {
   DEPTH4_THESIS_OUTCOMES_CHANGED,
@@ -162,7 +162,12 @@ function newAlertId(): string {
 }
 
 function baseThesisForId(thesisId: string): Thesis | undefined {
-  return CATALOG_THESES.find((t) => t.id === thesisId) ?? loadUserTheses().find((t) => t.id === thesisId);
+  const slug = thesisSlugById(thesisId);
+  if (slug) {
+    const d = getThesisDetail(slug);
+    if (d) return d.thesis;
+  }
+  return loadUserTheses().find((t) => t.id === thesisId);
 }
 
 function scenarioProbPatchFromDb(baseThesis: Thesis, p: { base: number; bull: number; bear: number }): Partial<Thesis> {

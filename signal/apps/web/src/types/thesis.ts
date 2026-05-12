@@ -12,7 +12,7 @@ export interface Thesis {
   direction: ThesisDirection;
   status: ThesisStatus;
   tradeable: boolean;
-  /** Thesis conviction (Clean win + Messy win). Same contract as `displayConvictionPctFromApiThesis` / engine selectors. */
+  /** Thesis conviction (Clean win + Messy win). Same contract as `displayConvictionPctFromApiThesis` / `canonicalConvictionPercentFromEngineThesis` on engine thesis. */
   conviction: number;
   convictionRationale: string;
   mispricingScore: number;
@@ -133,9 +133,8 @@ export interface ThesisListItem {
   /** Stable id for catalog + user theses — aligns list UI with `ThesisLiveProvider.mergeThesis`. */
   thesisId: string;
   /**
-   * Server-merged `{base,bull,bear}` (DB keys) matching `scenarioOverrides` on the engine thesis used to
-   * compute `conviction`. Lets the client replay the same baseline as `buildThesesListResponse` before
-   * applying live evidence overrides (which are not present on `GET /api/theses`).
+   * Effective `{base,bull,bear}` used to compute `conviction` on the server (always sent on fresh payloads).
+   * Legacy clients may still see `null` until SWR refetch; the client then infers defaults from catalog bundle.
    */
   listBaselineScenarioTriple: { base: number; bull: number; bear: number } | null;
   slug: string;

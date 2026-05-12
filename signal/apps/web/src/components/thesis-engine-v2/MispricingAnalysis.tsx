@@ -13,7 +13,7 @@ export function MispricingAnalysis({
   pathConvictionPct,
 }: {
   m: ThesisMispricing;
-  /** Thesis conviction (Clean + Messy) — use `displayConvictionPctFromEngineThesis` / API `conviction`. */
+  /** Thesis conviction (Clean + Messy) — use {@link canonicalConvictionPercentFromEngineThesis} on merged engine thesis or API `conviction` for transport-only shells. */
   pathConvictionPct?: number;
 }) {
   const gapAbs = Math.abs(m.convictionVsSetupGap);

@@ -13,7 +13,7 @@ import { ThesisStarButton } from "./ThesisStarButton";
 import { Tooltip } from "./Tooltip";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
-import { displayConvictionPctFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { canonicalConvictionPercentFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 
@@ -34,7 +34,7 @@ export function ThesisCard({
   const live = useThesisLive();
   const tradeable = thesis.qualification === "tradeable";
   const isUser = thesis.origin === "user";
-  const pathConviction = displayConvictionPctFromEngineThesis(thesis);
+  const pathConviction = canonicalConvictionPercentFromEngineThesis(thesis);
   const entrySetupValid = thesis.status === "ready" && pathConviction >= 50;
   const selected = selectedSlug != null && selectedSlug === thesis.slug;
   const starred = live.isEffectivelyStarred(thesis.id);

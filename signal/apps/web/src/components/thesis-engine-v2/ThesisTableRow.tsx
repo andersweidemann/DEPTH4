@@ -6,7 +6,7 @@ import { formatThesisMicroLabel, getThesisDisplayTitle } from "@/lib/thesis-engi
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
-import { displayConvictionPctFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { canonicalConvictionPercentFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
@@ -58,7 +58,7 @@ export function ThesisTableRow({
 }) {
   const pill = statusPill(thesis.status);
   const mispricing = getThesisMispricing(thesis);
-  const pathConviction = displayConvictionPctFromEngineThesis(thesis);
+  const pathConviction = canonicalConvictionPercentFromEngineThesis(thesis);
   const displayModel = getThesisDisplayModel(thesis);
   return (
     <div

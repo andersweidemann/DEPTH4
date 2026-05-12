@@ -52,7 +52,7 @@ export type Thesis = {
   /**
    * Legacy “hero / book” dial (0–100). **Not** the canonical user-facing thesis conviction.
    * Headline conviction = Clean + Messy from `scenarioOverrides` / fallbacks — use
-   * `displayConvictionPctFromEngineThesis` or `getThesisDisplayModel` in UI; `thesisWithSyncedLiveProbability`
+   * `canonicalConvictionPercentFromEngineThesis` or `getThesisDisplayModel` in UI; `thesisWithSyncedLiveProbability`
    * may sync this field to match path conviction after merges.
    */
   probability: number;

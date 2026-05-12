@@ -8,7 +8,7 @@ import {
 import { StatusBadge } from "./StatusBadge";
 import { useEffect, useState } from "react";
 import { authFetch } from "@/lib/api";
-import { displayConvictionPctFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { canonicalConvictionPercentFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 
 const PENDING_ENTRY = "Awaiting live setup";
 const PENDING_STOP = "Will appear with a valid trigger";
@@ -34,7 +34,7 @@ function levelsComplete(plan: LiveTradePlan): boolean {
 
 export function TradePlanCard({ thesis }: { thesis: Thesis }) {
   const [plan, setPlan] = useState<LiveTradePlan | null>(null);
-  const pathConviction = displayConvictionPctFromEngineThesis(thesis);
+  const pathConviction = canonicalConvictionPercentFromEngineThesis(thesis);
 
   useEffect(() => {
     let cancelled = false;

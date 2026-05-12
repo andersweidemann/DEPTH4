@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { toast } from "sonner";
 import { authFetch } from "@/lib/api";
@@ -14,6 +14,7 @@ import {
   convictionIsTemplateEstimateForThesesListItemWithLive,
   displayConvictionPctFromThesesListItemWithLive,
 } from "@/lib/theses/theses-list-live-conviction";
+import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
@@ -135,6 +136,20 @@ export function LiveThesesListPage() {
   const { data, error, isLoading, mutate } = useSWR<ThesisListResponse>(listKey, swrJsonFetcher);
 
   const { mergeThesis } = useThesisLive();
+
+  const warnedStaleListTriple = useRef(false);
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production" || !data || warnedStaleListTriple.current) return;
+    const rows = [...data.focus, ...data.monitor];
+    const missing = rows.filter((r) => r.thesisId && isSystemThesisId(r.thesisId) && !r.listBaselineScenarioTriple);
+    if (missing.length > 0) {
+      warnedStaleListTriple.current = true;
+      console.warn(
+        "[DEPTH4] Stale /api/theses payload: catalog rows without `listBaselineScenarioTriple`. The client will infer triples from catalog defaults; refetch after deploy so list + detail stay aligned with the server baseline.",
+        { count: missing.length, exampleSlugs: missing.slice(0, 5).map((r) => r.slug) },
+      );
+    }
+  }, [data]);
 
   const focusRows = useMemo(() => {
     if (!data) return [];
