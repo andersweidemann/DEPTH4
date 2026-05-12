@@ -15,7 +15,10 @@ import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-type
 
 export type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
 import { mergeThesis, type ThesisOverrides } from "@/lib/thesis-engine-v2/thesis-merge";
-import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import {
+  fetchLatestNonSeedScenarioTripleFromEvidenceLog,
+  type CatalogThesisScenarioProbabilities,
+} from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { catalogResolvedTriplesLookLikeBulkWriterCollapse } from "@/lib/thesis-engine-v2/catalog-scenario-universal-collapse-guard";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard, thesisSlugById } from "@/lib/thesis-engine-v2/catalog-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
@@ -44,6 +47,7 @@ import {
   thesisWithSyncedLiveProbability,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { latestNonSeedScenarioTripleByThesisId } from "@/lib/thesis-engine-v2/thesis-evidence-scenario-bootstrap";
+import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { hydrateDepth4AccountState } from "@/lib/thesis-engine-v2/depth4-account-hydration";
 import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
@@ -641,9 +645,25 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         evidenceHighWaterRef.current = rows.reduce((m, r) => Math.max(m, r.createdAt), Date.now());
         // First poll: merge latest non-seed scenario triple per thesis from **historical** rows too.
         // Previously only "fresh" rows after boot updated overrides — evidence never applied → stuck 40/35/25.
-        const latestByThesis = latestNonSeedScenarioTripleByThesisId(
-          rows.map((r) => ({ thesisId: r.thesisId, createdAt: r.createdAt, probabilityAfter: r.probabilityAfter })),
+        const latestByThesis = new Map(
+          latestNonSeedScenarioTripleByThesisId(
+            rows.map((r) => ({ thesisId: r.thesisId, createdAt: r.createdAt, probabilityAfter: r.probabilityAfter })),
+          ),
         );
+        // Global `order(created_at desc).limit(N)` starves low-volume theses: newest rows may all be for one id.
+        // Per-thesis fetch fills polled catalog ids missing from the batch so `/theses` can leave starter templates.
+        const missingCatalogPollIds = ids.filter((tid) => isSystemThesisId(tid) && !latestByThesis.has(tid));
+        if (missingCatalogPollIds.length > 0) {
+          const gapResults = await Promise.all(
+            missingCatalogPollIds.map(async (thesisId) => {
+              const triple = await fetchLatestNonSeedScenarioTripleFromEvidenceLog(sb, thesisId);
+              return triple ? ([thesisId, triple] as const) : null;
+            }),
+          );
+          for (const entry of gapResults) {
+            if (entry) latestByThesis.set(entry[0], entry[1]);
+          }
+        }
         const bootTriples = Array.from(latestByThesis.values());
         const discardBootBulk = catalogResolvedTriplesLookLikeBulkWriterCollapse(bootTriples);
         if (latestByThesis.size > 0 && !discardBootBulk) {
