@@ -11,8 +11,10 @@ Single source of truth for HTTP routes under `signal/apps/web/src/app/api/`. Sha
 | GET | `/api/auth/google` | `?next=` | 302 OAuth URL | 500 misconfig |
 | GET | `/api/auth/callback` | (alias) | 302 → `/auth/callback` | — |
 | POST | `/api/auth/logout` | (cookie / Bearer) | `{ success: true }` | — |
-| GET | `/api/auth/me` | `Authorization: Bearer` | `{ user: User \| null }` | — |
+| GET | `/api/auth/me` | optional `Authorization: Bearer`; **session cookies** respected when Bearer omitted | `{ user: User \| null }` | — |
 | POST | `/api/auth/forgot-password` | `{ email }` | `{ success: true }` always (no enumeration) | — |
+
+OAuth / cookie verification: `docs/AUTH_OAUTH_VERIFICATION.md`.
 
 ## Theses
 

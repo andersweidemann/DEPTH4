@@ -36,6 +36,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
 
     async function boot() {
+      /**
+       * Prefer cookie-backed session first: after Google OAuth, Supabase stores the session in
+       * HTTP-only / chunked cookies. `/api/auth/me` reads them via {@link createClient} from
+       * `@/lib/supabase/server` (getAll/setAll). Client-only `getSession()` can miss chunked cookies,
+       * which used to yield `{ user: null }` and `RouteGuard` sent users back to `/login`.
+       */
+      try {
+        const cookieFirst = await fetch("/api/auth/me", { credentials: "include" });
+        if (cookieFirst.ok) {
+          const body = (await cookieFirst.json()) as { user?: User | null };
+          if (body.user) {
+            try {
+              const supa = createClient();
+              const {
+                data: { session },
+              } = await supa.auth.getSession();
+              if (session?.access_token) {
+                try {
+                  localStorage.setItem("depth4_token", session.access_token);
+                } catch {
+                  sessionStorage.setItem("depth4_token", session.access_token);
+                }
+              }
+            } catch {
+              // optional cache for Bearer-only API calls
+            }
+            if (!cancelled) setUser(body.user);
+            if (!cancelled) setIsLoading(false);
+            return;
+          }
+        }
+      } catch {
+        // fall through to bearer / client session paths
+      }
+
       let token = localStorage.getItem("depth4_token") || sessionStorage.getItem("depth4_token");
 
       if (!token) {
@@ -165,6 +200,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
+    try {
+      const cookieRes = await fetch("/api/auth/me", { credentials: "include" });
+      if (cookieRes.ok) {
+        const data = (await cookieRes.json()) as { user?: User | null };
+        if (data.user) {
+          setUser(data.user);
+          return;
+        }
+      }
+    } catch {
+      // fall through
+    }
     const token = localStorage.getItem("depth4_token") || sessionStorage.getItem("depth4_token");
     if (!token) return;
     const res = await fetch("/api/auth/me", {
