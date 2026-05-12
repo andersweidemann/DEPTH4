@@ -12,6 +12,7 @@ export interface Thesis {
   direction: ThesisDirection;
   status: ThesisStatus;
   tradeable: boolean;
+  /** Thesis conviction (Clean win + Messy win). Same contract as `displayConvictionPctFromApiThesis` / engine selectors. */
   conviction: number;
   convictionRationale: string;
   mispricingScore: number;

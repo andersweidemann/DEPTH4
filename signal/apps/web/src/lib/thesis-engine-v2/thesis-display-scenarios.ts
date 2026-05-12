@@ -168,7 +168,10 @@ export function currentThesisProbabilityFromThesis(thesis: Thesis): number {
   });
 }
 
-/** Keep `thesis.probability` in sync with scenario weights so list rows, hero, and assistant use one number. */
+/**
+ * Syncs legacy `thesis.probability` to path conviction (Clean + Messy) when they differ — for code paths that
+ * still read `.probability` (trade plan API, snapshots). **Prefer `displayConvictionPctFromEngineThesis` in new UI.**
+ */
 export function thesisWithSyncedLiveProbability<T extends Thesis>(thesis: T): T {
   const p = currentThesisProbabilityFromThesis(thesis);
   if (p === thesis.probability) return thesis;

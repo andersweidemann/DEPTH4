@@ -49,6 +49,12 @@ export type Thesis = {
   whyThesisExists?: string;
   asset: string;
   direction: "long" | "short" | "watch";
+  /**
+   * Legacy “hero / book” dial (0–100). **Not** the canonical user-facing thesis conviction.
+   * Headline conviction = Clean + Messy from `scenarioOverrides` / fallbacks — use
+   * `displayConvictionPctFromEngineThesis` or `getThesisDisplayModel` in UI; `thesisWithSyncedLiveProbability`
+   * may sync this field to match path conviction after merges.
+   */
   probability: number;
   status: ThesisStatus;
   probabilityRationale: string;
@@ -329,6 +335,7 @@ export type CommunityThesis = {
   microLabel?: string | null;
   author: string; // e.g. "@macro_maven"
   reputationBadge: string; // e.g. "Top 5% accuracy"
+  /** Card snapshot / mock leaderboard field — **not** DEPTH4 path conviction (Clean + Messy). */
   probability: number;
   scoreTotal: number; // 0–100
   followers: number;

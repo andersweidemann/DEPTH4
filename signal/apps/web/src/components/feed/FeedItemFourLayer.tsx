@@ -377,6 +377,10 @@ function WatchLineText({ w }: { w: WatchListTrigger3 }) {
   return <span className="text-zinc-200 leading-snug">{boldParts(w.line)}</span>;
 }
 
+/**
+ * Feed layer-3 scenario tiles: **reasoning-model** branch weights for this feed artifact.
+ * Not DEPTH4 thesis path conviction (`displayConvictionPctFromEngineThesis`) or catalog resolution DB triples.
+ */
 function Layer3Scenarios({ view }: { view: FeedViewModel["layer3"] }) {
   return (
     <div className="space-y-3">

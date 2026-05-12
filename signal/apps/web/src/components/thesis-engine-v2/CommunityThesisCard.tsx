@@ -8,8 +8,6 @@ import { isFollowed, toggleFollow } from "@/components/thesis-engine-v2/communit
 import { ProbabilityBar } from "@/components/thesis-engine-v2/ProbabilityBar";
 import { cn } from "@/lib/utils";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
-import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
-import { getMispricingSeedBySlug, type ThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 
 function badgeTone(b: string) {
   // Text-only badges (avoid decorative filled pills).
@@ -21,23 +19,6 @@ function badgeTone(b: string) {
 export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
   const [followed, setFollowed] = useState(false);
   useEffect(() => setFollowed(isFollowed(item.id)), [item.id]);
-  const seed = getMispricingSeedBySlug(item.thesisSlug);
-  const structural = item.scoreTotal;
-  const conviction = item.probability;
-  const m: ThesisMispricing = {
-    score: structural,
-    rawSum: structural,
-    components: [
-      { id: "structural", label: "Structural setup (book scores)", value: structural },
-      { id: "path_shape", label: "Resolution path shape", value: 0 },
-      { id: "conviction_alignment", label: "Conviction alignment vs book", value: 0 },
-      { id: "live_evidence", label: "Live evidence freshness", value: 0 },
-    ],
-    thesisProbability: conviction,
-    structuralSetupScore: structural,
-    convictionVsSetupGap: conviction - structural,
-    explanation: seed.explanation,
-  };
 
   return (
     <div className="rounded-none bg-zinc-900/25 p-4 sm:p-4.5">
@@ -75,14 +56,21 @@ export function CommunityThesisCard({ item }: { item: CommunityThesis }) {
         </button>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <span className="text-[14px] font-semibold tabular-nums text-amber-200/90">{item.probability}%</span>
-        <div className="min-w-0 flex-1">
-          <ProbabilityBar value={item.probability} />
+      <div className="mt-4">
+        <p className="mb-1 text-[9px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+          Community snapshot · not live thesis conviction
+        </p>
+        <div className="flex items-center gap-3">
+          <Tooltip label="Leaderboard-style mock field for the community rail. Open the thesis for DEPTH4 Thesis conviction (Clean + Messy) and resolution paths.">
+            <span className="text-[14px] font-semibold tabular-nums text-amber-200/90">{item.probability}%</span>
+          </Tooltip>
+          <div className="min-w-0 flex-1">
+            <ProbabilityBar value={item.probability} />
+          </div>
+          <Tooltip label="Structural score on this card (0–100). Not the same as Thesis conviction on the thesis page.">
+            <span className="text-[11px] tabular-nums text-zinc-500">score {item.scoreTotal}/100</span>
+          </Tooltip>
         </div>
-        <Tooltip label={<MispricingTooltipContent m={m} />}>
-          <span className="text-[11px] tabular-nums text-zinc-500">score {item.scoreTotal}/100</span>
-        </Tooltip>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-600">

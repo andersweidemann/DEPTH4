@@ -1,13 +1,24 @@
 /**
  * Canonical **display** selectors for thesis conviction and resolution-path scenarios.
  *
- * **Conviction (user-facing):** always Clean win + Messy win from structured path weights.
- * Do **not** use `Thesis.probability` (“hero / book dial”) for primary conviction UI — that field may diverge
- * until `thesisWithSyncedLiveProbability` runs; the selector below always reads overrides + fallbacks.
+ * ## Ownership (do not regress on visual refresh)
  *
- * **Scenarios:** one pipeline — `scenarioOverrides` merged over narrative fallbacks (`buildDisplayScenariosFromThesis`).
- * Preferred *semantic* order is live evidence → DB → narrative; at runtime DB + live are folded into `scenarioOverrides`,
- * so we infer a coarse **debug source** for dev tooling (see `inferThesisScenarioDisplaySource`).
+ * - **`Thesis.probability` is not canonical user-facing conviction.** It is a legacy / book “hero dial” that
+ *   `thesisWithSyncedLiveProbability` keeps aligned when possible. **UI must not** read it for headline conviction;
+ *   use `displayConvictionPctFromEngineThesis` or `getThesisDisplayModel`.
+ * - **`getThesisDisplayModel(thesis, opts?)`** is the preferred **engine** read path: one conviction %, display
+ *   scenario rows, narrative fallback, and coarse `scenarioSource` for dev tooling.
+ * - **`displayConvictionPctFromApiThesis` / `displayConvictionPctFromListItem`** are thin **transport** adapters:
+ *   they return the same numeric contract already computed server-side (`mapBundleToApiThesis`, list API). They are
+ *   not alternate math — use them so chunk/list stay tied to the API payload without re-deriving.
+ *
+ * ## Single source of truth (semantics)
+ *
+ * - **Conviction** = Clean win % + Messy win % (from structured path weights / overrides + fallbacks).
+ * - **Scenario precedence (conceptual):** live evidence merge → DB `scenario_probabilities` → narrative template.
+ *   At runtime, evidence + DB are folded into `scenarioOverrides`; do not recompute triples in leaf components.
+ * - **UI rule:** do not derive conviction or scenario percentages manually in components — call this module or
+ *   `buildDisplayScenariosFromThesis` + `currentThesisProbabilityFromThesis` only through the helpers above.
  */
 import type { Thesis as ApiThesis } from "@/types/thesis";
 import type { ThesisListItem } from "@/types/thesis";
