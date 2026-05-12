@@ -4,6 +4,7 @@ import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesi
 import {
   applyDbScenarioTripleToThesisWithBundleScenarios,
   defaultScenarioOverridesFromThesis,
+  isCatalogThesisId,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
@@ -175,6 +176,32 @@ export async function buildThesesListResponse(
         signatures[0],
         { count: userTheses.length },
       );
+    }
+  }
+
+  if (process.env.NODE_ENV === "development") {
+    const catalogRows = combined.filter((t) => isCatalogThesisId(t.id));
+    if (catalogRows.length >= 4) {
+      const sigs = catalogRows.map((t) => {
+        const tr = listBaselineScenarioTripleFromEngineThesis(t);
+        const c = Math.round(getThesisDisplayModel(t).convictionPct);
+        return `${tr.base}/${tr.bull}/${tr.bear}|${c}`;
+      });
+      if (new Set(sigs).size === 1) {
+        const s = sigs[0] ?? "";
+        const [tri, convStr] = s.split("|");
+        const conv = Number(convStr);
+        // Benign: shipped catalog narrative defaults are mostly clean 40 / messy 35 / broken 25 → DB 35/40/25 → 75%.
+        const benignShippedCatalogBaseline = tri === "35/40/25" && conv === 75;
+        // Bad: observed production collapse — messy-heavy 80 / clean 15 / broken 5 → 95% headline conviction.
+        const looksLikeWriterCollapse = tri === "80/15/5" && conv === 95;
+        if (looksLikeWriterCollapse || (!benignShippedCatalogBaseline && catalogRows.length >= 4)) {
+          console.warn(
+            "[DEPTH4 dev] buildThesesListResponse: every catalog thesis shares one scenario triple + conviction — if this is not 35/40/25|75, check Supabase `theses.scenario_probabilities` / evidence `probability_after`.",
+            { signature: s, catalogRowCount: catalogRows.length },
+          );
+        }
+      }
     }
   }
 
