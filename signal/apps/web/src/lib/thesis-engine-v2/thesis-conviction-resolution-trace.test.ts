@@ -40,7 +40,6 @@ import {
   currentThesisProbabilityFromThesis,
   displayScenarioTripleCleanMessyBroken,
   isUncalibratedDisplayScenarioTriple,
-  narrativeFallbackScenariosForThesis,
   thesisConvictionPctFromDbTriple,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import {

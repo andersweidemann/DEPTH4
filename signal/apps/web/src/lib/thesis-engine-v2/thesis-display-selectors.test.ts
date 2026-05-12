@@ -104,7 +104,8 @@ describe("thesis-display-selectors", () => {
     const detail = getThesisDetail("strait-hormuz-oil-long")!;
     const api = mapBundleToApiThesis(detail, null);
     expect(convictionIsTemplateEstimateFromApiThesis(api)).toBe(api.convictionIsTemplateEstimate);
-    const { convictionIsTemplateEstimate: _drop, ...rest } = api;
+    const rest = { ...api };
+    delete rest.convictionIsTemplateEstimate;
     expect(convictionIsTemplateEstimateFromApiThesis(rest as ApiThesisShape)).toBe(true);
   });
 
