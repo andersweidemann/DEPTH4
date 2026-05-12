@@ -6,6 +6,7 @@ import {
   displayConvictionPctFromListItem,
   getThesisDisplayModel,
 } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import type { ThesisListItem } from "@/types/thesis";
@@ -19,7 +20,20 @@ import type { ThesisListItem } from "@/types/thesis";
  * every render from `ThesisLiveProvider` overrides (Supabase evidence poll), so they track the detail route.
  */
 export function resolveListRowBaselineThesis(item: ThesisListItem): Thesis | null {
-  const fromUser = loadUserTheses().find((t) => t.id === item.thesisId);
+  const id = item.thesisId?.trim() ?? "";
+
+  /** System catalog ids must never be resolved from `loadUserTheses()` (stale session rows must not shadow). */
+  if (id && isSystemThesisId(id)) {
+    const detail = getThesisDetail(item.slug);
+    if (!detail) return null;
+    const triple = item.listBaselineScenarioTriple;
+    if (triple) {
+      return applyDbScenarioTripleToThesisWithBundleScenarios(detail.thesis, detail.scenarios, triple);
+    }
+    return detail.thesis;
+  }
+
+  const fromUser = id ? loadUserTheses().find((t) => t.id === id) : undefined;
   if (fromUser) return fromUser;
 
   const detail = getThesisDetail(item.slug);

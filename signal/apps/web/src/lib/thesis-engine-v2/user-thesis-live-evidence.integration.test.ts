@@ -91,6 +91,8 @@ describe("user thesis live evidence + scenarios (integration)", () => {
     const detailPath = join(dir, "../../components/thesis-engine-v2/ThesisDetailClient.tsx");
     expect(readFileSync(pagePath, "utf8")).toContain("ThesisSlugDetailPage");
     expect(readFileSync(shellPath, "utf8")).toContain("ThesisDetailClient");
+    expect(readFileSync(shellPath, "utf8")).toContain("catalogScenarioProbabilities");
+    expect(readFileSync(shellPath, "utf8")).toContain("catalogDbThesisScenarioProbabilities");
     expect(readFileSync(detailPath, "utf8")).toContain("registerEvidenceLogPollPriorityThesisId");
     expect(readFileSync(detailPath, "utf8")).toContain("bundle?.thesis.id");
   });
@@ -111,6 +113,14 @@ describe("user thesis live evidence + scenarios (integration)", () => {
 
   it(`uses EVIDENCE_LOG_POLL_ROW_LIMIT=${EVIDENCE_LOG_POLL_ROW_LIMIT} for the client poll batch size constant`, () => {
     expect(EVIDENCE_LOG_POLL_ROW_LIMIT).toBe(480);
+  });
+
+  it("GET /api/theses/catalog-titles includes scenarioProbabilitiesByThesisId for slug-page header merge", () => {
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const path = join(dir, "../../app/api/theses/catalog-titles/route.ts");
+    const s = readFileSync(path, "utf8");
+    expect(s).toContain("scenarioProbabilitiesByThesisId");
+    expect(s).toContain("parseScenarioProbabilities");
   });
 
   it("GET /api/user/theses slug handler exposes insider_flow for client hydration", () => {

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { fetchCatalogThesisTitleRows } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import {
+  fetchCatalogThesisTitleRows,
+  parseScenarioProbabilities,
+} from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 /**
@@ -18,6 +21,7 @@ export async function GET() {
       microLabelsByThesisId: {} as Record<string, string>,
       bodiesByThesisId: {} as Record<string, unknown>,
       slugsByThesisId: {} as Record<string, string>,
+      scenarioProbabilitiesByThesisId: {} as Record<string, { base: number; bull: number; bear: number }>,
     });
   }
 
@@ -26,6 +30,7 @@ export async function GET() {
   const microLabelsByThesisId: Record<string, string> = {};
   const bodiesByThesisId: Record<string, unknown> = {};
   const slugsByThesisId: Record<string, string> = {};
+  const scenarioProbabilitiesByThesisId: Record<string, { base: number; bull: number; bear: number }> = {};
   for (const r of rows) {
     const id = r.id.trim();
     const title = (r.title ?? "").trim();
@@ -37,6 +42,14 @@ export async function GET() {
     if (id && r.body !== undefined && r.body !== null && typeof r.body === "object") {
       bodiesByThesisId[id] = r.body as Record<string, unknown>;
     }
+    const parsed = parseScenarioProbabilities(r.scenario_probabilities);
+    if (id && parsed) scenarioProbabilitiesByThesisId[id] = parsed;
   }
-  return NextResponse.json({ titlesByThesisId, microLabelsByThesisId, bodiesByThesisId, slugsByThesisId });
+  return NextResponse.json({
+    titlesByThesisId,
+    microLabelsByThesisId,
+    bodiesByThesisId,
+    slugsByThesisId,
+    scenarioProbabilitiesByThesisId,
+  });
 }

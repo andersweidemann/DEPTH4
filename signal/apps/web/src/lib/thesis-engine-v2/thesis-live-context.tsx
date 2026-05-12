@@ -15,6 +15,7 @@ import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-type
 
 export type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
 import { mergeThesis, type ThesisOverrides } from "@/lib/thesis-engine-v2/thesis-merge";
+import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { CATALOG_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
 import {
@@ -309,6 +310,8 @@ type Ctx = {
   catalogDbThesisBodies: ReadonlyMap<string, unknown>;
   /** `public.theses.slug` keyed by thesis id (catalog rows), when signed in. */
   catalogDbThesisSlugs: ReadonlyMap<string, string>;
+  /** Parsed `public.theses.scenario_probabilities` for catalog rows (when present). */
+  catalogDbThesisScenarioProbabilities: ReadonlyMap<string, CatalogThesisScenarioProbabilities>;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -344,6 +347,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [catalogDbThesisMicroLabels, setCatalogDbThesisMicroLabels] = useState(() => new Map<string, string>());
   const [catalogDbThesisBodies, setCatalogDbThesisBodies] = useState(() => new Map<string, unknown>());
   const [catalogDbThesisSlugs, setCatalogDbThesisSlugs] = useState(() => new Map<string, string>());
+  const [catalogDbThesisScenarioProbabilities, setCatalogDbThesisScenarioProbabilities] = useState(
+    () => new Map<string, CatalogThesisScenarioProbabilities>(),
+  );
 
   const overridesRef = useRef(overrides);
   overridesRef.current = overrides;
@@ -406,6 +412,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         const microObj = root?.microLabelsByThesisId;
         const bodiesObj = root?.bodiesByThesisId;
         const slugsObj = root?.slugsByThesisId;
+        const scenObj = root?.scenarioProbabilitiesByThesisId;
         const m = new Map<string, string>();
         if (o && typeof o === "object") {
           for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
@@ -434,6 +441,20 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
           }
         }
         setCatalogDbThesisSlugs(sm);
+        const pm = new Map<string, CatalogThesisScenarioProbabilities>();
+        if (scenObj && typeof scenObj === "object") {
+          for (const [k, v] of Object.entries(scenObj as Record<string, unknown>)) {
+            if (!k.trim() || !v || typeof v !== "object" || Array.isArray(v)) continue;
+            const t = v as Record<string, unknown>;
+            const b = t.base;
+            const bu = t.bull;
+            const be = t.bear;
+            if (typeof b === "number" && typeof bu === "number" && typeof be === "number") {
+              pm.set(k.trim(), { base: Math.round(b), bull: Math.round(bu), bear: Math.round(be) });
+            }
+          }
+        }
+        setCatalogDbThesisScenarioProbabilities(pm);
       })
       .catch(() => {});
     return () => {
@@ -1073,6 +1094,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       catalogDbThesisMicroLabels,
       catalogDbThesisBodies,
       catalogDbThesisSlugs,
+      catalogDbThesisScenarioProbabilities,
     };
   },
     [
@@ -1108,6 +1130,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       catalogDbThesisMicroLabels,
       catalogDbThesisBodies,
       catalogDbThesisSlugs,
+      catalogDbThesisScenarioProbabilities,
       outcomeEpoch,
     ],
   );

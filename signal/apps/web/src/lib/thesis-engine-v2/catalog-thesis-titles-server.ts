@@ -10,6 +10,7 @@ export type CatalogThesisTitleRow = {
   title: string;
   micro_label?: string | null;
   body?: unknown | null;
+  scenario_probabilities?: unknown | null;
 };
 
 const CATALOG_THESIS_IDS = Array.from(new Set<string>(Object.values(SYSTEM_THESIS_IDS)));
@@ -20,7 +21,7 @@ export async function fetchCatalogThesisTitleRows(supabase: SupabaseClient): Pro
 
   const { data, error } = await supabase
     .from("theses")
-    .select("id, slug, title, micro_label, body")
+    .select("id, slug, title, micro_label, body, scenario_probabilities")
     .in("id", CATALOG_THESIS_IDS);
   if (error || !data?.length) return [];
 
