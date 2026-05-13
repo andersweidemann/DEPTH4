@@ -47,7 +47,7 @@ async function runBackfill(req: NextRequest) {
   let parseFailed = 0;
   const errors: string[] = [];
 
-  for (const [clusterId, reasoningRaw] of firstReasoningByCluster) {
+  for (const [clusterId, reasoningRaw] of Array.from(firstReasoningByCluster.entries())) {
     if (examined >= limit) break;
     examined += 1;
 
