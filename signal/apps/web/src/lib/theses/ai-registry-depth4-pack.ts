@@ -35,15 +35,15 @@ const ANALYST_DECK_HERO = /\b(Fair Value|Near Fair Value|Long-Term Targets|On Tr
  */
 const MISPRICING_SIGNAL = new RegExp(
   [
-    "\\b(market|futures|tape|investors?|crowd|prices?|priced|embedded|expects?|still|yet|misses?|",
-    "under-?pric|over-?pric|mispric|wrong|early|late|anchored|discount|premium|versus|vs\\.|",
+    "\\b(market|futures|tape|investors?|crowd|prices?|pricing|priced|embedded|expects?|still|yet|misses?|",
+    "under-?pric|over-?pric|mispric|wrong|early|late|anchored|discount|premium|versus|vs\\.|depth4|",
     "not\\s+repric|has\\s+not|ignores?|unpriced|overpriced)\\b",
   ].join(""),
   "i",
 );
 
-const LEVEL_3_HEADER = /LEVEL\s*3\s*\(THIS QUARTER[^)]*\):/i;
-const LEVEL_4_HEADER = /LEVEL\s*4\s*\(STRUCTURAL BIAS[^)]*\):/i;
+const LEVEL_3_HEADER = /LEVEL\s*3\s*\([^)]+\)\s*:/i;
+const LEVEL_4_HEADER = /LEVEL\s*4\s*\([^)]+\)\s*:/i;
 
 const MIN_L3_L4_CHARS = 48;
 

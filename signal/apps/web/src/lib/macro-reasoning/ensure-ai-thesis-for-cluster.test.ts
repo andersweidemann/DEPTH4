@@ -10,20 +10,20 @@ function thickReasoningChain(): string {
   const l2 =
     "Near-term futures lift XLE and USO first while HY energy curves test whether funding stress is localized or broad.";
   const l3 =
-    "The quarter-level miss is that investors still treat US shale as infinitely elastic — if inventories keep drawing while discipline holds, the curve is wrong and cash bonds in majors reprice tighter.";
+    "The market is pricing infinite shale elasticity, but DEPTH4 sees OPEC plus draws breaking that default — if inventories keep falling while discipline holds, the curve is wrong and cash bonds in majors reprice tighter.";
   const l4 =
     "Year backdrop rotates leadership toward cashflow-heavy energy and away from capex-heavy narratives until balances prove otherwise — XLE stays the clean expression while single names lag on idiosyncratic noise.";
   return [
-    "LEVEL 1 (CONFIRMED — this happened):",
+    "LEVEL 1 (CONFIRMED TODAY — 0–24h):",
     l1,
     "",
-    "LEVEL 2 (THIS WEEK–MONTH — near-term):",
+    "LEVEL 2 (THIS WEEK — 1–7d):",
     l2,
     "",
-    "LEVEL 3 (THIS QUARTER — medium-term):",
+    "LEVEL 3 (THIS MONTH — 7–30d):",
     l3,
     "",
-    "LEVEL 4 (STRUCTURAL BIAS — backdrop this year):",
+    "LEVEL 4 (THIS QUARTER — 30–90d+):",
     l4,
   ].join("\n");
 }
