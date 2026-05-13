@@ -16,6 +16,36 @@ const FEED_TABLE_HEADER =
 
 const FEED_ROW_GRID = "grid grid-cols-[1fr_100px_80px_80px_40px] gap-3 border-b border-white/[0.06] py-4 items-start";
 
+/** Quiet copy for empty Thesis column + matching `title` tooltips (feed discovery lane). */
+const FEED_THESIS_DISCOVERY_HELPER =
+  "Events without a linked thesis are still being evaluated for new thesis formation.";
+
+const FEED_THESIS_COLUMN_TOOLTIP =
+  "Some headlines do not map to an existing thesis yet — DEPTH4 uses them to build new theses when clustering and promotion gates pass.";
+
+function ThesisFeedColumn({ item }: { item: FeedItem }) {
+  const asset = item.thesisAsset?.trim();
+  const slug = item.linkedThesisSlug?.trim();
+  if (asset) {
+    return <span className="text-[11px] text-zinc-300">{asset}</span>;
+  }
+  if (slug) {
+    return (
+      <span className="cursor-help text-[11px] text-zinc-600 tabular-nums" title={FEED_THESIS_COLUMN_TOOLTIP}>
+        —
+      </span>
+    );
+  }
+  return (
+    <span
+      className="cursor-help text-[10px] font-medium tracking-tight text-zinc-500"
+      title={FEED_THESIS_COLUMN_TOOLTIP}
+    >
+      Evaluating
+    </span>
+  );
+}
+
 function isFeedItemArray(x: unknown): x is FeedItem[] {
   return Array.isArray(x) && x.every((i) => i && typeof i === "object" && "type" in i && "id" in i);
 }
@@ -89,11 +119,7 @@ function ConvictionChangeRow({ item }: { item: FeedItem }) {
         <span className="text-[11px] text-zinc-500">{item.source}</span>
       </div>
       <div className="text-right">
-        {item.thesisAsset && item.thesisDirection ? (
-          <span className="text-[11px] text-zinc-300">{item.thesisAsset}</span>
-        ) : (
-          <span className="text-[11px] text-zinc-600">—</span>
-        )}
+        <ThesisFeedColumn item={item} />
       </div>
       <div className="text-right">
         {item.oldConviction !== null && item.newConviction !== null ? (
@@ -174,7 +200,7 @@ function ReasoningRow({ item }: { item: FeedItem }) {
         <span className="text-[11px] text-zinc-500">{item.source}</span>
       </div>
       <div className="text-right">
-        {item.thesisAsset ? <span className="text-[11px] text-zinc-300">{item.thesisAsset}</span> : <span className="text-[11px] text-zinc-600">—</span>}
+        <ThesisFeedColumn item={item} />
       </div>
       <div className="text-right">
         {item.linkedThesisSlug && pct !== null ? (
@@ -214,7 +240,9 @@ function HeadlineRow({ item }: { item: FeedItem }) {
       <div className="text-right">
         <span className="text-[11px] text-zinc-500">{item.source}</span>
       </div>
-      <div className="text-right">{item.thesisAsset ? <span className="text-[11px] text-zinc-500">{item.thesisAsset}</span> : null}</div>
+      <div className="text-right">
+        <ThesisFeedColumn item={item} />
+      </div>
       <div className="text-right">
         <span className="text-[11px] text-zinc-600">—</span>
       </div>
@@ -295,6 +323,9 @@ export function LiveFeedPage() {
               <span className="text-right">Change</span>
               <span />
             </div>
+            <p className="mt-2 mb-1 max-w-2xl border-l border-[#E8473F]/20 pl-2.5 text-[10px] leading-relaxed text-zinc-600">
+              {FEED_THESIS_DISCOVERY_HELPER}
+            </p>
             {grouped.map((g) => (
               <div key={g.label}>
                 <div className="mt-6 mb-2">
