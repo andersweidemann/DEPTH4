@@ -59,6 +59,21 @@ export async function loadThesisDetailBundleForApi(
     return { ...b, thesis: thesisWithSyncedLiveProbability(b.thesis) };
   }
 
+  const { data: aiRow, error: aiErr } = await supabase
+    .from("theses")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at")
+    .eq("slug", slug)
+    .eq("thesis_origin", "ai_generated")
+    .maybeSingle();
+
+  if (!aiErr && aiRow) {
+    const thesis = userThesisFromSupabaseRow(aiRow as Parameters<typeof userThesisFromSupabaseRow>[0]);
+    const parsed = parseScenarioProbabilities(
+      (aiRow as { scenario_probabilities?: unknown }).scenario_probabilities,
+    );
+    return bundleForUserThesis(thesis, { scenarioProbabilitiesFromDb: parsed != null });
+  }
+
   if (!userId) return null;
 
   const { data, error } = await supabase

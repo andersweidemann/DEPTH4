@@ -135,9 +135,27 @@ export async function buildThesesListResponse(
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
 
+  const { data: aiRows } = await sb
+    .from("theses")
+    .select(
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label",
+    )
+    .eq("thesis_origin", "ai_generated")
+    .order("updated_at", { ascending: false })
+    .limit(120);
+
+  const aiTheses: EngineThesis[] = (aiRows ?? []).map((row) =>
+    userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
+  );
+
   const { catalogEngine, discardBulkWriterCollapse, dbSurfacingByThesisId } = await loadCatalogEngineTheses(sb);
   const surfacingByThesisId = new Map<string, ThesisDbSurfacingPreference>(dbSurfacingByThesisId);
   for (const row of userRows ?? []) {
+    const r = row as Record<string, unknown>;
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
+  }
+  for (const row of aiRows ?? []) {
     const r = row as Record<string, unknown>;
     const id = typeof r.id === "string" ? r.id.trim() : "";
     if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
@@ -149,7 +167,7 @@ export async function buildThesesListResponse(
     );
   }
 
-  let combined = sortThesesForDashboard([...catalogEngine, ...userTheses]);
+  let combined = sortThesesForDashboard([...catalogEngine, ...aiTheses, ...userTheses]);
 
   if (query.starred) {
     combined = combined.filter((t) => starredIds.has(t.id));

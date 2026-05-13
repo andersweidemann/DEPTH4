@@ -50,3 +50,28 @@ export async function fetchThesisMetaMap(supabase: SupabaseClient, thesisIds: st
   }
   return new Map(pairs);
 }
+
+/** Map `discovery_cluster_id` → thesis id for AI rows (feed + cards when `affected_theses` was empty in stored JSON). */
+export async function fetchAiThesisIdByDiscoveryClusterIds(
+  supabase: SupabaseClient,
+  clusterIds: string[],
+): Promise<Map<string, string>> {
+  const uniq = Array.from(new Set(clusterIds.map((id) => id.trim()).filter(Boolean)));
+  if (!uniq.length) return new Map();
+
+  const { data, error } = await supabase
+    .from("theses")
+    .select("id, discovery_cluster_id")
+    .eq("thesis_origin", "ai_generated")
+    .in("discovery_cluster_id", uniq);
+
+  if (error || !data) return new Map();
+
+  const m = new Map<string, string>();
+  for (const r of data as { id?: unknown; discovery_cluster_id?: unknown }[]) {
+    const cid = typeof r.discovery_cluster_id === "string" ? r.discovery_cluster_id.trim() : "";
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    if (cid && id) m.set(cid, id);
+  }
+  return m;
+}

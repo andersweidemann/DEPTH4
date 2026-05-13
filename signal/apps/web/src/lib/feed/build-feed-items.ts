@@ -1,17 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FeedItem } from "@/types/feed";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
+import { CURATED_FOCUS_CATALOG_ORDER } from "@/lib/thesis-engine-v2/curated-focus-theses";
 import {
   dbScenarioTripleEqualsSeed,
   thesisConvictionPctFromDbTriple,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { dbScenarioTripleFromMacroHeadlineLeadPct } from "@/lib/macro-reasoning/macro-headline-probability-to-db-triple";
+import { pickStrongestCatalogThesisId } from "@/lib/macro-reasoning/pick-strongest-catalog-thesis";
 import {
   fetchPromotedMacroReasoningRows,
   parseReasoningPayload,
   toPromotedCardModel,
   type EventReasoningNewsJoin,
 } from "@/lib/feed/promoted-macro-events";
-import { fetchThesisMetaMap, type ThesisMeta } from "@/lib/feed/thesis-slugs";
+import { fetchAiThesisIdByDiscoveryClusterIds, fetchThesisMetaMap, type ThesisMeta } from "@/lib/feed/thesis-slugs";
 
 function formatFeedTimestamp(iso: string | null): string {
   if (!iso) return "—";
@@ -127,9 +130,17 @@ async function fetchConvictionChangeItems(supabase: SupabaseClient, limit: numbe
 
   const out: FeedItem[] = [];
   for (const row of rows) {
-    const before = parseProb(row.probability_before);
+    let before = parseProb(row.probability_before);
     const after = parseProb(row.probability_after);
-    if (!before || !after) continue;
+    if (!after) continue;
+    if (!before) {
+      const metaObj = row.metadata && typeof row.metadata === "object" ? (row.metadata as Record<string, unknown>) : {};
+      const pbPct = metaObj.probability_before_pct;
+      if (typeof pbPct === "number" && Number.isFinite(pbPct)) {
+        before = dbScenarioTripleFromMacroHeadlineLeadPct(pbPct);
+      }
+    }
+    if (!before) continue;
     if (dbScenarioTripleEqualsSeed(before) && dbScenarioTripleEqualsSeed(after)) continue;
 
     const oldC = thesisConvictionPctFromDbTriple(before);
@@ -170,12 +181,23 @@ async function fetchConvictionChangeItems(supabase: SupabaseClient, limit: numbe
   return out;
 }
 
-function promotedJoinToFeedItem(row: EventReasoningNewsJoin, thesisMetaById: Map<string, ThesisMeta>): FeedItem | null {
+function promotedJoinToFeedItem(
+  row: EventReasoningNewsJoin,
+  thesisMetaById: Map<string, ThesisMeta>,
+  aiThesisIdByClusterId: Map<string, string>,
+): FeedItem | null {
   const card = toPromotedCardModel(row);
   if (!card) return null;
   const parsed = card.reasoning;
   const reasoningBody = [parsed.reasoning_summary, parsed.reasoning_chain].filter(Boolean).join("\n\n");
-  const primaryThesisId = parsed.affected_theses[0];
+  let primaryThesisId = (parsed.affected_theses[0] ?? "").trim();
+  if (!primaryThesisId) {
+    primaryThesisId =
+      pickStrongestCatalogThesisId(parsed.per_catalog_thesis, CURATED_FOCUS_CATALOG_ORDER) ?? "";
+  }
+  if (!primaryThesisId && row.cluster_id) {
+    primaryThesisId = aiThesisIdByClusterId.get(row.cluster_id) ?? "";
+  }
   const meta = primaryThesisId ? thesisMetaById.get(primaryThesisId) : undefined;
   const newsJoin = parseReasoningPayload(row)?.news;
   const signalLevel = typeof newsJoin?.signal_level === "number" ? newsJoin.signal_level : 0;
@@ -210,13 +232,18 @@ function promotedJoinToFeedItem(row: EventReasoningNewsJoin, thesisMetaById: Map
 async function fetchReasoningItems(supabase: SupabaseClient, loadPromoted: boolean): Promise<FeedItem[]> {
   if (!loadPromoted) return [];
   const rows = await fetchPromotedMacroReasoningRows(supabase);
+  const clusterIds = rows
+    .map((r) => (typeof r.cluster_id === "string" ? r.cluster_id.trim() : ""))
+    .filter(Boolean);
+  const aiThesisIdByClusterId = await fetchAiThesisIdByDiscoveryClusterIds(supabase, clusterIds);
   const thesisIds = rows.flatMap((r) => {
     const m = toPromotedCardModel(r);
     return m ? m.reasoning.affected_theses : [];
   });
-  const thesisMetaById = await fetchThesisMetaMap(supabase, thesisIds);
+  const bridgeIds = clusterIds.map((cid) => aiThesisIdByClusterId.get(cid)).filter((x): x is string => !!x);
+  const thesisMetaById = await fetchThesisMetaMap(supabase, [...thesisIds, ...bridgeIds]);
   return rows
-    .map((r) => promotedJoinToFeedItem(r, thesisMetaById))
+    .map((r) => promotedJoinToFeedItem(r, thesisMetaById, aiThesisIdByClusterId))
     .filter((x): x is FeedItem => x !== null);
 }
 

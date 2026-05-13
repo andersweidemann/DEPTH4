@@ -27,6 +27,8 @@ import {
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 import { persistEventReasoningToThesisState } from "@/lib/macro-reasoning/persist-event-reasoning-to-thesis-state";
+import { ensureAiThesisForDiscoveryCluster } from "@/lib/macro-reasoning/ensure-ai-thesis-for-cluster";
+import { pickStrongestCatalogThesisId } from "@/lib/macro-reasoning/pick-strongest-catalog-thesis";
 
 export const runtime = "nodejs";
 
@@ -456,12 +458,51 @@ async function runEventReasoning() {
     return NextResponse.json(summary, { status: 502 });
   }
 
+  let affectedTheses = [...validated.data.affected_theses].map((t) => t.trim()).filter(Boolean);
+  if (validated.data.thesis_relation === "create_new") {
+    const ai = await ensureAiThesisForDiscoveryCluster(admin, {
+      clusterId: claimed.id,
+      titleHint: claimed.title_hint,
+      reasoning: validated.data,
+    });
+    if (ai.ok) {
+      affectedTheses = [ai.thesisId];
+      console.info("[event-reasoning] ai_thesis_ensured", {
+        clusterId: claimed.id,
+        thesisId: ai.thesisId,
+        created: ai.created,
+      });
+    }
+  }
+  if (!affectedTheses.length) {
+    const pick = pickStrongestCatalogThesisId(validated.data.per_catalog_thesis, catalogIds);
+    if (pick) affectedTheses = [pick];
+  }
+  if (!affectedTheses.length && validated.data.thesis_relation !== "irrelevant") {
+    const ai = await ensureAiThesisForDiscoveryCluster(admin, {
+      clusterId: claimed.id,
+      titleHint: claimed.title_hint,
+      reasoning: validated.data,
+    });
+    if (ai.ok) {
+      affectedTheses = [ai.thesisId];
+      console.info("[event-reasoning] ai_thesis_fallback_orphan_cluster", {
+        clusterId: claimed.id,
+        thesisId: ai.thesisId,
+        created: ai.created,
+        thesis_relation: validated.data.thesis_relation,
+      });
+    }
+  }
+
+  const reasoningPayload = { ...validated.data, affected_theses: affectedTheses };
+
   const { error: insErr, data: insRows } = await admin
     .from("event_reasoning")
     .insert({
       news_event_id: anchorId,
       cluster_id: claimed.id,
-      reasoning: validated.data,
+      reasoning: reasoningPayload,
       raw_response: { anthropic: raw, assistant_text: text },
       model,
       prompt_version: promptVersion,
@@ -485,7 +526,7 @@ async function runEventReasoning() {
 
   if (insertId) {
     const persist = await persistEventReasoningToThesisState(admin, {
-      reasoning: validated.data,
+      reasoning: reasoningPayload,
       eventReasoningRowId: insertId,
       anchorNewsEventId: anchorId,
       clusterId: claimed.id,
