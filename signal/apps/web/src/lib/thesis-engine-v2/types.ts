@@ -245,7 +245,22 @@ export type Position = {
 
 export type RelatedAsset = {
   symbol: string;
+  /** Short catalog / bundle label when structured fields are absent. */
   note: string;
+  /** Long label, e.g. "HG (COMEX copper)". */
+  displayName?: string;
+  /** Override bias line when set; else derived from thesis + Insider Flow. */
+  directionBias?: string;
+  /** How this instrument fits the thesis channel (asset-specific). */
+  whyItMatters?: string;
+  /** What consensus / price action embeds for this name. */
+  consensusOnAsset?: string;
+  /** DEPTH4 edge for this symbol (not the whole-thesis paragraph). */
+  whatAssetMisprices?: string;
+  /** Horizon for this expression (may differ from thesis.horizon). */
+  edgeWindow?: string;
+  /** Qualitative confidence / dependency notes. */
+  depthConfidence?: string;
 };
 
 export type FeedSignal = {

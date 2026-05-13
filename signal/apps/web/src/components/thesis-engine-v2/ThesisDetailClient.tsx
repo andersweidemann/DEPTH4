@@ -610,12 +610,7 @@ export function ThesisDetailClient({
       ) : null}
 
       <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
-        <ThesisAssetEdgeMap
-          thesis={thesis}
-          relatedAssets={relatedAssets}
-          mispricing={mispricing}
-          pathConvictionPct={canonicalConvictionPercentFromEngineThesis(thesis)}
-        />
+        <ThesisAssetEdgeMap thesis={thesis} relatedAssets={relatedAssets} />
       </div>
 
       {(entrySetupValid || hasOpen || bookSnap.latest) && (
@@ -775,8 +770,9 @@ export function ThesisDetailClient({
       </div>
 
       <div className={cn("mt-6 grid gap-3 sm:grid-cols-2", layout === "drawer" && "px-4 sm:px-5")}>
-        <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
-        <AnswerBlock kicker="What the market hasn't priced in yet">{thesis.whatsUnpriced}</AnswerBlock>
+        <div className="sm:col-span-2">
+          <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
+        </div>
         <AnswerBlock kicker="Trigger">{thesis.trigger}</AnswerBlock>
         <AnswerBlock kicker="Trade">{thesis.trade}</AnswerBlock>
         {thesis.timeStop ? (

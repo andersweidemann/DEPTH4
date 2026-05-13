@@ -8,7 +8,7 @@
  * - **Forward:** structured `thesisDepthBook` / `body.thesis_depth_book` replaces hand prose `thesisCascade` for
  *   per-depth mispricing + trade selection — see `thesis-depth-canonical.ts`.
  */
-import type { Thesis, ThesisDetailBundle, ThesisScenario, ThesisScenarioPathKey } from "./types";
+import type { RelatedAsset, Thesis, ThesisDetailBundle, ThesisScenario, ThesisScenarioPathKey } from "./types";
 import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";
 import { formatThesisMicroLabel, getThesisDisplayTitle } from "./thesis-display-title";
 import { normalizeThesisNarrativeFields } from "./thesis-db-body";
@@ -474,21 +474,21 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
       l1Confirmed:
         "Beijing is verbally back-stopping growth and early credit reads are no longer collapsing. That is a policy turn, not a rumor.",
       l2ThisQuarter:
-        "Restocking and infrastructure bids hit industrial metals first; HG often leads before a broader China rerating shows up in headlines.",
+        "Over the next one to two weeks the tape tests whether easier tone turns into loan growth and orders — macro calendars and policy windows carry the first proof before equities fully rerate.",
       l3ThisYear:
-        "If the pulse sticks, warehouses draw globally and copper can grind for several quarters on tight scrap and grid build.",
+        "Over one to three months a real impulse shows up in shipment and inventory chains across Asia — industrial commodities and cyclicals absorb the second-order move as a class, not a single headline.",
       l4Backdrop2026:
-        "Grid build and factory reshoring keep real metals demand on the table — when China’s impulse is live, hard assets get a clearer bid all year.",
+        "Grid build and factory reshoring keep real metals demand on the table — when China’s impulse is live, hard assets and related equities stay bid in the broader DEPTH4 macro backdrop.",
     },
 
     hiddenDriver: "Credit and fiscal lines are inflecting; copper is the fast read on whether it is real.",
-    likelyPath: "Pulse firms → warehouses empty → HG rallies before the macro podcasts notice.",
+    likelyPath: "Pulse firms → orders and shipments improve → industrial commodities and miners re-rate before consensus fully flips.",
     marketMisread: "",
     tradeExpression: "HG upside skew while restock proves; stand down until inventory and credit align.",
 
-    whyNow: "Policy tone flipped while HG is still priced for no help.",
+    whyNow: "Easier Beijing tone is live while markets still trade a slow-China default.",
     whatsUnpriced:
-      "PMI headlines dominate, yet credit impulse and bonded inventory already imply a firmer restock path than spot implies. The edge is funds still anchor to property fear while the stimulus lever is turning — copper is late, not early, to that stack.",
+      "Positioning still overweights property fear and stale PMI versus credit and industrial microdata that already argue for a firmer impulse — per-instrument edges are unpacked in the asset map below.",
     trigger:
       "Two consecutive inventory draws in Shanghai bonded stocks AND a confirming credit impulse print in the same month.",
     trade:
@@ -509,7 +509,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     },
 
     insiderFlow: {
-      bullInstruments: ["HG", "COPPER"],
+      bullInstruments: ["HG"],
       bearInstruments: [],
       confirmTags: ["china", "stimulus", "copper", "infrastructure"],
     },
@@ -854,14 +854,107 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
   }
 }
 
+/** Structured edge map for `china-stimulus-copper-long` — canonical multi-instrument playbook (see ThesisAssetEdgeMap). */
+const CHINA_STIMULUS_COPPER_RELATED_ASSETS: RelatedAsset[] = [
+  {
+    symbol: "HG",
+    note: "Primary futures expression",
+    displayName: "HG (COMEX copper)",
+    directionBias: "Constructive · long bias",
+    whyItMatters:
+      "Industrial-metals restock shows up in futures first; HG is the cleanest liquid expression of the China impulse without single-stock noise.",
+    consensusOnAsset:
+      "Open interest still anchors to weak PMI and property fear; desks treat stimulus headlines as untradeable until exports visibly rebound.",
+    whatAssetMisprices:
+      "Bonded inventory and credit impulse already trace a firmer restock path than Comex — HG is late, not early, if draws continue alongside credit confirmation.",
+    edgeWindow: "Weeks to months (restock window)",
+    depthConfidence: "Moderate — needs inventory + credit confirming together (see Trigger).",
+  },
+  {
+    symbol: "FCX",
+    note: "Copper miner",
+    displayName: "FCX (Freeport-McMoRan)",
+    directionBias: "Constructive · levered equity",
+    whyItMatters: "Freeport is the most liquid large-cap read on spot copper; earnings move on realized price and volume, not just China headlines.",
+    consensusOnAsset: "Equity still prices a mid-cycle margin squeeze and slow China — multiples lag spot when restock is real.",
+    whatAssetMisprices:
+      "FCX embeds slower volume growth than futures imply once bonded draws persist; equity revisions can lag HG by several weeks.",
+    edgeWindow: "Weeks to quarters",
+    depthConfidence: "Moderate-high — operating leverage amplifies both directions.",
+  },
+  {
+    symbol: "SCCO",
+    note: "Pure copper producer",
+    displayName: "SCCO (Southern Copper)",
+    directionBias: "Constructive · high-beta copper",
+    whyItMatters: "Southern Copper is a concentrated copper producer — good second read when HG confirms but you want listed risk.",
+    consensusOnAsset: "Retail flow treats SCCO as a late-cycle commodity beta without separating restock from property stress.",
+    whatAssetMisprices:
+      "Peru supply noise masks China demand beta; if China impulse is real, SCCO’s beta to spot should exceed what single-name dispersion suggests.",
+    edgeWindow: "Weeks to months",
+    depthConfidence: "Moderate — country and labor headlines add noise.",
+  },
+  {
+    symbol: "TECK",
+    note: "Diversified miner",
+    displayName: "TECK (Teck Resources)",
+    directionBias: "Watch · partial copper",
+    whyItMatters: "Teck mixes met coal and copper — useful when the thesis broadens from pure red metal to industrial restock.",
+    consensusOnAsset: "Investors bucket TECK with generic materials beta, not differentiated China restock exposure.",
+    whatAssetMisprices:
+      "Copper-linked cash flows are underweighted inside the conglomerate discount — restock broadening closes part of that gap.",
+    edgeWindow: "Months",
+    depthConfidence: "Lower than HG/FCX — copper is only part of the story.",
+  },
+  {
+    symbol: "XME",
+    note: "Metals & mining ETF",
+    displayName: "XME (metals & mining)",
+    directionBias: "Constructive · basket",
+    whyItMatters: "XME spreads the bet across miners — better when you want theme exposure without single-name event risk.",
+    consensusOnAsset: "ETF flows chase last year’s recession playbook; weights still lean defensive versus a restock impulse.",
+    whatAssetMisprices:
+      "Basket pricing assumes broad margin pressure; a China-led metals bid can lift the whole complex before stock pickers split winners.",
+    edgeWindow: "Months",
+    depthConfidence: "Moderate — diversified exposure dilutes edge vs HG.",
+  },
+  {
+    symbol: "TLT",
+    note: "Duration hedge",
+    displayName: "TLT (long Treasuries)",
+    directionBias: "Defensive / contra watch",
+    whyItMatters:
+      "If China reflation sticks, it can delay Fed cuts — duration becomes the clean contra when industrial metals are running hot.",
+    consensusOnAsset: "Rates markets still lean on disinflation as base case; China impulse is under-modeled in forward cuts.",
+    whatAssetMisprices:
+      "TLT may be too complacent if commodity-led growth surprises nudge the Fed hawkish — watch curve vs HG leadership.",
+    edgeWindow: "Months",
+    depthConfidence: "Contextual — only live if reflation prints broaden.",
+  },
+  {
+    symbol: "UUP",
+    note: "USD proxy",
+    displayName: "UUP (USD index)",
+    directionBias: "Watch · macro offset",
+    whyItMatters: "Large China stimulus can weaken or strengthen USD depending on risk-on flows — UUP is the check on funding stress.",
+    consensusOnAsset: "FX still trades a simple risk-on/off map; China impulse paths are more nuanced.",
+    whatAssetMisprices:
+      "A funding scare or dollar squeeze invalidates the metals leg faster than spot copper admits — UUP is the tell.",
+    edgeWindow: "Days to weeks when stress appears",
+    depthConfidence: "Situational — use with Invalidation on USD spikes.",
+  },
+];
+
 function defaultDetail(slug: string): ThesisDetailBundle {
   const thesis = getThesisBySlug(slug)!;
+  const relatedAssets =
+    slug === "china-stimulus-copper-long" ? CHINA_STIMULUS_COPPER_RELATED_ASSETS : [{ symbol: thesis.asset, note: "Primary" }];
   return {
     thesis,
     evidence: [],
     scenarios: catalogDefaultScenariosForThesis(thesis),
     advisoryLog: [],
-    relatedAssets: [{ symbol: thesis.asset, note: "Primary" }],
+    relatedAssets,
   };
 }
 
