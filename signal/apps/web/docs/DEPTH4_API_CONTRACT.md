@@ -20,7 +20,7 @@ OAuth / cookie verification: `docs/AUTH_OAUTH_VERIFICATION.md`.
 
 | Method | Path | Request | Response |
 |--------|------|---------|----------|
-| GET | `/api/theses` | `?assetClass=&status=&sort=&starred=` | `ThesisListResponse` (`focus`, `monitor`) |
+| GET | `/api/theses` | `?assetClass=&status=&sort=&starred=` | `ThesisListResponse`: `focus`, `monitor` (full registry split), **`home`** `{ tradable, emerging, monitoring, archivePreview }` (bucketed, competitive caps on tradable/emerging only) |
 | POST | `/api/theses` | `{ statement, asset, direction }` | `{ success, thesis?: { id, slug } }` |
 | GET | `/api/theses/[slug]` | — | `Thesis` |
 | GET | `/api/theses/[slug]/assessment` | — | `ThesisAssessment` |
