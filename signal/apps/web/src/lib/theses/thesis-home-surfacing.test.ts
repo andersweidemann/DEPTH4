@@ -27,4 +27,16 @@ describe("thesis-home-surfacing (Phase 1)", () => {
       expect(placed.has(t.id)).toBe(true);
     }
   });
+
+  it("partitionHomeBuckets excludes ineligible rows from tradable/emerging/monitoring pools", () => {
+    const catalog = CATALOG_THESES[0];
+    if (!catalog) return;
+    const ghost = { ...catalog, id: "ghost-ai-1", slug: "ghost-ai-1-slug", status: "forming" as const };
+    const combined = [catalog, ghost];
+    const p = partitionHomeBuckets(combined, {
+      homeBucketEligible: (t) => t.id !== "ghost-ai-1",
+    });
+    const placed = new Set([...p.tradable, ...p.emerging, ...p.monitoring].map((t) => t.id));
+    expect(placed.has("ghost-ai-1")).toBe(false);
+  });
 });

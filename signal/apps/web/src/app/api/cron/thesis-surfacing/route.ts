@@ -8,6 +8,8 @@ import {
   surfacedBucketForEngineThesis,
   thesisScoreV0,
 } from "@/lib/theses/thesis-home-surfacing";
+import { passesDepth4ThesisSurfacingQualityBar } from "@/lib/theses/thesis-surfacing-quality";
+import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
 export const runtime = "nodejs";
 
@@ -42,13 +44,31 @@ async function runThesisSurfacing() {
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
 
   const { catalogEngine } = await loadCatalogEngineTheses(admin);
-  const partition = partitionHomeBuckets(catalogEngine);
+
+  const { data: aiRows } = await admin
+    .from("theses")
+    .select(
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label",
+    )
+    .eq("thesis_origin", "ai_generated")
+    .order("updated_at", { ascending: false })
+    .limit(200);
+
+  const aiEngine = (aiRows ?? []).map((row) =>
+    userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
+  );
+  const aiThesisIdSet = new Set(aiEngine.map((t) => t.id));
+
+  const combined = [...catalogEngine, ...aiEngine];
+  const partition = partitionHomeBuckets(combined, {
+    homeBucketEligible: (t) => !aiThesisIdSet.has(t.id) || passesDepth4ThesisSurfacingQualityBar(t),
+  });
   const nowIso = new Date().toISOString();
 
   let updated = 0;
   const errors: string[] = [];
 
-  for (const t of catalogEngine) {
+  for (const t of combined) {
     let evidenceMs = 0;
     const ev = await admin
       .from("thesis_evidence_log")
@@ -91,7 +111,8 @@ async function runThesisSurfacing() {
   return NextResponse.json({
     ok: errors.length === 0,
     catalog_count: catalogEngine.length,
-    rows_update_attempts: catalogEngine.length,
+    ai_generated_count: aiEngine.length,
+    rows_update_attempts: combined.length,
     rows_updated_reported: updated,
     surfacing_computed_at: nowIso,
     errors: errors.slice(0, 50),

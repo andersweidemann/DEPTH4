@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
+import { pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
@@ -99,11 +100,11 @@ export async function ensureAiThesisForDiscoveryCluster(
   if (existingId) return { ok: true, thesisId: existingId, created: false };
 
   const id = randomUUID();
-  const statement =
-    (p.titleHint ?? "").trim() ||
-    (p.reasoning.event_summary ?? "").trim() ||
-    (p.reasoning.thesis_trade_line ?? "").trim() ||
-    "AI-discovered thesis";
+  const statement = pickAiThesisStatementFromReasoning({
+    titleHint: p.titleHint,
+    thesisTradeLine: p.reasoning.thesis_trade_line ?? "",
+    eventSummary: p.reasoning.event_summary ?? "",
+  });
   const slug = slugify(statement, clusterId.replace(/-/g, "").slice(0, 10));
 
   const thesis = buildMinimalAiThesis({

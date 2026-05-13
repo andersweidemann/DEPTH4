@@ -43,17 +43,30 @@ export type HomeBucketPartition = {
   archivePreview: EngineThesis[];
 };
 
+export type PartitionHomeBucketsOptions = {
+  /**
+   * When set, rows that return false are excluded from tradable / emerging / monitoring
+   * (they keep `surfaced_bucket` null). Archive preview still uses all terminal rows from `combined`.
+   */
+  homeBucketEligible?: (t: EngineThesis) => boolean;
+};
+
 /**
  * Competitive slots (not FIFO): tradable from ready/active; emerging from watching/forming;
  * monitoring = remaining in-play rows by score, capped.
  */
-export function partitionHomeBuckets(combined: EngineThesis[]): HomeBucketPartition {
+export function partitionHomeBuckets(combined: EngineThesis[], options?: PartitionHomeBucketsOptions): HomeBucketPartition {
+  const eligible = options?.homeBucketEligible;
+  const inHomeBuckets = (t: EngineThesis) => (eligible ? eligible(t) : true);
+
   const terminal = combined.filter((t) => t.status === "resolved" || t.status === "invalidated");
   const archivePreview = [...terminal]
     .sort((a, b) => parseUpdatedMs(b.lastUpdated) - parseUpdatedMs(a.lastUpdated))
     .slice(0, HOME_ARCHIVE_PREVIEW_CAP);
 
-  const livePool = combined.filter((t) => t.status !== "resolved" && t.status !== "invalidated");
+  const livePool = combined.filter(
+    (t) => t.status !== "resolved" && t.status !== "invalidated" && inHomeBuckets(t),
+  );
 
   const readyActive = livePool.filter((t) => t.status === "ready" || t.status === "active");
   const watchingForming = livePool.filter((t) => t.status === "watching" || t.status === "forming");
