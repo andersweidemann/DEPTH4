@@ -6,6 +6,7 @@ import {
   HOME_TRADABLE_BUCKET_MAX,
   HOME_TRADABLE_CAP,
   partitionHomeBuckets,
+  thesisMapHomeRankScore,
 } from "@/lib/theses/thesis-home-surfacing";
 
 describe("thesis-home-surfacing (Phase 1)", () => {
@@ -35,7 +36,16 @@ describe("thesis-home-surfacing (Phase 1)", () => {
     }
   });
 
-  it("ready/active rows that miss tradable floors or lose the slot race land in monitoring", () => {
+  it("tradable rows are non-increasing by thesisMapHomeRankScore", () => {
+    const p = partitionHomeBuckets(CATALOG_THESES);
+    for (let i = 0; i < p.tradable.length - 1; i++) {
+      const a = p.tradable[i]!;
+      const b = p.tradable[i + 1]!;
+      expect(thesisMapHomeRankScore(a)).toBeGreaterThanOrEqual(thesisMapHomeRankScore(b));
+    }
+  });
+
+  it("ready/active not in tradable top-N land in monitoring", () => {
     const live = CATALOG_THESES.filter((t) => t.status !== "resolved" && t.status !== "invalidated");
     const p = partitionHomeBuckets(CATALOG_THESES);
     const tradableIds = new Set(p.tradable.map((t) => t.id));
@@ -43,6 +53,17 @@ describe("thesis-home-surfacing (Phase 1)", () => {
     for (const t of readyActive) {
       if (!tradableIds.has(t.id)) {
         expect(p.monitoring.some((x) => x.id === t.id)).toBe(true);
+      }
+    }
+  });
+
+  it("all watching/forming live rows appear in emerging (when not also ready/active)", () => {
+    const live = CATALOG_THESES.filter((t) => t.status !== "resolved" && t.status !== "invalidated");
+    const p = partitionHomeBuckets(CATALOG_THESES);
+    const emergingIds = new Set(p.emerging.map((t) => t.id));
+    for (const t of live) {
+      if (t.status === "watching" || t.status === "forming") {
+        expect(emergingIds.has(t.id)).toBe(true);
       }
     }
   });

@@ -1,28 +1,18 @@
 /**
- * Phase 1 homepage surfacing: derives `lifecycle_state` and `surfaced_bucket` from existing
- * `ThesisStatus` / engine fields only. Does **not** read or write `scenario_probabilities` or conviction math —
- * callers pass already-built `EngineThesis` rows; scoring uses `getThesisDisplayModel` / `getThesisMispricing` as read-only inputs.
+ * Homepage / thesis-map buckets: **rank-first**, soft lane labels. Uses existing engine fields only
+ * (`getThesisDisplayModel`, `getThesisMispricing`, `scores`, status, recency) — no DB writes here.
  */
 import type { Thesis as EngineThesis, ThesisStatus as EngineStatus } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import type { ThesisLifecycleState, ThesisSurfacedBucket } from "@/types/thesis";
 
-/**
- * Tradable lane: highest-priority ready/active rows (tight slot + score floors). Overflow ready/active lands in
- * `monitoring` so the bucket is never structurally empty when those statuses exist.
- */
-export const HOME_TRADABLE_BUCKET_MAX = 7;
-/** @deprecated Prefer {@link HOME_TRADABLE_BUCKET_MAX}; kept for import stability in older tests. */
+/** Max ready/active rows in the Tradable lane (overflow → Monitoring, still ranked). */
+export const HOME_TRADABLE_BUCKET_MAX = 8;
+/** @deprecated Prefer {@link HOME_TRADABLE_BUCKET_MAX}; kept for import stability in tests. */
 export const HOME_TRADABLE_CAP = HOME_TRADABLE_BUCKET_MAX;
-export const TRADABLE_MIN_MISPRICING_SCORE = 60;
-export const TRADABLE_MIN_CONVICTION_PCT = 75;
 
-/** Emerging: mid mispricing band on watching/forming narratives. */
-export const EMERGING_MIN_CONVICTION_PCT = 70;
-export const EMERGING_MISPRICING_MIN = 45;
-export const EMERGING_MISPRICING_MAX = 60;
-/** Safety ceiling only — emerging is naturally narrow. */
+/** Safety ceiling on Emerging (watching/forming); partition rarely hits this. */
 export const HOME_EMERGING_CAP = 500;
 
 /** Reserved for optional UI truncation — partition does not slice monitoring. */
@@ -43,12 +33,40 @@ export function deriveLifecycleState(st: EngineStatus): ThesisLifecycleState {
   return "live";
 }
 
-/** v0 score: higher = more surface-worthy (weights are provisional). */
+/**
+ * Legacy v0 surface score (still used for `thesis_score` when DB has no cached value, and cron backfill).
+ */
 export function thesisScoreV0(t: EngineThesis): number {
   const conv = getThesisDisplayModel(t).convictionPct;
   const mp = getThesisMispricing(t, {}).score;
   const recencyNorm = Math.min(1, parseUpdatedMs(t.lastUpdated) / (Date.now() + 1));
   return conv * 2 + mp * 1.5 + recencyNorm * 8;
+}
+
+/**
+ * Blended **home-map rank**: conviction + mispricing + recency + status lane + light book-strength hint.
+ * Used only for bucket assignment and ordering — not a hard cliff on any single axis.
+ */
+export function thesisMapHomeRankScore(t: EngineThesis): number {
+  const conv = getThesisDisplayModel(t).convictionPct;
+  const mp = getThesisMispricing(t, {}).score;
+  const recencyNorm = Math.min(1, parseUpdatedMs(t.lastUpdated) / (Date.now() + 1));
+  const statusLane =
+    t.status === "ready" ? 14 : t.status === "active" ? 10 : t.status === "watching" ? 5 : t.status === "forming" ? 1 : 0;
+  const book = Math.min(12, (t.scores?.total ?? 0) / 8);
+  return conv * 1.65 + mp * 1.25 + recencyNorm * 14 + statusLane + book;
+}
+
+function mispricingScore(t: EngineThesis): number {
+  return getThesisMispricing(t, {}).score;
+}
+
+function compareHomeRank(a: EngineThesis, b: EngineThesis): number {
+  const d = thesisMapHomeRankScore(b) - thesisMapHomeRankScore(a);
+  if (d !== 0) return d;
+  const mp = mispricingScore(b) - mispricingScore(a);
+  if (mp !== 0) return mp;
+  return parseUpdatedMs(b.lastUpdated) - parseUpdatedMs(a.lastUpdated);
 }
 
 export type HomeBucketPartition = {
@@ -66,27 +84,11 @@ export type PartitionHomeBucketsOptions = {
   homeBucketEligible?: (t: EngineThesis) => boolean;
 };
 
-function convictionPct(t: EngineThesis): number {
-  return getThesisDisplayModel(t).convictionPct;
-}
-
-function mispricingScore(t: EngineThesis): number {
-  return getThesisMispricing(t, {}).score;
-}
-
-function compareTradableSlot(a: EngineThesis, b: EngineThesis): number {
-  const mp = mispricingScore(b) - mispricingScore(a);
-  if (mp !== 0) return mp;
-  const c = convictionPct(b) - convictionPct(a);
-  if (c !== 0) return c;
-  return thesisScoreV0(b) - thesisScoreV0(a);
-}
-
 /**
- * Ranked buckets:
- * - **Tradable**: ready/active that meet conviction + mispricing floors, top {@link HOME_TRADABLE_BUCKET_MAX} by mispricing.
- * - **Emerging**: watching/forming in the mid mispricing band with sufficient conviction (forming narratives).
- * - **Monitoring**: every other non-archived in-play row (overflow ready/active, low-score ready/active, watching outside emerging band, etc.) — **not** hard-capped.
+ * Soft buckets on top of one rank axis:
+ * - **Tradable**: top {@link HOME_TRADABLE_BUCKET_MAX} **ready/active** rows by {@link thesisMapHomeRankScore}.
+ * - **Emerging**: all **watching/forming** in the live pool (rank-ordered), up to {@link HOME_EMERGING_CAP}.
+ * - **Monitoring**: remaining live rows (overflow ready/active + anything else), rank-ordered — uncapped.
  */
 export function partitionHomeBuckets(combined: EngineThesis[], options?: PartitionHomeBucketsOptions): HomeBucketPartition {
   const eligible = options?.homeBucketEligible;
@@ -104,25 +106,13 @@ export function partitionHomeBuckets(combined: EngineThesis[], options?: Partiti
   const readyActive = livePool.filter((t) => t.status === "ready" || t.status === "active");
   const watchingForming = livePool.filter((t) => t.status === "watching" || t.status === "forming");
 
-  const tradableCandidates = readyActive.filter(
-    (t) =>
-      convictionPct(t) >= TRADABLE_MIN_CONVICTION_PCT && mispricingScore(t) >= TRADABLE_MIN_MISPRICING_SCORE,
-  );
-  const tradable = [...tradableCandidates].sort(compareTradableSlot).slice(0, HOME_TRADABLE_BUCKET_MAX);
+  const tradable = [...readyActive].sort(compareHomeRank).slice(0, HOME_TRADABLE_BUCKET_MAX);
 
-  const emergingCandidates = watchingForming.filter(
-    (t) =>
-      convictionPct(t) >= EMERGING_MIN_CONVICTION_PCT &&
-      mispricingScore(t) >= EMERGING_MISPRICING_MIN &&
-      mispricingScore(t) <= EMERGING_MISPRICING_MAX,
-  );
-  const emerging = [...emergingCandidates]
-    .sort((a, b) => thesisScoreV0(b) - thesisScoreV0(a))
-    .slice(0, HOME_EMERGING_CAP);
+  const emerging = [...watchingForming].sort(compareHomeRank).slice(0, HOME_EMERGING_CAP);
 
   const placed = new Set<string>([...tradable, ...emerging].map((t) => t.id));
   const rest = livePool.filter((t) => !placed.has(t.id));
-  const monitoring = [...rest].sort((a, b) => thesisScoreV0(b) - thesisScoreV0(a));
+  const monitoring = [...rest].sort(compareHomeRank);
 
   return { tradable, emerging, monitoring, archivePreview };
 }

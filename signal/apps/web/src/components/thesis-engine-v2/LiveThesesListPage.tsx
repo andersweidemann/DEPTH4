@@ -352,8 +352,8 @@ export function LiveThesesListPage() {
           <h1 className="text-xl font-semibold tracking-tight text-zinc-50">Thesis map</h1>
           <p className="mt-1 text-[13px] text-zinc-400">
             Tradable opportunities, emerging narratives, monitoring, and recent outcomes — ranked, not capped as a
-            single list. Each bucket keeps the server&apos;s priority order (mispricing-led in Tradable; score-led
-            elsewhere).
+            single list. Buckets follow one blended rank (conviction, mispricing, recency, status) from the server;
+            Tradable is the top ready/active slice, not a hard mispricing cliff.
           </p>
           {homeSignals?.catalogLeader ? (
             <p className="mt-2 text-[11px] text-zinc-600">
@@ -421,20 +421,20 @@ export function LiveThesesListPage() {
 
       <HomeBucketSection
         title="Tradable now"
-        subtitle="Highest-priority ready / active theses (ranked slots)."
+        subtitle="Top ready/active by blended rank (conviction · mispricing · recency · status), capped for focus."
         rows={homeTradable}
         accent="accent"
         onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
       />
       <HomeBucketSection
         title="Emerging"
-        subtitle="Watching & drafts — narratives forming or not yet in top tradable slots."
+        subtitle="Watching and drafts — every forming-stage thesis in your current set."
         rows={homeEmerging}
         onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
       />
       <HomeBucketSection
         title="Monitoring"
-        subtitle="Still in play, lower urgency — ready/active not in the tradable cut, plus overflow."
+        subtitle="Still-live rows outside the top Tradable slice — includes strong ready/active that did not fit the slot cap."
         rows={homeMonitoring}
         onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
       />

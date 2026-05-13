@@ -3,7 +3,7 @@ import { createClient as createSupabaseJsClient, type SupabaseClient } from "@su
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 import { loadCatalogEngineTheses } from "@/lib/theses/load-catalog-engine-theses";
-import { partitionHomeBuckets, surfacedBucketForEngineThesis, thesisScoreV0 } from "@/lib/theses/thesis-home-surfacing";
+import { partitionHomeBuckets, surfacedBucketForEngineThesis, thesisMapHomeRankScore } from "@/lib/theses/thesis-home-surfacing";
 import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
@@ -82,7 +82,7 @@ async function runThesisSurfacing() {
     const lastMeaningfulIso = meaningfulMs > 0 ? new Date(meaningfulMs).toISOString() : nowIso;
 
     const surfacedBucket = isThesisMapListableThesis(t) ? surfacedBucketForEngineThesis(t, partition) : null;
-    const thesisScore = Math.round(thesisScoreV0(t));
+    const thesisScore = Math.round(thesisMapHomeRankScore(t));
 
     const up = await admin
       .from("theses")

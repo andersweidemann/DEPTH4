@@ -15,7 +15,7 @@ import {
   deriveLifecycleState,
   partitionHomeBuckets,
   surfacedBucketForEngineThesis,
-  thesisScoreV0,
+  thesisMapHomeRankScore,
 } from "@/lib/theses/thesis-home-surfacing";
 import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import {
@@ -47,6 +47,21 @@ export function listBaselineScenarioTripleFromEngineThesis(t: EngineThesis): { b
   };
 }
 
+/** One-line context for list rows when `whyNow` is empty (keeps user/AI rows from looking “broken”). */
+export function listRowWhyNowLine(t: EngineThesis): string {
+  const w = (t.whyNow ?? "").trim();
+  if (w) return w;
+  const one = (t.oneLineSummary ?? "").trim();
+  if (one) return one;
+  const micro = typeof t.microLabel === "string" ? t.microLabel.trim() : "";
+  if (micro) return micro;
+  const stmt = (t.thesisStatement ?? "").trim();
+  const title = (t.title ?? "").trim();
+  if (stmt && stmt !== title) return stmt.length > 220 ? `${stmt.slice(0, 217)}…` : stmt;
+  if (stmt) return stmt;
+  return "";
+}
+
 function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIso: string | null): ThesisListItem {
   const mp = getThesisMispricing(t, {});
   const dm = getThesisDisplayModel(t);
@@ -66,7 +81,7 @@ function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIs
     conviction,
     convictionIsTemplateEstimate: dm.convictionIsTemplateEstimate,
     mispricingScore: mp.score,
-    whyNow: t.whyNow,
+    whyNow: listRowWhyNowLine(t),
     lastUpdated,
     starred,
   };
@@ -87,7 +102,8 @@ export function thesisListItemFromEngine(
     bucket = null;
   }
   const lifecycle_state = db?.lifecycle_state ?? deriveLifecycleState(t.status);
-  const thesis_score = db?.thesis_score !== undefined ? db.thesis_score : Math.round(thesisScoreV0(t));
+  const thesis_score =
+    db?.thesis_score !== undefined ? db.thesis_score : Math.round(thesisMapHomeRankScore(t));
   const outcome_label = db?.outcome_label;
   return {
     ...base,
