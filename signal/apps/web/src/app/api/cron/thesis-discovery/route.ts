@@ -81,12 +81,21 @@ async function runThesisDiscovery() {
   const parsed = parseNewsRows(rawNews);
   const inWindow = filterEventsInWindow(parsed, nowMs, opts.windowHours);
   const allClusters = clusterNewsEvents(inWindow, nowMs, opts);
-  const candidates = allClusters.filter((c) => c.passesPromotionGate);
+  const gatePassed = allClusters.filter((c) => c.passesPromotionGate);
+
+  const softPersist = (process.env.THESIS_DISCOVERY_SOFT_PERSIST ?? "").trim() === "1";
+  const softCap = Math.max(1, Math.min(100, Math.floor(Number(process.env.THESIS_DISCOVERY_SOFT_PERSIST_CAP ?? 25) || 25)));
+  const candidates = softPersist
+    ? [...allClusters]
+        .filter((c) => c.memberIds.length > 0)
+        .sort((a, b) => b.signalScore - a.signalScore)
+        .slice(0, softCap)
+    : gatePassed;
 
   let inserted = 0;
   let updated = 0;
   let skippedPromoted = 0;
-  const skippedBelowGate = allClusters.length - candidates.length;
+  const skippedBelowGate = softPersist ? Math.max(0, allClusters.length - candidates.length) : allClusters.length - gatePassed.length;
 
   for (const c of candidates) {
     const fingerprintPayload = { fingerprint: c.fingerprint };
@@ -150,6 +159,8 @@ async function runThesisDiscovery() {
   return NextResponse.json({
     ok: true,
     nowMs,
+    persist_mode: softPersist ? "soft_top_n" : "strict_gate",
+    soft_persist_cap: softPersist ? softCap : null,
     options: {
       window_hours: opts.windowHours,
       jaccard_merge: opts.jaccardMerge,
@@ -160,6 +171,7 @@ async function runThesisDiscovery() {
     news_rows_loaded: parsed.length,
     news_rows_in_window: inWindow.length,
     clusters_formed: allClusters.length,
+    clusters_passed_gate: gatePassed.length,
     clusters_below_gate: skippedBelowGate,
     candidates_upserted: inserted + updated,
     candidates_inserted: inserted,

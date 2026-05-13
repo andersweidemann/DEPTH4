@@ -1,5 +1,10 @@
 -- When discovery_pipeline_health_48h.sql is all zeros — broader checks.
 -- Run sections one at a time in Supabase SQL Editor.
+--
+-- FAST PATH: run discovery_pipeline_counts_one_row.sql first (single result row).
+--
+-- If news_events_total is 0 here: fix news ingest (signal/apps/api news_ingest → Supabase).
+--   Vercel Next app does not insert news; Render/FastAPI + same Supabase URL as production.
 
 -- A) Do we have ANY discovery clusters ever?
 select status, count(*) as n
