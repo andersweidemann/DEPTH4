@@ -3,8 +3,6 @@
 import { useMemo } from "react";
 import type { RelatedAsset, Thesis } from "@/lib/thesis-engine-v2/types";
 
-const COPPER_ALIAS = new Set(["COPPER", "HG"]);
-
 type EdgeRow = {
   symbol: string;
   headline: string;
@@ -40,7 +38,8 @@ function isStructuredAsset(a: RelatedAsset): boolean {
   return !!(a.whyItMatters?.trim() || a.whatAssetMisprices?.trim() || a.consensusOnAsset?.trim());
 }
 
-function buildEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[] {
+/** Pure row builder — exported for catalog / regression tests. */
+export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[] {
   const whyBase = (thesis.whyNow ?? "").trim() || "Connected to the thesis channel.";
   const wu = (thesis.whatsUnpriced ?? "").trim();
   const tradeExpr = (thesis.tradeExpression ?? "").trim();
@@ -50,8 +49,8 @@ function buildEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[]
   const pushRow = (r: EdgeRow) => {
     const k = normalizeSym(r.symbol);
     if (!k || k === "—") return;
+    if (k === "COPPER") return;
     if (seen.has(k)) return;
-    if (k === "COPPER" && seen.has("HG")) return;
     seen.add(k);
     rows.push(r);
   };
@@ -104,7 +103,7 @@ function buildEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[]
   const bullList = flow?.bullInstruments ?? [];
   const bearList = flow?.bearInstruments ?? [];
   for (const s of bullList) {
-    if (normalizeSym(s) === "COPPER" && seen.has("HG")) continue;
+    if (normalizeSym(s) === "COPPER") continue;
     if (seen.has(normalizeSym(s))) continue;
     pushRow({
       symbol: s,
@@ -118,6 +117,7 @@ function buildEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[]
     });
   }
   for (const s of bearList) {
+    if (normalizeSym(s) === "COPPER") continue;
     if (seen.has(normalizeSym(s))) continue;
     pushRow({
       symbol: s,
@@ -151,7 +151,7 @@ function buildEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[]
  * Mispricing score is shown once in the hero; this block references it without repeating the numeric breakdown.
  */
 export function ThesisAssetEdgeMap({ thesis, relatedAssets }: { thesis: Thesis; relatedAssets: RelatedAsset[] }) {
-  const rows = useMemo(() => buildEdgeRows(thesis, relatedAssets), [thesis, relatedAssets]);
+  const rows = useMemo(() => buildThesisAssetEdgeRows(thesis, relatedAssets), [thesis, relatedAssets]);
 
   return (
     <section
