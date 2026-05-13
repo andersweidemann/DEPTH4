@@ -70,7 +70,7 @@ async function fetchFormingNarrativeByNewsEventIds(
   newsEventIds: string[],
 ): Promise<Map<string, string>> {
   const out = new Map<string, string>();
-  const ids = [...new Set(newsEventIds.map((x) => x.trim()).filter(Boolean))];
+  const ids = Array.from(new Set(newsEventIds.map((x) => x.trim()).filter(Boolean)));
   if (!ids.length) return out;
 
   const { data, error } = await supabase
