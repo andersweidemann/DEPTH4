@@ -12,6 +12,11 @@ const DEFAULT_ALLOWED_DOMAINS = [
   "credit",
   "commodities",
   "central_banking",
+  /** Broad buckets for wire headlines that rarely match narrow taxonomy */
+  "markets",
+  "macro",
+  "business",
+  "world_news",
 ] as const;
 
 const CANONICAL_DOMAIN_KEYS = new Set<string>(DEFAULT_ALLOWED_DOMAINS);
@@ -47,6 +52,22 @@ function promotionFreshHours(): number {
   const n = Number(process.env.PROMOTION_FRESH_HOURS ?? 24);
   if (!Number.isFinite(n)) return 24;
   return clampInt(n, 1, 168);
+}
+
+/** Minimum clustered news rows to promote; internal testing often uses 1–2. */
+function minPromotionMemberCount(): number {
+  const n = Number(process.env.MIN_PROMOTION_MEMBER_COUNT ?? 3);
+  if (!Number.isFinite(n)) return 3;
+  return clampInt(n, 1, 10);
+}
+
+function promotionSkipDomainCheck(): boolean {
+  return (process.env.PROMOTION_SKIP_DOMAIN_CHECK ?? "").trim() === "1";
+}
+
+/** If cluster metadata already inferred any domain tag, allow promotion without allowlist overlap. */
+function promotionAllowAnyInferredDomain(): boolean {
+  return (process.env.PROMOTION_ALLOW_ANY_INFERRED_DOMAIN ?? "").trim() === "1";
 }
 
 function parseAllowedDomains(raw: string | undefined): Set<string> {
@@ -112,6 +133,18 @@ function inferDomainsFromCluster(metadata: Record<string, unknown>): Set<string>
     if (/\b(policy|legislat|congress|senate|regulation|white\s*house|tariff|trade\s*deal|executive\s*order)\b/.test(s)) {
       domains.add("policy");
     }
+    if (/\b(markets|stocks|equities|nasdaq|s&p|djia|wall\s*street|traders?|rally|selloff)\b/.test(s)) {
+      domains.add("markets");
+    }
+    if (/\b(economy|gdp|inflation|cpi|pce|jobs|payroll|unemployment|recession|macro)\b/.test(s)) {
+      domains.add("macro");
+    }
+    if (/\b(business|corporate|merger|acquisition|ceo|bankruptcy\s*filing)\b/.test(s)) {
+      domains.add("business");
+    }
+    if (/\b(global|international|world|overseas|foreign|diplomat)\b/.test(s)) {
+      domains.add("world_news");
+    }
   }
 
   return domains;
@@ -123,6 +156,15 @@ function passesAllowedDomain(metadata: Record<string, unknown>, allowed: Set<str
     if (allowed.has(d)) return true;
   }
   return false;
+}
+
+function passesDomainGate(metadata: Record<string, unknown>, allowed: Set<string>): boolean {
+  if (promotionSkipDomainCheck()) return true;
+  if (promotionAllowAnyInferredDomain()) {
+    const inferred = inferDomainsFromCluster(metadata);
+    if (inferred.size > 0) return true;
+  }
+  return passesAllowedDomain(metadata, allowed);
 }
 
 function isClusterRow(x: unknown): x is ClusterRow {
@@ -143,9 +185,12 @@ async function runPromoteDiscovery() {
   }
 
   const minScore = minPromotionScoreThreshold();
+  const minMembers = minPromotionMemberCount();
   const limit = dailyPromotionLimit();
   const freshH = promotionFreshHours();
   const allowedDomains = parseAllowedDomains(process.env.PROMOTION_ALLOWED_DOMAINS);
+  const skipDomain = promotionSkipDomainCheck();
+  const anyInferredOk = promotionAllowAnyInferredDomain();
   const freshCutoff = new Date(Date.now() - freshH * 3_600_000).toISOString();
 
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
@@ -178,12 +223,12 @@ async function runPromoteDiscovery() {
       console.info("[promote-discovery] skip_low_score", { id: row.id, score, minScore });
       continue;
     }
-    if (nMembers < 3) {
+    if (nMembers < minMembers) {
       skippedCount += 1;
-      console.info("[promote-discovery] skip_few_members", { id: row.id, nMembers });
+      console.info("[promote-discovery] skip_few_members", { id: row.id, nMembers, minMembers });
       continue;
     }
-    if (!passesAllowedDomain(meta, allowedDomains)) {
+    if (!passesDomainGate(meta, allowedDomains)) {
       skippedCount += 1;
       console.info("[promote-discovery] skip_domain", {
         id: row.id,
@@ -214,7 +259,10 @@ async function runPromoteDiscovery() {
       domains: domainsHit.length ? domainsHit : Array.from(inferDomainsFromCluster(meta)),
       member_count: nMembers,
       min_score: minScore,
+      min_members: minMembers,
       fresh_hours: freshH,
+      skip_domain_gate: skipDomain,
+      allow_any_inferred_domain: anyInferredOk,
     };
 
     const mergedMetadata = { ...meta, promotion: promotionMeta };
@@ -259,8 +307,11 @@ async function runPromoteDiscovery() {
     skipped_count: skippedCount,
     reason: "strict_gates",
     min_score_threshold: minScore,
+    min_member_count: minMembers,
     promotion_limit: limit,
     fresh_hours: freshH,
+    skip_domain_gate: skipDomain,
+    allow_any_inferred_domain: anyInferredOk,
     candidates_loaded: rows.length,
     allowed_domains: Array.from(allowedDomains).sort(),
   });
