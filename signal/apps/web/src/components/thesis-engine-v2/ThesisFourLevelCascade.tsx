@@ -5,10 +5,10 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
 const LEVELS: { key: keyof NonNullable<Thesis["thesisCascade"]>; kicker: string; sub: string }[] = [
-  { key: "l1Confirmed", kicker: "L1 · Confirmed (today)", sub: "What is already true" },
-  { key: "l2ThisQuarter", kicker: "L2 · This week / quarter", sub: "Headlines, earnings window, first tape move" },
-  { key: "l3ThisYear", kicker: "L3 · This year", sub: "How the trade pays out across the calendar" },
-  { key: "l4Backdrop2026", kicker: "L4 · 2026 backdrop", sub: "Bias for every DEPTH4 thesis this year" },
+  { key: "l1Confirmed", kicker: "L1 — Confirmed (today)", sub: "What Tier 1–2 sources verify now — officials, prints, hard data; no speculation." },
+  { key: "l2ThisQuarter", kicker: "L2 — This week (1–7 days)", sub: "Near-term tape: first moves, positioning, spillover, immediate catalysts." },
+  { key: "l3ThisYear", kicker: "L3 — This month (7–30 days)", sub: "Second-order story: policy, supply chains, FX, commodities, sector rotation." },
+  { key: "l4Backdrop2026", kicker: "L4 — This quarter (30–90 days)", sub: "Regime-level bias: how this thesis fits the broader DEPTH4 macro backdrop." },
 ];
 
 export function ThesisFourLevelCascade({ thesis }: { thesis: Thesis }) {
@@ -21,10 +21,11 @@ export function ThesisFourLevelCascade({ thesis }: { thesis: Thesis }) {
       aria-labelledby="thesis-cascade-heading"
     >
       <h2 id="thesis-cascade-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-        Four-level cascade
+        Four-level scenario cascade
       </h2>
       <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
-        How DEPTH4 stacks the story from today&apos;s facts to the year&apos;s tape — so you see the edge and when to act.
+        How the causal chain unfolds from verified facts to quarter-scale regime risk — one layer at a time. (Asset-level
+        mispricing lives in the edge map below.)
       </p>
       <ol className="mt-4 space-y-4">
         {LEVELS.map(({ key, kicker, sub }) => (

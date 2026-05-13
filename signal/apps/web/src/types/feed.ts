@@ -20,6 +20,10 @@ export interface FeedItem {
   body?: string;
   linkedThesisSlug: string | null;
   linkedThesisTitle: string | null;
+  /**
+   * When no catalog/AI thesis link yet: provisional line from macro reasoning (not endorsed, not trade-ready).
+   */
+  formingNarrative?: string | null;
 }
 
 /** @deprecated Legacy feed card — prefer {@link FeedItem}. */

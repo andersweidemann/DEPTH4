@@ -12,20 +12,26 @@ import { cn } from "@/lib/utils";
 import type { FeedItem } from "@/types/feed";
 
 const FEED_TABLE_HEADER =
-  "grid grid-cols-[1fr_100px_80px_80px_40px] gap-3 border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600";
+  "grid grid-cols-[1fr_100px_minmax(132px,1.1fr)_72px_40px] gap-3 border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600";
 
-const FEED_ROW_GRID = "grid grid-cols-[1fr_100px_80px_80px_40px] gap-3 border-b border-white/[0.06] py-4 items-start";
+const FEED_ROW_GRID =
+  "grid grid-cols-[1fr_100px_minmax(132px,1.1fr)_72px_40px] gap-3 border-b border-white/[0.06] py-4 items-start";
 
-/** Quiet copy for empty Thesis column + matching `title` tooltips (feed discovery lane). */
+/** Quiet copy for Thesis column + tooltips (feed discovery lane). */
 const FEED_THESIS_DISCOVERY_HELPER =
-  "Events without a linked thesis are still being evaluated for new thesis formation.";
+  "Headlines without a linked thesis still show a forming narrative when DEPTH4 has a working read — provisional only, not trade advice.";
 
 const FEED_THESIS_COLUMN_TOOLTIP =
-  "Some headlines do not map to an existing thesis yet — DEPTH4 uses them to build new theses when clustering and promotion gates pass.";
+  "Provisional interpretation while clustering runs. Promoted theses appear here when mapping and quality gates pass — not trade instructions.";
+
+const FORMING_NARRATIVE_TITLE =
+  "Provisional only — DEPTH4 is still evaluating this signal. Not a promoted thesis and not trade advice.";
 
 function ThesisFeedColumn({ item }: { item: FeedItem }) {
   const asset = item.thesisAsset?.trim();
   const slug = item.linkedThesisSlug?.trim();
+  const narrative = item.formingNarrative?.trim();
+
   if (asset) {
     return <span className="text-[11px] text-zinc-300">{asset}</span>;
   }
@@ -37,12 +43,24 @@ function ThesisFeedColumn({ item }: { item: FeedItem }) {
     );
   }
   return (
-    <span
-      className="cursor-help text-[10px] font-medium tracking-tight text-zinc-500"
-      title={FEED_THESIS_COLUMN_TOOLTIP}
-    >
-      Evaluating
-    </span>
+    <div className="text-right">
+      <span
+        className="inline-flex cursor-help rounded-full border border-zinc-600/35 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-zinc-500"
+        title={FORMING_NARRATIVE_TITLE}
+      >
+        Evaluating
+      </span>
+      {narrative ? (
+        <p className="mt-2 text-left text-[10px] leading-snug text-zinc-600" title={FORMING_NARRATIVE_TITLE}>
+          <span className="font-medium text-zinc-500">Forming narrative · </span>
+          {narrative}
+        </p>
+      ) : (
+        <p className="mt-1.5 text-left text-[9px] leading-snug text-zinc-600" title={FEED_THESIS_COLUMN_TOOLTIP}>
+          Under evaluation — interpretation will appear when macro reasoning lands on this cluster.
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -315,7 +333,7 @@ export function LiveFeedPage() {
         </p>
       ) : (
         <div className="mt-3 overflow-x-auto">
-          <div className="min-w-[640px]">
+          <div className="min-w-[720px]">
             <div className={FEED_TABLE_HEADER}>
               <span>Event</span>
               <span className="text-right">Source</span>

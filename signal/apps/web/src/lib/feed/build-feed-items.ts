@@ -8,6 +8,8 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { dbScenarioTripleFromMacroHeadlineLeadPct } from "@/lib/macro-reasoning/macro-headline-probability-to-db-triple";
 import { pickStrongestCatalogThesisId } from "@/lib/macro-reasoning/pick-strongest-catalog-thesis";
+import { safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
+import { formingNarrativeLineFromMacro } from "@/lib/feed/forming-narrative";
 import {
   fetchPromotedMacroReasoningRows,
   parseReasoningPayload,
@@ -63,6 +65,33 @@ function thesisMetaToFeedThesisFields(meta: ThesisMeta | undefined) {
   };
 }
 
+async function fetchFormingNarrativeByNewsEventIds(
+  supabase: SupabaseClient,
+  newsEventIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const ids = [...new Set(newsEventIds.map((x) => x.trim()).filter(Boolean))];
+  if (!ids.length) return out;
+
+  const { data, error } = await supabase
+    .from("event_reasoning")
+    .select("news_event_id, reasoning, created_at")
+    .in("news_event_id", ids)
+    .order("created_at", { ascending: false });
+
+  if (error || !data?.length) return out;
+
+  for (const row of data as { news_event_id?: string; reasoning?: unknown }[]) {
+    const nid = typeof row.news_event_id === "string" ? row.news_event_id.trim() : "";
+    if (!nid || out.has(nid)) continue;
+    const p = safeParseMacroEventReasoning(row.reasoning);
+    if (!p.ok) continue;
+    const line = formingNarrativeLineFromMacro(p.data);
+    if (line) out.set(nid, line);
+  }
+  return out;
+}
+
 async function fetchNewsHeadlineItems(supabase: SupabaseClient, limit: number): Promise<FeedItem[]> {
   const { data, error } = await supabase
     .from("news_events")
@@ -72,15 +101,20 @@ async function fetchNewsHeadlineItems(supabase: SupabaseClient, limit: number): 
 
   if (error || !data?.length) return [];
 
-  return (
-    data as {
-      id: string;
-      headline: string | null;
-      source: string | null;
-      published_at: string | null;
-      signal_level: number | null;
-    }[]
-  ).map((row) => {
+  const rows = data as {
+    id: string;
+    headline: string | null;
+    source: string | null;
+    published_at: string | null;
+    signal_level: number | null;
+  }[];
+
+  const formingByNewsId = await fetchFormingNarrativeByNewsEventIds(
+    supabase,
+    rows.map((r) => r.id),
+  );
+
+  return rows.map((row) => {
     const iso = row.published_at;
     const headline = (row.headline ?? "").trim() || "Headline unavailable";
     return {
@@ -101,6 +135,7 @@ async function fetchNewsHeadlineItems(supabase: SupabaseClient, limit: number): 
       body: undefined,
       linkedThesisSlug: null,
       linkedThesisTitle: null,
+      formingNarrative: formingByNewsId.get(row.id) ?? null,
     };
   });
 }
@@ -202,6 +237,8 @@ function promotedJoinToFeedItem(
   const newsJoin = parseReasoningPayload(row)?.news;
   const signalLevel = typeof newsJoin?.signal_level === "number" ? newsJoin.signal_level : 0;
   const t = thesisMetaToFeedThesisFields(meta);
+  const linkedSlug = (t.linkedThesisSlug ?? "").trim();
+  const formingNarrative = !linkedSlug ? formingNarrativeLineFromMacro(parsed) : null;
   const iso = newsJoin?.published_at ?? row.created_at;
   const summary =
     (parsed.reasoning_summary ?? "").trim() ||
@@ -226,6 +263,7 @@ function promotedJoinToFeedItem(
     body: reasoningBody.trim() || undefined,
     linkedThesisSlug: t.linkedThesisSlug,
     linkedThesisTitle: t.linkedThesisTitle,
+    formingNarrative,
   };
 }
 

@@ -10,11 +10,11 @@ import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
 import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFourLevelCascade";
+import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomePanel";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
-import { MispricingAnalysis } from "@/components/thesis-engine-v2/MispricingAnalysis";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
 import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
@@ -601,7 +601,6 @@ export function ThesisDetailClient({
             ];
           })()}
         />
-        <MispricingAnalysis m={mispricing} pathConvictionPct={canonicalConvictionPercentFromEngineThesis(thesis)} />
       </div>
 
       {thesis.thesisCascade ? (
@@ -609,6 +608,15 @@ export function ThesisDetailClient({
           <ThesisFourLevelCascade thesis={thesis} />
         </div>
       ) : null}
+
+      <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
+        <ThesisAssetEdgeMap
+          thesis={thesis}
+          relatedAssets={relatedAssets}
+          mispricing={mispricing}
+          pathConvictionPct={canonicalConvictionPercentFromEngineThesis(thesis)}
+        />
+      </div>
 
       {(entrySetupValid || hasOpen || bookSnap.latest) && (
         <div
@@ -1050,20 +1058,6 @@ export function ThesisDetailClient({
         ) : null}
 
         <ThesisOutcomePanel thesis={thesis} layout={layout} />
-        <section>
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Related assets</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {relatedAssets.map((a) => (
-              <div
-                key={a.symbol}
-                className="min-w-[140px] flex-1 rounded-lg border border-white/[0.06] bg-zinc-900/30 px-3 py-2"
-              >
-                <p className="font-mono text-xs font-medium text-zinc-200">{a.symbol}</p>
-                <p className="mt-1 text-[11px] leading-snug text-zinc-500">{a.note}</p>
-              </div>
-            ))}
-          </div>
-        </section>
       </div>
     </>
   );

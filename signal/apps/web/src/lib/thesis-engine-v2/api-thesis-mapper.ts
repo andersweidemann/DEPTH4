@@ -84,23 +84,23 @@ function buildFourLevelCascade(thesis: Thesis): ApiThesis["fourLevelCascade"] {
     const c = thesis.thesisCascade;
     return {
       l1: {
-        timeframe: "L1 · Confirmed (today)",
-        label: "What is already true",
+        timeframe: "L1 — Confirmed (today)",
+        label: "What Tier 1–2 sources verify now",
         description: c.l1Confirmed,
       },
       l2: {
-        timeframe: "L2 · This week / quarter",
-        label: "Headlines, earnings window, first tape move",
+        timeframe: "L2 — This week (1–7 days)",
+        label: "Near-term tape and catalysts",
         description: c.l2ThisQuarter,
       },
       l3: {
-        timeframe: "L3 · This year",
-        label: "How the trade pays out across the calendar",
+        timeframe: "L3 — This month (7–30 days)",
+        label: "Second-order market story",
         description: c.l3ThisYear,
       },
       l4: {
-        timeframe: "L4 · 2026 backdrop",
-        label: "Bias for every DEPTH4 thesis this year",
+        timeframe: "L4 — This quarter (30–90 days)",
+        label: "Regime-level backdrop",
         description: c.l4Backdrop2026,
       },
     };

@@ -613,7 +613,7 @@ export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onTogg
             </span>
           )}
         </div>
-        <p className="mt-1.5 max-w-lg text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
+        <p className="mt-1.5 max-w-lg line-clamp-2 text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
         {item.outcome_label ? (
           <p className="mt-1.5 text-[10px] text-zinc-500">
             Outcome · <span className="text-zinc-300">{item.outcome_label}</span>
