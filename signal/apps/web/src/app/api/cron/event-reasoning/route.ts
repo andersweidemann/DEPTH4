@@ -536,6 +536,23 @@ async function runEventReasoning() {
     } else {
       console.info("[event-reasoning] thesis_state_persisted", { thesisId: persist.thesisId, clusterId: claimed.id, anchorId });
     }
+
+    // Registry row: `affected_theses` usually points at catalog ids (pickStrongest), so without this
+    // `ensureAiThesisForDiscoveryCluster` almost never ran — ai_generated count stayed 0 in production.
+    const registry = await ensureAiThesisForDiscoveryCluster(admin, {
+      clusterId: claimed.id,
+      titleHint: claimed.title_hint,
+      reasoning: validated.data,
+    });
+    if (registry.ok) {
+      console.info("[event-reasoning] ai_registry_row", {
+        thesisId: registry.thesisId,
+        created: registry.created,
+        clusterId: claimed.id,
+      });
+    } else {
+      console.warn("[event-reasoning] ai_registry_failed", { reason: registry.reason, clusterId: claimed.id });
+    }
   }
 
   summary.processed = 1;
