@@ -8,7 +8,8 @@
  * - **Forward:** structured `thesisDepthBook` / `body.thesis_depth_book` replaces hand prose `thesisCascade` for
  *   per-depth mispricing + trade selection — see `thesis-depth-canonical.ts`.
  */
-import type { RelatedAsset, Thesis, ThesisDetailBundle, ThesisScenario, ThesisScenarioPathKey } from "./types";
+import type { Thesis, ThesisDetailBundle, ThesisScenario, ThesisScenarioPathKey } from "./types";
+import { CATALOG_RELATED_ASSETS_BY_SLUG } from "./catalog-edge-assets";
 import { SYSTEM_THESIS_IDS } from "./system-thesis-ids";
 import { formatThesisMicroLabel, getThesisDisplayTitle } from "./thesis-display-title";
 import { normalizeThesisNarrativeFields } from "./thesis-db-body";
@@ -71,9 +72,9 @@ export const CATALOG_THESES: Thesis[] = [
       l1Confirmed:
         "Talks are live and both sides keep showing up. Escalation headlines have thinned versus last month.",
       l2ThisQuarter:
-        "If oil and equities stay orderly, gold’s safe-haven bid can leak week by week — watch GLD and ETF flows, not spot alone, over the next few weeks.",
+        "If broader risk assets stay orderly, haven premia can leak week by week — the tape tests whether diplomacy stays boring versus headline spikes.",
       l3ThisYear:
-        "As calm weeks stack, funds slowly shrink war hedges on GLD long before any final treaty — the tape adjusts how much fear premium it pays to hold.",
+        "As calm weeks stack without fresh shocks, portfolios shrink tail hedges before any final treaty — risk premia compress across havens, not only one venue.",
       l4Backdrop2026:
         "Tail risk is lower than the last two years, so portfolios need less permanent insurance in gold — that background makes the peace fade easier across geopolitics and rates theses this year.",
     },
@@ -84,8 +85,7 @@ export const CATALOG_THESES: Thesis[] = [
     tradeExpression: "GLD/XAU downside skew while calm headlines stack; hard stop if kinetic risk returns.",
 
     whyNow: "Peace odds crossed the line where gold should fade — but the metal has not repriced yet.",
-    whatsUnpriced:
-      "Flows still lean on a fat tail-war scenario even as engagement holds and escalation thins. The edge is that premium can leak week by week long before a signing ceremony — desks update slowly, so the gap can persist until the calendar proves it wrong.",
+    whatsUnpriced: "",
     trigger:
       "Two calm geopolitical weeks in a row: no new kinetic strikes, plus at least two credible progress headlines, while oil and VIX stay contained.",
     trade:
@@ -150,7 +150,7 @@ export const CATALOG_THESES: Thesis[] = [
       l2ThisQuarter:
         "Verified friction reroutes cargoes first; benchmark freight can gap inside a week while headline traders are still debating intent.",
       l3ThisYear:
-        "A sustained security scare tightens how much spare shipping and oil capacity markets assume exists; USO catches the first sharp repricing leg.",
+        "A sustained security scare tightens how much spare shipping and oil capacity markets assume exists; physical spreads and freight gap first while headline crude still debates intent.",
       l4Backdrop2026:
         "The world still runs thin on spare oil capacity — chokepoint sensitivity stays high all year, and that shows up in every energy thesis on the book.",
     },
@@ -161,8 +161,7 @@ export const CATALOG_THESES: Thesis[] = [
     tradeExpression: "USO upside skew on chokepoint headlines; size for gaps, stop under the last swing.",
 
     whyNow: "Routing warnings are stacking while crude still trades range-bound — that mismatch breaks fast.",
-    whatsUnpriced:
-      "Inventory prints dominate screens, yet insurance clauses and routing advisories already embed a higher chokepoint probability than flat crude implies. The misread is treating strait headlines as background noise while physical desks pay up first.",
+    whatsUnpriced: "",
     trigger:
       "Verified strait incident or new military restriction language, OR a two-handle jump in benchmark freight in under five sessions.",
     trade:
@@ -212,7 +211,7 @@ export const CATALOG_THESES: Thesis[] = [
       l2ThisQuarter:
         "Soft rig prints plus trimmed producer capex guides tighten the US swing barrel without needing a headline war.",
       l3ThisYear:
-        "If US adds fewer marginal barrels while OPEC holds, oil can grind higher on modest demand — USO stays the simple, liquid way to play the floor.",
+        "If US adds fewer marginal barrels while OPEC holds, crude can grind higher on modest demand — the whole benchmark complex reprices the floor, not one listed ticker alone.",
       l4Backdrop2026:
         "Spare capacity is thin — producers keep pricing power, and that bias runs through every oil thesis we track this year.",
     },
@@ -223,8 +222,7 @@ export const CATALOG_THESES: Thesis[] = [
     tradeExpression: "USO upside bias after weak rig prints; stand down if OPEC quota discipline cracks.",
 
     whyNow: "Data is starting to show shale fatigue while OPEC keeps the story tight.",
-    whatsUnpriced:
-      "Headlines chase OPEC rhetoric, yet rig counts and shale capex guides already imply a tighter US swing than equity flow models assume. The edge is both can be true: disciplined OPEC plus slower shale equals a higher floor without a crisis.",
+    whatsUnpriced: "",
     trigger:
       "Two consecutive weekly rig-count misses AND at least two named US producers guide shale capex lower on calls.",
     trade:
@@ -285,8 +283,7 @@ export const CATALOG_THESES: Thesis[] = [
     tradeExpression: "TLT downside bias into data-driven rips; cover only if prints turn cold across the board.",
 
     whyNow: "The next two prints can move the first-cut date fast — bond longs are early.",
-    whatsUnpriced:
-      "The curve still leans on the Fed cutting to support risk assets, while guidance sounds focused on inflation persistence. The edge is that CPI, payrolls, and tone can stay mutually firm longer than TLT’s price implies.",
+    whatsUnpriced: "",
     trigger:
       "Hot CPI or hot payrolls OR three Fed speakers in one week push back hard on near-term cuts — any one fires the trade.",
     trade:
@@ -347,8 +344,7 @@ export const CATALOG_THESES: Thesis[] = [
     tradeExpression: "RTX upside skew into award flow; stop if a flagship program slips.",
 
     whyNow: "Award dates are close enough that the next press release can gap the stock.",
-    whatsUnpriced:
-      "Screens overweight politics chatter while award calendars and supply checks already say backlog is building. The edge is that profit forecasts look high relative to booked work that is already in motion.",
+    whatsUnpriced: "",
     trigger:
       "At least two named missile-defense awards to RTX/LMT AND management affirms supply chain stability on the call.",
     trade:
@@ -410,8 +406,7 @@ export const CATALOG_THESES: Thesis[] = [
       "Growth/cash-flow dispersion rises before the index admits it — watch the margin cluster before leaning on broad QQQ.",
 
     whyNow: "Earnings season is the clock. The tape prices smooth AI wins; the prints can say otherwise.",
-    whatsUnpriced:
-      "The edge sits outside obvious mega-cap headlines: when several smaller QQQ names raise AI or infra spend and cut margin or EPS guide in the same window, that cluster is the signal — not one stock alone. Single-ticker flow still misses coordinated guide cuts until the basket has already averaged the damage.",
+    whatsUnpriced: "",
     trigger: `WHEN THIS BECOMES A TRADE, NOT JUST A STORY
 
 Watch two earnings windows in a row where:
@@ -474,9 +469,9 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
       l1Confirmed:
         "Beijing is verbally back-stopping growth and early credit reads are no longer collapsing. That is a policy turn, not a rumor.",
       l2ThisQuarter:
-        "Over the next one to two weeks the tape tests whether easier tone turns into loan growth and orders — macro calendars and policy windows carry the first proof before equities fully rerate.",
+        "Infrastructure and restocking bids hit industrial metals first. Watch bonded inventory draws and credit impulse prints this month.",
       l3ThisYear:
-        "Over one to three months a real impulse shows up in shipment and inventory chains across Asia — industrial commodities and cyclicals absorb the second-order move as a class, not a single headline.",
+        "If the stimulus pulse sticks, restocking broadens from copper into iron ore, aluminum, and other industrial inputs. Supply chains tighten and commodity curves flatten.",
       l4Backdrop2026:
         "Grid build and factory reshoring keep real metals demand on the table — when China’s impulse is live, hard assets and related equities stay bid in the broader DEPTH4 macro backdrop.",
     },
@@ -486,9 +481,8 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     marketMisread: "",
     tradeExpression: "HG upside skew while restock proves; stand down until inventory and credit align.",
 
-    whyNow: "Easier Beijing tone is live while markets still trade a slow-China default.",
-    whatsUnpriced:
-      "Positioning still overweights property fear and stale PMI versus credit and industrial microdata that already argue for a firmer impulse — per-instrument edges are unpacked in the asset map below.",
+    whyNow: "Easier Beijing tone is live; the tape still anchors to a slow-China default until data proves the impulse.",
+    whatsUnpriced: "",
     trigger:
       "Two consecutive inventory draws in Shanghai bonded stocks AND a confirming credit impulse print in the same month.",
     trade:
@@ -549,8 +543,7 @@ If broader AI earnings look good and margins hold up, the market is handling AI 
     tradeExpression: "META downside skew into EU enforcement headlines; hard stop above prior highs.",
 
     whyNow: "Enforcement is entering the binding phase — that is when the downside path pays.",
-    whatsUnpriced:
-      "US flow still prices EU risk as a settled check while remedy language already forces product changes that hit attach rates and ad load. The edge is profit forecasts look high relative to ongoing compliance and revenue mechanics shifts — not relative to the last fine headline alone.",
+    whatsUnpriced: "",
     trigger:
       "Published binding remedy that forces product change OR two weeks of EU daily fines with no legal stay.",
     trade:
@@ -641,22 +634,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "Calm geopolitical weeks stack, ETF flows show funds trimming war hedges on GLD, and XAU spot bleeds the fear bid without a new strike.",
-          "The GLD / XAU short pays close to plan; scale toward Trade plan targets and trail using the levels you already set — no new entry story here.",
+          "De-escalation stacks: steady talks, thinning kinetic headlines, and cross-asset calm so havens lose their urgency bid.",
+          "XAUUSD and GLD fade toward Trade plan targets; trim expression in steps and respect trails — stand down if kinetic risk returns.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Talks keep progressing but gold chops on mixed headlines: surprise CPI, fake escalation tweets, or GLD flow noise spike the tape while the broader drift still favors lower.",
-          "Direction is still right but payoff is slower and uglier; keep the short smaller, widen patience, and lean on risk lines in Trade plan.",
+          "Geopolitics drifts cooler but UUP or a sharp rates move competes with the fade — gold chops as macro sends mixed haven demand.",
+          "Short thesis can still win slowly; keep GLD/XAU size smaller and lean on Invalidation on dollar spikes or fresh headline shocks.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "A kinetic headline returns, GLD gaps through your stop band, or spot holds above the weekly invalidation in your book.",
-          "Thesis is wrong or early; follow Invalidation and retire or sharply cut the short per Book — do not rationalize new risk.",
+          "Sudden strike, blockade rhetoric, or spot holding above your invalidation band — war premium re-embeds fast.",
+          "Cover GLD/XAU shorts per Invalidation; revisit only after the tape confirms a new de-escalation window.",
         ),
       ];
     case "strait-hormuz-oil-long":
@@ -665,22 +658,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "Verified friction on the strait route or a sharp benchmark freight spike within days while navy and insurer language hardens.",
-          "USO gaps and trends toward upper targets; add only on your Trade plan with gap-aware stops — still one Hormuz long, not a fresh punt.",
+          "Kinetic or legal closure hits transit: verified incident plus tanker diversion, and benchmark freight jumps with insurer hardening.",
+          "USOIL and BNO gap on the squeeze leg; add XLE only after persistence confirms per Trade plan — size for gaps, not smooth drift.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Gulf headlines run hot but there is no verified closure yet; crude oscillates as inventory prints fight routing fear.",
-          "Jump-risk long stays valid but choppy; size for ranges until freight or policy confirms the squeeze window.",
+          "Strait rhetoric runs hot but barrels keep moving — insurance and diffs move while flat price mean-reverts on inventory prints.",
+          "Jump thesis stays alive but payoff is two-way; keep USOIL/BNO tactical until freight or policy prints a verified choke.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "Official stand-down plus a week of calm insurance quotes and normal tanker flows — chokepoint fear never converts to price.",
-          "Exit the Hormuz USO long per Invalidation; log it clean in Book.",
+          "Stand-down language, normal routing, and calm P&I quotes for a week — choke stress never reaches headline crude.",
+          "Exit USOIL long per Invalidation; log the miss in Book.",
         ),
       ];
     case "opec-unity-fracturing":
@@ -689,22 +682,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "US shale slows, OPEC holds the line, and rig data plus cartel language keep the tight-supply story intact through the quarter.",
-          "The long USO thesis pays close to plan; scale into strength toward targets and follow your normal trailing rules in Trade plan.",
+          "Shale adds fewer marginal barrels: consecutive rig misses plus producer guides cutting capex while OPEC quota discipline holds in statements and observed exports.",
+          "USOIL grinds toward a higher floor; add XLE on confirming data and trail USOIL with Trade plan rules.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Supply is roughly tight, but headlines are noisy: surprise inventory builds, political noise, and mixed data keep oil choppy.",
-          "Thesis is still broadly right but payoff is slower; keep the long but size more cautiously and lean on risk management in Trade plan.",
+          "Demand wobbles (soft OECD activity, uneven draws) while supply is only moderately tight — crude range-traps despite rig softness.",
+          "Higher-floor story intact but slow; carry smaller USOIL/XLE until demand confirms before leaning into size.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "Rigs re-accelerate or OPEC cohesion cracks in headlines and data — the market reads spare barrels as easy again.",
-          "Thesis is wrong or early; follow Invalidation and retire or sharply reduce the USO long per Book.",
+          "OPEC cohesion cracks in actions (cheating, public quota break) OR US rigs re-accelerate for a month — spare barrels read easy again.",
+          "Close USOIL and energy-beta adds per Invalidation; the supply-discipline route failed.",
         ),
       ];
     case "fed-pivot-delayed-tlt-weakness":
@@ -713,22 +706,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "Hot CPI or payrolls plus Fed speakers pushing the first cut into next year; long Treasury prices sell as the curve reprices slower easing.",
-          "The TLT short pays in line with the delay-cut read; fade strength per Trade plan and respect the next data cluster.",
+          "Inflation persistence meets hawkish Fed: hot CPI or payrolls plus coordinated speaker pushback slides the first cut deeper into the calendar.",
+          "TLT and IEF sell off as the curve reprices; maintain short bias into data pops per Trade plan; cover only on synchronized cold prints.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Inflation and jobs prints chop month to month; TLT whipaws around where futures price the first cut while the Fed still sounds cautious.",
-          "Higher-for-longer bias can still win but path is noisy; keep size tactical and expect a longer clock than one print.",
+          "Data alternates hot and cold while the Fed keeps optionality speeches — belly and wings chop but markets still lean cuts sooner than dots.",
+          "TLT short direction can still work but path is noisy; use SHY as a funding tell and keep TLT tactical until a clean hawkish stack returns.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "Core CPI cools two prints in a row and payrolls soften together — the window for aggressive Fed pushback closes.",
-          "Cover the TLT short per Invalidation; the late-cut repricing thesis is not the right frame.",
+          "Labor softens alongside two consecutive cool core CPI prints — markets front-run cuts and TLT catches a sustained bid.",
+          "Cover TLT/IEF shorts per Invalidation; late-cut framing no longer fits.",
         ),
       ];
     case "us-defense-repricing-rtx-lmt":
@@ -737,22 +730,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "Two named Pentagon awards hit the tape plus stable supply commentary on the call; backlog lines in filings step up clearly.",
-          "RTX grinds toward upper targets; add only after booked work confirms, trailing per Trade plan.",
+          "Appropriations cash converts: two named awards plus clean supply commentary lock higher backlog in filings.",
+          "RTX extends toward targets; add LMT or ITA only on confirmation, pyramid per Trade plan after backlog prints.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Awards trickle while RTX tracks the broad market; backlog creeps up but headlines stay political and noisy.",
-          "Upside thesis still alive but payoff is stepwise; accumulate on dips, avoid hero sizing until filing lines prove the path.",
+          "Budget theater creates headline chop but awards slip a quarter — politics hides flat execution while primes mark time.",
+          "RTX long thesis alive but delayed; accumulate on dips, use ITA as lower-beta basket while single-name headline risk dominates.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "Major program cancel or funding pulled from the line — the order-book story breaks.",
-          "Exit RTX longs fast per Invalidation; do not average a broken award thesis.",
+          "Flagship program cancel, funding claw-back, or audit that breaks delivery timing — order-book growth story snaps.",
+          "Exit RTX and paired LMT adds per Invalidation; do not average program risk.",
         ),
       ];
     case "ai-capex-squeeze-qqq-rotation":
@@ -761,22 +754,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "Back-to-back earnings weeks where several non-leader QQQ names cut margins on AI-related spend while mega-cap gloss cannot hide the cluster.",
-          "Margin-squeeze watch becomes actionable: trim broad QQQ adds and rotate toward cash-heavy leaders or hedges exactly as your Trade plan spells out.",
+          "AI infra invoice hits a cluster of non-megacap QQQ names: several margin or EPS guides cut in the same two-week window while SMH pricing stays firm.",
+          "QQQ underperforms SMH and cash-heavy leaders; rotate per Trade plan into quality or a small QQQ hedge per plan.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Mixed margin guides and mega-cap strength mask weak tail names; QQQ ranges while AI spend headlines argue both ways.",
-          "Thesis direction still plausible but unconfirmed; stay on watch with minimal size until the margin cluster is obvious.",
+          "NVDA/MSFT absorb headlines while high-capex laggards crack quietly — index hides dispersion until IWM funding stress flickers.",
+          "Thesis direction limps: stay watch-sized on QQQ, track SMH vs QQQ spread and IWM before adding conviction size.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "Margins hold and AI spend guides stabilize — the index absorbs the build-out without the feared squeeze showing up.",
-          "Stand down the QQQ margin-watch thesis; do not force a new broad index bet from this lens.",
+          "AI revenue surprises broaden across the basket AND margins stabilize while spend stays high — market funds the build without pain.",
+          "Stand down QQQ margin-watch; remove hedges tied to this squeeze frame per Book guidance.",
         ),
       ];
     case "china-stimulus-copper-long":
@@ -785,22 +778,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "Two consecutive draws in Shanghai bonded stocks and a confirming credit impulse print in the same month.",
-          "HG extends toward restock targets; scale toward Trade plan levels as inventory and credit align.",
+          "Global restock confirms: bonded draws, firmer credit impulse, and breadth in exports/PMI so industrial inputs rerate together.",
+          "HG leads while FCX and SCCO catch operating leverage; add TLT only as a macro hedge if reflation forces a hawkish Fed pivot — follow Trade plan adds and trails.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Beijing stimulus rhetoric runs hot but bonded stocks do not draw yet; copper mean-reverts on every PMI headline.",
-          "China impulse thesis still possible but delayed; keep HG small until warehouse and credit lines agree.",
+          "Stimulus stays domestic: China credit steadies but offshore demand and the dollar stay heavy — metals bid is narrow and property headlines chop HG.",
+          "Stay long HG small; use FCX/SCCO for speed only after futures confirm; treat UUP spikes as a stand-down preview per Invalidation.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "Property panic headlines return with force or a sharp USD funding spike hits — restock story loses the tape.",
-          "Cover the HG long per Invalidation; log the miss in Book.",
+          "Property panic or USD funding shock breaks the reflation channel before restock broadens — commodities never get the impulse.",
+          "Cover HG and related miners per Invalidation; TLT can rally on flight-to-quality unrelated to copper — do not fight the broken macro route.",
         ),
       ];
     case "eu-tech-crackdown-megacap":
@@ -809,22 +802,22 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
           1,
           "clean_win",
           40,
-          "Binding EU remedy forces real product change or daily fines stick without a legal stay; ads and app flows tighten faster than sell-side models assume.",
-          "META derates toward your downside zone; lean on Trade plan adds and trails, not a new short campaign invented here.",
+          "Binding remedy or stuck daily fines force attach-rate and ad-load changes in EU — compliance shows up in revenue guides fast.",
+          "META short pays toward downside zone; GOOGL drags in sympathy on platform risk — scale per Trade plan trails.",
         ),
         row(
           2,
           "messy_win",
           35,
-          "Brussels headlines chop META while remedies grind through courts; revenue impact is real but the tape fights every headline.",
-          "Regulation short stays valid but path is choppier; size lighter and keep invalidation tight.",
+          "Legal stays and appeals grind while fines accrue but product surfaces unchanged — headline META chop with delayed revenue bite.",
+          "Short thesis valid but slow; use XLK pair trades to isolate META regulatory beta while remedies crawl.",
         ),
         row(
           3,
           "thesis_broken",
           25,
-          "Court stay or settlement removes enforceable product limits — the revenue bite thesis loses teeth.",
-          "Cover the META short per Invalidation; regulation fade is no longer the driver.",
+          "Court stay or settlement removes enforceable product limits — ad machine returns to prior attach path.",
+          "Cover META short per Invalidation; treat EU headline risk as faded until new binding rulemaking.",
         ),
       ];
     default:
@@ -854,101 +847,9 @@ export function catalogDefaultScenariosForThesis(thesis: Thesis): ThesisScenario
   }
 }
 
-/** Structured edge map for `china-stimulus-copper-long` — canonical multi-instrument playbook (see ThesisAssetEdgeMap). */
-const CHINA_STIMULUS_COPPER_RELATED_ASSETS: RelatedAsset[] = [
-  {
-    symbol: "HG",
-    note: "Primary futures expression",
-    displayName: "HG (COMEX copper)",
-    directionBias: "Constructive · long bias",
-    whyItMatters:
-      "Industrial-metals restock shows up in futures first; HG is the cleanest liquid expression of the China impulse without single-stock noise.",
-    consensusOnAsset:
-      "Open interest still anchors to weak PMI and property fear; desks treat stimulus headlines as untradeable until exports visibly rebound.",
-    whatAssetMisprices:
-      "Bonded inventory and credit impulse already trace a firmer restock path than Comex — HG is late, not early, if draws continue alongside credit confirmation.",
-    edgeWindow: "Weeks to months (restock window)",
-    depthConfidence: "Moderate — needs inventory + credit confirming together (see Trigger).",
-  },
-  {
-    symbol: "FCX",
-    note: "Copper miner",
-    displayName: "FCX (Freeport-McMoRan)",
-    directionBias: "Constructive · levered equity",
-    whyItMatters: "Freeport is the most liquid large-cap read on spot copper; earnings move on realized price and volume, not just China headlines.",
-    consensusOnAsset: "Equity still prices a mid-cycle margin squeeze and slow China — multiples lag spot when restock is real.",
-    whatAssetMisprices:
-      "FCX embeds slower volume growth than futures imply once bonded draws persist; equity revisions can lag HG by several weeks.",
-    edgeWindow: "Weeks to quarters",
-    depthConfidence: "Moderate-high — operating leverage amplifies both directions.",
-  },
-  {
-    symbol: "SCCO",
-    note: "Pure copper producer",
-    displayName: "SCCO (Southern Copper)",
-    directionBias: "Constructive · high-beta copper",
-    whyItMatters: "Southern Copper is a concentrated copper producer — good second read when HG confirms but you want listed risk.",
-    consensusOnAsset: "Retail flow treats SCCO as a late-cycle commodity beta without separating restock from property stress.",
-    whatAssetMisprices:
-      "Peru supply noise masks China demand beta; if China impulse is real, SCCO’s beta to spot should exceed what single-name dispersion suggests.",
-    edgeWindow: "Weeks to months",
-    depthConfidence: "Moderate — country and labor headlines add noise.",
-  },
-  {
-    symbol: "TECK",
-    note: "Diversified miner",
-    displayName: "TECK (Teck Resources)",
-    directionBias: "Watch · partial copper",
-    whyItMatters: "Teck mixes met coal and copper — useful when the thesis broadens from pure red metal to industrial restock.",
-    consensusOnAsset: "Investors bucket TECK with generic materials beta, not differentiated China restock exposure.",
-    whatAssetMisprices:
-      "Copper-linked cash flows are underweighted inside the conglomerate discount — restock broadening closes part of that gap.",
-    edgeWindow: "Months",
-    depthConfidence: "Lower than HG/FCX — copper is only part of the story.",
-  },
-  {
-    symbol: "XME",
-    note: "Metals & mining ETF",
-    displayName: "XME (metals & mining)",
-    directionBias: "Constructive · basket",
-    whyItMatters: "XME spreads the bet across miners — better when you want theme exposure without single-name event risk.",
-    consensusOnAsset: "ETF flows chase last year’s recession playbook; weights still lean defensive versus a restock impulse.",
-    whatAssetMisprices:
-      "Basket pricing assumes broad margin pressure; a China-led metals bid can lift the whole complex before stock pickers split winners.",
-    edgeWindow: "Months",
-    depthConfidence: "Moderate — diversified exposure dilutes edge vs HG.",
-  },
-  {
-    symbol: "TLT",
-    note: "Duration hedge",
-    displayName: "TLT (long Treasuries)",
-    directionBias: "Defensive / contra watch",
-    whyItMatters:
-      "If China reflation sticks, it can delay Fed cuts — duration becomes the clean contra when industrial metals are running hot.",
-    consensusOnAsset: "Rates markets still lean on disinflation as base case; China impulse is under-modeled in forward cuts.",
-    whatAssetMisprices:
-      "TLT may be too complacent if commodity-led growth surprises nudge the Fed hawkish — watch curve vs HG leadership.",
-    edgeWindow: "Months",
-    depthConfidence: "Contextual — only live if reflation prints broaden.",
-  },
-  {
-    symbol: "UUP",
-    note: "USD proxy",
-    displayName: "UUP (USD index)",
-    directionBias: "Watch · macro offset",
-    whyItMatters: "Large China stimulus can weaken or strengthen USD depending on risk-on flows — UUP is the check on funding stress.",
-    consensusOnAsset: "FX still trades a simple risk-on/off map; China impulse paths are more nuanced.",
-    whatAssetMisprices:
-      "A funding scare or dollar squeeze invalidates the metals leg faster than spot copper admits — UUP is the tell.",
-    edgeWindow: "Days to weeks when stress appears",
-    depthConfidence: "Situational — use with Invalidation on USD spikes.",
-  },
-];
-
 function defaultDetail(slug: string): ThesisDetailBundle {
   const thesis = getThesisBySlug(slug)!;
-  const relatedAssets =
-    slug === "china-stimulus-copper-long" ? CHINA_STIMULUS_COPPER_RELATED_ASSETS : [{ symbol: thesis.asset, note: "Primary" }];
+  const relatedAssets = CATALOG_RELATED_ASSETS_BY_SLUG[slug] ?? [{ symbol: thesis.asset, note: "Primary" }];
   return {
     thesis,
     evidence: [],

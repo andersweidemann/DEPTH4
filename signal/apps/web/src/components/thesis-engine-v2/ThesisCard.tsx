@@ -147,10 +147,6 @@ export function ThesisCard({
           <span className="text-zinc-400">Why now · </span>
           {thesis.whyNow}
         </p>
-        <p>
-          <span className="text-zinc-400">What&apos;s unpriced · </span>
-          {thesis.whatsUnpriced}
-        </p>
         <p className="font-mono text-[10px] text-zinc-400">{thesis.trade}</p>
         <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[10px] text-zinc-600">
           <span className="text-zinc-500">{thesis.horizon}</span>

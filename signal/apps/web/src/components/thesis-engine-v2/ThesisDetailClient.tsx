@@ -842,7 +842,7 @@ export function ThesisDetailClient({
           <div className="flex flex-wrap items-baseline justify-between gap-2">
             <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Qualification breakdown</h2>
             <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
-              <span className="text-[11px] tabular-nums text-zinc-400">Mispricing score {mispricing.score}/100</span>
+              <span className="text-[10px] tabular-nums text-zinc-600">Weights for the same composite as hero mispricing</span>
             </Tooltip>
           </div>
           <div className="mt-5 grid gap-3">

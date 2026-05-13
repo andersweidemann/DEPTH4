@@ -23,7 +23,8 @@ export type ThesisQualificationScores = {
 /**
  * DEPTH4 thesis **book** — canonical narrative fields (shipped catalog baseline, `public.theses.body` JSON, or AI output).
  * **Single purpose:** do not paste the same idea into multiple blocks. Hero sentence lives in `title` /
- * `thesisStatement` only; what the market has not priced yet (the edge) once in `whatsUnpriced` (keep `marketMisread` empty when folded);
+ * `thesisStatement` only; thesis-level edge may live in `whatsUnpriced` **or** be folded into structured
+ * `RelatedAsset` rows (Asset Edge Map) — avoid duplicating the same prose in both (keep `marketMisread` empty when folded);
  * `trigger`, `trade`, `invalidation`, `timeStop` each once; `whyThesisExists` is framing only (3–4 short
  * paragraphs). `riskFactors` summarizes and references Invalidation, never duplicates full stand-down text.
  */
@@ -91,7 +92,7 @@ export type Thesis = {
   tradeExpression: string;
 
   whyNow: string;
-  /** Single “what the market hasn’t priced” / variant-perception block — not repeated in hero or cascade. */
+  /** Thesis-level timing / framing, or empty when per-asset edge lives in structured `RelatedAsset` rows (edge map). */
   whatsUnpriced: string;
   /** Observable gate only — not a second copy of trade instructions. */
   trigger: string;

@@ -24,16 +24,16 @@ LEVEL 1 — CONFIRMED (TODAY)
 - What is already true right now: facts in today’s tape or data. No predictions.
 
 LEVEL 2 — THIS WEEK / QUARTER
-- What to watch in the current earnings or news window; the first place the thesis might show up in headlines or price.
+- What to watch in the current policy, credit, or earnings window — **macro and sector channels**, not per-ticker price leadership.
 
 LEVEL 3 — THIS YEAR
-- How the trade plays out over the next 1–3 quarters; how winners vs losers separate; what that means for the **named asset**.
+- How the **macro channel** pays out over the next 1–3 quarters (supply chains, curves, broad sector repricing). **Do not** park warehouse-level or single-ticker “who leads first” detail here — that belongs in structured **related_assets** / Asset Edge Map rows.
 
 LEVEL 4 — 2026 BACKDROP
 - Structural tilt for **all** DEPTH4 theses this year — background bias that makes some trades easier and some harder (not a far-future essay).
 
 PLAIN LANGUAGE (EVERY LEVEL)
-A. Simple, concrete words. Allowed examples: index, earnings, margins, cash flow, rates, war risk, hedges, order book, ads, shipping, rigs — always tied to the ticker or driver.
+A. Simple, concrete words. Allowed examples: index, earnings, margins, cash flow, rates, war risk, hedges, order book, ads, shipping, rigs — tie drivers to **sectors and macro channels**; name a ticker in cascade **only** when it is the unavoidable fact in L1 (e.g. a confirmed filing line), not for trade-expression detail.
 B. Explain so a reader can **visualize** the idea (e.g. "Owning everything hides which stocks are cracking first." / "Borrowing is still expensive, so weak balance sheets get hit first."). No internal shorthand that needs a bank background.
 C. Do **not** restate the hero title line; each level adds something new.
 
@@ -57,13 +57,14 @@ Owning the whole index hides which stocks are cracking first. A few clear AI win
 L4 · 2026 BACKDROP — Bias for every DEPTH4 thesis this year
 Money is still expensive. Companies that throw off steady cash can fund AI and earn real returns. Weaker or more indebted names have to spend just to keep up and get punished faster when profits slip.
 
-3) MARKET EDGE (whatsUnpriced / misread tone): what the crowd misses; why DEPTH4 sees it first (clusters, levels, policy path) — no empty slogans.
+3) MARKET EDGE: ship **structured related_assets** (3–5+ tickers) for the Asset Edge Map — each row MUST include why_it_matters, consensus_on_asset, what_asset_misprices, edge_window, depth_confidence (no duplicate symbols under aliases). **whats_unpriced** is optional when those rows exist; if present, keep it thesis-timing only — do not paste the same sentences into edge rows. Legacy one-block whats_unpriced is allowed only when related_assets are absent.
 4) TRIGGER / TRADE / EXIT / TIME STOP: observable trigger; trade names tickers and execution framing (Enter / Trim / etc., informational disclaimer applies); invalidation states what proves you wrong; time stop if thesis never fires on schedule (e.g. two quarters / two earnings seasons).
 5) DEPTH4 retail voice: short direct sentences; pass the DEPTH4 RETAIL VOICE TEST (see depth4-retail-voice-constitution module, injected with macro prompts); ban consultant deck speak.
 
 6) SCENARIO VIEW — RESOLUTION PATHS (same trade, three outcomes; not Base/Bull/Bear alternate bets)
 - Exactly three paths with labels clean_win / messy_win / thesis_broken (display: "Clean win", "Messy win", "Thesis broken"), each with **structured** probability (sum ~100%) in JSON fields, plus what_happens and consequence_for_trade **without** repeating those percents inside the prose — the Scenario View UI shows the bars.
 - All three are conditional on the **current** thesis direction (long or short). Do not propose unrelated entry trades. Do not contradict the hero forecast.
+- **Each path must describe a different causal chain** (policy vs physical vs cross-asset stress, etc.), not three timing variants of the same story. Consequences should name **specific instruments** (e.g. HG, FCX, TLT, USOIL, META) and actions (scale, trim, cover, wait) tied to Trade plan / Invalidation / Book.
 - Consequence must reference Trade plan, Invalidation, Book where appropriate — thesis-specific, not copy-paste templates.
 
 CANONICAL ONE-LINE (QQQ — 3-second scan shape for any thesis)
@@ -80,17 +81,17 @@ DEPTH4 THESIS BODY JSON (Supabase \`public.theses.body\` or equivalent) — NO D
 
 - **thesis_cascade** (l1–l4) — when generating or refreshing, follow ALL of the below (global: war/peace gold GLD, OPEC/USO, Fed/TLT, RTX/defense, copper/China, META/regulation, any future thesis):
   A. Instruct explicitly: write **all four** levels in plain language for a **smart non-professional**. Do **not** use hedge-fund or bank jargon (e.g. dispersion, index diversification, basket repricing, cash conversion, equity books, beta, duration, regime, setup as trade noun, expression as jargon).
-  B. Prefer short, concrete sentences that name the **actual asset** and **driver** (ticker, earnings window, policy, routes, etc.).
-  C. Use the **CANONICAL thesisCascade (QQQ)** block in the THESIS BOOK snippet above as the **positive pattern** — same rhythm and specificity; swap in the correct asset and thesis mechanics.
-  D. **One new idea per level:** L1 = today’s facts only · L2 = what to watch this week / this earnings window · L3 = how the trade plays out over the year for the named asset · L4 = structural bias for 2026 across all DEPTH4 theses. No hero-title clone; no second copy of whats_unpriced; **keep L2–L4 on macro timeline and sector channels — do not park per-ticker leadership or warehouse-level edge in cascade (that belongs in structured related-asset / edge-map rows).**
+  B. Prefer short, concrete sentences that name **macro channels** (policy, credit, physical supply, regulation) and sector read-throughs; **per-ticker mispricing** belongs in structured **related_assets**, not in cascade paragraphs.
+  C. Use the **CANONICAL thesisCascade (QQQ)** block in the THESIS BOOK snippet above as the **positive pattern** — same rhythm and specificity; swap in the correct macro mechanics.
+  D. **One new idea per level:** L1 = today’s facts only · L2 = what to watch this week / this earnings window · L3 = how the **macro channel** pays over the year · L4 = structural bias for 2026 across all DEPTH4 theses. No hero-title clone; no second copy of whats_unpriced; **keep L2–L4 on macro timeline — do not park warehouse-level or per-ticker edge in cascade (that belongs in structured related_assets / edge map).**
   E. Facts → near window → payout path → structural bias; **plain retail English only**. See THESIS BOOK for banned list and NOT ALLOWED examples.
 
-- **whats_unpriced**: ONE block for the edge — **what the market hasn't priced yet** — in plain words (do not use "variant read" / "variant perception"). Fold legacy misread here; leave **market_misread** empty or omit.
+- **whats_unpriced**: Optional when **related_assets** holds 3–5+ structured edge rows; if used, thesis-level timing/framing only — **never** duplicate per-asset consensus/mispricing text that belongs in edge-map rows. Otherwise ONE block for the edge in plain words (do not use "variant read" / "variant perception"). Fold legacy misread here; leave **market_misread** empty or omit.
 - **trigger** / **trade** / **invalidation** / **time_stop**: each appears **once** in its own field. **trade** = actions in words; numeric entry/stop/targets belong in **entry_zone / stop / target** only when maintained from current market data (or omit). Do not repeat those numbers as a second trade essay in prose fields; do not store one-off spot quotes that will read wrong next week.
 - **why_thesis_exists**: 3–4 short paragraphs, framing ONLY (why the lens exists). Reference "see Trigger / Trade / Invalidation" instead of pasting them.
 - **risk_factors**: summarize; **reference** Invalidation ("see Invalidation") — never paste the full invalidation block again.
 - **probability_rationale**: evidence / odds only — not a third copy of the hero line.
-- **scenario_view / resolution paths** (when generating structured scenario JSON): use the clean_win / messy_win / thesis_broken contract above; map any legacy Base/Bull/Bear copy to messy/clean/broken semantics before returning.
+- **scenario_view / resolution paths** (when generating structured scenario JSON): use the clean_win / messy_win / thesis_broken contract above; **each path = a different causal chain**, not three timing variants; consequences name tickers and actions (scale, trim, cover) tied to Trade plan / Invalidation / Book; map any legacy Base/Bull/Bear copy to messy/clean/broken semantics before returning.
 `.trim();
 
 /**

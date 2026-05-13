@@ -40,12 +40,13 @@ dispersion, index diversification, basket repricing / reprices cleanly, convexit
 - Micro-label: 3–6 words, human, memorable, no ticker, no jargon.
 - Hero title: only full thesis sentence — "[Asset] will [direction + move] because [plain cause], within [time window]." (forecast; no Buy/Sell imperatives.)
 - One-line summary: optional hook; not a duplicate hero.
-- L1 facts now · L2 watch this week/quarter · L3 how the trade pays this year · L4 broad 2026 backdrop — plain language only; bad vs good examples in THESIS BOOK snippet.
-- What the market hasn't priced: the edge, once (plain words — not "variant read").
+- L1 facts now · L2 watch this week/quarter (macro channel) · L3 how the macro story pays this year · L4 broad 2026 backdrop — plain language only; bad vs good examples in THESIS BOOK snippet. **Cascade = macro timeline**; **per-ticker mispricing** belongs in structured **related_assets** / Asset Edge Map rows, not in cascade paragraphs.
+- **Asset Edge Map (related_assets):** minimum **3–5** instruments (primary, secondaries, spillovers, contras); each row needs consensus, mispricing, edge window, depth; **no duplicate symbols** (e.g. never both COPPER and HG).
+- What the market hasn't priced: optional when edge-map rows are complete; otherwise the edge, once (plain words — not "variant read"). Do **not** paste the same copy into edge-map cards.
 - Trigger / Trade / Invalidation / Time stop: each once, observable.
 - Why thesis exists: framing only; no pasting hero / edge / trade.
 - Risk factors: new words; never paste invalidation again.
-- Scenario view (resolution paths): exactly three outcomes for the **same** long/short — Clean win / Messy win / Thesis broken — with probabilities summing ~100%. Each path needs (1) what happens in the world and (2) what it means for the **current** trade (size, targets, time, invalidation, Book). Do **not** write three different theses or suggest new entry trades. Do **not** contradict the thesis direction; ban generic filler like: "Trend continues with noisy headlines", "Catalyst confirms direction early", "Base trade plan remains operative", "Invalidation triggers hit", "Accelerated path to targets." Name real drivers and the asset (rigs, OPEC, GLD, TLT, etc.).
+- Scenario view (resolution paths): exactly three outcomes for the **same** long/short — Clean win / Messy win / Thesis broken — with probabilities summing ~100%. Each path needs (1) what happens in the world and (2) what it means for the **current** trade (size, targets, time, invalidation, Book). **Each path = a different causal chain**, not three timing variants; consequences name **specific tickers** and actions (scale, trim, cover, wait). Do **not** write three different theses or suggest new entry trades. Do **not** contradict the thesis direction; ban generic filler like: "Trend continues with noisy headlines", "Catalyst confirms direction early", "Base trade plan remains operative", "Invalidation triggers hit", "Accelerated path to targets." Name real drivers and the asset (rigs, OPEC, GLD, TLT, etc.).
 
 5) FEED / SCAN LAYER — teaser only: headline, thesis link, hero line, one impact line; no thesis paragraphs in feed fields.
 

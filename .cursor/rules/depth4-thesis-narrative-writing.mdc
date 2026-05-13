@@ -58,12 +58,13 @@ Say **“the edge”** or **“what the market hasn’t priced yet”** — not 
 - **Micro-label:** 3–6 words; human; memorable; no ticker; no jargon.
 - **Hero title:** only full thesis sentence — `[Asset] will [direction + move] because [plain cause], within [time window].` (No Buy/Sell imperatives.) **No literal "probability NN%"** in hero or body prose; conviction is UI-only.
 - **One-line summary:** optional hook; not a duplicate hero.
-- **L1–L4:** facts → near window → year payout → 2026 backdrop; plain language; one main new idea per level (see thesis book + QQQ exemplar).
-- **What’s unpriced:** the edge, **once**.
+- **L1–L4:** facts → near window → year payout → 2026 backdrop; plain language; one main new idea per level (see thesis book + QQQ exemplar). **Cascade = macro timeline** (policy, credit, physical/regulatory channels) — not per-ticker warehouse edge.
+- **Cascade vs Asset Edge Map:** structured **related_assets** / edge map holds **3–5+** instruments (primary, secondaries, spillovers, contras) with per-row consensus, mispricing, edge window, depth; **no duplicate symbols** (e.g. never both COPPER and HG).
+- **What’s unpriced:** optional when edge-map rows carry asset-level mispricing; otherwise the edge, **once**, thesis-level only — do not paste the same copy into edge cards.
 - **Trigger / trade / invalidation / time stop:** each **once**, observable.
 - **Why thesis exists:** framing only; do not repeat hero / edge / trade blocks.
 - **Risk factors:** new words; never paste invalidation again.
-- **Scenario view (resolution paths):** three ways **this** thesis resolves — **Clean win** (thesis pays roughly on plan), **Messy win** (direction roughly right; slower / smaller / choppier payoff), **Thesis broken** (invalidated; retire per Invalidation / Book). Structured probabilities sum ~100% in the UI; **what happens** / **consequence** prose must not repeat raw NN% (bars show weights). Not three parallel bets; no new entry trades; do not contradict the main direction. Name **asset + driver**. **Banned** generic lines: “Trend continues with noisy headlines”, “Catalyst confirms direction early”, “Base trade plan remains operative”, “Invalidation triggers hit”, “Accelerated path to targets.”
+- **Scenario view (resolution paths):** three ways **this** thesis resolves — **Clean win**, **Messy win**, **Thesis broken**. Each path must be a **different causal chain**, not three timing variants; **consequence** names tickers and actions (scale, trim, cover, wait) tied to Trade plan / Invalidation / Book. Structured probabilities sum ~100% in the UI; **what happens** / **consequence** prose must not repeat raw NN% (bars show weights). Not three parallel bets; no new entry trades; do not contradict the main direction. **Banned** generic lines: “Trend continues with noisy headlines”, “Catalyst confirms direction early”, “Base trade plan remains operative”, “Invalidation triggers hit”, “Accelerated path to targets.”
 
 Do **not** repeat the same sentence or idea across blocks.
 
