@@ -15,7 +15,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v12";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v13";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -56,7 +56,7 @@ LENGTH SPLIT (read this first)
   **Banned here:** imperative Buy, Sell, Go long, Go short, Don't buy, Don't add, Add exposure, Reduce exposure — thesis lines are **market forecasts**, not instructions.
   On first mention, spell out "AI-related spending (chips, data centers, staff)" instead of unexplained "AI capex".
   Then add timing in the same sentence or right after, e.g. "Window: next two weeks" or "Catalyst: May FOMC + payroll." Never "eventually" or multi-year-only stories without a near-term catalyst.
-  If no clean thesis, write a cautious line, still name tickers and a time window if possible. Keep probability_after_pct modest when uncertainty is high — do not restate that number inside thesis_trade_line.
+  If you cannot state a real forward market line without copying the TITLE HINT or any member headline, keep thesis_trade_line as "" (empty) and put narrative in event_summary + reasoning_chain instead — the product will not mint a thesis registry row from an empty trade line. Keep probability_after_pct modest when uncertainty is high — do not restate that number inside thesis_trade_line.
 
 - probability_before_pct: number 0–100 or null. DETAIL PAGE ONLY. Prior **thesis conviction** (chance the linked thesis is broadly right — conceptually Clean win + Messy win) before this news.
 - probability_after_pct: number 0–100 or null. DETAIL PAGE ONLY. New **thesis conviction** after this news (same definition: broadly right, not “largest scenario bucket”).
@@ -328,7 +328,7 @@ WHAT TO DO
 6) reasoning_chain: REQUIRED four blocks — LEVEL 1 through LEVEL 4 — with the exact headers from the JSON contract. Nothing before LEVEL 1.
 7) first_order_effects / second_order_effects / third_order_effects: mirror LEVEL 2 / 3 / 4 in bullet form.
 8) impacted_assets: prefix L2/L3/L4 (or L1 if immediate data) on each line.
-9) thesis_trade_line: must include probability N%, explicit **when** (window or catalyst), and tickers — never "eventually" or years-only framing.
+9) thesis_trade_line: when non-empty, must read as a forward forecast with tickers and an explicit **when** (window or catalyst) — never "eventually" or years-only framing. Do not put literal "probability N%" inside this string (conviction lives in probability_*_pct + UI). If you cannot meet that bar without copying ingest titles or inventing numbers in prose, set thesis_trade_line to "".
 10) Average about 10–15 words per sentence in reasoning_chain and trade_implication — scan-layer tight, not a memo.
 11) If Known theses is non-empty: fill per_catalog_thesis with exactly one object per thesis id, same order as the list, full second_order_effect strings — this is the cross-thesis map for the cluster.
 
