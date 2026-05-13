@@ -16,7 +16,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v14";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v15";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -30,7 +30,7 @@ LENGTH SPLIT (read this first)
 
 DEPTH4 AI THESIS REGISTRY (public.theses) — applies ONLY when thesis_trade_line is non-empty
 - If you cannot meet every bullet here, set thesis_trade_line to "" — shallow analyst notes stay in event_reasoning / feed only; the product will not mint a thesis row.
-- **Macro-liquid lead**: the hero must foreground a tradable macro instrument or mega-cap theme ticker (TLT, GLD, QQQ, IWM, HYG, LQD, USO, XLE, XLK, META, RTX, HG, etc.) — not a one-off micro-cap story unless you also anchor the read to a sector ETF and the mispricing is sector-wide (still prefer the ETF in the lead).
+- **Lead asset**: name the **tradeable expression** of the thesis (ticker, index, commodity contract, or clearly bounded theme) so the forecast is executable — not vague "the space" without an instrument.
 - **Build the spine first**: write reasoning_chain LEVEL 1→4 in full before thesis_trade_line. LEVEL 2 names the first tape move; **LEVEL 3 states the mispricing / spillover the crowd is missing**; **LEVEL 4 states the quarter-to-year rotation** with tickers. thesis_trade_line must read like the compressed forecast implied by LEVEL 3–4, not a paraphrase of headlines.
 - **Explicit gap**: thesis_trade_line AND mispricing_hypothesis must each make the pricing gap legible (what is priced / anchored / embedded vs what you think breaks next).
 - **Timing edge**: bind to a sharp catalyst window (within weeks/days/months, this earnings season, next payroll/FOMC, before revenue catches up, longer than the market expects, named order book or chokepoint this quarter, etc.). Open-ended "watch the name" without time/mechanism → use "".
@@ -160,7 +160,7 @@ EVENT NARRATIVE RULES (detail page)
 - mispricing_hypothesis must answer what the market misses — **usually Level 3 or Level 4** (second/third-order or backdrop bias), not only the obvious L1–L2 move.
 
 AI THESIS REGISTRY (DEPTH4 bar — thesis_trade_line → public.theses)
-- Non-empty thesis_trade_line is a **catalog-grade forecast**: macro-liquid lead asset, explicit mispricing vs consensus, catalyst-bound timing, and it must be implied by your LEVEL 3–4 text — never a single-line "may rerate" on a micro name, never IR deck language ("Fair Value", "On Track"), never headline paraphrase.
+- Non-empty thesis_trade_line is a **catalog-grade forecast**: named asset/instrument, explicit mispricing vs consensus, catalyst-bound timing, and it must be implied by your LEVEL 3–4 text — never IR deck language ("Fair Value", "On Track"), never headline paraphrase alone.
 - If the cluster only supports a shallow L1–L2 read, keep thesis_trade_line "" and leave depth in reasoning_chain for humans.
 
 PER-CATALOG-THESIS (second-order discipline)
@@ -347,8 +347,7 @@ WHAT TO DO
 10) Average about 10–15 words per sentence in reasoning_chain and trade_implication — scan-layer tight, not a memo.
 11) If Known theses is non-empty: fill per_catalog_thesis with exactly one object per thesis id, same order as the list, full second_order_effect strings — this is the cross-thesis map for the cluster.
 12) Registry pack: if thesis_trade_line is non-empty, LEVEL 3–4 in reasoning_chain must each carry a real mispricing + rotation story (not generic filler), and mispricing_hypothesis must still state the pricing gap in the feed word cap.
-13) thesis_trade_line must lead with a macro-liquid / mega-cap ticker (see JSON contract list) — not a lone micro-cap unless you output "" instead.
-14) Write thesis_trade_line last, as the one-sentence compression of the LEVEL 3–4 spine you already wrote.
+13) Write thesis_trade_line last, as the one-sentence compression of the LEVEL 3–4 spine you already wrote.
 
 Return the JSON object now.`;
 }

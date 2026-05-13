@@ -1,17 +1,6 @@
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { isAcceptableAiThesisRegistryHero } from "@/lib/theses/thesis-surfacing-quality";
 
-/** Liquid / macro / mega-cap tickers acceptable on the public thesis map (not single-name micro stories). */
-const REGISTRY_MACRO_HERO_TICKER = new RegExp(
-  [
-    "\\b(TLT|IEF|SHY|TIP|LQD|HYG|GLD|SLV|QQQ|IWM|SPY|DIA|USO|UGA|XLE|XLF|XLK|XLU|XLRE|SMH|SOXX|VGIT|UUP|",
-    "EWW|EWZ|XME|XOP|KRE|KWEB|FXI|",
-    "META|GOOGL|GOOG|MSFT|AAPL|AMZN|NVDA|JPM|BAC|XOM|CVX|RTX|LMT|NOC|",
-    "HG|CU|XAUUSD|WTI|BRENT|BTC|ETH)\\b",
-  ].join(""),
-  "i",
-);
-
 /** Hero must bind to a catalyst window sharper than generic “someday”. */
 const STRONG_TIMING_IN_HERO = new RegExp(
   [
@@ -80,7 +69,7 @@ export function hasExplicitMispricingSignal(r: MacroEventReasoning, hero: string
 }
 
 /**
- * Full DEPTH4 pack for minting **`public.theses`** (`ai_generated`): macro-liquid hero, timing, mispricing, L3–L4 depth.
+ * Full DEPTH4 pack for minting **`public.theses`** (`ai_generated`): timing, mispricing, L3–L4 depth (no ticker allowlist).
  * Event feed may stay shallow; registry rows must clear this gate.
  */
 export function passesAiThesisRegistryDepth4Pack(p: {
@@ -93,9 +82,6 @@ export function passesAiThesisRegistryDepth4Pack(p: {
   }
   if (ANALYST_DECK_HERO.test(hero)) {
     return { ok: false, reason: "reject_analyst_style_hero" };
-  }
-  if (!REGISTRY_MACRO_HERO_TICKER.test(hero)) {
-    return { ok: false, reason: "reject_hero_not_macro_tradable_ticker" };
   }
   if (!STRONG_TIMING_IN_HERO.test(hero)) {
     return { ok: false, reason: "reject_hero_timing_too_vague" };

@@ -65,19 +65,15 @@ describe("ai-registry-depth4-pack", () => {
     expect(reasoningChainHasSubstantiveL3L4(baseReasoning().reasoning_chain)).toBe(true);
   });
 
-  it("passesAiThesisRegistryDepth4Pack rejects micro-cap lead and accepts catalog-shaped XLE hero", () => {
+  it("passesAiThesisRegistryDepth4Pack accepts single-name hero when timing, mispricing pack, and L3–4 pass", () => {
     const r = baseReasoning();
-    expect(
-      passesAiThesisRegistryDepth4Pack({
-        hero: "VAALCO may rerate if drilling success changes reserve expectations this quarter.",
-        reasoning: r,
-      }).ok,
-    ).toBe(false);
-
     const hero =
+      "VAALCO may rerate if drilling success changes reserve expectations this quarter — the market still misprices reserve torque before the next two prints.";
+    expect(passesAiThesisRegistryDepth4Pack({ hero, reasoning: r })).toEqual({ ok: true });
+
+    const xle =
       "XLE will stay bid as OPEC discipline holds while the market still embeds too much shale elasticity into the summer window.";
-    const out = passesAiThesisRegistryDepth4Pack({ hero, reasoning: r });
-    expect(out).toEqual({ ok: true });
+    expect(passesAiThesisRegistryDepth4Pack({ hero: xle, reasoning: r })).toEqual({ ok: true });
   });
 
   it("hasExplicitMispricingSignal requires gap language in the combined pack", () => {

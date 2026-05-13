@@ -143,21 +143,6 @@ describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
     expect(row.title).not.toContain("Transcript");
   });
 
-  it("rejects micro-cap style hero even when phrasing sounds like a forecast", async () => {
-    const reasoning = minimalReasoning({
-      thesis_trade_line:
-        "VAALCO may rerate if drilling success changes reserve expectations this quarter.",
-    });
-    const { admin, insertSpy } = createThesesMock({});
-    const out = await ensureAiThesisForDiscoveryCluster(admin, {
-      clusterId: "00000000-0000-4000-8000-00000000dead",
-      titleHint: null,
-      reasoning,
-    });
-    expect(out).toEqual({ ok: false, reason: "reject_hero_not_macro_tradable_ticker" });
-    expect(insertSpy).not.toHaveBeenCalled();
-  });
-
   it("rejects sell-side deck phrasing in hero", async () => {
     const reasoning = minimalReasoning({
       thesis_trade_line:
