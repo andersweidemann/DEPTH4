@@ -163,7 +163,6 @@ export function LiveThesesListPage() {
   const requireFeature = useRequireFeature();
   const [activeFilter, setActiveFilter] = useState<"all" | "starred" | "ready">("all");
   const [assetClass, setAssetClass] = useState("All");
-  const [sortBy, setSortBy] = useState("recent");
   const [showNewThesisModal, setShowNewThesisModal] = useState(false);
   const [newStatement, setNewStatement] = useState("");
   const [newAsset, setNewAsset] = useState("");
@@ -176,20 +175,13 @@ export function LiveThesesListPage() {
     if (activeFilter === "starred") params.set("starred", "true");
     if (activeFilter === "ready") params.set("status", "Ready");
     if (assetClass !== "All") params.set("assetClass", assetClass);
-    const sortMap: Record<string, string> = {
-      recent: "recent",
-      conviction: "conviction",
-      mispricing: "mispricing",
-    };
-    params.set("sort", sortMap[sortBy] ?? "recent");
+    /** Omit `sort`: bucket membership + in-bucket order come from the server; client resort was scrambling rank. */
     const qs = params.toString();
     return `/api/theses${qs ? `?${qs}` : ""}`;
-  }, [activeFilter, assetClass, sortBy]);
+  }, [activeFilter, assetClass]);
 
   const { data, error, isLoading, mutate } = useSWR<ThesisListResponse>(listKey, swrJsonFetcher);
   const { data: homeSignals } = useSWR<ThesisHomeSignalsResponse>("/api/theses/home-signals", swrJsonFetcher);
-
-  const { mergeThesis } = useThesisLive();
 
   const warnedStaleListTriple = useRef(false);
   useEffect(() => {
@@ -207,41 +199,11 @@ export function LiveThesesListPage() {
     }
   }, [data]);
 
-  const sortListRows = useMemo(() => {
-    return (rows: ThesisListItem[]) => {
-      if (sortBy === "conviction") {
-        return [...rows].sort(
-          (a, b) =>
-            displayConvictionPctFromThesesListItemWithLive(b, mergeThesis) -
-            displayConvictionPctFromThesesListItemWithLive(a, mergeThesis),
-        );
-      }
-      if (sortBy === "mispricing") {
-        return [...rows].sort((a, b) => b.mispricingScore - a.mispricingScore);
-      }
-      return [...rows].sort((a, b) => (Date.parse(b.lastUpdated) || 0) - (Date.parse(a.lastUpdated) || 0));
-    };
-  }, [sortBy, mergeThesis]);
-
-  const homeTradable = useMemo(() => {
-    if (!data?.home) return [];
-    return sortListRows(data.home.tradable);
-  }, [data, sortListRows]);
-
-  const homeEmerging = useMemo(() => {
-    if (!data?.home) return [];
-    return sortListRows(data.home.emerging);
-  }, [data, sortListRows]);
-
-  const homeMonitoring = useMemo(() => {
-    if (!data?.home) return [];
-    return sortListRows(data.home.monitoring);
-  }, [data, sortListRows]);
-
-  const homeArchive = useMemo(() => {
-    if (!data?.home) return [];
-    return sortListRows(data.home.archivePreview);
-  }, [data, sortListRows]);
+  /** Preserve `/api/theses` bucket order — do not re-sort by recency/conviction/mispricing here (that broke ranked slots). */
+  const homeTradable = data?.home?.tradable ?? [];
+  const homeEmerging = data?.home?.emerging ?? [];
+  const homeMonitoring = data?.home?.monitoring ?? [];
+  const homeArchive = data?.home?.archivePreview ?? [];
 
   const starredCount = useMemo(() => {
     if (!data) return 0;
@@ -390,7 +352,8 @@ export function LiveThesesListPage() {
           <h1 className="text-xl font-semibold tracking-tight text-zinc-50">Thesis map</h1>
           <p className="mt-1 text-[13px] text-zinc-400">
             Tradable opportunities, emerging narratives, monitoring, and recent outcomes — ranked, not capped as a
-            single list.
+            single list. Each bucket keeps the server&apos;s priority order (mispricing-led in Tradable; score-led
+            elsewhere).
           </p>
           {homeSignals?.catalogLeader ? (
             <p className="mt-2 text-[11px] text-zinc-600">
@@ -451,18 +414,6 @@ export function LiveThesesListPage() {
                   {x}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <label className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Sort</label>
-            <select
-              className="rounded-md border border-white/[0.08] bg-zinc-900/50 px-2 py-1 text-[11px] text-zinc-300 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="recent">Most recent update</option>
-              <option value="conviction">Highest path conviction</option>
-              <option value="mispricing">Biggest mispricing</option>
             </select>
           </div>
         </div>
@@ -613,7 +564,9 @@ export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onTogg
             </span>
           )}
         </div>
-        <p className="mt-1.5 max-w-lg line-clamp-2 text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
+        {item.whyNow?.trim() ? (
+          <p className="mt-1.5 max-w-lg line-clamp-2 text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
+        ) : null}
         {item.outcome_label ? (
           <p className="mt-1.5 text-[10px] text-zinc-500">
             Outcome · <span className="text-zinc-300">{item.outcome_label}</span>
