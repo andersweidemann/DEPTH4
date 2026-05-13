@@ -19,8 +19,9 @@ function normalizeSym(s: string): string {
 function biasLabelForSymbol(symbol: string, thesis: Thesis): string {
   const sym = normalizeSym(symbol);
   const hero = normalizeSym(thesis.asset === "—" ? "" : thesis.asset);
-  const bulls = thesis.insiderFlow.bullInstruments.map(normalizeSym);
-  const bears = thesis.insiderFlow.bearInstruments.map(normalizeSym);
+  const flow = thesis.insiderFlow;
+  const bulls = (flow?.bullInstruments ?? []).map(normalizeSym);
+  const bears = (flow?.bearInstruments ?? []).map(normalizeSym);
   if (bulls.includes(sym)) return "Constructive flow";
   if (bears.includes(sym)) return "Defensive / hedge";
   if (hero && sym === hero) {
@@ -70,10 +71,13 @@ function buildEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[]
     if (isPrimary) primarySet = true;
     add(a.symbol, a.note ?? "", isPrimary);
   }
-  for (const s of thesis.insiderFlow.bullInstruments) {
+  const flow = thesis.insiderFlow;
+  const bullList = flow?.bullInstruments ?? [];
+  const bearList = flow?.bearInstruments ?? [];
+  for (const s of bullList) {
     add(s, "Constructive insider-flow tag", false);
   }
-  for (const s of thesis.insiderFlow.bearInstruments) {
+  for (const s of bearList) {
     add(s, "Defensive insider-flow tag", false);
   }
   if (thesis.asset && thesis.asset !== "—" && !seen.has(normalizeSym(thesis.asset))) {
