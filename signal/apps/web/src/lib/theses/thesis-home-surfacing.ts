@@ -9,12 +9,23 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import type { ThesisLifecycleState, ThesisSurfacedBucket } from "@/types/thesis";
 
 /**
- * Ranking slots for `/theses` home buckets — high ceilings so valid non-catalog theses are not silently dropped
- * behind a short catalog-only surface. Overflow still lands in `monitoring` below these cuts.
+ * Tradable lane: highest-priority ready/active rows (tight slot + score floors). Overflow ready/active lands in
+ * `monitoring` so the bucket is never structurally empty when those statuses exist.
  */
-export const HOME_TRADABLE_CAP = 500;
+export const HOME_TRADABLE_BUCKET_MAX = 7;
+/** @deprecated Prefer {@link HOME_TRADABLE_BUCKET_MAX}; kept for import stability in older tests. */
+export const HOME_TRADABLE_CAP = HOME_TRADABLE_BUCKET_MAX;
+export const TRADABLE_MIN_MISPRICING_SCORE = 60;
+export const TRADABLE_MIN_CONVICTION_PCT = 75;
+
+/** Emerging: mid mispricing band on watching/forming narratives. */
+export const EMERGING_MIN_CONVICTION_PCT = 70;
+export const EMERGING_MISPRICING_MIN = 45;
+export const EMERGING_MISPRICING_MAX = 60;
+/** Safety ceiling only — emerging is naturally narrow. */
 export const HOME_EMERGING_CAP = 500;
-/** Reserved for optional UI truncation — partition does not slice monitoring today. */
+
+/** Reserved for optional UI truncation — partition does not slice monitoring. */
 export const HOME_MONITORING_SOFT_CAP = 15;
 export const HOME_ARCHIVE_PREVIEW_CAP = 5;
 
@@ -55,9 +66,27 @@ export type PartitionHomeBucketsOptions = {
   homeBucketEligible?: (t: EngineThesis) => boolean;
 };
 
+function convictionPct(t: EngineThesis): number {
+  return getThesisDisplayModel(t).convictionPct;
+}
+
+function mispricingScore(t: EngineThesis): number {
+  return getThesisMispricing(t, {}).score;
+}
+
+function compareTradableSlot(a: EngineThesis, b: EngineThesis): number {
+  const mp = mispricingScore(b) - mispricingScore(a);
+  if (mp !== 0) return mp;
+  const c = convictionPct(b) - convictionPct(a);
+  if (c !== 0) return c;
+  return thesisScoreV0(b) - thesisScoreV0(a);
+}
+
 /**
- * Ranked buckets: tradable from ready/active; emerging from watching/forming;
- * monitoring = remaining in-play rows (overflow from the two slots above), sorted by score — not hard-capped.
+ * Ranked buckets:
+ * - **Tradable**: ready/active that meet conviction + mispricing floors, top {@link HOME_TRADABLE_BUCKET_MAX} by mispricing.
+ * - **Emerging**: watching/forming in the mid mispricing band with sufficient conviction (forming narratives).
+ * - **Monitoring**: every other non-archived in-play row (overflow ready/active, low-score ready/active, watching outside emerging band, etc.) — **not** hard-capped.
  */
 export function partitionHomeBuckets(combined: EngineThesis[], options?: PartitionHomeBucketsOptions): HomeBucketPartition {
   const eligible = options?.homeBucketEligible;
@@ -75,9 +104,19 @@ export function partitionHomeBuckets(combined: EngineThesis[], options?: Partiti
   const readyActive = livePool.filter((t) => t.status === "ready" || t.status === "active");
   const watchingForming = livePool.filter((t) => t.status === "watching" || t.status === "forming");
 
-  const tradable = [...readyActive].sort((a, b) => thesisScoreV0(b) - thesisScoreV0(a)).slice(0, HOME_TRADABLE_CAP);
+  const tradableCandidates = readyActive.filter(
+    (t) =>
+      convictionPct(t) >= TRADABLE_MIN_CONVICTION_PCT && mispricingScore(t) >= TRADABLE_MIN_MISPRICING_SCORE,
+  );
+  const tradable = [...tradableCandidates].sort(compareTradableSlot).slice(0, HOME_TRADABLE_BUCKET_MAX);
 
-  const emerging = [...watchingForming]
+  const emergingCandidates = watchingForming.filter(
+    (t) =>
+      convictionPct(t) >= EMERGING_MIN_CONVICTION_PCT &&
+      mispricingScore(t) >= EMERGING_MISPRICING_MIN &&
+      mispricingScore(t) <= EMERGING_MISPRICING_MAX,
+  );
+  const emerging = [...emergingCandidates]
     .sort((a, b) => thesisScoreV0(b) - thesisScoreV0(a))
     .slice(0, HOME_EMERGING_CAP);
 

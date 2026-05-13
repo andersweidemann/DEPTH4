@@ -33,12 +33,13 @@ const RAW_SOURCE_TITLE_PATTERNS: RegExp[] = [
 ];
 
 const FORWARD_LOOKING_CUES =
-  /\b(will|should|likely\s+to|expects?|implies?|repric|mispric|underperform|outperform|squeeze|peak|trough|risk\s+is|discount\s+to|premium\s+to|until\s+when|before\s+revenue|before\s+earnings|if\s+.{8,}|when\s+.{8,})\b/i;
+  /\b(will|should|likely\s+to|expects?|implies?|repric|mispric|underperform|outperform|squeeze|peak|trough|overbought|oversold|risk\s+is|discount\s+to|premium\s+to|until\s+when|before\s+revenue|before\s+earnings|if\s+.{8,}|when\s+.{8,})\b/i;
 
 export function titleLooksLikeRawSourceMaterial(text: string): boolean {
   const s = text.trim();
   if (!s) return true;
-  if (s.length < 24) return true;
+  /** Very short strings are usually incomplete; allow punchy tickers (e.g. "BTC is overbought.") above this floor. */
+  if (s.length < 10) return true;
   for (const re of RAW_SOURCE_TITLE_PATTERNS) {
     if (re.test(s)) return true;
   }
@@ -50,11 +51,14 @@ function narrativeHasNonPlaceholderSubstance(t: Thesis): boolean {
     typeof x === "string" ? x.trim() : "",
   );
   const combined = signalFields.filter(Boolean).join(" ").trim();
-  if (combined.length < 48) return false;
+  const hero = `${(t.title || "").trim()} ${(t.thesisStatement || "").trim()}`.trim();
   if (combined.includes(AI_SHELL_PLACEHOLDER)) return false;
   const genericSee = /^see (linked news cluster|macro scan)\.?$/i;
   if (genericSee.test((t.whyNow ?? "").trim()) && (t.whatsUnpriced ?? "").trim().length < 30) return false;
-  return true;
+  if (combined.length >= 48) return true;
+  /** Thin evidence blocks are OK when the hero is already a clear forward market view (common on user / AI rows). */
+  if (FORWARD_LOOKING_CUES.test(hero) && hero.length >= 18) return true;
+  return false;
 }
 
 /**

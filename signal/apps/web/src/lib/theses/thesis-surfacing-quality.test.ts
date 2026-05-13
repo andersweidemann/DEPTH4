@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import {
+  isThesisMapListableThesis,
   passesDepth4ThesisSurfacingQualityBar,
   pickAiThesisStatementFromReasoning,
   titleLooksLikeRawSourceMaterial,
@@ -69,6 +70,23 @@ describe("thesis-surfacing-quality", () => {
   it("passesDepth4ThesisSurfacingQualityBar accepts forward-looking hero + substantive why/misread", () => {
     const t = minimalThesis({});
     expect(passesDepth4ThesisSurfacingQualityBar(t)).toBe(true);
+  });
+
+  it("passesDepth4 for short BTC-style hero when forward cue is in the title", () => {
+    const t = minimalThesis({
+      id: "user-btc-style",
+      slug: "btc-is-overbought-splt",
+      title: "BTC is overbought.",
+      thesisStatement: "BTC is overbought.",
+      status: "active",
+      whyNow: "",
+      whatsUnpriced: "",
+      trigger: "",
+      trade: "",
+      invalidation: "",
+    });
+    expect(passesDepth4ThesisSurfacingQualityBar(t)).toBe(true);
+    expect(isThesisMapListableThesis(t)).toBe(true);
   });
 
   it("pickAiThesisStatementFromReasoning prefers thesis_trade_line over transcript title hint", () => {
