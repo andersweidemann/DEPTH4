@@ -4,6 +4,30 @@ import { ensureAiThesisForDiscoveryCluster } from "@/lib/macro-reasoning/ensure-
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 
+function thickReasoningChain(): string {
+  const l1 =
+    "Headlines confirm coordinated prints on energy supply and OPEC commentary that is more binding than last quarter.";
+  const l2 =
+    "Near-term futures lift XLE and USO first while HY energy curves test whether funding stress is localized or broad.";
+  const l3 =
+    "The quarter-level miss is that investors still treat US shale as infinitely elastic — if inventories keep drawing while discipline holds, the curve is wrong and cash bonds in majors reprice tighter.";
+  const l4 =
+    "Year backdrop rotates leadership toward cashflow-heavy energy and away from capex-heavy narratives until balances prove otherwise — XLE stays the clean expression while single names lag on idiosyncratic noise.";
+  return [
+    "LEVEL 1 (CONFIRMED — this happened):",
+    l1,
+    "",
+    "LEVEL 2 (THIS WEEK–MONTH — near-term):",
+    l2,
+    "",
+    "LEVEL 3 (THIS QUARTER — medium-term):",
+    l3,
+    "",
+    "LEVEL 4 (STRUCTURAL BIAS — backdrop this year):",
+    l4,
+  ].join("\n");
+}
+
 function minimalReasoning(over: Partial<MacroEventReasoning> = {}): MacroEventReasoning {
   return {
     event_summary: "Co issued Q1 results.",
@@ -24,10 +48,9 @@ function minimalReasoning(over: Partial<MacroEventReasoning> = {}): MacroEventRe
     probability_after_pct: null,
     probability_update: "",
     trade_implication: "Neutral tape.",
-    reasoning_chain:
-      "LEVEL 1 (CONFIRMED — this happened):\nFacts from the cluster.\n\nLEVEL 2 (THIS WEEK–MONTH — near-term):\nNear-term read.\n\nLEVEL 3 (THIS QUARTER — medium-term):\nQuarter view.\n\nLEVEL 4 (STRUCTURAL BIAS — backdrop this year):\nYear backdrop.",
+    reasoning_chain: thickReasoningChain(),
     reasoning_summary: "Story threads through Q1.",
-    mispricing_hypothesis: "Priced for perfection.",
+    mispricing_hypothesis: "The market still prices too much shale elasticity — OPEC proves barrels matter first.",
     per_catalog_thesis: [],
     ...over,
   };
@@ -91,7 +114,7 @@ describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
   it("inserts when thesis_trade_line is a valid causal hero; title is forecast not source copy", async () => {
     const hint = "SomeCo (ABC) Q1 2026 Earnings Call Transcript.";
     const trade =
-      "XLE will stay bid as OPEC discipline holds and US shale growth slows into the summer window.";
+      "XLE will stay bid as OPEC discipline holds while the market still embeds too much shale elasticity into the summer window.";
     const reasoning = minimalReasoning({
       thesis_trade_line: trade,
       event_summary: "Energy tape firming.",
@@ -118,6 +141,36 @@ describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
     expect(row.thesis_origin).toBe("ai_generated");
     expect(row.title).toBe(trade.slice(0, 160));
     expect(row.title).not.toContain("Transcript");
+  });
+
+  it("rejects micro-cap style hero even when phrasing sounds like a forecast", async () => {
+    const reasoning = minimalReasoning({
+      thesis_trade_line:
+        "VAALCO may rerate if drilling success changes reserve expectations this quarter.",
+    });
+    const { admin, insertSpy } = createThesesMock({});
+    const out = await ensureAiThesisForDiscoveryCluster(admin, {
+      clusterId: "00000000-0000-4000-8000-00000000dead",
+      titleHint: null,
+      reasoning,
+    });
+    expect(out).toEqual({ ok: false, reason: "reject_hero_not_macro_tradable_ticker" });
+    expect(insertSpy).not.toHaveBeenCalled();
+  });
+
+  it("rejects sell-side deck phrasing in hero", async () => {
+    const reasoning = minimalReasoning({
+      thesis_trade_line:
+        "XLE will stay bid as management keeps Long-Term Targets On Track into next quarter.",
+    });
+    const { admin, insertSpy } = createThesesMock({});
+    const out = await ensureAiThesisForDiscoveryCluster(admin, {
+      clusterId: "00000000-0000-4000-8000-00000000beef",
+      titleHint: null,
+      reasoning,
+    });
+    expect(out).toEqual({ ok: false, reason: "reject_analyst_style_hero" });
+    expect(insertSpy).not.toHaveBeenCalled();
   });
 
   it("short-circuits when an ai_generated row already exists for the cluster", async () => {

@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
+import { passesAiThesisRegistryDepth4Pack } from "@/lib/theses/ai-registry-depth4-pack";
 import { isAcceptableAiThesisRegistryHero, pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
@@ -107,6 +108,11 @@ export async function ensureAiThesisForDiscoveryCluster(
   }).trim();
   if (!isAcceptableAiThesisRegistryHero(statement)) {
     return { ok: false, reason: "reject_non_causal_hero_for_registry" };
+  }
+
+  const depth4 = passesAiThesisRegistryDepth4Pack({ hero: statement, reasoning: p.reasoning });
+  if (!depth4.ok) {
+    return { ok: false, reason: depth4.reason };
   }
 
   const slug = slugify(statement, clusterId.replace(/-/g, "").slice(0, 10));

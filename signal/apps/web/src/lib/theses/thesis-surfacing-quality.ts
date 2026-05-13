@@ -33,7 +33,7 @@ const RAW_SOURCE_TITLE_PATTERNS: RegExp[] = [
 ];
 
 const FORWARD_LOOKING_CUES =
-  /\b(will|should|likely\s+to|expects?|implies?|repric|mispric|underperform|outperform|squeeze|peak|trough|overbought|oversold|risk\s+is|discount\s+to|premium\s+to|until\s+when|before\s+revenue|before\s+earnings|if\s+.{8,}|when\s+.{8,})\b/i;
+  /\b(will|should|likely\s+to|expects?|implies?|repric|mispric|rerat|re-?rate|stay\s+bid|stay\s+under|find\s+a\s+floor|fade|underperform|outperform|squeeze|peak|trough|overbought|oversold|risk\s+is|discount\s+to|premium\s+to|until\s+when|before\s+revenue|before\s+earnings|if\s+.{8,}|when\s+.{8,})\b/i;
 
 /**
  * Gate for **persisting** a new `ai_generated` row in `public.theses`: hero must not be ingest/transcript copy and

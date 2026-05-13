@@ -4,6 +4,7 @@
  */
 
 import { FEED_CARD_WORD_LIMITS } from "./schema";
+import { depth4RegistryHeroExemplarsForPrompt } from "./depth4-registry-hero-exemplars";
 import {
   DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM,
   DEPTH4_RETAIL_VOICE_TEST,
@@ -15,7 +16,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v13";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v14";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -26,6 +27,15 @@ export const MACRO_EVENT_REASONING_JSON_CONTRACT = `Output one JSON object only.
 LENGTH SPLIT (read this first)
 - Strict word caps apply ONLY to these three feed-preview fields (shown before "View reasoning"): event_summary, reasoning_summary, mispricing_hypothesis.
 - All other text fields may be fuller: reasoning_chain, first_order_effects, second_order_effects, third_order_effects, domain, direction_of_change, etc. Those are for the detail page — keep them clear, but do not squeeze them into feed-card length.
+
+DEPTH4 AI THESIS REGISTRY (public.theses) — applies ONLY when thesis_trade_line is non-empty
+- If you cannot meet every bullet here, set thesis_trade_line to "" — shallow analyst notes stay in event_reasoning / feed only; the product will not mint a thesis row.
+- **Macro-liquid lead**: the hero must foreground a tradable macro instrument or mega-cap theme ticker (TLT, GLD, QQQ, IWM, HYG, LQD, USO, XLE, XLK, META, RTX, HG, etc.) — not a one-off micro-cap story unless you also anchor the read to a sector ETF and the mispricing is sector-wide (still prefer the ETF in the lead).
+- **Build the spine first**: write reasoning_chain LEVEL 1→4 in full before thesis_trade_line. LEVEL 2 names the first tape move; **LEVEL 3 states the mispricing / spillover the crowd is missing**; **LEVEL 4 states the quarter-to-year rotation** with tickers. thesis_trade_line must read like the compressed forecast implied by LEVEL 3–4, not a paraphrase of headlines.
+- **Explicit gap**: thesis_trade_line AND mispricing_hypothesis must each make the pricing gap legible (what is priced / anchored / embedded vs what you think breaks next).
+- **Timing edge**: bind to a sharp catalyst window (within weeks/days/months, this earnings season, next payroll/FOMC, before revenue catches up, longer than the market expects, named order book or chokepoint this quarter, etc.). Open-ended "watch the name" without time/mechanism → use "".
+- **Catalog quality bar** — match the causal depth, mispricing identification, and timing precision of these canonical forecast heroes (structure, not verbatim copy):
+${depth4RegistryHeroExemplarsForPrompt()}
 
 - event_summary: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.event_summary} words. Exactly 1 sentence. Answers "what is this?" in ~5 seconds on mobile. If it feels long while walking, shorten it. **Scan-line compliance:** describe what happened or how markets lean — never imperative Buy, Sell, Go long, Go short, Add exposure, Reduce exposure (same rule as thesis heroes).
 - actors: string[] (can be empty). Who is involved? Country, company, or person names. Keep it simple.
@@ -79,15 +89,16 @@ LEVEL 2 (THIS WEEK–MONTH — near-term):
 Days to about four weeks: first market and macro impacts; name tickers. Say what is already priced vs what is not when it helps. 2–3 short sentences max.
 
 LEVEL 3 (THIS QUARTER — medium-term):
-One to three months: cascades (policy, funding, credit, geopolitics intersecting). This is often where the mispricing lives. Split into 2–3 short sentences max.
+One to three months: cascades (policy, funding, credit, geopolitics intersecting). **Name the mispricing:** what the market or futures curve still assumes vs what breaks when this channel persists. 2–3 short sentences max.
 
 LEVEL 4 (STRUCTURAL BIAS — backdrop this year):
-Persistent directional tilt for DEPTH4 theses this year — background bias for this year’s themes, not a 2028 prediction. Name tickers (winners and losers). Tie back to observable near-term proof. 2–3 short sentences max.
+Persistent directional tilt for DEPTH4 theses this year — **rotation / regime lean** (winners vs losers) with tickers. Tie back to observable near-term proof from the cluster. 2–3 short sentences max.
 
 - reasoning_summary: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.reasoning_summary} words. 1–2 sentences. How this event tests the thesis across L1–L4 (hint L3–L4). Say confirm or challenge. No "trade opportunity" filler.
   NOTE: The web feed scan card does not render this field — it appears on the reasoning / detail pages only.
 
 - mispricing_hypothesis: string. FEED PREVIEW ONLY — max ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words. 1–2 sharp sentences. Name tickers or prints when you can. Contrast "market treats X as noise" vs "together Y proves Z".
+  When thesis_trade_line is non-empty, this field must still name the **pricing gap** in plain words (crowd vs your L3 read) inside the word cap — it is part of the registry quality pack.
   BAD: "The market may be reading each print solo, missing that energy capex guides together could confirm…"
   GOOD: "The market treats each print as noise. If PAA, DVN, and GEL all guide capex lower together, that proves US shale is slowing — and oil runs higher by Q3."
   Usually Level 3 or 4 — lead with "Level 3 —" or "Level 4 —" when it fits the word cap.
@@ -147,6 +158,10 @@ EVENT NARRATIVE RULES (detail page)
 - Always state: asset, **forecast direction** (how price is expected to lean — not imperative buy/sell), future event, why, **when** (window or catalyst), current probability, and how this news changes it.
 - Be explicit: "55% → 62%" or "stays 42%".
 - mispricing_hypothesis must answer what the market misses — **usually Level 3 or Level 4** (second/third-order or backdrop bias), not only the obvious L1–L2 move.
+
+AI THESIS REGISTRY (DEPTH4 bar — thesis_trade_line → public.theses)
+- Non-empty thesis_trade_line is a **catalog-grade forecast**: macro-liquid lead asset, explicit mispricing vs consensus, catalyst-bound timing, and it must be implied by your LEVEL 3–4 text — never a single-line "may rerate" on a micro name, never IR deck language ("Fair Value", "On Track"), never headline paraphrase.
+- If the cluster only supports a shallow L1–L2 read, keep thesis_trade_line "" and leave depth in reasoning_chain for humans.
 
 PER-CATALOG-THESIS (second-order discipline)
 - When Known theses is non-empty: you MUST fill per_catalog_thesis with exactly one row per thesis id listed, in the SAME ORDER as the list.
@@ -331,6 +346,9 @@ WHAT TO DO
 9) thesis_trade_line: when non-empty, must read as a forward forecast with tickers and an explicit **when** (window or catalyst) — never "eventually" or years-only framing. Do not put literal "probability N%" inside this string (conviction lives in probability_*_pct + UI). If you cannot meet that bar without copying ingest titles or inventing numbers in prose, set thesis_trade_line to "".
 10) Average about 10–15 words per sentence in reasoning_chain and trade_implication — scan-layer tight, not a memo.
 11) If Known theses is non-empty: fill per_catalog_thesis with exactly one object per thesis id, same order as the list, full second_order_effect strings — this is the cross-thesis map for the cluster.
+12) Registry pack: if thesis_trade_line is non-empty, LEVEL 3–4 in reasoning_chain must each carry a real mispricing + rotation story (not generic filler), and mispricing_hypothesis must still state the pricing gap in the feed word cap.
+13) thesis_trade_line must lead with a macro-liquid / mega-cap ticker (see JSON contract list) — not a lone micro-cap unless you output "" instead.
+14) Write thesis_trade_line last, as the one-sentence compression of the LEVEL 3–4 spine you already wrote.
 
 Return the JSON object now.`;
 }
