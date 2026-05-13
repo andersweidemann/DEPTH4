@@ -1,6 +1,15 @@
 -- Discovery / AI thesis pipeline health (last 48 hours)
 -- Run in Supabase SQL Editor against the live project.
 -- Adjust the interval if needed.
+--
+-- If EVERYTHING returns 0: the pipeline likely never wrote rows. Most common causes:
+--   (A) /api/cron/thesis-discovery never runs (Vercel crons empty; no manual curl).
+--   (B) Discovery gate: clusters need >= THESIS_DISCOVERY_MIN_EVENTS (default 3) AND
+--       signal_score >= THESIS_DISCOVERY_SIGNAL_THRESHOLD (default 35) — see news-clustering.ts.
+--       If news rarely merges into 3+ event clusters, thesis_discovery_clusters stays empty.
+--   (C) Wrong Supabase project / empty news_events.
+--
+-- See also: discovery_pipeline_zero_rows_diagnostic.sql (all-time + news volume).
 
 -- 1) thesis_discovery_clusters: candidate vs promoted (48h)
 select status, count(*) as n
