@@ -8,7 +8,7 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import type { ThesisLifecycleState, ThesisSurfacedBucket } from "@/types/thesis";
 
 /** Max ready/active rows in the Tradable lane (overflow → Monitoring, still ranked). */
-export const HOME_TRADABLE_BUCKET_MAX = 8;
+export const HOME_TRADABLE_BUCKET_MAX = 15;
 /** @deprecated Prefer {@link HOME_TRADABLE_BUCKET_MAX}; kept for import stability in tests. */
 export const HOME_TRADABLE_CAP = HOME_TRADABLE_BUCKET_MAX;
 
