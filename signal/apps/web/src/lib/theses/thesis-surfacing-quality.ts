@@ -35,6 +35,21 @@ const RAW_SOURCE_TITLE_PATTERNS: RegExp[] = [
 const FORWARD_LOOKING_CUES =
   /\b(will|should|likely\s+to|expects?|implies?|repric|mispric|underperform|outperform|squeeze|peak|trough|overbought|oversold|risk\s+is|discount\s+to|premium\s+to|until\s+when|before\s+revenue|before\s+earnings|if\s+.{8,}|when\s+.{8,})\b/i;
 
+/**
+ * Gate for **persisting** a new `ai_generated` row in `public.theses`: hero must not be ingest/transcript copy and
+ * must read as a forward market view (or long analytical forecast prose).
+ */
+export function isAcceptableAiThesisRegistryHero(s: string): boolean {
+  const t = s.trim();
+  if (!t || t.length < 18) return false;
+  if (/^ai[- ]discovered thesis$/i.test(t)) return false;
+  if (titleLooksLikeRawSourceMaterial(t)) return false;
+  const forward = FORWARD_LOOKING_CUES.test(t);
+  const longAnalytical = t.length >= 96;
+  if (!forward && !longAnalytical) return false;
+  return true;
+}
+
 export function titleLooksLikeRawSourceMaterial(text: string): boolean {
   const s = text.trim();
   if (!s) return true;
@@ -115,15 +130,13 @@ export function pickAiThesisStatementFromReasoning(p: {
   const trade = (p.thesisTradeLine ?? "").trim();
   const summary = (p.eventSummary ?? "").trim();
 
-  const prefer = (s: string) => s && !titleLooksLikeRawSourceMaterial(s);
+  /** Same bar as DB insert: no ingest copy, no thin event blurbs without a forward market view. */
+  const prefer = (s: string) => isAcceptableAiThesisRegistryHero(s);
 
   if (prefer(trade)) return trade.slice(0, 480);
   if (prefer(summary)) return summary.slice(0, 480);
   if (prefer(hint)) return hint.slice(0, 480);
 
-  if (trade) return trade.slice(0, 480);
-  if (summary) return summary.slice(0, 480);
-  if (hint && !titleLooksLikeRawSourceMaterial(hint)) return hint.slice(0, 480);
-
-  return "AI-discovered thesis";
+  /** Never fall back to raw transcript headlines or unvetted ingest strings — registry insert must be skipped instead. */
+  return "";
 }

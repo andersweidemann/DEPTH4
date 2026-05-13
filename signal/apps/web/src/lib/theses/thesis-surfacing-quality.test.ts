@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import {
   isThesisMapListableThesis,
+  isAcceptableAiThesisRegistryHero,
   passesDepth4ThesisSurfacingQualityBar,
   pickAiThesisStatementFromReasoning,
   titleLooksLikeRawSourceMaterial,
@@ -105,6 +106,24 @@ describe("thesis-surfacing-quality", () => {
       thesisTradeLine: "",
       eventSummary: "",
     });
-    expect(s).toBe("AI-discovered thesis");
+    expect(s).toBe("");
+  });
+
+  it("pickAiThesisStatementFromReasoning does not fall back to transcript thesis_trade_line", () => {
+    const s = pickAiThesisStatementFromReasoning({
+      titleHint: "Headline only",
+      thesisTradeLine: "Grupo Supervielle S.A. (SUPV) Q1 2026 Earnings Call Transcript.",
+      eventSummary: "Company issued results.",
+    });
+    expect(s).toBe("");
+  });
+
+  it("isAcceptableAiThesisRegistryHero rejects transcript copy and accepts causal hero", () => {
+    expect(isAcceptableAiThesisRegistryHero("Clariant AG (CLZNY) Q1 2026 Earnings Call Transcript.")).toBe(false);
+    expect(
+      isAcceptableAiThesisRegistryHero(
+        "XLE will stay bid as OPEC discipline holds and US shale growth slows into the summer window.",
+      ),
+    ).toBe(true);
   });
 });

@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
-import { pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
+import { isAcceptableAiThesisRegistryHero, pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
@@ -104,7 +104,11 @@ export async function ensureAiThesisForDiscoveryCluster(
     titleHint: p.titleHint,
     thesisTradeLine: p.reasoning.thesis_trade_line ?? "",
     eventSummary: p.reasoning.event_summary ?? "",
-  });
+  }).trim();
+  if (!isAcceptableAiThesisRegistryHero(statement)) {
+    return { ok: false, reason: "reject_non_causal_hero_for_registry" };
+  }
+
   const slug = slugify(statement, clusterId.replace(/-/g, "").slice(0, 10));
 
   const thesis = buildMinimalAiThesis({
