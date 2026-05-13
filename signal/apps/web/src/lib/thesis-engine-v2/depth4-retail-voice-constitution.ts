@@ -47,6 +47,7 @@ dispersion, index diversification, basket repricing / reprices cleanly, convexit
 - Why thesis exists: framing only; no pasting hero / edge / trade.
 - Risk factors: new words; never paste invalidation again.
 - Scenario view (resolution paths): exactly three outcomes for the **same** long/short — Clean win / Messy win / Thesis broken — with probabilities summing ~100%. Each path needs (1) what happens in the world and (2) what it means for the **current** trade (size, targets, time, invalidation, Book). **Each path = a different causal chain**, not three timing variants; consequences name **specific tickers** and actions (scale, trim, cover, wait). Do **not** write three different theses or suggest new entry trades. Do **not** contradict the thesis direction; ban generic filler like: "Trend continues with noisy headlines", "Catalyst confirms direction early", "Base trade plan remains operative", "Invalidation triggers hit", "Accelerated path to targets." Name real drivers and the asset (rigs, OPEC, GLD, TLT, etc.).
+- **Thesis map (/theses route):** only **promoted causal theses** — not article headlines, conference or slideshow titles, transcript titles, or draft rows still on starter-template conviction while in forming/watching. Seeded catalog theses always belong on the map. Keep unpromoted candidates in feed / evaluation until the hero is a real forecast.
 
 5) FEED / SCAN LAYER — teaser only: headline, thesis link, hero line, one impact line; no thesis paragraphs in feed fields.
 

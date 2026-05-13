@@ -1,8 +1,13 @@
 /**
  * Minimum bar for assigning `surfaced_bucket` (Emerging / Monitoring / Tradable) on the Theses home lanes.
  * Registry rows (`ai_generated` in DB) may still exist without passing — they stay off home buckets until copy matures.
+ *
+ * {@link isThesisMapListableThesis} is the **public thesis map** gate (`/theses`): catalog always passes; other rows
+ * must look like causal forecasts, not pasted news or event titles.
  */
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { isCatalogThesisId } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 
 const AI_SHELL_PLACEHOLDER = "This thesis was formed from analyzed news";
 
@@ -18,6 +23,13 @@ const RAW_SOURCE_TITLE_PATTERNS: RegExp[] = [
   /\bQ[1-4]\s+20\d{2}\s+earnings\b/i,
   /\bearnings\s+call\s+transcript\b/i,
   /\bremarks\s+transcript\b/i,
+  /\bslideshow\b/i,
+  /\bpresents\s+at\b/i,
+  /\bone[-‑]on[-‑]one\b/i,
+  /\bresults\s*[-–]\s*earnings\s+call\s+presentation\b/i,
+  /\bearnings\s+presentation\b/i,
+  /\bshareholder\s+call\b/i,
+  /\b(analyst|investor)\s+day\b/i,
 ];
 
 const FORWARD_LOOKING_CUES =
@@ -64,6 +76,25 @@ export function passesDepth4ThesisSurfacingQualityBar(t: Thesis): boolean {
   if (!forwardInHero && !longAnalyticalHero) return false;
 
   if (!narrativeHasNonPlaceholderSubstance(t)) return false;
+
+  return true;
+}
+
+/**
+ * `/theses` map: only **promoted causal theses** — not raw headlines, conference decks, or starter drafts still on
+ * template conviction. Catalog rows always list (seeded product surface).
+ */
+export function isThesisMapListableThesis(t: Thesis): boolean {
+  if (isCatalogThesisId(t.id)) return true;
+  if (!passesDepth4ThesisSurfacingQualityBar(t)) return false;
+
+  const title = (t.title || "").trim();
+  if (title.length > 220) return false;
+
+  const dm = getThesisDisplayModel(t);
+  if (dm.convictionIsTemplateEstimate && (t.status === "forming" || t.status === "watching")) {
+    return false;
+  }
 
   return true;
 }

@@ -17,7 +17,7 @@ import {
   surfacedBucketForEngineThesis,
   thesisScoreV0,
 } from "@/lib/theses/thesis-home-surfacing";
-import { passesDepth4ThesisSurfacingQualityBar } from "@/lib/theses/thesis-surfacing-quality";
+import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import {
   buildSurfacingPreferenceFromRow,
   loadCatalogEngineTheses,
@@ -72,19 +72,18 @@ function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIs
   };
 }
 
-/** List row merge: prefers DB surfacing columns when present (Phase 4); AI rows that fail the thesis bar never get a home bucket. */
+/** List row merge: prefers DB surfacing columns when present (Phase 4). */
 export function thesisListItemFromEngine(
   t: EngineThesis,
   starred: boolean,
   lastUpdatedIso: string | null,
   partition: ReturnType<typeof partitionHomeBuckets>,
   db?: ThesisDbSurfacingPreference,
-  options?: { aiThesisIdSet?: Set<string> },
 ): ThesisListItem {
   const base = engineThesisToListItem(t, starred, lastUpdatedIso);
   let bucket =
     db?.surfaced_bucket !== undefined ? db.surfaced_bucket : surfacedBucketForEngineThesis(t, partition);
-  if (options?.aiThesisIdSet?.has(t.id) && !passesDepth4ThesisSurfacingQualityBar(t)) {
+  if (!isThesisMapListableThesis(t)) {
     bucket = null;
   }
   const lifecycle_state = db?.lifecycle_state ?? deriveLifecycleState(t.status);
@@ -173,6 +172,7 @@ export async function buildThesesListResponse(
   }
 
   let combined = sortThesesForDashboard([...catalogEngine, ...aiTheses, ...userTheses]);
+  combined = combined.filter((t) => isThesisMapListableThesis(t));
 
   if (query.starred) {
     combined = combined.filter((t) => starredIds.has(t.id));
@@ -202,15 +202,10 @@ export async function buildThesesListResponse(
   const focusSlugSet = new Set(focusEngine.map((t) => t.slug));
   const monitorEngine = combined.filter((t) => !focusSlugSet.has(t.slug));
 
-  const aiThesisIdSet = new Set(aiTheses.map((x) => x.id));
-  const partition = partitionHomeBuckets(combined, {
-    homeBucketEligible: (t) => !aiThesisIdSet.has(t.id) || passesDepth4ThesisSurfacingQualityBar(t),
-  });
+  const partition = partitionHomeBuckets(combined);
 
   const mapEngine = (t: EngineThesis) =>
-    thesisListItemFromEngine(t, starredIds.has(t.id), null, partition, surfacingByThesisId.get(t.id), {
-      aiThesisIdSet,
-    });
+    thesisListItemFromEngine(t, starredIds.has(t.id), null, partition, surfacingByThesisId.get(t.id));
 
   if (process.env.NODE_ENV === "development" && userTheses.length >= 3) {
     const signatures = userTheses.map((t) => {

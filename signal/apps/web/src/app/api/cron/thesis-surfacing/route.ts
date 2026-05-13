@@ -3,12 +3,8 @@ import { createClient as createSupabaseJsClient, type SupabaseClient } from "@su
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 import { loadCatalogEngineTheses } from "@/lib/theses/load-catalog-engine-theses";
-import {
-  partitionHomeBuckets,
-  surfacedBucketForEngineThesis,
-  thesisScoreV0,
-} from "@/lib/theses/thesis-home-surfacing";
-import { passesDepth4ThesisSurfacingQualityBar } from "@/lib/theses/thesis-surfacing-quality";
+import { partitionHomeBuckets, surfacedBucketForEngineThesis, thesisScoreV0 } from "@/lib/theses/thesis-home-surfacing";
+import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
 export const runtime = "nodejs";
@@ -57,18 +53,16 @@ async function runThesisSurfacing() {
   const aiEngine = (aiRows ?? []).map((row) =>
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
-  const aiThesisIdSet = new Set(aiEngine.map((t) => t.id));
 
-  const combined = [...catalogEngine, ...aiEngine];
-  const partition = partitionHomeBuckets(combined, {
-    homeBucketEligible: (t) => !aiThesisIdSet.has(t.id) || passesDepth4ThesisSurfacingQualityBar(t),
-  });
+  const combinedAll = [...catalogEngine, ...aiEngine];
+  const combinedListable = combinedAll.filter((t) => isThesisMapListableThesis(t));
+  const partition = partitionHomeBuckets(combinedListable);
   const nowIso = new Date().toISOString();
 
   let updated = 0;
   const errors: string[] = [];
 
-  for (const t of combined) {
+  for (const t of combinedAll) {
     let evidenceMs = 0;
     const ev = await admin
       .from("thesis_evidence_log")
@@ -87,7 +81,7 @@ async function runThesisSurfacing() {
     const meaningfulMs = Math.max(thesisMs, evidenceMs);
     const lastMeaningfulIso = meaningfulMs > 0 ? new Date(meaningfulMs).toISOString() : nowIso;
 
-    const surfacedBucket = surfacedBucketForEngineThesis(t, partition);
+    const surfacedBucket = isThesisMapListableThesis(t) ? surfacedBucketForEngineThesis(t, partition) : null;
     const thesisScore = Math.round(thesisScoreV0(t));
 
     const up = await admin
@@ -112,7 +106,7 @@ async function runThesisSurfacing() {
     ok: errors.length === 0,
     catalog_count: catalogEngine.length,
     ai_generated_count: aiEngine.length,
-    rows_update_attempts: combined.length,
+    rows_update_attempts: combinedAll.length,
     rows_updated_reported: updated,
     surfacing_computed_at: nowIso,
     errors: errors.slice(0, 50),

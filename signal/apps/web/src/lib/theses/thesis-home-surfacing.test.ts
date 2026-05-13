@@ -17,7 +17,7 @@ describe("thesis-home-surfacing (Phase 1)", () => {
     expect(deriveLifecycleState("invalidated")).toBe("invalidated");
   });
 
-  it("partitionHomeBuckets respects tradable and emerging caps on catalog seed", () => {
+  it("partitionHomeBuckets uses large tradable/emerging ceilings so all catalog rows can place", () => {
     const p = partitionHomeBuckets(CATALOG_THESES);
     expect(p.tradable.length).toBeLessThanOrEqual(HOME_TRADABLE_CAP);
     expect(p.emerging.length).toBeLessThanOrEqual(HOME_EMERGING_CAP);

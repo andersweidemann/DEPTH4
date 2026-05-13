@@ -8,9 +8,13 @@ import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-sel
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import type { ThesisLifecycleState, ThesisSurfacedBucket } from "@/types/thesis";
 
-export const HOME_TRADABLE_CAP = 5;
-export const HOME_EMERGING_CAP = 10;
-/** Soft target for dense UI; monitoring list is not hard-sliced so live theses are never dropped from the homepage. */
+/**
+ * Ranking slots for `/theses` home buckets — high ceilings so valid non-catalog theses are not silently dropped
+ * behind a short catalog-only surface. Overflow still lands in `monitoring` below these cuts.
+ */
+export const HOME_TRADABLE_CAP = 500;
+export const HOME_EMERGING_CAP = 500;
+/** Reserved for optional UI truncation — partition does not slice monitoring today. */
 export const HOME_MONITORING_SOFT_CAP = 15;
 export const HOME_ARCHIVE_PREVIEW_CAP = 5;
 
@@ -52,8 +56,8 @@ export type PartitionHomeBucketsOptions = {
 };
 
 /**
- * Competitive slots (not FIFO): tradable from ready/active; emerging from watching/forming;
- * monitoring = remaining in-play rows by score, capped.
+ * Ranked buckets: tradable from ready/active; emerging from watching/forming;
+ * monitoring = remaining in-play rows (overflow from the two slots above), sorted by score — not hard-capped.
  */
 export function partitionHomeBuckets(combined: EngineThesis[], options?: PartitionHomeBucketsOptions): HomeBucketPartition {
   const eligible = options?.homeBucketEligible;
