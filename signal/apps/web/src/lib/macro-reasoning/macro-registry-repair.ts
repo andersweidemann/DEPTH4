@@ -6,7 +6,7 @@ import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
 
 /** Bump when repair instructions change (logged; not a DB prompt_version key). */
-export const MACRO_REGISTRY_REPAIR_PROMPT_VERSION = "macro-registry-repair-v1";
+export const MACRO_REGISTRY_REPAIR_PROMPT_VERSION = "macro-registry-repair-v2";
 
 const VISION_EXCERPT = `DEPTH4 (product): cause, path, timing, and market implication are mandatory. Generic summaries or headline rewrites are failure. Four levels: L1 confirmed (Tier 1–2), L2 this week (1–7d), L3 this month (7–30d) with explicit mispricing, L4 this quarter (30–90d+). Mispricing must state what the crowd prices vs what you see. Voice: simple retail trading English — concrete, not analyst deck tone.`;
 
@@ -40,6 +40,13 @@ TASK
 - Output ONE JSON object only (no markdown). Keys exactly:
   thesis_trade_line, reasoning_chain, mispricing_hypothesis, reasoning_summary, trade_implication
   Optional key: event_summary (only if the current event_summary is a raw headline echo — rewrite it as a 1-sentence scan line, max 15 words).
+
+VALIDATOR GATES (your output is merged and then checked by the same code as production — all must pass)
+- **Hero shape:** one sentence; early segment uses a forecast verb (will/should/rerate/fade/underperform/outperform/stay bid/…); within ~220 chars after that, include a causal linker (because / as / when / while / before / if / on / into) tying cause to the trade.
+- **Macro anchor:** include at least one liquid expression the code recognizes (e.g. SPY, QQQ, FXI, GLD, TLT, USO, XLE, HYG, IWM, EEM, META, NVDA, … or “Treasuries”, “S&P”, “high yield”, “Fed”, “FOMC”, “real yields”, “crude”).
+- **Timing:** include a sharp window from this set (examples): “within weeks”, “this quarter”, “next print”, “this earnings season”, “before the next FOMC”, “over the next two months” — not “eventually” or year-only “this year” without a nearer hook.
+- **Mispricing (combined):** hero + LEVEL 3 block + mispricing_hypothesis together must contain explicit “priced wrong” language such as: “the market is pricing …”, “mispric”, “priced for …”, “futures still embed …”, “DEPTH4 sees …”, “wrong about …”.
+- **LEVEL 3 body:** must contain the exact pattern: The market is pricing [X], but DEPTH4 sees [Y].
 
 RULES
 1) thesis_trade_line is the REGISTRY HERO — a NEW causal trade sentence. It must NOT be a literal or near-literal copy of the anchor headline, cluster title hint, or transcript title. It MUST contain a forward market verb (will / should / likely to / rerate / fade / outperform / underperform / stay bid / misprice / if / when / before / within weeks / this quarter / next print / this earnings season) plus cause and timing.
