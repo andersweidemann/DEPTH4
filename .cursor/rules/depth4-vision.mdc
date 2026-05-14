@@ -1,0 +1,33 @@
+---
+description: DEPTH4 product vision — read VISION.md; thesis quality, sources, models, failure modes
+alwaysApply: true
+---
+
+# DEPTH4 — `VISION.md` is source of truth
+
+The vision document lives at the **repository root**: `VISION.md`.
+
+Treat **`VISION.md` as the source of truth** for what DEPTH4 is and how it should behave.
+
+## Global rules for this project
+
+- **Read and respect `VISION.md`** before making large code, prompt, or product changes.
+- For work on **thesis generation, ranking, surfacing, probabilities, scenario views, or copy**, align explicitly with `VISION.md`.
+- If a change would move DEPTH4 toward any **Failure mode** listed in `VISION.md`, **do not implement it**; explain the conflict instead.
+- For **prompts, comments, and UX text**, prefer the tone in **Phrasing and language** in `VISION.md` (simple retail trading language, concrete, DEPTH4-specific).
+- For **LLM routing**, follow **Model usage** in `VISION.md`: high-quality models (e.g. Opus) for user-visible reasoning and thesis formation; cheaper models only for low-risk background work that is **heavily filtered** before surfacing.
+- For **geopolitical sources**, follow the **Source hierarchy** in `VISION.md`. Do not promote **Tier 5** claims into theses without independent **Tier 1–2** confirmation.
+
+## When the user asks for changes, do this first
+
+1. **Skim `VISION.md`** and state, in your own words, which sections matter most for the task (one or two short bullets).
+2. **Then** propose or apply code / prompt / UX changes.
+3. In the explanation, **point back** to the sections satisfied (e.g. Non‑negotiables, Geopolitical analysis framework, Failure modes, Release standard).
+
+## Quality bar
+
+- Do not generate or store “theses” that are only **paraphrased headlines** or **generic analyst notes**.
+- If the model cannot reach DEPTH4 quality for a candidate, **reject** instead of inserting or publishing (see code paths such as `passesAiThesisRegistryInsertValidation` / forming narrative only).
+- Treat anything that **weakens the intelligence loop or trust** as a **failed proposal**, not something to polish later.
+
+Use `VISION.md` as a standing constraint on work in this repo.
