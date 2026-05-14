@@ -65,12 +65,15 @@ describe("ai-registry-depth4-pack", () => {
     expect(reasoningChainHasSubstantiveL3L4(baseReasoning().reasoning_chain)).toBe(true);
   });
 
-  it("passesAiThesisRegistryDepth4Pack accepts single-name hero when timing, mispricing pack, and L3–4 pass", () => {
+  it("passesAiThesisRegistryDepth4Pack accepts non-catalog single-ticker hero when causal spine + L3 pattern pass", () => {
     const r = baseReasoning();
     const hero =
-      "VAALCO may rerate if drilling success changes reserve expectations this quarter — the market still misprices reserve torque before the next two prints.";
+      "ARKG will stay under pressure into the next FOMC as the market is pricing a steady biotech bid, but DEPTH4 sees funding stress clearing weaker names first this quarter.";
     expect(passesAiThesisRegistryDepth4Pack({ hero, reasoning: r })).toEqual({ ok: true });
+  });
 
+  it("passesAiThesisRegistryDepth4Pack accepts allowlisted macro hero when timing, mispricing pack, and L3–4 pass", () => {
+    const r = baseReasoning();
     const xle =
       "XLE will stay bid as OPEC discipline holds while the market still embeds too much shale elasticity into the summer window.";
     expect(passesAiThesisRegistryDepth4Pack({ hero: xle, reasoning: r })).toEqual({ ok: true });
