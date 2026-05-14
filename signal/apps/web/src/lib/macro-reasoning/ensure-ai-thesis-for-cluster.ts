@@ -26,7 +26,7 @@ function buildMinimalAiThesis(input: {
   const statement = input.statement.trim().slice(0, 480) || "AI-discovered thesis";
   const now = new Date().toISOString();
   const placeholder =
-    "This thesis was formed from analyzed news. Refine narrative blocks on the detail page as the story develops.";
+    "Provisional shell from the news cluster — refine narrative blocks on the detail page as the story develops.";
 
   const shell: Thesis = {
     id: input.id,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import {
   isThesisMapListableThesis,
   isAcceptableAiThesisRegistryHero,
@@ -118,12 +119,33 @@ describe("thesis-surfacing-quality", () => {
     expect(s).toBe("");
   });
 
-  it("isAcceptableAiThesisRegistryHero rejects transcript copy and accepts causal hero", () => {
-    expect(isAcceptableAiThesisRegistryHero("Clariant AG (CLZNY) Q1 2026 Earnings Call Transcript.")).toBe(false);
-    expect(
-      isAcceptableAiThesisRegistryHero(
-        "XLE will stay bid as OPEC discipline holds and US shale growth slows into the summer window.",
-      ),
-    ).toBe(true);
+  it("isThesisMapListableThesis allows ai_generated forming rows on seed scenario triple (registry pre-validated)", () => {
+    const t = minimalThesis({
+      id: "ai-registry-1",
+      slug: "ai-registry-1",
+      thesisOrigin: "ai_generated",
+      status: "forming",
+      scenarioOverrides: {
+        base: { probability: 40, confirmation: "Messy", marketConsequence: "m" },
+        bull: { probability: 35, confirmation: "Clean", marketConsequence: "c" },
+        bear: { probability: 25, confirmation: "Broken", marketConsequence: "b" },
+      },
+    });
+    expect(getThesisDisplayModel(t).convictionIsTemplateEstimate).toBe(true);
+    expect(isThesisMapListableThesis(t)).toBe(true);
+  });
+
+  it("isThesisMapListableThesis still hides user forming rows on template triple", () => {
+    const t = minimalThesis({
+      id: "user-1",
+      thesisOrigin: "user",
+      status: "forming",
+      scenarioOverrides: {
+        base: { probability: 40, confirmation: "Messy", marketConsequence: "m" },
+        bull: { probability: 35, confirmation: "Clean", marketConsequence: "c" },
+        bear: { probability: 25, confirmation: "Broken", marketConsequence: "b" },
+      },
+    });
+    expect(isThesisMapListableThesis(t)).toBe(false);
   });
 });

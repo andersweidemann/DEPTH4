@@ -31,6 +31,22 @@ import { ensureAiThesisForDiscoveryCluster } from "@/lib/macro-reasoning/ensure-
 import { buildFormingNarrativeLayerForRegistry } from "@/lib/macro-reasoning/ai-thesis-registry-forming-layer";
 import { pickStrongestCatalogThesisId } from "@/lib/macro-reasoning/pick-strongest-catalog-thesis";
 
+/**
+ * ## Macro thesis registry pipeline (Part D)
+ *
+ * **Promoted discovery clusters** (`thesis_discovery_clusters`) are claimed by this cron (`GET|POST` with cron secret).
+ *
+ * 1. Loads cluster member `news_events`, builds the macro reasoning prompt (`MACRO_EVENT_REASONING_*`).
+ * 2. Calls Anthropic → structured `MacroEventReasoning` (L1–L4 `reasoning_chain`, mispricing, trade line, etc.).
+ * 3. Inserts **`event_reasoning`** (cluster + anchor news id + full JSON).
+ * 4. **`ensureAiThesisForDiscoveryCluster`** (same module as backfill): runs DEPTH4 registry validation; on pass,
+ *    inserts **`public.theses`** with `thesis_origin = ai_generated`, `status = forming`, `discovery_cluster_id` set.
+ *    Weak / rejected outputs never get a thesis row (`forming_narrative_layer` on `event_reasoning` only).
+ * 5. `persistEventReasoningToThesisState` updates evidence / scenario columns on the linked thesis when probabilities exist.
+ *
+ * Wire this route in your host (e.g. Vercel Cron) on a schedule; it requires `CRON_SECRET` / `INSIDER_FLOW_CRON_SECRET`,
+ * Supabase service role, and Anthropic keys (`model-routing.ts`).
+ */
 export const runtime = "nodejs";
 
 const EVENT_REASONING_CRON_TASK: CronLlmTaskType = "macro_event_reasoning";

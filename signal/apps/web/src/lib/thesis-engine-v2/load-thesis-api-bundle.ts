@@ -61,7 +61,7 @@ export async function loadThesisDetailBundleForApi(
 
   const { data: aiRow, error: aiErr } = await supabase
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin")
     .eq("slug", slug)
     .eq("thesis_origin", "ai_generated")
     .maybeSingle();
@@ -78,7 +78,7 @@ export async function loadThesisDetailBundleForApi(
 
   const { data, error } = await supabase
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin")
     .eq("slug", slug)
     .eq("owner_user_id", userId)
     .eq("thesis_origin", "user")

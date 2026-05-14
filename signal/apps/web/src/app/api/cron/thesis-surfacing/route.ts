@@ -44,7 +44,7 @@ async function runThesisSurfacing() {
   const { data: aiRows } = await admin
     .from("theses")
     .select(
-      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label",
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, thesis_origin",
     )
     .eq("thesis_origin", "ai_generated")
     .order("updated_at", { ascending: false })

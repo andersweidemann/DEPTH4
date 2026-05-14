@@ -103,8 +103,11 @@ export function passesDepth4ThesisSurfacingQualityBar(t: Thesis): boolean {
 }
 
 /**
- * `/theses` map: only **promoted causal theses** — not raw headlines, conference decks, or starter drafts still on
- * template conviction. Catalog rows always list (seeded product surface).
+ * `/theses` map: only **promoted causal theses** — not raw headlines, conference decks, or shallow rejected
+ * narratives (those never get `ai_generated` rows). Catalog rows always list (seeded product surface).
+ *
+ * **`ai_generated`:** registry insert already ran the DEPTH4 pack; seed `scenario_probabilities` stay template-shaped
+ * until evidence / cron moves them — do not hide forming/watching AI rows for that alone.
  */
 export function isThesisMapListableThesis(t: Thesis): boolean {
   if (isCatalogThesisId(t.id)) return true;
@@ -115,6 +118,7 @@ export function isThesisMapListableThesis(t: Thesis): boolean {
 
   const dm = getThesisDisplayModel(t);
   if (dm.convictionIsTemplateEstimate && (t.status === "forming" || t.status === "watching")) {
+    if (t.thesisOrigin === "ai_generated") return true;
     return false;
   }
 

@@ -6,7 +6,13 @@ import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-th
 
 const ALLOWED = new Set<ThesisStatus>(["forming", "watching", "ready", "active", "resolved", "invalidated"]);
 
-/** Rebuild a client `Thesis` from a `public.theses` row owned by the signed-in user. */
+function thesisOriginFromDb(v: unknown): Thesis["thesisOrigin"] | undefined {
+  const o = typeof v === "string" ? v.trim() : "";
+  if (o === "user" || o === "seeded_system" || o === "ai_generated") return o;
+  return undefined;
+}
+
+/** Rebuild a client `Thesis` from a `public.theses` row (user-owned, `ai_generated`, etc.). */
 export function userThesisFromSupabaseRow(row: {
   id: string;
   slug: string;
@@ -17,6 +23,7 @@ export function userThesisFromSupabaseRow(row: {
   status: string;
   insider_flow?: unknown;
   updated_at?: string | null;
+  thesis_origin?: string | null;
 }): Thesis {
   const st = ALLOWED.has(row.status as ThesisStatus) ? (row.status as ThesisStatus) : "watching";
   const shell: Thesis = {
@@ -67,5 +74,6 @@ export function userThesisFromSupabaseRow(row: {
     },
     { forceApplyDbProbabilities: true },
   );
-  return t;
+  const thesisOrigin = thesisOriginFromDb(row.thesis_origin);
+  return thesisOrigin ? { ...t, thesisOrigin } : t;
 }

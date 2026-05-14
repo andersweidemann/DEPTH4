@@ -68,6 +68,12 @@ export type Thesis = {
   origin?: "system" | "user";
 
   /**
+   * When rebuilt from `public.theses` (list/detail loaders), mirrors `thesis_origin` for product gates
+   * (e.g. `/theses` listability for DEPTH4 registry rows still on the seed scenario triple).
+   */
+  thesisOrigin?: "user" | "seeded_system" | "ai_generated";
+
+  /**
    * Four-level cascade for the thesis **book** (not event L1–L4). Do not restate the hero title here.
    * L1 = facts now · L2 = near window / what to watch · L3 = how the trade pays through time · L4 = structural bias.
    */
