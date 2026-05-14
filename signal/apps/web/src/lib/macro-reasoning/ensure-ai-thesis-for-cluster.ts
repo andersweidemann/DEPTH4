@@ -1,11 +1,31 @@
 import { randomUUID } from "crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
-import { passesAiThesisRegistryDepth4Pack } from "@/lib/theses/ai-registry-depth4-pack";
+import { extractReasoningLevelBodies, passesAiThesisRegistryDepth4Pack } from "@/lib/theses/ai-registry-depth4-pack";
 import { isAcceptableAiThesisRegistryHero, pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
+
+const MIN_REASONING_CHAIN_LEVEL_CHARS = 24;
+
+/** When the model emitted a well-formed L1–L4 chain, persist it into the thesis book instead of generic placeholders. */
+function thesisCascadeFromMacroReasoningChain(
+  chain: string | undefined | null,
+): NonNullable<Thesis["thesisCascade"]> | null {
+  const bodies = extractReasoningLevelBodies((chain ?? "").trim());
+  if (!bodies) return null;
+  for (const b of bodies) {
+    if (b.length < MIN_REASONING_CHAIN_LEVEL_CHARS) return null;
+  }
+  const cap = (s: string) => s.slice(0, 900);
+  return {
+    l1Confirmed: cap(bodies[0]),
+    l2ThisQuarter: cap(bodies[1]),
+    l3ThisYear: cap(bodies[2]),
+    l4Backdrop2026: cap(bodies[3]),
+  };
+}
 
 function slugify(input: string, suffix: string): string {
   const base = input
@@ -27,6 +47,15 @@ function buildMinimalAiThesis(input: {
   const now = new Date().toISOString();
   const placeholder =
     "Provisional shell from the news cluster — refine narrative blocks on the detail page as the story develops.";
+
+  const placeholderCascade: NonNullable<Thesis["thesisCascade"]> = {
+    l1Confirmed: "Cluster headlines and reasoning summary.",
+    l2ThisQuarter: "Second-order effects from macro reasoning output.",
+    l3ThisYear: "Third-order backdrop if the thesis persists.",
+    l4Backdrop2026: "Structural context from reasoning chain.",
+  };
+  const thesisCascade =
+    thesisCascadeFromMacroReasoningChain(input.reasoning.reasoning_chain) ?? placeholderCascade;
 
   const shell: Thesis = {
     id: input.id,
@@ -62,12 +91,7 @@ function buildMinimalAiThesis(input: {
       total: 44,
     },
     theme: "macro",
-    thesisCascade: {
-      l1Confirmed: "Cluster headlines and reasoning summary.",
-      l2ThisQuarter: "Second-order effects from macro reasoning output.",
-      l3ThisYear: "Third-order backdrop if the thesis persists.",
-      l4Backdrop2026: "Structural context from reasoning chain.",
-    },
+    thesisCascade,
     insiderFlow: { bullInstruments: [], bearInstruments: [], confirmTags: [], contradictTags: [] },
   };
 

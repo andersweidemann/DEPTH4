@@ -141,6 +141,11 @@ describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
     expect(row.thesis_origin).toBe("ai_generated");
     expect(row.title).toBe(trade.slice(0, 160));
     expect(row.title).not.toContain("Transcript");
+    const body = row.body as {
+      thesis_cascade?: { l1_confirmed?: string; l2_this_quarter?: string };
+    };
+    expect(body.thesis_cascade?.l1_confirmed).toContain("Headlines confirm");
+    expect(body.thesis_cascade?.l2_this_quarter).toContain("Near-term futures");
   });
 
   it("rejects sell-side deck phrasing in hero", async () => {

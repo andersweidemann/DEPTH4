@@ -158,6 +158,14 @@ describe("thesis-surfacing-quality", () => {
     expect(isThesisMapListableThesis(t)).toBe(false);
   });
 
+  it("registry hero accepts forecast movement verbs (rally) without relying on the length-only bypass", () => {
+    expect(
+      isAcceptableAiThesisRegistryHero(
+        "CHIX rallies; the desk still treats offshore China as uninvestable into late summer.",
+      ),
+    ).toBe(true);
+  });
+
   it("registry hero rejects long IR headline without forward cue (no length-only bypass)", () => {
     const hero =
       "PPL Corporation: Long-Term Targets On Track, Shares Near Fair Value.";
