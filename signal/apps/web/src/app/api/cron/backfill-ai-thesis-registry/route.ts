@@ -35,6 +35,7 @@ async function runBackfill(req: NextRequest) {
   }
 
   const firstReasoningByCluster = new Map<string, unknown>();
+  // Part C: each cluster uses the same DEPTH4 registry gate as event-reasoning (`ensureAiThesisForDiscoveryCluster`).
   for (const r of rows ?? []) {
     const cid = typeof (r as { cluster_id?: unknown }).cluster_id === "string" ? (r as { cluster_id: string }).cluster_id.trim() : "";
     if (!cid || firstReasoningByCluster.has(cid)) continue;

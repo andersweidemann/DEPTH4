@@ -28,6 +28,7 @@ import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
 import { persistEventReasoningToThesisState } from "@/lib/macro-reasoning/persist-event-reasoning-to-thesis-state";
 import { ensureAiThesisForDiscoveryCluster } from "@/lib/macro-reasoning/ensure-ai-thesis-for-cluster";
+import { buildFormingNarrativeLayerForRegistry } from "@/lib/macro-reasoning/ai-thesis-registry-forming-layer";
 import { pickStrongestCatalogThesisId } from "@/lib/macro-reasoning/pick-strongest-catalog-thesis";
 
 export const runtime = "nodejs";
@@ -458,19 +459,31 @@ async function runEventReasoning() {
     return NextResponse.json(summary, { status: 502 });
   }
 
+  /**
+   * Part C — one `ensureAiThesisForDiscoveryCluster` per cluster run (DEPTH4 pack + hero gate inside).
+   * Weaker model output never gets a `public.theses` row; it stays on `event_reasoning` + `forming_narrative_layer` only.
+   */
+  const aiRegistryOutcome = await ensureAiThesisForDiscoveryCluster(admin, {
+    clusterId: claimed.id,
+    titleHint: claimed.title_hint,
+    reasoning: validated.data,
+  });
+
   let affectedTheses = [...validated.data.affected_theses].map((t) => t.trim()).filter(Boolean);
   if (validated.data.thesis_relation === "create_new") {
-    const ai = await ensureAiThesisForDiscoveryCluster(admin, {
-      clusterId: claimed.id,
-      titleHint: claimed.title_hint,
-      reasoning: validated.data,
-    });
-    if (ai.ok) {
-      affectedTheses = [ai.thesisId];
+    if (aiRegistryOutcome.ok) {
+      affectedTheses = [aiRegistryOutcome.thesisId];
       console.info("[event-reasoning] ai_thesis_ensured", {
         clusterId: claimed.id,
-        thesisId: ai.thesisId,
-        created: ai.created,
+        thesisId: aiRegistryOutcome.thesisId,
+        created: aiRegistryOutcome.created,
+      });
+    } else {
+      affectedTheses = [];
+      console.info("[event-reasoning] ai_thesis_registry_skipped", {
+        reason: aiRegistryOutcome.reason,
+        clusterId: claimed.id,
+        thesis_relation: validated.data.thesis_relation,
       });
     }
   }
@@ -479,17 +492,12 @@ async function runEventReasoning() {
     if (pick) affectedTheses = [pick];
   }
   if (!affectedTheses.length && validated.data.thesis_relation !== "irrelevant") {
-    const ai = await ensureAiThesisForDiscoveryCluster(admin, {
-      clusterId: claimed.id,
-      titleHint: claimed.title_hint,
-      reasoning: validated.data,
-    });
-    if (ai.ok) {
-      affectedTheses = [ai.thesisId];
+    if (aiRegistryOutcome.ok) {
+      affectedTheses = [aiRegistryOutcome.thesisId];
       console.info("[event-reasoning] ai_thesis_fallback_orphan_cluster", {
         clusterId: claimed.id,
-        thesisId: ai.thesisId,
-        created: ai.created,
+        thesisId: aiRegistryOutcome.thesisId,
+        created: aiRegistryOutcome.created,
         thesis_relation: validated.data.thesis_relation,
       });
     }
@@ -537,21 +545,32 @@ async function runEventReasoning() {
       console.info("[event-reasoning] thesis_state_persisted", { thesisId: persist.thesisId, clusterId: claimed.id, anchorId });
     }
 
-    // Registry row: `affected_theses` usually points at catalog ids (pickStrongest), so without this
-    // `ensureAiThesisForDiscoveryCluster` almost never ran — ai_generated count stayed 0 in production.
-    const registry = await ensureAiThesisForDiscoveryCluster(admin, {
-      clusterId: claimed.id,
-      titleHint: claimed.title_hint,
-      reasoning: validated.data,
-    });
-    if (registry.ok) {
+    if (aiRegistryOutcome.ok) {
       console.info("[event-reasoning] ai_registry_row", {
-        thesisId: registry.thesisId,
-        created: registry.created,
+        thesisId: aiRegistryOutcome.thesisId,
+        created: aiRegistryOutcome.created,
         clusterId: claimed.id,
       });
     } else {
-      console.warn("[event-reasoning] ai_registry_failed", { reason: registry.reason, clusterId: claimed.id });
+      console.warn("[event-reasoning] ai_registry_failed", { reason: aiRegistryOutcome.reason, clusterId: claimed.id });
+    }
+
+    const formingNarrativeLayer = buildFormingNarrativeLayerForRegistry({
+      titleHint: claimed.title_hint,
+      reasoning: validated.data,
+      ensureResult: aiRegistryOutcome,
+    });
+    const mergedReasoning = { ...reasoningPayload, forming_narrative_layer: formingNarrativeLayer };
+    const { error: formingUpdErr } = await admin
+      .from("event_reasoning")
+      .update({ reasoning: mergedReasoning, updated_at: new Date().toISOString() })
+      .eq("id", insertId);
+    if (formingUpdErr) {
+      console.warn("[event-reasoning] forming_narrative_layer_update_failed", {
+        insertId,
+        clusterId: claimed.id,
+        message: formingUpdErr.message,
+      });
     }
   }
 

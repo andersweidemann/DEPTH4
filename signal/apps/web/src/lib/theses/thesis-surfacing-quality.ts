@@ -1,6 +1,9 @@
 /**
  * Minimum bar for assigning `surfaced_bucket` (Emerging / Monitoring / Tradable) on the Theses home lanes.
- * Registry rows (`ai_generated` in DB) may still exist without passing — they stay off home buckets until copy matures.
+ *
+ * **Insert path:** new `ai_generated` rows are only created when `ensureAiThesisForDiscoveryCluster` accepts the
+ * cluster output (DEPTH4 **registry** pack: {@link passesAiThesisRegistryInsertValidation} + hero base bar). Legacy DB
+ * rows from older pipelines may still exist; they stay off home buckets until copy matures.
  *
  * {@link isThesisMapListableThesis} is the **public thesis map** gate (`/theses`): catalog always passes; other rows
  * must look like causal forecasts, not pasted news or event titles.

@@ -84,4 +84,39 @@ describe("ai-registry-depth4-pack", () => {
     expect(hasExplicitMispricingSignal(r, "USO will rip higher on vibes into next week.")).toBe(false);
     expect(hasExplicitMispricingSignal(baseReasoning(), "XLE will stay bid as the market still prices too much supply.")).toBe(true);
   });
+
+  it("rejects non-allowlisted single-name hero (e.g. regional utility) even when causal spine passes", () => {
+    const r = baseReasoning();
+    const hero =
+      "PPL will underperform into the next two prints as the market is pricing a slow wires recovery, but DEPTH4 sees swaps repricing faster than consensus this quarter.";
+    expect(passesAiThesisRegistryDepth4Pack({ hero, reasoning: r })).toEqual({
+      ok: false,
+      reason: "reject_hero_not_macro_tradable_asset",
+    });
+  });
+
+  it("rejects duplicate LEVEL bodies (no incremental L1–L4)", () => {
+    const dupBody =
+      "The market is pricing a slow-shale rebound, but DEPTH4 sees discipline plus draws forcing the curve to tighten faster than consensus.";
+    const chain = [
+      "LEVEL 1 (CONFIRMED TODAY — 0–24h):",
+      "OPEC guidance and inventory draws are confirmed in the member headlines and official comments.",
+      "",
+      "LEVEL 2 (THIS WEEK — 1–7d):",
+      "USO and XLE reprice first while desks resize delta and hedges into the next inventory prints.",
+      "",
+      "LEVEL 3 (THIS MONTH — 7–30d):",
+      dupBody,
+      "",
+      "LEVEL 4 (THIS QUARTER — 30–90d+):",
+      dupBody,
+    ].join("\n");
+    const r = baseReasoning({ reasoning_chain: chain });
+    const hero =
+      "XLE will stay bid into the summer window as futures still embed too much shale elasticity, but DEPTH4 sees draws forcing a tighter curve than consensus.";
+    expect(passesAiThesisRegistryDepth4Pack({ hero, reasoning: r })).toEqual({
+      ok: false,
+      reason: "reject_reasoning_level_duplicate_body",
+    });
+  });
 });

@@ -51,6 +51,20 @@ export const catalogThesisPassSchemaForInsert = catalogThesisPassSchema.extend({
     }),
 });
 
+/**
+ * Part C — **forming narrative** audit trail on `event_reasoning.reasoning` (not a `public.theses` row).
+ * Holds shallow / partial cluster material and the registry gate outcome; used for scanning and ops, not as a thesis slug.
+ */
+export const formingNarrativeLayerSchema = z.object({
+  /** False when there was no non-empty registry hero candidate from the picker. */
+  ai_registry_evaluated: z.boolean(),
+  ai_registry_thesis_id: z.string().optional(),
+  /** Part B/C validation or `ensureAiThesisForDiscoveryCluster` failure reason (forming narrative path only). */
+  ai_registry_gate_reason: z.string().max(600).optional(),
+});
+
+export type FormingNarrativeLayer = z.infer<typeof formingNarrativeLayerSchema>;
+
 export const macroEventReasoningSchema = z
   .object({
     /** Headline-level feed line — hard word cap. */
@@ -107,6 +121,9 @@ export const macroEventReasoningSchema = z
      * When the prompt includes Known theses, the model must emit one entry per thesis id (exact id match).
      */
     per_catalog_thesis: z.array(catalogThesisPassSchema).default([]),
+
+  /** Worker-only: Part C forming-narrative / registry gate snapshot (see `buildFormingNarrativeLayerForRegistry`). */
+  forming_narrative_layer: formingNarrativeLayerSchema.optional(),
   })
   .superRefine((data, ctx) => {
     const es = countWords(data.event_summary);

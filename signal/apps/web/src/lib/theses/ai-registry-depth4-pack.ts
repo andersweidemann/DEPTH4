@@ -95,6 +95,337 @@ const L34_GENERIC_FILLER =
 const MIN_L1_L2_CHARS = 28;
 const MIN_L3_L4_CHARS = 48;
 
+/**
+ * Uppercase tokens from the hero that match `[A-Z]{2,5}` but are not tradable equity roots
+ * (prose, macro data tags, brand).
+ */
+const NOT_EQUITY_TICKER_TOKENS = new Set(
+  [
+    "THE",
+    "AND",
+    "FOR",
+    "NOT",
+    "BUT",
+    "ALL",
+    "CAN",
+    "HAS",
+    "WAS",
+    "ARE",
+    "OUR",
+    "ANY",
+    "OWN",
+    "NEW",
+    "OLD",
+    "END",
+    "SET",
+    "RUN",
+    "WIN",
+    "LOSS",
+    "RIP",
+    "CEO",
+    "CFO",
+    "IPO",
+    "ETF",
+    "IT",
+    "AS",
+    "IF",
+    "AT",
+    "OR",
+    "IN",
+    "TO",
+    "BY",
+    "BE",
+    "WE",
+    "UK",
+    "EU",
+    "AI",
+    "TV",
+    "PC",
+    "US",
+    "MAY",
+    "DAY",
+    "TWO",
+    "ONE",
+    "TOP",
+    "LOW",
+    "BIG",
+    "BAD",
+    "CPI",
+    "PPI",
+    "GDP",
+    "NFP",
+    "ISM",
+    "EIA",
+    "ADP",
+    "FED",
+    "FOMC",
+    "BOE",
+    "BOJ",
+    "ECB",
+    "BOC",
+    "RBA",
+    "SNB",
+    "IMF",
+    "OPEC",
+    "USD",
+    "EUR",
+    "JPY",
+    "GBP",
+    "CNY",
+    "HKD",
+    "TWD",
+    "KRW",
+    "INR",
+    "BRL",
+    "MXN",
+    "CAD",
+    "AUD",
+    "NZD",
+    "CHF",
+    "SEK",
+    "NOK",
+    "DXY",
+    "VIX",
+    "SPX",
+    "DEPTH4",
+  ].map((s) => s.toUpperCase()),
+);
+
+/**
+ * Part B §4 — hero must anchor on a macro-tradable expression (ETF, liquid future, large liquid single name,
+ * sector basket, or explicit macro index / policy read without a stray micro-cap ticker).
+ */
+const MACRO_TRADABLE_HERO_ANCHOR = new RegExp(
+  [
+    "\\b(?:SPY|QQQ|IWM|DIA|VOO|VTI|EFA|EEM|FXI|EWJ|EWZ|IEFA|ACWI|VEA|VWO)\\b",
+    "\\b(?:XLE|XLF|XLB|XLI|XLP|XLU|XLV|XLRE|XLK|XLY|XLC|SMH|SOXX|XBI|IBB|ARKK|ARKG|KWEB|TLT|IEF|SHY|LQD|HYG|JNK|EMB|TIP|GLD|SLV|IAU|USO|UNG|DBA|WEAT|CORN|SOYB)\\b",
+    "\\b(?:\\/ES|\\/NQ|\\/YM|\\/RTY|\\/CL|\\/GC|\\/SI|\\/HG|\\/ZB|\\/ZN|\\/ZF|\\/ZT|\\/6E|\\/6J|\\/6B|\\/6A|\\/6C)\\b",
+    "\\b(?:ES|NQ|YM|RTY|CL|GC|SI|HG|ZB|ZN)\\s+futures?\\b",
+    "\\b(?:S&P|SPX|Nasdaq|Russell|Stoxx|MSCI)\\b",
+    "\\b(?:WTI|Brent|crude|Treasur(?:y|ies)|UST|yield curve|real yields?|high yield|investment grade)\\b",
+    "\\b(?:Fed|FOMC|ECB|BOJ|policy rate|terminal rate)\\b",
+  ].join("|"),
+  "i",
+);
+
+const MACRO_TRADABLE_TICKERS = new Set(
+  [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "DIA",
+    "VOO",
+    "VTI",
+    "EFA",
+    "EEM",
+    "FXI",
+    "EWJ",
+    "EWZ",
+    "IEFA",
+    "ACWI",
+    "VEA",
+    "VWO",
+    "XLE",
+    "XLF",
+    "XLB",
+    "XLI",
+    "XLP",
+    "XLU",
+    "XLV",
+    "XLRE",
+    "XLK",
+    "XLY",
+    "XLC",
+    "SMH",
+    "SOXX",
+    "XBI",
+    "IBB",
+    "ARKK",
+    "ARKG",
+    "KWEB",
+    "TLT",
+    "IEF",
+    "SHY",
+    "LQD",
+    "HYG",
+    "JNK",
+    "EMB",
+    "TIP",
+    "GLD",
+    "SLV",
+    "IAU",
+    "USO",
+    "UNG",
+    "DBA",
+    "WEAT",
+    "CORN",
+    "SOYB",
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "AMZN",
+    "GOOG",
+    "GOOGL",
+    "META",
+    "TSLA",
+    "BRK",
+    "JPM",
+    "BAC",
+    "GS",
+    "MS",
+    "WFC",
+    "XOM",
+    "CVX",
+    "COP",
+    "SLB",
+    "OXY",
+    "MPC",
+    "VLO",
+    "PSX",
+    "CAT",
+    "DE",
+    "BA",
+    "LMT",
+    "RTX",
+    "NOC",
+    "DIS",
+    "NFLX",
+    "AMD",
+    "INTC",
+    "AVGO",
+    "QCOM",
+    "TXN",
+    "MU",
+    "AMAT",
+    "LRCX",
+    "KLAC",
+    "ON",
+    "COIN",
+    "MSTR",
+    "JNJ",
+    "UNH",
+    "LLY",
+    "MRK",
+    "ABBV",
+    "PFE",
+    "KO",
+    "PEP",
+    "WMT",
+    "COST",
+    "HD",
+    "LOW",
+    "NKE",
+    "MCD",
+    "SBUX",
+    "PG",
+    "PM",
+    "MO",
+    "BABA",
+    "TSM",
+    "ASML",
+    "SAP",
+    "NVO",
+    "PLTR",
+    "SNOW",
+    "CRWD",
+    "PANW",
+    "NOW",
+    "SHOP",
+    "UBER",
+    "ABNB",
+    "BKNG",
+    "MA",
+    "V",
+    "PYPL",
+    "SQ",
+    "BLK",
+    "SCHW",
+    "SPGI",
+    "ICE",
+    "CME",
+    "MCO",
+    "USB",
+    "PNC",
+    "TFC",
+    "COF",
+    "AXP",
+    "IBM",
+    "ORCL",
+    "CRM",
+    "ADBE",
+    "SNPS",
+    "CDNS",
+    "ANET",
+    "NET",
+    "DDOG",
+    "ZS",
+    "FTNT",
+    "RBLX",
+    "ROKU",
+    "F",
+    "GM",
+    "STLA",
+    "TM",
+    "HMC",
+    "UPS",
+    "FDX",
+    "UNP",
+    "CSX",
+    "NSC",
+    "DAL",
+    "UAL",
+    "AAL",
+    "LUV",
+    "GD",
+    "HON",
+    "MMM",
+    "GE",
+    "ETN",
+    "EMR",
+    "ITW",
+    "PH",
+    "ROK",
+    "FCX",
+    "NEM",
+    "AA",
+    "STLD",
+    "NUE",
+    "X",
+    "CLF",
+    "BTU",
+    "CEG",
+    "NEE",
+    "DUK",
+    "SO",
+    "AEP",
+    "SRE",
+    "EXC",
+    "PCG",
+    "WMB",
+    "KMI",
+    "OKE",
+    "LNG",
+    "EOG",
+    "PXD",
+    "FANG",
+    "DVN",
+    "HAL",
+    "BKR",
+  ].map((s) => s.toUpperCase()),
+);
+
+function normalizeLevelBody(s: string): string {
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function heroPassesMacroTradableAsset(hero: string): boolean {
+  if (MACRO_TRADABLE_HERO_ANCHOR.test(hero)) return true;
+  const raw = hero.match(/\b[A-Z]{2,5}\b/g) ?? [];
+  const symbols = raw.map((t) => t.toUpperCase()).filter((t) => !NOT_EQUITY_TICKER_TOKENS.has(t));
+  if (symbols.length === 0) return false;
+  return symbols.every((t) => MACRO_TRADABLE_TICKERS.has(t));
+}
+
 export function extractReasoningLevelBodies(chain: string): string[] | null {
   const t = chain.trim();
   const hits: { n: number; start: number; headLen: number }[] = [];
@@ -169,6 +500,14 @@ function reasoningChainLevelsPassInsertBar(chain: string, hero: string): { ok: t
       return { ok: false, reason: "reject_reasoning_level_echoes_hero" };
     }
   }
+  const norms = bodies.map(normalizeLevelBody);
+  for (let i = 0; i < 4; i++) {
+    for (let j = i + 1; j < 4; j++) {
+      if (norms[i].length >= 36 && norms[i] === norms[j]) {
+        return { ok: false, reason: "reject_reasoning_level_duplicate_body" };
+      }
+    }
+  }
   if (L34_GENERIC_FILLER.test(bodies[2]) || L34_GENERIC_FILLER.test(bodies[3])) {
     return { ok: false, reason: "reject_reasoning_l34_generic_filler" };
   }
@@ -180,8 +519,8 @@ function reasoningChainLevelsPassInsertBar(chain: string, hero: string): { ok: t
 }
 
 /**
- * Part B — full validation before inserting **`public.theses`** (`ai_generated`).
- * On failure, callers should keep output in event_reasoning / feed only (no thesis row).
+ * Part B/C — full DEPTH4 validation before inserting **`public.theses`** (`ai_generated`).
+ * On failure, callers keep output on `event_reasoning` / forming narrative only (no thesis row).
  */
 export function passesAiThesisRegistryInsertValidation(p: {
   hero: string;
@@ -198,6 +537,10 @@ export function passesAiThesisRegistryInsertValidation(p: {
   }
   if (!CAUSAL_HERO_PATTERN.test(hero)) {
     return { ok: false, reason: "reject_hero_not_causal_forecast" };
+  }
+
+  if (!heroPassesMacroTradableAsset(hero)) {
+    return { ok: false, reason: "reject_hero_not_macro_tradable_asset" };
   }
 
   const t = timingPassesPartB(hero);
@@ -217,6 +560,9 @@ export function passesAiThesisRegistryInsertValidation(p: {
 
   return { ok: true };
 }
+
+/** Explicit name for Part B gate (same as {@link passesAiThesisRegistryInsertValidation}). */
+export const validateMacroReasoningBeforeThesisInsert = passesAiThesisRegistryInsertValidation;
 
 /** @deprecated Alias for {@link passesAiThesisRegistryInsertValidation}. */
 export const passesAiThesisRegistryDepth4Pack = passesAiThesisRegistryInsertValidation;

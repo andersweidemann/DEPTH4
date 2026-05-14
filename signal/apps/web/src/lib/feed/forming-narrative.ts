@@ -4,6 +4,7 @@ const MAX_LEN = 200;
 
 /**
  * One-line provisional interpretation for the feed (not trade advice, not a promoted thesis).
+ * Part C: this is **forming narrative** surface only — DEPTH4 registry rows live in `public.theses` after a separate gate.
  * Prefer the macro trade line; fall back to capped event summary.
  */
 export function formingNarrativeLineFromMacro(r: MacroEventReasoning): string | null {

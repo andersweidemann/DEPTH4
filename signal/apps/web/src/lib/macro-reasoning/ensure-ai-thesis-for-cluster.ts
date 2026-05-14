@@ -75,6 +75,16 @@ function buildMinimalAiThesis(input: {
 }
 
 /**
+ * ### Part C — thesis vs forming narrative
+ *
+ * **`public.theses` (`thesis_origin = ai_generated`)**  
+ * Rows are created **only** after the model output passes the DEPTH4 registry pack (L1–L4, mispricing, timing,
+ * macro-tradable asset, causal hero). `status = forming` here means *early but thesis-shaped*, not a scratch note.
+ *
+ * **`event_reasoning.reasoning` + `forming_narrative_layer`**  
+ * Shallow or partial cluster scans live here for internal feed / scanning. They are **not** promoted into the
+ * thesis registry when validation fails.
+ *
  * Idempotent: one `ai_generated` row per `discovery_cluster_id`.
  * Does not modify catalog conviction baselines — new row only.
  */
