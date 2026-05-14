@@ -58,7 +58,7 @@ function minimalReasoning(over: Partial<MacroEventReasoning> = {}): MacroEventRe
 
 function createThesesMock(opts: { existingThesisId?: string | null }) {
   let fromCall = 0;
-  const insertSpy = vi.fn(async (_row: Record<string, unknown>) => ({ error: null }));
+  const insertSpy = vi.fn(async () => ({ error: null }));
 
   const admin = {
     from: vi.fn((table: string) => {

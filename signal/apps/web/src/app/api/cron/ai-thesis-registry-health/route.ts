@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 /**
  * Part D — monitoring for the macro → `public.theses` (`ai_generated`) pipeline.
  *
- * Schedule (example): Vercel Cron `0 */6 * * *` → `GET /api/cron/ai-thesis-registry-health` with cron auth headers.
+ * Schedule (example): Vercel Cron every six hours → GET /api/cron/ai-thesis-registry-health with cron auth headers.
  *
  * Env:
  * - `AI_THESIS_HEALTH_STALE_ALERT_HOURS` (default `36`): if **no** `ai_generated` row was **created** in the last 24h

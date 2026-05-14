@@ -3,7 +3,6 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import {
   isThesisMapListableThesis,
-  isAcceptableAiThesisRegistryHero,
   passesDepth4ThesisSurfacingQualityBar,
   pickAiThesisStatementFromReasoning,
   titleLooksLikeRawSourceMaterial,
