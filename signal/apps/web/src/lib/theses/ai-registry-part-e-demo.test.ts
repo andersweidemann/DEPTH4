@@ -118,7 +118,7 @@ describe("Part E — shallow legacy heroes vs DEPTH4 gate", () => {
       "XLE will underperform into the next FOMC as Long-Term Targets On Track and Shares Near Fair Value dominate positioning.";
     expect(passesAiThesisRegistryInsertValidation({ hero, reasoning: r })).toEqual({
       ok: false,
-      reason: "reject_analyst_style_hero",
+      reason: "reject_registry_hero_base_bar",
     });
   });
 

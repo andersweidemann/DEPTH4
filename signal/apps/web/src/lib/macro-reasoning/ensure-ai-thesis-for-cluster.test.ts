@@ -146,7 +146,7 @@ describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
   it("rejects sell-side deck phrasing in hero", async () => {
     const reasoning = minimalReasoning({
       thesis_trade_line:
-        "XLE will stay bid as management keeps Long-Term Targets On Track into next quarter.",
+        "XLE will stay bid as On Track messaging from IR desks crowds out the macro story into next quarter.",
     });
     const { admin, insertSpy } = createThesesMock({});
     const out = await ensureAiThesisForDiscoveryCluster(admin, {

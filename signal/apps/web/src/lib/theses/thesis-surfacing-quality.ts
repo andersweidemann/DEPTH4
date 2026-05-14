@@ -33,6 +33,19 @@ const RAW_SOURCE_TITLE_PATTERNS: RegExp[] = [
   /\bearnings\s+presentation\b/i,
   /\bshareholder\s+call\b/i,
   /\b(analyst|investor)\s+day\b/i,
+  // IR / sell-side one-liners and “headline thesis” shells (see VISION.md — not tradable DEPTH4 heroes).
+  /\bFair Value\b/i,
+  /\bNear Fair Value\b/i,
+  /\bLong-Term Targets\b/i,
+  /\bPT raised\b/i,
+  /\bprice target\b/i,
+  /\bGood Earnings\b/i,
+  /\bStrong Earnings\b/i,
+  /\bEarnings Beat\b/i,
+  /\bEarnings And Growth\b/i,
+  /\bAggressive Campaign\b/i,
+  /\bWe May Be Going\b/i,
+  /\bShares Near\b/i,
 ];
 
 const FORWARD_LOOKING_CUES =
@@ -40,7 +53,8 @@ const FORWARD_LOOKING_CUES =
 
 /**
  * Gate for **persisting** a new `ai_generated` row in `public.theses`: hero must not be ingest/transcript copy and
- * must read as a forward market view (or long analytical forecast prose).
+ * must read as a **forward** market view. Length alone is not enough — long IR headlines used to bypass this
+ * (see polluted `ai_generated` titles in prod); registry rows must match `VISION.md` non‑negotiables.
  */
 export function isAcceptableAiThesisRegistryHero(s: string): boolean {
   const t = s.trim();
@@ -48,8 +62,7 @@ export function isAcceptableAiThesisRegistryHero(s: string): boolean {
   if (/^ai[- ]discovered thesis$/i.test(t)) return false;
   if (titleLooksLikeRawSourceMaterial(t)) return false;
   const forward = FORWARD_LOOKING_CUES.test(t);
-  const longAnalytical = t.length >= 96;
-  if (!forward && !longAnalytical) return false;
+  if (!forward) return false;
   return true;
 }
 

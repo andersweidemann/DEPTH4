@@ -55,8 +55,9 @@ const NEARER_TIMING_HOOK = new RegExp(
   "i",
 );
 
-/** Shallow sell-side / IR deck phrasing — not a DEPTH4 thesis hero. */
-const ANALYST_DECK_HERO = /\b(Fair Value|Near Fair Value|Long-Term Targets|On Track|guidance reaffirmed|reaffirms guidance|PT raised|price target)\b/i;
+/** Shallow sell-side / IR deck / headline-thesis phrasing — not a DEPTH4 registry hero. */
+const ANALYST_DECK_HERO =
+  /\b(Fair Value|Near Fair Value|Long-Term Targets|On Track|guidance reaffirmed|reaffirms guidance|PT raised|price target|Good Earnings|Strong Earnings|Earnings Beat|Earnings And Growth|Aggressive Campaign|We May Be Going|Shares Near)\b/i;
 
 /** Forward causal hero: forecast cue + causal linker (Part B §5). */
 const CAUSAL_HERO_PATTERN =

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import {
+  isAcceptableAiThesisRegistryHero,
   isThesisMapListableThesis,
   passesDepth4ThesisSurfacingQualityBar,
   pickAiThesisStatementFromReasoning,
@@ -146,5 +147,23 @@ describe("thesis-surfacing-quality", () => {
       },
     });
     expect(isThesisMapListableThesis(t)).toBe(false);
+  });
+
+  it("registry hero rejects long IR headline without forward cue (no length-only bypass)", () => {
+    const hero =
+      "PPL Corporation: Long-Term Targets On Track, Shares Near Fair Value.";
+    expect(isAcceptableAiThesisRegistryHero(hero)).toBe(false);
+  });
+
+  it("registry hero rejects headline-style namesake titles from polluted ai_generated audits", () => {
+    expect(isAcceptableAiThesisRegistryHero("Vaalco Energy: Aggressive Campaign Lucks Out.")).toBe(false);
+    expect(
+      isAcceptableAiThesisRegistryHero(
+        "The Williams Companies: Good Earnings And Growth Potential, But Valuation Keeps Us Cautious.",
+      ),
+    ).toBe(false);
+    expect(
+      isAcceptableAiThesisRegistryHero("PennantPark Investment: We May Be Going Lower Following Credit Spreads."),
+    ).toBe(false);
   });
 });
