@@ -1,33 +1,54 @@
 ---
-description: DEPTH4 product vision — read VISION.md; thesis quality, sources, models, failure modes
+description: DEPTH4 — read VISION.md first; thesis quality, sources, Opus vs cheap models, trust
 alwaysApply: true
 ---
 
-# DEPTH4 — `VISION.md` is source of truth
+# DEPTH4 — `VISION.md` is the product source of truth
 
-The vision document lives at the **repository root**: `VISION.md`.
+Read **`VISION.md`** (repository root) **before** meaningful **code**, **prompt**, or **UX** changes.
 
-Treat **`VISION.md` as the source of truth** for what DEPTH4 is and how it should behave.
+Treat **`VISION.md`** as the single product source of truth for DEPTH4.
 
-## Global rules for this project
+## Always align with `VISION.md`
 
-- **Read and respect `VISION.md`** before making large code, prompt, or product changes.
-- For work on **thesis generation, ranking, surfacing, probabilities, scenario views, or copy**, align explicitly with `VISION.md`.
-- If a change would move DEPTH4 toward any **Failure mode** listed in `VISION.md`, **do not implement it**; explain the conflict instead.
-- For **prompts, comments, and UX text**, prefer the tone in **Phrasing and language** in `VISION.md` (simple retail trading language, concrete, DEPTH4-specific).
-- For **LLM routing**, follow **Model usage** in `VISION.md`: high-quality models (e.g. Opus) for user-visible reasoning and thesis formation; cheaper models only for low-risk background work that is **heavily filtered** before surfacing.
-- For **geopolitical sources**, follow the **Source hierarchy** in `VISION.md`. Do not promote **Tier 5** claims into theses without independent **Tier 1–2** confirmation.
+When touching any of the following, **explicitly align** with `VISION.md`:
+
+- Thesis generation and registry / forming narrative
+- Probabilities and conviction / scenario views
+- Surfacing and listability (`/theses`, feed, home buckets)
+- **Source handling** and citation / ingest policy
+- **Geopolitical reasoning** (four levels, tier rules)
+- **Copy** (UI strings, prompts, comments aimed at users)
+
+## Never publish weak output
+
+- **Never insert or surface** outputs that are only **headline rewrites**, **generic analyst summaries**, or **low-quality theses**.
+- If an output **does not meet DEPTH4 quality**, **reject it** instead of publishing it (e.g. validation gates, forming-only paths, skip list surfacing — extend the codebase in that direction; do not bypass gates to “ship something”).
+
+## Source hierarchy (strict)
+
+- Use the **strict source hierarchy** in `VISION.md` (Tiers 1–5).
+- **Do not let Tier 5 claims influence user-visible reasoning** without **Tier 1–2 confirmation**. Prefer not to cite Tier 5 prominently when higher tiers exist for the same fact.
+
+## Model usage
+
+- Use **Opus** (or equivalent best tier) for **high-stakes, user-visible** reasoning and thesis formation.
+- Use **cheaper models** only for **lower-risk background** work (clustering, tagging, drafts) that is **heavily filtered** before anything user-visible.
+
+## Definition of done
+
+A feature is **not done** unless it **strengthens the visible intelligence loop** and **preserves trust**. If it would move DEPTH4 toward any **Failure mode** in `VISION.md`, **do not implement it**; explain the conflict instead.
+
+---
 
 ## When the user asks for changes, do this first
 
-1. **Skim `VISION.md`** and state, in your own words, which sections matter most for the task (one or two short bullets).
+1. **Skim `VISION.md`** and state which sections matter most (one or two short bullets).
 2. **Then** propose or apply code / prompt / UX changes.
-3. In the explanation, **point back** to the sections satisfied (e.g. Non‑negotiables, Geopolitical analysis framework, Failure modes, Release standard).
+3. In the explanation, **point back** to the sections satisfied (e.g. Non‑negotiables, Source hierarchy, Geopolitical analysis framework, Failure modes, Release standard).
 
-## Quality bar
+## Implementation pointers
 
-- Do not generate or store “theses” that are only **paraphrased headlines** or **generic analyst notes**.
-- If the model cannot reach DEPTH4 quality for a candidate, **reject** instead of inserting or publishing (see code paths such as `passesAiThesisRegistryInsertValidation` / forming narrative only).
-- Treat anything that **weakens the intelligence loop or trust** as a **failed proposal**, not something to polish later.
+- Registry / quality gates: e.g. `passesAiThesisRegistryInsertValidation`, `isThesisMapListableThesis`, forming narrative vs `public.theses` — preserve and tighten; do not weaken to fill the UI.
 
-Use `VISION.md` as a standing constraint on work in this repo.
+Use `VISION.md` as a standing constraint on all work in this repo.
