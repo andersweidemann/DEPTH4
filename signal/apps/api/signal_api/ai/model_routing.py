@@ -92,7 +92,7 @@ _TASK_DEFAULT_TIER: dict[str, ModelTaskTier] = {
   ModelTaskType.personalize_alerts: ModelTaskTier.standard,
   ModelTaskType.personalize_interactive: ModelTaskTier.premium,
   ModelTaskType.deep_brief: ModelTaskTier.premium,
-  ModelTaskType.new_thesis_expand: ModelTaskTier.standard,
+  ModelTaskType.new_thesis_expand: ModelTaskTier.premium,
 }
 
 # Tasks whose first hop should use the premium Anthropic model (no cheap attempt).
@@ -100,6 +100,7 @@ _PREMIUM_FIRST_TASKS: frozenset[str] = frozenset(
   {
     ModelTaskType.personalize_interactive,
     ModelTaskType.deep_brief,
+    ModelTaskType.new_thesis_expand,
   }
 )
 

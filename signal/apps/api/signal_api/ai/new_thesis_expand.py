@@ -501,7 +501,7 @@ def expand_user_idea(settings: Settings, user_idea: str) -> tuple[dict[str, Any]
     NEW_THESIS_EXPAND_SYSTEM,
     build_expand_user_prompt(user_idea),
     temperature=0.25,
-    high_stakes=False,
+    high_stakes=True,
   )
   parsed = parse_draft_json(primary)
   if parsed is None:
