@@ -34,6 +34,13 @@ import { insertThesisPipelineTrace, signalLevelMixForMemberIds } from "@/lib/the
 import { mapInternalReasonToPipelineRejection } from "@/lib/thesis-pipeline-audit/canonical-reason";
 import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
+import { diagnoseRegistryHeroFailure } from "@/lib/macro-reasoning/registry-hero-diagnostics";
+import {
+  MACRO_REGISTRY_REPAIR_PROMPT_VERSION,
+  attemptMacroReasoningRegistryRepair,
+  registryRepairEnabled,
+  shouldAttemptRegistryRepair,
+} from "@/lib/macro-reasoning/macro-registry-repair";
 
 /**
  * ## Macro thesis registry pipeline (Part D)
@@ -604,6 +611,9 @@ async function runEventReasoning() {
     return NextResponse.json(summary, { status: 502 });
   }
 
+  let macroReasoning = validated.data;
+  let registryRepairBundle: { anthropic: unknown; assistant_text: string } | null = null;
+
   const tierMix = signalLevelMixForMemberIds(
     newsRows.map((n) => ({ id: n.id, signal_level: n.signal_level })),
     memberIds,
@@ -621,13 +631,51 @@ async function runEventReasoning() {
 
   /**
    * Part C — one `ensureAiThesisForDiscoveryCluster` per cluster run (DEPTH4 pack + hero gate inside).
-   * Weaker model output never gets a `public.theses` row; it stays on `event_reasoning` + `forming_narrative_layer` only.
+   * Optional one-shot registry repair when the hero gate fails with headline-style output (see macro-registry-repair).
    */
-  const aiRegistryOutcome = await ensureAiThesisForDiscoveryCluster(admin, {
+  let aiRegistryOutcome = await ensureAiThesisForDiscoveryCluster(admin, {
     clusterId: claimed.id,
     titleHint: claimed.title_hint,
-    reasoning: validated.data,
+    reasoning: macroReasoning,
   });
+
+  if (!aiRegistryOutcome.ok && registryRepairEnabled() && shouldAttemptRegistryRepair(aiRegistryOutcome.reason)) {
+    console.info("[event-reasoning] registry_hero_rejection", {
+      clusterId: claimed.id,
+      prompt_version: promptVersion,
+      repair_prompt_version: MACRO_REGISTRY_REPAIR_PROMPT_VERSION,
+      ...diagnoseRegistryHeroFailure({
+        reason: aiRegistryOutcome.reason,
+        titleHint: claimed.title_hint,
+        reasoning: macroReasoning,
+      }),
+    });
+    const anchorHeadline = newsRows.find((n) => n.id === anchorId)?.headline ?? "";
+    const repaired = await attemptMacroReasoningRegistryRepair({
+      apiKey,
+      model: resolveCronAnthropicModel(process.env, "macro_registry_repair"),
+      maxTokens: Math.min(4096, maxTokens),
+      anchorHeadline,
+      titleHint: claimed.title_hint,
+      reasoning: macroReasoning,
+      ensureReason: aiRegistryOutcome.reason,
+    });
+    if (repaired) {
+      macroReasoning = repaired.merged;
+      registryRepairBundle = { anthropic: repaired.raw, assistant_text: repaired.assistantText };
+      aiRegistryOutcome = await ensureAiThesisForDiscoveryCluster(admin, {
+        clusterId: claimed.id,
+        titleHint: claimed.title_hint,
+        reasoning: macroReasoning,
+      });
+      console.info("[event-reasoning] registry_repair_outcome", {
+        clusterId: claimed.id,
+        ok: aiRegistryOutcome.ok,
+        reason: aiRegistryOutcome.ok ? undefined : aiRegistryOutcome.reason,
+        thesisId: aiRegistryOutcome.ok ? aiRegistryOutcome.thesisId : undefined,
+      });
+    }
+  }
 
   const gateMapped = !aiRegistryOutcome.ok ? mapInternalReasonToPipelineRejection(aiRegistryOutcome.reason) : null;
   await insertThesisPipelineTrace(admin, {
@@ -641,7 +689,10 @@ async function runEventReasoning() {
       : `${gateMapped?.preserved_internal ?? "internal"}: ${aiRegistryOutcome.reason}`.trim(),
     model,
     prompt_version: promptVersion,
-    meta: { thesis_relation: validated.data.thesis_relation },
+    meta: {
+      thesis_relation: macroReasoning.thesis_relation,
+      registry_repair_attempted: Boolean(registryRepairBundle),
+    },
   });
   await insertThesisPipelineTrace(admin, {
     cluster_id: claimed.id,
@@ -655,8 +706,8 @@ async function runEventReasoning() {
     prompt_version: promptVersion,
   });
 
-  let affectedTheses = [...validated.data.affected_theses].map((t) => t.trim()).filter(Boolean);
-  if (validated.data.thesis_relation === "create_new") {
+  let affectedTheses = [...macroReasoning.affected_theses].map((t) => t.trim()).filter(Boolean);
+  if (macroReasoning.thesis_relation === "create_new") {
     if (aiRegistryOutcome.ok) {
       affectedTheses = [aiRegistryOutcome.thesisId];
       console.info("[event-reasoning] ai_thesis_ensured", {
@@ -669,27 +720,27 @@ async function runEventReasoning() {
       console.info("[event-reasoning] ai_thesis_registry_skipped", {
         reason: aiRegistryOutcome.reason,
         clusterId: claimed.id,
-        thesis_relation: validated.data.thesis_relation,
+        thesis_relation: macroReasoning.thesis_relation,
       });
     }
   }
   if (!affectedTheses.length) {
-    const pick = pickStrongestCatalogThesisId(validated.data.per_catalog_thesis, catalogIds);
+    const pick = pickStrongestCatalogThesisId(macroReasoning.per_catalog_thesis, catalogIds);
     if (pick) affectedTheses = [pick];
   }
-  if (!affectedTheses.length && validated.data.thesis_relation !== "irrelevant") {
+  if (!affectedTheses.length && macroReasoning.thesis_relation !== "irrelevant") {
     if (aiRegistryOutcome.ok) {
       affectedTheses = [aiRegistryOutcome.thesisId];
       console.info("[event-reasoning] ai_thesis_fallback_orphan_cluster", {
         clusterId: claimed.id,
         thesisId: aiRegistryOutcome.thesisId,
         created: aiRegistryOutcome.created,
-        thesis_relation: validated.data.thesis_relation,
+        thesis_relation: macroReasoning.thesis_relation,
       });
     }
   }
 
-  const reasoningPayload = { ...validated.data, affected_theses: affectedTheses };
+  const reasoningPayload = { ...macroReasoning, affected_theses: affectedTheses };
 
   const { error: insErr, data: insRows } = await admin
     .from("event_reasoning")
@@ -697,7 +748,11 @@ async function runEventReasoning() {
       news_event_id: anchorId,
       cluster_id: claimed.id,
       reasoning: reasoningPayload,
-      raw_response: { anthropic: raw, assistant_text: text },
+      raw_response: {
+        anthropic: raw,
+        assistant_text: text,
+        ...(registryRepairBundle ? { registry_repair: registryRepairBundle } : {}),
+      },
       model,
       prompt_version: promptVersion,
       updated_at: new Date().toISOString(),
@@ -767,7 +822,7 @@ async function runEventReasoning() {
 
     const formingNarrativeLayer = buildFormingNarrativeLayerForRegistry({
       titleHint: claimed.title_hint,
-      reasoning: validated.data,
+      reasoning: macroReasoning,
       ensureResult: aiRegistryOutcome,
     });
     const mergedReasoning = { ...reasoningPayload, forming_narrative_layer: formingNarrativeLayer };

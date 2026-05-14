@@ -9,6 +9,7 @@ export const DEPTH4_REGISTRY_HERO_CATALOG_EXEMPLARS: readonly string[] = [
   "RTX will rerate higher as named Pentagon contracts lock in its order book this quarter.",
   "META rerates as AI monetization hits P&L while the tape still prices it as optional.",
   "Copper grinds higher as China's floor-setting stimulus stabilizes demand before consensus believes it.",
+  "MRVI may rerate higher within two prints if new pipeline readouts prove this year's growth is durable, because the tape still prices a one-quarter fade after the COVID bump.",
 ];
 
 export function depth4RegistryHeroExemplarsForPrompt(): string {

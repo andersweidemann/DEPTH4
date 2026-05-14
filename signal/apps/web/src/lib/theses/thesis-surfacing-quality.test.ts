@@ -110,6 +110,15 @@ describe("thesis-surfacing-quality", () => {
     expect(s).toBe("");
   });
 
+  it("pickAiThesisStatementFromReasoning does not fall back to title_hint even when it would pass the hero gate", () => {
+    const s = pickAiThesisStatementFromReasoning({
+      titleHint: "Gold will fade within weeks as the peace narrative drains safe-haven demand faster than spot prices.",
+      thesisTradeLine: "",
+      eventSummary: "",
+    });
+    expect(s).toBe("");
+  });
+
   it("pickAiThesisStatementFromReasoning does not fall back to transcript thesis_trade_line", () => {
     const s = pickAiThesisStatementFromReasoning({
       titleHint: "Headline only",

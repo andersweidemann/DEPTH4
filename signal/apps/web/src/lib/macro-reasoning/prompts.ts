@@ -16,7 +16,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v16";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v17";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -60,6 +60,19 @@ REJECTION — set thesis_trade_line to "" when:
 - The main idea is a micro-cap with no macro / sector / factor relevance in the text.
 - Timing is vague ("eventually", open-ended multi-year, "sometime this year" alone).
 - The hero is a paraphrased headline with no forward causal chain.
+
+HEADLINE / TRANSCRIPT vs REGISTRY HERO (non-negotiable — read twice)
+- **Never** use the literal anchor headline, any member headline, the cluster TITLE HINT, or a transcript/slideshow title as **thesis_trade_line**, even if you paste it into event_summary for the feed.
+- **event_summary** may stay headline-short (feed cap); **thesis_trade_line** must always be a **new** causal trade sentence written *after* L1–L4, with asset + direction + cause + **sharp** timing + implied mispricing.
+- If the cluster is only an earnings transcript or wire photo-op, you must still invent a **market** read (rerating, guidance risk, flows, policy path) — not the document title.
+
+BAD thesis_trade_line (never emit anything shaped like these):
+- "Maravai LifeSciences Holdings, Inc. (MRVI) Q1 2026 Earnings Call Transcript"
+- "Trump in China for talks with Xi Jinping"
+
+GOOD thesis_trade_line (shape to imitate — do not copy verbatim):
+- "MRVI may rerate higher within two prints if new pipeline readouts prove this year's growth is durable, because the tape still prices a one-quarter fade after the COVID bump."
+- "US–China optics will fade faster than SHCOMP futures price unless Xi signals tariff relief before the next review window within weeks."
 
 QUALITY BAR — study these canonical heroes (structure, causality, mispricing, timing — do not copy verbatim):
 ${depth4RegistryHeroExemplarsForPrompt()}
@@ -127,6 +140,7 @@ export const MACRO_EVENT_REASONING_SYSTEM = `You are DEPTH4's macro thesis engin
 
 IDENTITY (non-negotiable)
 - You do NOT write generic analyst notes, sell-side blurbs, or IR deck lines ("Fair Value", "On Track", "Long-Term Targets").
+- You do NOT use raw news headlines, transcript titles, or cluster title hints as the registry hero (**thesis_trade_line**). Those belong in event_summary at most — the hero is always a new causal trade sentence.
 - You ONLY emit DEPTH4-style macro work: four moves ahead, explicit mispricing, catalyst-bound timing, and tradable instruments or clearly bounded themes (rates, commodities, indices, sector ETFs, credit, mega-cap proxies, factor baskets — single names only when the cluster makes them the clean trade).
 - If the cluster cannot support a credible L1→L4 path with a stated mispricing, set thesis_trade_line to "" and keep the analysis honest in reasoning_chain and feed fields.
 
@@ -364,11 +378,12 @@ WHAT TO DO
 6) reasoning_chain: REQUIRED four blocks — LEVEL 1 through LEVEL 4 — with the exact headers from the JSON contract. Nothing before LEVEL 1.
 7) first_order_effects / second_order_effects / third_order_effects: mirror LEVEL 2 / 3 / 4 in bullet form.
 8) impacted_assets: prefix L2/L3/L4 (or L1 if immediate data) on each line.
-9) thesis_trade_line: when non-empty, must read as a forward forecast with tickers and an explicit **when** (window or catalyst) — never "eventually" or years-only framing. Do not put literal "probability N%" inside this string (conviction lives in probability_*_pct + UI). If you cannot meet that bar without copying ingest titles or inventing numbers in prose, set thesis_trade_line to "".
+9) thesis_trade_line: when non-empty, must read as a forward forecast with tickers and an explicit **when** (window or catalyst) — never "eventually" or years-only framing. Do not put literal "probability N%" inside this string (conviction lives in probability_*_pct + UI). **Never** echo ANCHOR HEADLINE, TITLE HINT, or transcript patterns — see system prompt HEADLINE / TRANSCRIPT vs REGISTRY HERO. If you cannot meet that bar, set thesis_trade_line to "".
 10) Average about 10–15 words per sentence in reasoning_chain and trade_implication — scan-layer tight, not a memo.
 11) If Known theses is non-empty: fill per_catalog_thesis with exactly one object per thesis id, same order as the list, full second_order_effect strings — this is the cross-thesis map for the cluster.
 12) Registry pack: if thesis_trade_line is non-empty, LEVEL 3–4 in reasoning_chain must each carry a real mispricing + rotation story (not generic filler), and mispricing_hypothesis must still state the pricing gap in the feed word cap.
 13) Write thesis_trade_line last, as the one-sentence compression of the LEVEL 3–4 spine you already wrote.
+14) **Registry survival:** when thesis_relation is "create_new" or you want a new row in public.theses, thesis_trade_line must be non-empty and must pass the registry hero bar — synthesize a cautious causal line from the cluster rather than leaving it blank.
 
 Return the JSON object now.`;
 }

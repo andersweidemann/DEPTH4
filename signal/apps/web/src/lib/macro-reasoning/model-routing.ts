@@ -10,10 +10,11 @@ export const TIER_MAX_TOKENS = { cheap: 1536, standard: 4096, premium: 8192 } as
 export type ModelTaskTierKey = keyof typeof TIER_MAX_TOKENS;
 
 /** Cron-local task ids — extend as more TS-side LLM jobs appear. */
-export type CronLlmTaskType = "macro_event_reasoning";
+export type CronLlmTaskType = "macro_event_reasoning" | "macro_registry_repair";
 
 const CRON_TASK_DEFAULT_TIER: Record<CronLlmTaskType, ModelTaskTierKey> = {
   macro_event_reasoning: "premium",
+  macro_registry_repair: "premium",
 };
 
 export function defaultTierForCronTask(task: CronLlmTaskType): ModelTaskTierKey {

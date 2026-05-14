@@ -22,6 +22,8 @@ function row(p: Partial<ThesisPipelineTraceRow> & Pick<ThesisPipelineTraceRow, "
 const CID_OK = "00000000-0000-4000-8000-000000000001";
 const CID_REJECT = "00000000-0000-4000-8000-000000000002";
 const CID_AMBIG = "00000000-0000-4000-8000-000000000003";
+/** Target steady state after generator + registry-repair upgrade (same shape as full_success, different id). */
+const CID_UPGRADE = "00000000-0000-4000-8000-000000000004";
 
 /** Golden-path synthetic traces for unit tests (stable cluster IDs). */
 export const THESIS_PIPELINE_FIXTURE_TRACES: Record<string, ThesisPipelineTraceRow[]> = {
@@ -66,6 +68,54 @@ export const THESIS_PIPELINE_FIXTURE_TRACES: Record<string, ThesisPipelineTraceR
       status: "ok",
       thesis_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
       created_at: "2026-01-01T00:00:14.000Z",
+    }),
+  ],
+
+  /**
+   * Encodes post-upgrade success: validation ok after DEPTH4-style hero (non-headline) path.
+   * validation.meta.registry_repair_attempted documents optional second LLM pass.
+   */
+  depth4_post_generator_upgrade: [
+    row({ cluster_id: CID_UPGRADE, stage: "ingested", status: "ok", created_at: "2026-02-01T00:00:00.000Z" }),
+    row({ cluster_id: CID_UPGRADE, stage: "clustered", status: "ok", created_at: "2026-02-01T00:00:01.000Z" }),
+    row({ cluster_id: CID_UPGRADE, stage: "discovery_promoted", status: "ok", created_at: "2026-02-01T00:00:02.000Z" }),
+    row({
+      cluster_id: CID_UPGRADE,
+      news_event_id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      stage: "reasoned",
+      status: "ok",
+      model: "claude-opus-4-7",
+      prompt_version: "macro-reasoning-plain-v17",
+      created_at: "2026-02-01T00:00:10.000Z",
+    }),
+    row({
+      cluster_id: CID_UPGRADE,
+      news_event_id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      stage: "candidate_created",
+      status: "ok",
+      thesis_candidate_id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      created_at: "2026-02-01T00:00:11.000Z",
+    }),
+    row({
+      cluster_id: CID_UPGRADE,
+      stage: "validation",
+      status: "ok",
+      meta: { registry_repair_attempted: true, macro_prompt_version: "macro-reasoning-plain-v17" },
+      created_at: "2026-02-01T00:00:12.000Z",
+    }),
+    row({
+      cluster_id: CID_UPGRADE,
+      stage: "thesis_promoted",
+      status: "ok",
+      thesis_id: "99999999-9999-4999-8999-999999999999",
+      created_at: "2026-02-01T00:00:13.000Z",
+    }),
+    row({
+      cluster_id: CID_UPGRADE,
+      stage: "surfaced_ui",
+      status: "ok",
+      thesis_id: "99999999-9999-4999-8999-999999999999",
+      created_at: "2026-02-01T00:00:14.000Z",
     }),
   ],
 
@@ -126,6 +176,12 @@ export const THESIS_PIPELINE_FIXTURE_EXPECTATIONS: Array<{
     name: "full_success",
     cluster_id: CID_OK,
     traces: THESIS_PIPELINE_FIXTURE_TRACES.full_success,
+    expect: { haltAt: "none", thesis_promoted_ok: true, surfaced_ok: true },
+  },
+  {
+    name: "depth4_post_generator_upgrade",
+    cluster_id: CID_UPGRADE,
+    traces: THESIS_PIPELINE_FIXTURE_TRACES.depth4_post_generator_upgrade,
     expect: { haltAt: "none", thesis_promoted_ok: true, surfaced_ok: true },
   },
   {

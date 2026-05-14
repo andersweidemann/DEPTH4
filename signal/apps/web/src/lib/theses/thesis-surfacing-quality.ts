@@ -139,14 +139,15 @@ export function isThesisMapListableThesis(t: Thesis): boolean {
 }
 
 /**
- * Pick the best primary statement for a new `ai_generated` row — prefer trade line / summary over cluster title hints.
+ * Pick the best primary statement for a new `ai_generated` row — prefer thesis_trade_line, then event_summary.
+ * Cluster title_hint is never used here (ingest prose); callers may still pass it for API symmetry.
  */
 export function pickAiThesisStatementFromReasoning(p: {
   titleHint: string | null;
   thesisTradeLine: string;
   eventSummary: string;
 }): string {
-  const hint = (p.titleHint ?? "").trim();
+  void p.titleHint;
   const trade = (p.thesisTradeLine ?? "").trim();
   const summary = (p.eventSummary ?? "").trim();
 
@@ -155,8 +156,6 @@ export function pickAiThesisStatementFromReasoning(p: {
 
   if (prefer(trade)) return trade.slice(0, 480);
   if (prefer(summary)) return summary.slice(0, 480);
-  if (prefer(hint)) return hint.slice(0, 480);
-
-  /** Never fall back to raw transcript headlines or unvetted ingest strings — registry insert must be skipped instead. */
+  /** Cluster title_hint is ingest/cluster prose — never use as registry hero (VISION.md). */
   return "";
 }
