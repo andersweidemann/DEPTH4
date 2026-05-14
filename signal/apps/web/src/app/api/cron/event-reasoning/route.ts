@@ -30,6 +30,10 @@ import { persistEventReasoningToThesisState } from "@/lib/macro-reasoning/persis
 import { ensureAiThesisForDiscoveryCluster } from "@/lib/macro-reasoning/ensure-ai-thesis-for-cluster";
 import { buildFormingNarrativeLayerForRegistry } from "@/lib/macro-reasoning/ai-thesis-registry-forming-layer";
 import { pickStrongestCatalogThesisId } from "@/lib/macro-reasoning/pick-strongest-catalog-thesis";
+import { insertThesisPipelineTrace, signalLevelMixForMemberIds } from "@/lib/thesis-pipeline-audit/trace-writer";
+import { mapInternalReasonToPipelineRejection } from "@/lib/thesis-pipeline-audit/canonical-reason";
+import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
+import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
 /**
  * ## Macro thesis registry pipeline (Part D)
@@ -305,6 +309,16 @@ async function runEventReasoning() {
 
   if (thErr) {
     summary.duration_ms = Date.now() - startedAt;
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      stage: "reasoned",
+      status: "error",
+      reason_code: "infra_db",
+      detail: thErr.message,
+      model,
+      prompt_version: promptVersion,
+      meta: { worker: "event_reasoning", sub_stage: "load_catalog_theses" },
+    });
     return NextResponse.json(
       { ok: false, error: thErr.message, stage: "load_catalog_theses", cluster_id: claimed.id, duration_ms: summary.duration_ms },
       { status: 400 },
@@ -318,6 +332,15 @@ async function runEventReasoning() {
     summary.duration_ms = Date.now() - startedAt;
     summary.skipped = 1;
     summary.skip_reason = "empty_member_news_event_ids";
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: "other",
+      detail: "empty_member_news_event_ids",
+      model,
+      prompt_version: promptVersion,
+    });
     console.info("[event-reasoning] skip: empty members", { clusterId: claimed.id, durationMs: summary.duration_ms });
     return NextResponse.json(summary);
   }
@@ -329,6 +352,16 @@ async function runEventReasoning() {
 
   if (newsErr) {
     summary.duration_ms = Date.now() - startedAt;
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      stage: "reasoned",
+      status: "error",
+      reason_code: "infra_db",
+      detail: newsErr.message,
+      model,
+      prompt_version: promptVersion,
+      meta: { sub_stage: "news_select" },
+    });
     return NextResponse.json(
       { ok: false, error: newsErr.message, stage: "news_select", cluster_id: claimed.id, duration_ms: summary.duration_ms },
       { status: 400 },
@@ -340,6 +373,15 @@ async function runEventReasoning() {
     summary.duration_ms = Date.now() - startedAt;
     summary.skipped = 1;
     summary.skip_reason = "no_news_rows_for_members";
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: "insufficient_source_confirmation",
+      detail: "no_news_rows_for_members",
+      model,
+      prompt_version: promptVersion,
+    });
     console.info("[event-reasoning] skip: no news rows", { clusterId: claimed.id, durationMs: summary.duration_ms });
     return NextResponse.json(summary);
   }
@@ -351,6 +393,16 @@ async function runEventReasoning() {
     summary.duration_ms = Date.now() - startedAt;
     summary.skipped = 1;
     summary.skip_reason = e instanceof Error ? e.message : "anchor_pick_failed";
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: "other",
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+      meta: { sub_stage: "pick_anchor" },
+    });
     console.info("[event-reasoning] skip: anchor pick failed", { clusterId: claimed.id, durationMs: summary.duration_ms });
     return NextResponse.json(summary);
   }
@@ -364,6 +416,17 @@ async function runEventReasoning() {
 
   if (dupErr) {
     summary.duration_ms = Date.now() - startedAt;
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "reasoned",
+      status: "error",
+      reason_code: "infra_db",
+      detail: dupErr.message,
+      model,
+      prompt_version: promptVersion,
+      meta: { sub_stage: "dup_check" },
+    });
     return NextResponse.json(
       { ok: false, error: dupErr.message, stage: "dup_check", cluster_id: claimed.id, anchor_event_id: anchorId, duration_ms: summary.duration_ms },
       { status: 400 },
@@ -373,6 +436,18 @@ async function runEventReasoning() {
     summary.duration_ms = Date.now() - startedAt;
     summary.skipped = 1;
     summary.skip_reason = "idempotent_skip_anchor_news_event_id_prompt_version";
+    const mapped = mapInternalReasonToPipelineRejection(summary.skip_reason);
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: mapped.code,
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+      meta: { internal_reason: mapped.preserved_internal },
+    });
     console.info("[event-reasoning] skip: dup anchor", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
     return NextResponse.json(summary);
   }
@@ -418,6 +493,16 @@ async function runEventReasoning() {
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = e instanceof Error ? e.message : "llm_failed";
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: "infra_llm",
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+    });
     console.info("[event-reasoning] llm_failed", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
     return NextResponse.json(summary, { status: 502 });
   }
@@ -430,6 +515,16 @@ async function runEventReasoning() {
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = `json_parse: ${e instanceof Error ? e.message : "parse_failed"}`;
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: "infra_schema",
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+    });
     console.info("[event-reasoning] json_parse_failed", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
     return NextResponse.json(summary, { status: 502 });
   }
@@ -440,6 +535,16 @@ async function runEventReasoning() {
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = `schema: ${validated.error.message}`;
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: "infra_schema",
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+    });
     console.info("[event-reasoning] schema_failed", { clusterId: claimed.id, anchorId, durationMs: summary.duration_ms });
     return NextResponse.json(summary, { status: 502 });
   }
@@ -451,6 +556,18 @@ async function runEventReasoning() {
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = `per_catalog_thesis: ${passCheck.message}`;
+    const mapped = mapInternalReasonToPipelineRejection(summary.skip_reason);
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: mapped.code,
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+      meta: { internal_reason: mapped.preserved_internal },
+    });
     console.info("[event-reasoning] per_catalog_thesis_incomplete", {
       clusterId: claimed.id,
       anchorId,
@@ -466,6 +583,18 @@ async function runEventReasoning() {
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = `per_catalog_thesis_quality: ${insertQuality.message}`;
+    const mapped = mapInternalReasonToPipelineRejection(summary.skip_reason);
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "reasoned",
+      status: "rejected",
+      reason_code: mapped.code,
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+      meta: { internal_reason: mapped.preserved_internal },
+    });
     console.info("[event-reasoning] per_catalog_thesis_quality_failed", {
       clusterId: claimed.id,
       anchorId,
@@ -475,6 +604,21 @@ async function runEventReasoning() {
     return NextResponse.json(summary, { status: 502 });
   }
 
+  const tierMix = signalLevelMixForMemberIds(
+    newsRows.map((n) => ({ id: n.id, signal_level: n.signal_level })),
+    memberIds,
+  );
+  await insertThesisPipelineTrace(admin, {
+    cluster_id: claimed.id,
+    news_event_id: anchorId,
+    stage: "reasoned",
+    status: "ok",
+    model,
+    prompt_version: promptVersion,
+    source_tier_mix: tierMix,
+    meta: { worker: "event_reasoning", macro_reasoning_ok: true },
+  });
+
   /**
    * Part C — one `ensureAiThesisForDiscoveryCluster` per cluster run (DEPTH4 pack + hero gate inside).
    * Weaker model output never gets a `public.theses` row; it stays on `event_reasoning` + `forming_narrative_layer` only.
@@ -483,6 +627,32 @@ async function runEventReasoning() {
     clusterId: claimed.id,
     titleHint: claimed.title_hint,
     reasoning: validated.data,
+  });
+
+  const gateMapped = !aiRegistryOutcome.ok ? mapInternalReasonToPipelineRejection(aiRegistryOutcome.reason) : null;
+  await insertThesisPipelineTrace(admin, {
+    cluster_id: claimed.id,
+    news_event_id: anchorId,
+    stage: "validation",
+    status: aiRegistryOutcome.ok ? "ok" : "rejected",
+    reason_code: gateMapped?.code ?? null,
+    detail: aiRegistryOutcome.ok
+      ? null
+      : `${gateMapped?.preserved_internal ?? "internal"}: ${aiRegistryOutcome.reason}`.trim(),
+    model,
+    prompt_version: promptVersion,
+    meta: { thesis_relation: validated.data.thesis_relation },
+  });
+  await insertThesisPipelineTrace(admin, {
+    cluster_id: claimed.id,
+    news_event_id: anchorId,
+    stage: "thesis_promoted",
+    status: aiRegistryOutcome.ok ? "ok" : "skipped",
+    thesis_id: aiRegistryOutcome.ok ? aiRegistryOutcome.thesisId : null,
+    reason_code: aiRegistryOutcome.ok ? null : gateMapped?.code ?? "other",
+    detail: aiRegistryOutcome.ok ? null : aiRegistryOutcome.reason,
+    model,
+    prompt_version: promptVersion,
   });
 
   let affectedTheses = [...validated.data.affected_theses].map((t) => t.trim()).filter(Boolean);
@@ -541,6 +711,18 @@ async function runEventReasoning() {
     summary.processed = 1;
     summary.skipped = 1;
     summary.skip_reason = code === "23505" ? "unique_violation_idempotent" : `insert: ${insErr.message}`;
+    const mapped = mapInternalReasonToPipelineRejection(summary.skip_reason);
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "candidate_created",
+      status: "rejected",
+      reason_code: mapped.code,
+      detail: summary.skip_reason,
+      model,
+      prompt_version: promptVersion,
+      meta: { internal_reason: mapped.preserved_internal },
+    });
     console.info("[event-reasoning] insert_failed", { clusterId: claimed.id, anchorId, code, durationMs: summary.duration_ms });
     return NextResponse.json(summary, { status: 502 });
   }
@@ -549,6 +731,18 @@ async function runEventReasoning() {
   const insertId = ins0 && typeof (ins0 as { id?: unknown }).id === "string" ? (ins0 as { id: string }).id : null;
 
   if (insertId) {
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: claimed.id,
+      news_event_id: anchorId,
+      stage: "candidate_created",
+      status: "ok",
+      thesis_candidate_id: insertId,
+      thesis_id: aiRegistryOutcome.ok ? aiRegistryOutcome.thesisId : null,
+      model,
+      prompt_version: promptVersion,
+      source_tier_mix: tierMix,
+      meta: { worker: "event_reasoning" },
+    });
     const persist = await persistEventReasoningToThesisState(admin, {
       reasoning: reasoningPayload,
       eventReasoningRowId: insertId,
@@ -586,6 +780,59 @@ async function runEventReasoning() {
         insertId,
         clusterId: claimed.id,
         message: formingUpdErr.message,
+      });
+    }
+
+    if (aiRegistryOutcome.ok) {
+      const { data: thRow } = await admin
+        .from("theses")
+        .select("id,slug,title,status,micro_label,body,scenario_probabilities,insider_flow,updated_at,thesis_origin")
+        .eq("id", aiRegistryOutcome.thesisId)
+        .maybeSingle();
+      if (thRow && typeof (thRow as { id?: unknown }).id === "string") {
+        try {
+          const thesis = userThesisFromSupabaseRow(
+            thRow as Parameters<typeof userThesisFromSupabaseRow>[0],
+          );
+          const listable = isThesisMapListableThesis(thesis);
+          await insertThesisPipelineTrace(admin, {
+            cluster_id: claimed.id,
+            news_event_id: anchorId,
+            stage: "surfaced_ui",
+            status: listable ? "ok" : "rejected",
+            reason_code: listable ? null : "other",
+            detail: listable ? null : "map_listability_failed",
+            thesis_candidate_id: insertId,
+            thesis_id: aiRegistryOutcome.thesisId,
+            model,
+            prompt_version: promptVersion,
+            meta: { map_listable: listable },
+          });
+        } catch (e) {
+          await insertThesisPipelineTrace(admin, {
+            cluster_id: claimed.id,
+            news_event_id: anchorId,
+            stage: "surfaced_ui",
+            status: "error",
+            thesis_candidate_id: insertId,
+            thesis_id: aiRegistryOutcome.thesisId,
+            detail: e instanceof Error ? e.message : "surfaced_eval_failed",
+            model,
+            prompt_version: promptVersion,
+          });
+        }
+      }
+    } else {
+      await insertThesisPipelineTrace(admin, {
+        cluster_id: claimed.id,
+        news_event_id: anchorId,
+        stage: "surfaced_ui",
+        status: "skipped",
+        reason_code: "other",
+        detail: "no_ai_generated_thesis_row",
+        thesis_candidate_id: insertId,
+        model,
+        prompt_version: promptVersion,
       });
     }
   }

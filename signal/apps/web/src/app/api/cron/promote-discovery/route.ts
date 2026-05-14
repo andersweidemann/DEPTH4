@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
+import { insertThesisPipelineTrace } from "@/lib/thesis-pipeline-audit/trace-writer";
 
 export const runtime = "nodejs";
 
@@ -291,6 +292,16 @@ async function runPromoteDiscovery() {
     }
 
     promotedIds.push(row.id);
+    await insertThesisPipelineTrace(admin, {
+      cluster_id: row.id,
+      stage: "discovery_promoted",
+      status: "ok",
+      meta: {
+        worker: "promote_discovery",
+        promotion: promotionMeta,
+        title_hint: row.title_hint,
+      },
+    });
     console.info("[promote-discovery] promoted", {
       id: row.id,
       signal_score: score,

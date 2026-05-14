@@ -8,6 +8,7 @@ import {
   getDefaultClusteringOptions,
   type NewsEventRow,
 } from "@/lib/thesis-discovery/news-clustering";
+import { insertThesisPipelineTrace, signalLevelMixForMemberIds } from "@/lib/thesis-pipeline-audit/trace-writer";
 
 export const runtime = "nodejs";
 
@@ -140,12 +141,33 @@ async function runThesisDiscovery() {
         );
       }
       updated += 1;
+      const cid = (existing as { id: string }).id;
+      const membersForMix = parsed.filter((p) => c.memberIds.includes(p.id));
+      const mix = signalLevelMixForMemberIds(membersForMix, c.memberIds);
+      await insertThesisPipelineTrace(admin, {
+        cluster_id: cid,
+        stage: "ingested",
+        status: "ok",
+        source_tier_mix: mix,
+        meta: { worker: "thesis_discovery", news_event_ids: c.memberIds, op: "update_reconcile" },
+      });
+      await insertThesisPipelineTrace(admin, {
+        cluster_id: cid,
+        stage: "clustered",
+        status: "ok",
+        source_tier_mix: mix,
+        meta: { worker: "thesis_discovery", op: "update", fingerprint: c.fingerprint },
+      });
     } else {
       const insertRow = {
         ...row,
         created_at: new Date(nowMs).toISOString(),
       };
-      const { error: insErr } = await admin.from("thesis_discovery_clusters").insert(insertRow);
+      const { data: insertedRow, error: insErr } = await admin
+        .from("thesis_discovery_clusters")
+        .insert(insertRow)
+        .select("id")
+        .maybeSingle();
       if (insErr) {
         return NextResponse.json(
           { ok: false, error: insErr.message, stage: "cluster_insert", fingerprint: c.fingerprint },
@@ -153,6 +175,26 @@ async function runThesisDiscovery() {
         );
       }
       inserted += 1;
+      const newClusterId =
+        insertedRow && typeof (insertedRow as { id?: unknown }).id === "string" ? (insertedRow as { id: string }).id : "";
+      if (newClusterId) {
+        const membersForMix = parsed.filter((p) => c.memberIds.includes(p.id));
+        const mix = signalLevelMixForMemberIds(membersForMix, c.memberIds);
+        await insertThesisPipelineTrace(admin, {
+          cluster_id: newClusterId,
+          stage: "ingested",
+          status: "ok",
+          source_tier_mix: mix,
+          meta: { worker: "thesis_discovery", news_event_ids: c.memberIds, fingerprint: c.fingerprint },
+        });
+        await insertThesisPipelineTrace(admin, {
+          cluster_id: newClusterId,
+          stage: "clustered",
+          status: "ok",
+          source_tier_mix: mix,
+          meta: { worker: "thesis_discovery", op: "insert", fingerprint: c.fingerprint },
+        });
+      }
     }
   }
 
