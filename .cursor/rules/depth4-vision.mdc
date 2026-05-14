@@ -1,54 +1,58 @@
 ---
-description: DEPTH4 — read VISION.md first; thesis quality, sources, Opus vs cheap models, trust
+description: DEPTH4 project vision and product-alignment rules
+globs:
+  - "**/*"
 alwaysApply: true
 ---
 
-# DEPTH4 — `VISION.md` is the product source of truth
+# DEPTH4 Vision Rule
 
-Read **`VISION.md`** (repository root) **before** meaningful **code**, **prompt**, or **UX** changes.
+Read `VISION.md` before making meaningful code, prompt, product, or UX changes.
 
-Treat **`VISION.md`** as the single product source of truth for DEPTH4.
+## Source of truth
 
-## Always align with `VISION.md`
+- `VISION.md` is the primary product-definition file for this repository.
+- Treat it as the source of truth for DEPTH4's purpose, output standard, tone, source hierarchy, and release standard.
+- If current code, prompts, comments, or UX copy conflict with `VISION.md`, prefer the vision and flag the conflict.
 
-When touching any of the following, **explicitly align** with `VISION.md`:
+## Required behavior
 
-- Thesis generation and registry / forming narrative
-- Probabilities and conviction / scenario views
-- Surfacing and listability (`/theses`, feed, home buckets)
-- **Source handling** and citation / ingest policy
-- **Geopolitical reasoning** (four levels, tier rules)
-- **Copy** (UI strings, prompts, comments aimed at users)
+Before implementing any substantial change, briefly restate which parts of `VISION.md` are relevant to the task.
 
-## Never publish weak output
+For all work related to thesis generation, scoring, surfacing, geopolitical reasoning, source handling, probabilities, scenario views, assistant output, or product copy:
 
-- **Never insert or surface** outputs that are only **headline rewrites**, **generic analyst summaries**, or **low-quality theses**.
-- If an output **does not meet DEPTH4 quality**, **reject it** instead of publishing it (e.g. validation gates, forming-only paths, skip list surfacing — extend the codebase in that direction; do not bypass gates to “ship something”).
+- Follow the non-negotiables in `VISION.md`.
+- Follow the strict source hierarchy in `VISION.md`.
+- Use DEPTH4's four-level geopolitical reasoning framework.
+- Prefer simple retail-trading language over jargon-heavy or generic analyst language.
+- Optimize for tradable theses, not news summaries.
 
-## Source hierarchy (strict)
+## Hard constraints
 
-- Use the **strict source hierarchy** in `VISION.md` (Tiers 1–5).
-- **Do not let Tier 5 claims influence user-visible reasoning** without **Tier 1–2 confirmation**. Prefer not to cite Tier 5 prominently when higher tiers exist for the same fact.
+Do not create, insert, rank highly, or surface outputs that:
 
-## Model usage
+- are headline rewrites,
+- are generic analyst-note summaries,
+- lack cause, path, timing, and market implication,
+- rely on Tier 5 sources without Tier 1-2 confirmation,
+- feel like a news dashboard artifact rather than an intelligence-engine output.
 
-- Use **Opus** (or equivalent best tier) for **high-stakes, user-visible** reasoning and thesis formation.
-- Use **cheaper models** only for **lower-risk background** work (clustering, tagging, drafts) that is **heavily filtered** before anything user-visible.
+If a model output does not meet DEPTH4 quality, reject it instead of publishing it.
 
-## Definition of done
+## Model selection
 
-A feature is **not done** unless it **strengthens the visible intelligence loop** and **preserves trust**. If it would move DEPTH4 toward any **Failure mode** in `VISION.md`, **do not implement it**; explain the conflict instead.
+- Use high-quality models such as Opus for important user-visible reasoning and thesis formation.
+- Use cheaper models only for lower-risk, non-user-facing tasks such as preprocessing, clustering, tagging, and rough drafts that will be filtered before surfacing.
 
----
+## Release rule
 
-## When the user asks for changes, do this first
+A feature is not done unless it strengthens the visible intelligence loop and preserves trust.
 
-1. **Skim `VISION.md`** and state which sections matter most (one or two short bullets).
-2. **Then** propose or apply code / prompt / UX changes.
-3. In the explanation, **point back** to the sections satisfied (e.g. Non‑negotiables, Source hierarchy, Geopolitical analysis framework, Failure modes, Release standard).
+## Response style when assisting in this repo
 
-## Implementation pointers
+When proposing changes:
 
-- Registry / quality gates: e.g. `passesAiThesisRegistryInsertValidation`, `isThesisMapListableThesis`, forming narrative vs `public.theses` — preserve and tighten; do not weaken to fill the UI.
-
-Use `VISION.md` as a standing constraint on all work in this repo.
+1. Name the relevant `VISION.md` sections.
+2. Explain how the change supports DEPTH4's differentiation.
+3. Call out any risk that the change could trigger a listed failure mode.
+4. Prefer precise acceptance criteria over vague wording like "make it smarter" or "improve quality".
