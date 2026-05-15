@@ -9,6 +9,68 @@ export type AnthropicMessagesResult = {
   raw: unknown;
 };
 
+/** Parsed from Anthropic error JSON (`type: "error"` envelope or legacy shapes). */
+export type AnthropicApiErrorFields = {
+  httpStatus: number;
+  requestId?: string;
+  /** Anthropic `error.type`, e.g. `invalid_request_error`, `authentication_error`. */
+  errorType?: string;
+  /** Anthropic `error.message`. */
+  errorMessage?: string;
+  /** Short JSON snippet for logs (no secrets). */
+  rawSnippet: string;
+};
+
+function snippetJson(value: unknown, maxLen: number): string {
+  try {
+    const s = JSON.stringify(value);
+    return s.length <= maxLen ? s : `${s.slice(0, maxLen)}…`;
+  } catch {
+    return String(value).slice(0, maxLen);
+  }
+}
+
+export function parseAnthropicErrorBody(raw: unknown, httpStatus: number): AnthropicApiErrorFields {
+  let requestId: string | undefined;
+  let errorType: string | undefined;
+  let errorMessage: string | undefined;
+
+  if (typeof raw === "object" && raw !== null) {
+    const o = raw as Record<string, unknown>;
+    if (typeof o.request_id === "string") requestId = o.request_id;
+    const err = o.error;
+    if (typeof err === "object" && err !== null) {
+      const e = err as Record<string, unknown>;
+      if (typeof e.type === "string") errorType = e.type;
+      if (typeof e.message === "string") errorMessage = e.message;
+    }
+    if (!errorMessage && typeof o.message === "string") errorMessage = o.message;
+  }
+
+  return {
+    httpStatus,
+    requestId,
+    errorType,
+    errorMessage,
+    rawSnippet: snippetJson(raw, 1200),
+  };
+}
+
+/** Thrown when `POST /v1/messages` returns non-2xx; carries parsed Anthropic error fields for logging. */
+export class AnthropicMessagesHttpError extends Error {
+  readonly fields: AnthropicApiErrorFields;
+
+  constructor(fields: AnthropicApiErrorFields) {
+    const msg =
+      fields.errorMessage && fields.errorType
+        ? `anthropic_messages_http_${fields.httpStatus}: ${fields.errorType}: ${fields.errorMessage}`
+        : `anthropic_messages_http_${fields.httpStatus}: ${fields.rawSnippet}`;
+    super(msg);
+    this.name = "AnthropicMessagesHttpError";
+    this.fields = fields;
+  }
+}
+
 export async function anthropicMessages(params: {
   apiKey: string;
   model: string;
@@ -33,11 +95,8 @@ export async function anthropicMessages(params: {
 
   const raw: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg =
-      typeof raw === "object" && raw !== null && "error" in raw
-        ? JSON.stringify((raw as { error?: unknown }).error)
-        : JSON.stringify(raw);
-    throw new Error(`anthropic_messages_http_${res.status}: ${msg}`);
+    const fields = parseAnthropicErrorBody(raw, res.status);
+    throw new AnthropicMessagesHttpError(fields);
   }
 
   if (typeof raw !== "object" || raw === null || !("content" in raw)) {
