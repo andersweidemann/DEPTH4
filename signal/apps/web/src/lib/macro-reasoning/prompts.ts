@@ -16,7 +16,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-book-template";
 
 /** Keep in sync with `event_reasoning.prompt_version` for idempotent upserts. */
-export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v17";
+export const MACRO_EVENT_REASONING_PROMPT_VERSION = "macro-reasoning-plain-v18";
 
 /**
  * Exact JSON object the model must emit (single JSON object, no markdown fences).
@@ -29,7 +29,11 @@ LENGTH SPLIT (read this first)
 - All other text fields may be fuller: reasoning_chain, first_order_effects, second_order_effects, third_order_effects, domain, direction_of_change, etc. Those are for the detail page — keep them clear, but do not squeeze them into feed-card length.
 
 DEPTH4 MACRO THESIS ENGINE — how JSON maps to the thesis (same keys as always)
-1) **reasoning_chain** carries L1→L4 in order. Use EXACTLY these four headers (copy spelling), one block each, separated by a blank line. Nothing before LEVEL 1. No bullet characters inside the string. After each header, at most 2–3 short sentences (about 10–15 words each). Active voice; mobile-scannable.
+TRANSCRIPT / EARNINGS / SLIDE / IR CLUSTERS (input hygiene — before L1)
+- When a member **headline** reads like an earnings transcript, conference or shareholder call, webcast, slideshow, investor/analyst day, or IR deck title, treat that string as **document metadata**, not market evidence. Extract what matters for prices from **body_excerpt** (guidance, margins, demand, credit, segment mix, capex, macro lines) and from tickers / sectors in the JSON. Build LEVEL 1 only from those facts — never from paraphrasing the transcript or slide title.
+- Do not paste transcript-title DNA (company legal name + quarter + "Earnings Call Transcript", etc.) into **thesis_trade_line** or into LEVEL bodies as filler.
+
+1) **reasoning_chain** carries L1→L4 in order. Use EXACTLY these four headers (copy spelling), one block each, separated by a blank line. Nothing before LEVEL 1. No bullet characters inside the string. After each header, write 2–3 short sentences (about 10–15 words each) with **new** substance per level — progression L1→L4, not a copy of **thesis_trade_line** and not one-line padding. Active voice; mobile-scannable.
 
 LEVEL 1 (CONFIRMED TODAY — 0–24h):
 What is already verified in the news or data right now — facts only, no predictions.
@@ -43,7 +47,7 @@ Where the market is mispriced — spillovers, second-order effects, hidden rotat
 LEVEL 4 (THIS QUARTER — 30–90d+):
 Regime shift / leadership rotation if the thesis is right — defensives vs cyclicals, quality vs junk, funding vs risk — name proxies and tie back to proof the cluster already hints at.
 
-2) **thesis_trade_line** = **THESIS HERO (title)** — ONE sentence only, written **after** L1–L4. Compress the chain into a forward causal forecast. MUST include: tradable asset or theme, direction, cause (as / because / on / when), a **sharp** timing window ("within weeks", "next two prints", "this earnings season", "before consensus catches it", "longer than the market expects this year" — **not** vague "sometime this year" alone; **not** "this quarter" as the only timing hook). Implicit mispricing should read from the sentence. **Do not** put literal "probability NN%" in this string. **Banned:** imperative Buy/Sell/Go long. If you cannot meet the bar, set thesis_trade_line to "".
+2) **thesis_trade_line** = **THESIS HERO (registry title)** — ONE sentence only, written **after** L1–L4. Compress the LEVEL 3–4 spine into a forward trade. **Semantically** it must read as: **[ASSET] + [directional forecast] + [causal linker: because / as / when / before / while / due to] + [driver from cluster facts] + [sharp timing: within weeks / this quarter / before next FOMC / this earnings season / next two prints — not "eventually" or year-only vagueness] + [what the market is mispricing vs your read]** (mispricing may echo LEVEL 3 but must still be clear in plain English). **ASSET:** prefer macro-tradable expressions (indices, sector ETFs, futures, FX, commodities, credit, crypto). **Liquid single-name equities** (e.g. RTX, META) only if LEVEL 3 states explicit mispricing, timing is sharp, and L2–L4 show a **macro or systemic** channel (defense spend, regulation, sector funding) — not a lone company headline with no tape read. **Do not** put literal "probability NN%" in this string. **Banned:** imperative Buy/Sell/Go long; analyst-deck phrases ("Fair Value", "Price Target", "Long-Term Targets", "On Track", "Earnings Beat", "guidance reaffirmed"); paraphrased transcript or news headlines. If you cannot meet the bar, set thesis_trade_line to "".
 
 3) **reasoning_summary** = **WHY-NOW MICROLABEL** — 1–2 short sentences (feed word cap): the timing or positioning edge (e.g. "Peace odds crossed the line where gold should fade — but spot has not repriced yet.").
 
@@ -51,6 +55,7 @@ Regime shift / leadership rotation if the thesis is right — defensives vs cycl
 
 CONSTRAINTS (tradable macro focus — guidance, not a ticker allowlist)
 - Prefer liquid macro expressions (rates, commodities, broad indices, sector ETFs, credit, mega-cap proxies, factor themes). Single names are OK when they are clearly the **tradeable** read the cluster proves; avoid illiquid micro-caps **unless** they explicitly proxy a sector or theme the text names.
+- **Single-name heroes** need the same semantic spine as macro names: explicit mispricing in LEVEL 3 + sharp timing + systemic causal story — otherwise prefer the sector ETF or index.
 - Mispricing must be concrete, not vibes.
 - Map the full L1→L4 chain **before** writing thesis_trade_line.
 
@@ -145,7 +150,7 @@ IDENTITY (non-negotiable)
 - If the cluster cannot support a credible L1→L4 path with a stated mispricing, set thesis_trade_line to "" and keep the analysis honest in reasoning_chain and feed fields.
 
 INPUTS (from the user message — use all that apply)
-- **Cluster members** (headlines + excerpts): primary evidence; anchor to facts in the text.
+- **Cluster members** (headlines + excerpts): primary evidence. **Preprocess:** transcript/slideshow/IR-style **headlines** are labels — mine **body_excerpt** for facts; anchor L1 and the hero to those facts, not to title strings.
 - **Known theses JSON** (when non-empty): drives affected_theses and per_catalog_thesis — copy thesis ids exactly.
 - **Macro backdrop** (rates path, war/peace, growth, credit, liquidity): infer only when the cluster text supports it; never invent prints, dates, or percentages not implied by the evidence.
 
@@ -356,7 +361,9 @@ TITLE HINT: ${ctx.title_hint ?? "(none)"}
 SIGNAL SCORE: ${ctx.signal_score ?? "(none)"}
 ANCHOR EVENT ID (stored row): ${ctx.anchor_event_id}
 
-The anchor is the lead headline. Still read every member story below. Build one timeline.
+TITLE HINT is clustering metadata only (often a raw headline or transcript title). Do not copy it into thesis_trade_line, reasoning_chain, or mispricing_hypothesis.
+
+The anchor is the lead headline. Still read every member row below; for transcript-style headlines, trust **body_excerpt** for facts. Build one causal timeline.
 
 NEWS IN THIS CLUSTER
 ${stringifyJson(members)}
@@ -370,15 +377,15 @@ MACRO BACKDROP (use when the text supports it)
 - Rates / Fed path, war or peace drift, growth vs recession scare, credit and liquidity: connect only when cluster members or Known theses give a foothold — do not invent unrelated macro narratives.
 
 WHAT TO DO
-1) Merge the headlines into one clear story.
+1) **Preprocess cluster text:** For transcript/slideshow/IR-style headlines, ignore headline wording for causality; pull facts from **body_excerpt** and tickers. Merge those facts into one coherent story — not a paraphrase stack of titles.
 2) Fill every field. Plain English everywhere.
 3) Feed teaser ONLY — hard caps on exactly three fields: event_summary ≤ ${FEED_CARD_WORD_LIMITS.event_summary} words (1 sentence); reasoning_summary ≤ ${FEED_CARD_WORD_LIMITS.reasoning_summary} words (1–2 sentences); mispricing_hypothesis ≤ ${FEED_CARD_WORD_LIMITS.mispricing_hypothesis} words (1–2 sentences). Goal: "Should I click?" answered in ~5 seconds on a phone.
 4) Detail page — no feed word caps on reasoning_chain or on first_order_effects, second_order_effects, third_order_effects; keep those informative and step-by-step.
 5) Chain first_order → second_order → third_order so each step follows from the prior when possible.
-6) reasoning_chain: REQUIRED four blocks — LEVEL 1 through LEVEL 4 — with the exact headers from the JSON contract. Nothing before LEVEL 1.
+6) reasoning_chain: REQUIRED four blocks — LEVEL 1 through LEVEL 4 — with the exact headers from the JSON contract. Nothing before LEVEL 1. Each level must add real progression (mispricing belongs mainly in L3–L4); no echoing the hero, no generic "trend continues" filler.
 7) first_order_effects / second_order_effects / third_order_effects: mirror LEVEL 2 / 3 / 4 in bullet form.
 8) impacted_assets: prefix L2/L3/L4 (or L1 if immediate data) on each line.
-9) thesis_trade_line: when non-empty, must read as a forward forecast with tickers and an explicit **when** (window or catalyst) — never "eventually" or years-only framing. Do not put literal "probability N%" inside this string (conviction lives in probability_*_pct + UI). **Never** echo ANCHOR HEADLINE, TITLE HINT, or transcript patterns — see system prompt HEADLINE / TRANSCRIPT vs REGISTRY HERO. If you cannot meet that bar, set thesis_trade_line to "".
+9) thesis_trade_line: when non-empty, must satisfy the **semantic hero** in the JSON contract (asset + directional call + causal linker + sharp timing + mispricing read). Never "eventually" or years-only framing. Do not put literal "probability N%" inside this string (conviction lives in probability_*_pct + UI). **Never** echo ANCHOR HEADLINE, TITLE HINT, member headlines, or transcript-title patterns — see system prompt HEADLINE / TRANSCRIPT vs REGISTRY HERO. If you cannot meet that bar, set thesis_trade_line to "".
 10) Average about 10–15 words per sentence in reasoning_chain and trade_implication — scan-layer tight, not a memo.
 11) If Known theses is non-empty: fill per_catalog_thesis with exactly one object per thesis id, same order as the list, full second_order_effect strings — this is the cross-thesis map for the cluster.
 12) Registry pack: if thesis_trade_line is non-empty, LEVEL 3–4 in reasoning_chain must each carry a real mispricing + rotation story (not generic filler), and mispricing_hypothesis must still state the pricing gap in the feed word cap.

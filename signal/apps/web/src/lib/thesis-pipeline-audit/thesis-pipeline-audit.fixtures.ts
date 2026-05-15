@@ -85,7 +85,7 @@ export const THESIS_PIPELINE_FIXTURE_TRACES: Record<string, ThesisPipelineTraceR
       stage: "reasoned",
       status: "ok",
       model: "claude-opus-4-7",
-      prompt_version: "macro-reasoning-plain-v17",
+      prompt_version: "macro-reasoning-plain-v18",
       created_at: "2026-02-01T00:00:10.000Z",
     }),
     row({
@@ -100,7 +100,7 @@ export const THESIS_PIPELINE_FIXTURE_TRACES: Record<string, ThesisPipelineTraceR
       cluster_id: CID_UPGRADE,
       stage: "validation",
       status: "ok",
-      meta: { registry_repair_attempted: true, macro_prompt_version: "macro-reasoning-plain-v17" },
+      meta: { registry_repair_attempted: true, macro_prompt_version: "macro-reasoning-plain-v18" },
       created_at: "2026-02-01T00:00:12.000Z",
     }),
     row({

@@ -6,7 +6,7 @@ import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
 
 /** Bump when repair instructions change (logged; not a DB prompt_version key). */
-export const MACRO_REGISTRY_REPAIR_PROMPT_VERSION = "macro-registry-repair-v2";
+export const MACRO_REGISTRY_REPAIR_PROMPT_VERSION = "macro-registry-repair-v3";
 
 const VISION_EXCERPT = `DEPTH4 (product): cause, path, timing, and market implication are mandatory. Generic summaries or headline rewrites are failure. Four levels: L1 confirmed (Tier 1–2), L2 this week (1–7d), L3 this month (7–30d) with explicit mispricing, L4 this quarter (30–90d+). Mispricing must state what the crowd prices vs what you see. Voice: simple retail trading English — concrete, not analyst deck tone.`;
 
@@ -37,9 +37,14 @@ ${VISION_EXCERPT}
 
 TASK
 - Read the rejection reason and the draft JSON fields provided in the user message.
+- **Preprocess:** ANCHOR_HEADLINE and TITLE_HINT are often transcript titles or raw wires — do not recycle them into thesis_trade_line. Infer market facts from the draft's reasoning_chain, mispricing_hypothesis, and event_summary; rewrite the hero from those facts.
 - Output ONE JSON object only (no markdown). Keys exactly:
   thesis_trade_line, reasoning_chain, mispricing_hypothesis, reasoning_summary, trade_implication
   Optional key: event_summary (only if the current event_summary is a raw headline echo — rewrite it as a 1-sentence scan line, max 15 words).
+
+SEMANTIC THESIS HERO (thesis_trade_line — must match production macro prompt)
+- One sentence that **semantically** includes: liquid **ASSET** (macro ETF/index/commodity/credit first; single-name only if reasoning_chain LEVEL 3 already states explicit mispricing + sharp timing + systemic channel) + **directional forecast** (will / should / rerate / fade / outperform / underperform / stay bid / …) + **because / as / when / before / while / due to** + **driver** + **sharp timing** (within weeks, this quarter, before next FOMC, this earnings season — not "eventually") + **what the crowd misprices** (plain English; can align with LEVEL 3 "The market is pricing [X], but DEPTH4 sees [Y].").
+- **Banned:** transcript or call titles; Fair Value / Price Target / On Track / Earnings Beat / guidance reaffirmed; near-copy of ANCHOR_HEADLINE or TITLE_HINT.
 
 VALIDATOR GATES (your output is merged and then checked by the same code as production — all must pass)
 - **Hero shape:** one sentence; early segment uses a forecast verb (will/should/rerate/fade/underperform/outperform/stay bid/…); within ~220 chars after that, include a causal linker (because / as / when / while / before / if / on / into) tying cause to the trade.
@@ -49,7 +54,7 @@ VALIDATOR GATES (your output is merged and then checked by the same code as prod
 - **LEVEL 3 body:** must contain the exact pattern: The market is pricing [X], but DEPTH4 sees [Y].
 
 RULES
-1) thesis_trade_line is the REGISTRY HERO — a NEW causal trade sentence. It must NOT be a literal or near-literal copy of the anchor headline, cluster title hint, or transcript title. It MUST contain a forward market verb (will / should / likely to / rerate / fade / outperform / underperform / stay bid / misprice / if / when / before / within weeks / this quarter / next print / this earnings season) plus cause and timing.
+1) thesis_trade_line is the REGISTRY HERO — a NEW causal trade sentence. It must NOT be a literal or near-literal copy of the anchor headline, cluster title hint, or transcript title. It MUST contain a forward market verb (will / should / likely to / rerate / fade / outperform / underperform / stay bid / misprice / if / when / before / within weeks / this quarter / next print / this earnings season) plus cause and timing, and must read as a full semantic hero (asset + direction + because + timing + mispricing) per the SEMANTIC THESIS HERO block above.
 2) reasoning_chain must use EXACTLY four headers in order, each on its own line, matching the main macro prompt:
    LEVEL 1 (CONFIRMED TODAY — 0–24h):
    LEVEL 2 (THIS WEEK — 1–7d):
