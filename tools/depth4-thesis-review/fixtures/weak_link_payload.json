@@ -1,0 +1,113 @@
+{
+  "generated_at": "2026-05-16T22:00:00Z",
+  "theses": [
+    {
+      "id": "weak-tlt-news-only",
+      "title": "Fed pivot delayed — TLT weakness",
+      "horizon": "3M",
+      "thesis": "Duration stays under pressure until the Fed cutting cycle is repriced later than futures imply. Sticky core CPI and term-premium rebuild keep long bonds heavy.",
+      "drivers": [
+        "Fed cutting cycle delayed vs. OIS",
+        "Sticky core CPI above 3%",
+        "Term premium rebuild in long end"
+      ],
+      "insider_flow": {
+        "bullInstruments": [],
+        "bearInstruments": ["TLT", "IEF"],
+        "confirmTags": ["news", "fed", "cpi", "rates"],
+        "contradictTags": []
+      },
+      "matching_event": {
+        "title": "Eurovision 2026 grand final lineup announced in Malmö",
+        "category": "entertainment",
+        "region": "europe",
+        "tickers": [],
+        "raw_json": {
+          "headline": "Eurovision 2026 grand final lineup announced",
+          "body": "Hosts reveal running order for Saturday's song contest final."
+        },
+        "matched_via": {
+          "confirmHit": ["news"],
+          "contradictHit": [],
+          "tickerHit": []
+        }
+      },
+      "signals": [
+        {"ticker": "TLT", "value": 88.2, "delta_1d": -0.15, "as_of": "2026-05-16T18:00:00Z"}
+      ],
+      "probability": 0.58,
+      "invalidation": "TLT rallies >8% from here without a dovish CPI surprise.",
+      "updated_at": "2026-05-16T21:00:00Z"
+    },
+    {
+      "id": "weak-equity-event-tag",
+      "title": "EU tech fines keep META under pressure",
+      "horizon": "6M",
+      "thesis": "European antitrust enforcement continues to compress mega-cap platform multiples. DMA fines and compliance costs are a recurring overhang on US tech ADRs.",
+      "drivers": [
+        "EU DMA enforcement and recurring fines",
+        "Ad-targeting restrictions in EU",
+        "Platform compliance cost inflation"
+      ],
+      "insider_flow": {
+        "bullInstruments": [],
+        "bearInstruments": ["META"],
+        "confirmTags": ["event", "european commission", "dma"],
+        "contradictTags": []
+      },
+      "matching_event": {
+        "title": "Local festival draws record crowd downtown",
+        "category": "culture",
+        "region": "us_midwest",
+        "tickers": [],
+        "raw_json": {"headline": "Summer street festival breaks attendance record"},
+        "matched_via": {
+          "confirmHit": ["event"],
+          "contradictHit": [],
+          "tickerHit": []
+        }
+      },
+      "signals": [
+        {"ticker": "META", "value": 512.0, "delta_1d": 0.1, "as_of": "2026-05-16T18:00:00Z"}
+      ],
+      "probability": 0.52,
+      "invalidation": "EU Commission suspends new DMA proceedings for 2 quarters.",
+      "updated_at": "2026-05-16T21:00:00Z"
+    },
+    {
+      "id": "weak-ticker-only-oil",
+      "title": "Strait risk keeps crude bid",
+      "horizon": "2W",
+      "thesis": "Geopolitical chokepoint risk supports front-month crude as insurers pull cover from Gulf transits.",
+      "drivers": [
+        "Strait of Hormuz transit disruption risk",
+        "Tanker insurance premia spike",
+        "OPEC spare capacity thin"
+      ],
+      "insider_flow": {
+        "bullInstruments": ["USOIL", "WTI"],
+        "bearInstruments": [],
+        "confirmTags": ["hormuz", "strait", "tanker"],
+        "contradictTags": []
+      },
+      "matching_event": {
+        "title": "WTI futures tick higher in thin afternoon trade",
+        "category": "markets",
+        "region": "global",
+        "tickers": ["WTI"],
+        "raw_json": {"headline": "Crude edges up 0.3%"},
+        "matched_via": {
+          "confirmHit": [],
+          "contradictHit": [],
+          "tickerHit": ["WTI"]
+        }
+      },
+      "signals": [
+        {"ticker": "WTI", "value": 78.4, "delta_1d": 0.3, "as_of": "2026-05-16T18:00:00Z"}
+      ],
+      "probability": 0.61,
+      "invalidation": "Strait transit normalizes for 10 sessions.",
+      "updated_at": "2026-05-16T21:00:00Z"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# DEPTH4 — block commits that touch thesis-formulation logic when the
+# 3-agent review surfaces a high-severity flag.
+set -euo pipefail
+
+# Only run when staged files touch thesis logic. Adjust paths to your repo.
+TRIGGER_PATHS='(signal/apps/web/src/app/api/theses/|signal/apps/web/src/lib/theses/|signal/apps/web/src/lib/thesis-mutation/|signal/apps/web/src/lib/macro-reasoning/|tools/depth4-thesis-review/)'
+if ! git diff --cached --name-only | grep -Eq "$TRIGGER_PATHS"; then
+  exit 0
+fi
+
+REVIEW_DIR="$(git rev-parse --show-toplevel)/tools/depth4-thesis-review"
+if [[ ! -d "$REVIEW_DIR" ]]; then
+  echo "[pre-commit] depth4-thesis-review/ not found, skipping." >&2
+  exit 0
+fi
+
+echo "[pre-commit] Running 3-agent thesis review…"
+
+# Prefer live endpoint; if unreachable, fall back to the latest captured fixture.
+PYTHON="${PYTHON:-python}"
+ARGS=(--fail-on high)
+if [[ -z "${DEPTH4_BASE_URL:-}" ]]; then
+  FIX="$REVIEW_DIR/fixtures/sample_payload.json"
+  if [[ -f "$FIX" ]]; then
+    echo "[pre-commit] DEPTH4_BASE_URL unset — using fixture $FIX"
+    ARGS+=(--fixture "$FIX")
+  else
+    echo "[pre-commit] No DEPTH4_BASE_URL and no fixture — skipping." >&2
+    exit 0
+  fi
+fi
+
+if ! ( cd "$REVIEW_DIR" && "$PYTHON" controller.py "${ARGS[@]}" ); then
+  cat >&2 <<'MSG'
+
+[pre-commit] BLOCKED — the 3-agent review surfaced a high-severity flag.
+Open the newest file in tools/depth4-thesis-review/reports/ to see details.
+Bypass (only when justified):  git commit --no-verify
+MSG
+  exit 1
+fi
+
+echo "[pre-commit] Thesis review passed."

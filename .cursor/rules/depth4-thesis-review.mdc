@@ -1,0 +1,36 @@
+---
+description: DEPTH4 thesis-review pipeline — apply when editing thesis-formulation logic
+globs:
+  - "signal/apps/web/src/app/api/theses/**"
+  - "signal/apps/web/src/lib/theses/**"
+  - "signal/apps/web/src/lib/thesis-mutation/**"
+  - "signal/apps/web/src/lib/macro-reasoning/**"
+  - "tools/depth4-thesis-review/**"
+alwaysApply: false
+---
+
+# DEPTH4 thesis logic — review protocol
+
+Whenever you edit code in the globs above, or when the user types `/review-thesis` in chat, follow this protocol before proposing a commit:
+
+1. Run the 3-agent pipeline against the current dev server:
+   ```bash
+   python tools/depth4-thesis-review/controller.py --fail-on high
+   ```
+   If the dev server is not running, run against a captured fixture:
+   ```bash
+   python tools/depth4-thesis-review/controller.py \
+     --fixture tools/depth4-thesis-review/fixtures/sample_payload.json
+   ```
+
+2. Read the newest file in `tools/depth4-thesis-review/reports/`. Surface to the user:
+   - Worst verdict per thesis
+   - The logic-shallow leaderboard (which agent flagged the most)
+   - Any **solo flags** (issues raised by exactly one agent)
+   - Any `EVIDENCE_CONTRADICTS` flag (highest priority)
+
+3. Do not auto-fix. Propose targeted edits that would resolve the highest-severity flag, then ask the user to approve.
+
+4. Never invent ticker values or signal levels.
+
+5. The pipeline exits non-zero on `severity: high`. Don't suggest `--no-verify` unless the user explicitly asks.

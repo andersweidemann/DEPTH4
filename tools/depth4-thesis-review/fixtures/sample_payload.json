@@ -1,0 +1,56 @@
+{
+  "generated_at": "2026-05-16T20:00:00Z",
+  "theses": [
+    {
+      "id": "depth4-001",
+      "title": "USD softness into Q3 as cutting cycle priced in",
+      "horizon": "3M",
+      "thesis": "DXY will drift lower as the Fed begins easing in July. Lower real yields and a narrowing rate differential vs. EUR weigh on the dollar. Carry into EM FX becomes attractive again.",
+      "drivers": [
+        "Fed cuts begin July; 75bps priced by year-end",
+        "EUR-USD rate differential narrows",
+        "EM carry trade reactivation"
+      ],
+      "signals": [
+        {"ticker": "DXY", "value": 104.2, "delta_1d": -0.3, "as_of": "2026-05-16T18:00:00Z"},
+        {"series": "US 2y real yield", "level": 1.85, "z_score": -0.4, "as_of": "2026-05-16T18:00:00Z"},
+        {"ticker": "EURUSD", "value": 1.085, "delta_1d": 0.002, "as_of": "2026-05-16T18:00:00Z"}
+      ],
+      "probability": 0.62,
+      "invalidation": "DXY closes above 107 for 5 consecutive sessions OR US core CPI re-accelerates above 3.5% YoY.",
+      "updated_at": "2026-05-16T19:30:00Z"
+    },
+    {
+      "id": "depth4-002",
+      "title": "EM equities rally on global liquidity tailwind",
+      "horizon": "6M",
+      "thesis": "EM equities will outperform as global liquidity inflects. The setup looks like 2016 — a weaker dollar and dovish G3 unlock flows into EM. This is almost certain to play out.",
+      "drivers": [
+        "Global liquidity proxy turning higher"
+      ],
+      "signals": [
+        {"ticker": "EEM", "value": 44.1, "delta_1d": 0.4, "as_of": "2026-05-16T18:00:00Z"}
+      ],
+      "probability": 0.55,
+      "invalidation": "EM underperforms.",
+      "updated_at": "2026-05-16T19:30:00Z"
+    },
+    {
+      "id": "depth4-003",
+      "title": "USD strength on safe-haven bid through summer",
+      "horizon": "3M",
+      "thesis": "Geopolitical risk premium drives DXY higher as US assets attract haven flows. Correlation between VIX and DXY has been positive YTD.",
+      "drivers": [
+        "Geopolitical risk premium",
+        "Haven demand for USD"
+      ],
+      "signals": [
+        {"ticker": "DXY", "value": 104.2, "delta_1d": -0.3, "as_of": "2026-05-16T18:00:00Z"},
+        {"ticker": "VIX", "value": 18.4, "delta_1d": 0.6, "as_of": "2026-05-16T18:00:00Z"}
+      ],
+      "probability": 0.58,
+      "invalidation": "Geopolitical situation de-escalates.",
+      "updated_at": "2026-05-16T19:30:00Z"
+    }
+  ]
+}

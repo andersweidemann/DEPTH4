@@ -1,0 +1,43 @@
+# DEPTH4 — 3-Agent Thesis Review Pipeline configuration
+# ----------------------------------------------------------------------------
+# Endpoint of the running DEPTH4 app (local or Vercel preview/prod).
+# DEPTH4_BASE_URL env var is prepended at runtime, so this is the path only.
+endpoint: "/api/theses/home-signals"
+
+# Header name to attach DEPTH4_AUTH_TOKEN to. Most setups use "Authorization".
+auth_header: "Authorization"
+
+# HTTP + per-agent timeout in seconds.
+timeout_s: 90
+
+# CI gate. Pipeline exits non-zero when any flag at or above this severity is
+# raised. Set to "never" to make the pipeline advisory only.
+# One of: low | medium | high | never
+fail_on: "high"
+
+# ----------------------------------------------------------------------------
+# Agent roster. Mix providers freely — each agent is independent.
+# Suggested setup: Claude for nuanced reasoning, GPT for fast market checks,
+# Claude (long-context) for coherence across multiple theses.
+# ----------------------------------------------------------------------------
+agents:
+  reasoning:
+    provider: "anthropic"
+    model: "claude-opus-4-20250514"
+    temperature: 0.0
+    max_tokens: 2000
+    prompt_file: "agent_reasoning.md"
+
+  market:
+    provider: "openai"
+    model: "gpt-4o-2024-11-20"
+    temperature: 0.0
+    max_tokens: 1800
+    prompt_file: "agent_market.md"
+
+  coherence:
+    provider: "anthropic"
+    model: "claude-sonnet-4-20250514"
+    temperature: 0.0
+    max_tokens: 2200
+    prompt_file: "agent_coherence.md"
