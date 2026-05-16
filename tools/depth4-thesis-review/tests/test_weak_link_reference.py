@@ -8,7 +8,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from tests.weak_link_reference_flags import reference_flags_for_thesis  # noqa: E402
+from reference_flags import reference_flags_for_thesis  # noqa: E402
 
 
 def test_tlt_eurovision_news_tag_flags():

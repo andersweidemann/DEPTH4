@@ -63,6 +63,66 @@ python3 controller.py
 
 Reports are written to `reports/thesis_review_<UTC-timestamp>.{json,md}`.
 
+## Shadow mode (advisory — calibration only)
+
+**Purpose:** Measure how often live thesis↔event links would trigger `LS_TAG_TOO_BROAD` and
+`LS_NO_MECHANISM_LINK` using deterministic rules (no LLM cost). Use this for 1–2 weeks to
+learn noise levels and repeat offenders before any merge gate.
+
+**Not enforced today:**
+- Pre-commit `fail_on` is **not** enabled for shadow or `LS_NO_MECHANISM_LINK`.
+- Weekly GitHub Action **never fails** the workflow.
+- Optional `--llm` 3-agent pass remains `fail-on never` when used.
+
+**Data source:** `shadow_run.py` reads `public.theses` + recent `thesis_evidence_log`
+(`NEWS_DEVELOPMENT`) + `news_events` — **not** `GET /api/theses/home-signals` (that route only
+returns `catalogLeader`).
+
+### Run locally against production Supabase
+
+From repo root (requires Vercel/production secrets injected into the process):
+
+```bash
+cd signal/apps/web
+vercel env run --environment=production -- \
+  python3 ../../../tools/depth4-thesis-review/shadow_run.py --days 14 --limit 100 --quiet
+```
+
+Or with a pulled env file where secrets are populated:
+
+```bash
+cd tools/depth4-thesis-review
+python3 shadow_run.py --env-file /path/to/.env --days 14 --limit 100 --quiet
+```
+
+**Offline / regression sample** (Eurovision→TLT-style weak links):
+
+```bash
+python3 shadow_run.py --fixture fixtures/weak_link_payload.json --quiet
+```
+
+### Where reports land
+
+| File | Contents |
+|------|----------|
+| `reports/shadow_payload_<UTC>.json` | Theses + `matching_event` built for review |
+| `reports/shadow_reference_<UTC>.json` | Flag counts, thesis hits, repeat offenders |
+
+Stdout prints a short **editorial summary** (counts + top offending slugs). Pass `--quiet` to
+suppress the full JSON dump.
+
+### GitHub Actions (weekly)
+
+Workflow: `.github/workflows/thesis-verifier-shadow.yml` — runs every Monday, uploads
+`shadow_reference_*.json` as an artifact, **always succeeds**.
+
+**Repository secrets** (for live production data):
+
+- `NEXT_PUBLIC_SUPABASE_URL` — `https://<project>.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY` — service role key (read theses + evidence + news)
+
+If secrets are missing, the job falls back to `fixtures/weak_link_payload.json` and logs a warning.
+
 ## Logic-Shallow taxonomy
 
 A flag is "logic-shallow" when the thesis fails a **reasoning-quality** bar,

@@ -1,0 +1,54 @@
+# Advisory only — deterministic thesis↔event shadow review (no merge gate).
+# Calibrates LS_TAG_TOO_BROAD / LS_NO_MECHANISM_LINK rates on live data before any fail_on policy.
+name: Thesis verifier shadow (advisory)
+
+on:
+  schedule:
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shadow-reference:
+    name: Reference shadow (deterministic)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r tools/depth4-thesis-review/requirements.txt
+
+      - name: Run shadow (production Supabase or fixture fallback)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: tools/depth4-thesis-review
+        run: |
+          set -e
+          if [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] && [ -n "$NEXT_PUBLIC_SUPABASE_URL" ]; then
+            echo "mode=production"
+            python3 shadow_run.py --days 14 --limit 100 --quiet
+          else
+            echo "::warning::NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set — using weak_link fixture only"
+            echo "mode=fixture_fallback"
+            python3 shadow_run.py --fixture fixtures/weak_link_payload.json --quiet
+          fi
+
+      - name: Upload shadow reference report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shadow-reference-${{ github.run_id }}
+          path: tools/depth4-thesis-review/reports/shadow_reference_*.json
+          if-no-files-found: warn
+          retention-days: 90
