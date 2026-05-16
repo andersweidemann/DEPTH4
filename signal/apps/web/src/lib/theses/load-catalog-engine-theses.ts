@@ -8,7 +8,8 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis as EngineThesis } from "@/lib/thesis-engine-v2/types";
 import type { ThesisLifecycleState, ThesisSurfacedBucket } from "@/types/thesis";
-import { THESIS_LIFECYCLE_STATES, THESIS_SURFACED_BUCKETS } from "@/lib/theses/thesis-surfacing-db-constants";
+import { THESIS_SURFACED_BUCKETS } from "@/lib/theses/thesis-surfacing-db-constants";
+import { parseLifecycleState } from "@/lib/theses/thesis-lifecycle";
 
 /** DB-backed surfacing fields for list merge (Phase 4). */
 export type ThesisDbSurfacingPreference = {
@@ -17,12 +18,6 @@ export type ThesisDbSurfacingPreference = {
   thesis_score?: number;
   outcome_label?: string | null;
 };
-
-function parseLifecycleState(v: unknown): ThesisLifecycleState | undefined {
-  return typeof v === "string" && (THESIS_LIFECYCLE_STATES as readonly string[]).includes(v)
-    ? (v as ThesisLifecycleState)
-    : undefined;
-}
 
 function parseSurfacedBucket(v: unknown): ThesisSurfacedBucket | null | undefined {
   if (v == null) return undefined;

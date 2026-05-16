@@ -2,10 +2,13 @@
  * Homepage / thesis-map buckets: **rank-first**, soft lane labels. Uses existing engine fields only
  * (`getThesisDisplayModel`, `getThesisMispricing`, `scores`, status, recency) — no DB writes here.
  */
-import type { Thesis as EngineThesis, ThesisStatus as EngineStatus } from "@/lib/thesis-engine-v2/types";
+import type { Thesis as EngineThesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import type { ThesisLifecycleState, ThesisSurfacedBucket } from "@/types/thesis";
+import { effectiveLifecycleState, isTerminalLifecycleState } from "@/lib/theses/thesis-lifecycle";
+
+export { deriveLifecycleState, deriveLifecycleStateFromStatus } from "@/lib/theses/thesis-lifecycle";
 
 /** Max ready/active rows in the Tradable lane (overflow → Monitoring, still ranked). */
 export const HOME_TRADABLE_BUCKET_MAX = 15;
@@ -23,14 +26,6 @@ function parseUpdatedMs(v: string): number {
   const d = new Date(v);
   if (!Number.isNaN(d.getTime())) return d.getTime();
   return 0;
-}
-
-/** Phase 1: single axis — `forming` is registry/discovery; in-play rows are `live`; terminal states explicit. */
-export function deriveLifecycleState(st: EngineStatus): ThesisLifecycleState {
-  if (st === "resolved") return "resolved";
-  if (st === "invalidated") return "invalidated";
-  if (st === "forming") return "discovered";
-  return "live";
 }
 
 /**
@@ -82,6 +77,11 @@ export type PartitionHomeBucketsOptions = {
    * (they keep `surfaced_bucket` null). Archive preview still uses all terminal rows from `combined`.
    */
   homeBucketEligible?: (t: EngineThesis) => boolean;
+  /**
+   * When set, used for terminal vs live split (DB `lifecycle_state` should be supplied here).
+   * Defaults to {@link effectiveLifecycleState} from engine `status` only.
+   */
+  effectiveLifecycleFor?: (t: EngineThesis) => ThesisLifecycleState;
 };
 
 /**
@@ -93,15 +93,15 @@ export type PartitionHomeBucketsOptions = {
 export function partitionHomeBuckets(combined: EngineThesis[], options?: PartitionHomeBucketsOptions): HomeBucketPartition {
   const eligible = options?.homeBucketEligible;
   const inHomeBuckets = (t: EngineThesis) => (eligible ? eligible(t) : true);
+  const lifecycleOf = (t: EngineThesis) =>
+    options?.effectiveLifecycleFor?.(t) ?? effectiveLifecycleState({ status: t.status });
 
-  const terminal = combined.filter((t) => t.status === "resolved" || t.status === "invalidated");
+  const terminal = combined.filter((t) => isTerminalLifecycleState(lifecycleOf(t)));
   const archivePreview = [...terminal]
     .sort((a, b) => parseUpdatedMs(b.lastUpdated) - parseUpdatedMs(a.lastUpdated))
     .slice(0, HOME_ARCHIVE_PREVIEW_CAP);
 
-  const livePool = combined.filter(
-    (t) => t.status !== "resolved" && t.status !== "invalidated" && inHomeBuckets(t),
-  );
+  const livePool = combined.filter((t) => !isTerminalLifecycleState(lifecycleOf(t)) && inHomeBuckets(t));
 
   const readyActive = livePool.filter((t) => t.status === "ready" || t.status === "active");
   const watchingForming = livePool.filter((t) => t.status === "watching" || t.status === "forming");
@@ -120,8 +120,10 @@ export function partitionHomeBuckets(combined: EngineThesis[], options?: Partiti
 export function surfacedBucketForEngineThesis(
   t: EngineThesis,
   partition: HomeBucketPartition,
+  lifecycle?: ThesisLifecycleState,
 ): ThesisSurfacedBucket | null {
-  if (t.status === "resolved" || t.status === "invalidated") return null;
+  const ls = lifecycle ?? effectiveLifecycleState({ status: t.status });
+  if (isTerminalLifecycleState(ls)) return null;
   const id = t.id;
   if (partition.tradable.some((x) => x.id === id)) return "tradable";
   if (partition.emerging.some((x) => x.id === id)) return "emerging";

@@ -3,15 +3,9 @@ import type { ThesisDbSurfacingPreference } from "@/lib/theses/load-catalog-engi
 import { partitionHomeBuckets } from "@/lib/theses/thesis-home-surfacing";
 import { buildSurfacingPreferenceFromRow } from "@/lib/theses/load-catalog-engine-theses";
 import { thesisListItemFromEngine } from "@/lib/theses/theses-list-response";
+import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import type { ThesisListItem } from "@/types/thesis";
-
-function isTerminalThesisRow(row: { lifecycle_state?: unknown; status?: unknown }): boolean {
-  const ls = typeof row.lifecycle_state === "string" ? row.lifecycle_state.trim() : "";
-  if (ls === "resolved" || ls === "invalidated" || ls === "archived") return true;
-  const st = typeof row.status === "string" ? row.status.trim() : "";
-  return st === "resolved" || st === "invalidated" || st === "archived";
-}
 
 const ARCHIVE_SELECT =
   "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label";
@@ -33,7 +27,9 @@ export async function buildThesesArchiveListResponse(
     .order("updated_at", { ascending: false })
     .limit(400);
 
-  const terminalRows = (userRows ?? []).filter((row) => isTerminalThesisRow(row as Record<string, unknown>));
+  const terminalRows = (userRows ?? []).filter((row) =>
+    isTerminalThesis(row as { lifecycle_state?: unknown; status?: unknown }),
+  );
 
   const surfacingByThesisId = new Map<string, ThesisDbSurfacingPreference>();
   for (const row of terminalRows) {
@@ -45,7 +41,13 @@ export async function buildThesesArchiveListResponse(
   const engines = terminalRows.map((row) =>
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
-  const partition = partitionHomeBuckets(engines);
+  const partition = partitionHomeBuckets(engines, {
+    effectiveLifecycleFor: (t) =>
+      effectiveLifecycleState({
+        lifecycle_state: surfacingByThesisId.get(t.id)?.lifecycle_state,
+        status: t.status,
+      }),
+  });
 
   const items = engines.map((t) =>
     thesisListItemFromEngine(t, starredIds.has(t.id), null, partition, surfacingByThesisId.get(t.id)),

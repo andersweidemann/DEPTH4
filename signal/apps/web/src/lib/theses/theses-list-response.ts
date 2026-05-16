@@ -12,11 +12,11 @@ import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-fr
 import { inferAssetClassFromTicker } from "@/lib/thesis-helpers";
 import type { ThesisDirection, ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 import {
-  deriveLifecycleState,
   partitionHomeBuckets,
   surfacedBucketForEngineThesis,
   thesisMapHomeRankScore,
 } from "@/lib/theses/thesis-home-surfacing";
+import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import {
   buildSurfacingPreferenceFromRow,
@@ -96,12 +96,17 @@ export function thesisListItemFromEngine(
   db?: ThesisDbSurfacingPreference,
 ): ThesisListItem {
   const base = engineThesisToListItem(t, starred, lastUpdatedIso);
+  const lifecycle_state = effectiveLifecycleState({
+    lifecycle_state: db?.lifecycle_state,
+    status: t.status,
+  });
   let bucket =
-    db?.surfaced_bucket !== undefined ? db.surfaced_bucket : surfacedBucketForEngineThesis(t, partition);
+    db?.surfaced_bucket !== undefined
+      ? db.surfaced_bucket
+      : surfacedBucketForEngineThesis(t, partition, lifecycle_state);
   if (!isThesisMapListableThesis(t)) {
     bucket = null;
   }
-  const lifecycle_state = db?.lifecycle_state ?? deriveLifecycleState(t.status);
   const thesis_score =
     db?.thesis_score !== undefined ? db.thesis_score : Math.round(thesisMapHomeRankScore(t));
   const outcome_label = db?.outcome_label;
@@ -214,11 +219,20 @@ export async function buildThesesListResponse(
     combined = [...combined].sort((a, b) => parseUpdatedMs(b.lastUpdated) - parseUpdatedMs(a.lastUpdated));
   }
 
-  const focusEngine = combined.filter((t) => t.status === "ready" || t.status === "active");
-  const focusSlugSet = new Set(focusEngine.map((t) => t.slug));
-  const monitorEngine = combined.filter((t) => !focusSlugSet.has(t.slug));
+  const lifecycleInputFor = (t: EngineThesis) => ({
+    lifecycle_state: surfacingByThesisId.get(t.id)?.lifecycle_state,
+    status: t.status,
+  });
 
-  const partition = partitionHomeBuckets(combined);
+  const combinedLive = combined.filter((t) => !isTerminalThesis(lifecycleInputFor(t)));
+
+  const focusEngine = combinedLive.filter((t) => t.status === "ready" || t.status === "active");
+  const focusSlugSet = new Set(focusEngine.map((t) => t.slug));
+  const monitorEngine = combinedLive.filter((t) => !focusSlugSet.has(t.slug));
+
+  const partition = partitionHomeBuckets(combinedLive, {
+    effectiveLifecycleFor: (t) => effectiveLifecycleState(lifecycleInputFor(t)),
+  });
 
   const mapEngine = (t: EngineThesis) =>
     thesisListItemFromEngine(t, starredIds.has(t.id), null, partition, surfacingByThesisId.get(t.id));

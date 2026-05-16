@@ -2,8 +2,12 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl } from "@/lib/supabase/env";
-import { loadCatalogEngineTheses } from "@/lib/theses/load-catalog-engine-theses";
+import {
+  buildSurfacingPreferenceFromRow,
+  loadCatalogEngineTheses,
+} from "@/lib/theses/load-catalog-engine-theses";
 import { partitionHomeBuckets, surfacedBucketForEngineThesis, thesisMapHomeRankScore } from "@/lib/theses/thesis-home-surfacing";
+import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
@@ -39,7 +43,7 @@ async function runThesisSurfacing() {
 
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
 
-  const { catalogEngine } = await loadCatalogEngineTheses(admin);
+  const { catalogEngine, dbSurfacingByThesisId: catalogSurfacing } = await loadCatalogEngineTheses(admin);
 
   const { data: aiRows } = await admin
     .from("theses")
@@ -54,9 +58,27 @@ async function runThesisSurfacing() {
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
 
+  const surfacingByThesisId = new Map<string, ReturnType<typeof buildSurfacingPreferenceFromRow>>();
+  for (const row of aiRows ?? []) {
+    const r = row as Record<string, unknown>;
+    const id = typeof r.id === "string" ? r.id.trim() : "";
+    if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
+  }
+  for (const [id, pref] of catalogSurfacing) {
+    surfacingByThesisId.set(id, pref);
+  }
+
+  const lifecycleInputFor = (t: { id: string; status: string }) => ({
+    lifecycle_state: surfacingByThesisId.get(t.id)?.lifecycle_state,
+    status: t.status,
+  });
+
   const combinedAll = [...catalogEngine, ...aiEngine];
   const combinedListable = combinedAll.filter((t) => isThesisMapListableThesis(t));
-  const partition = partitionHomeBuckets(combinedListable);
+  const combinedLive = combinedListable.filter((t) => !isTerminalThesis(lifecycleInputFor(t)));
+  const partition = partitionHomeBuckets(combinedLive, {
+    effectiveLifecycleFor: (t) => effectiveLifecycleState(lifecycleInputFor(t)),
+  });
   const nowIso = new Date().toISOString();
 
   let updated = 0;
@@ -81,7 +103,11 @@ async function runThesisSurfacing() {
     const meaningfulMs = Math.max(thesisMs, evidenceMs);
     const lastMeaningfulIso = meaningfulMs > 0 ? new Date(meaningfulMs).toISOString() : nowIso;
 
-    const surfacedBucket = isThesisMapListableThesis(t) ? surfacedBucketForEngineThesis(t, partition) : null;
+    const lifecycle = effectiveLifecycleState(lifecycleInputFor(t));
+    const surfacedBucket =
+      isThesisMapListableThesis(t) && !isTerminalThesis(lifecycleInputFor(t))
+        ? surfacedBucketForEngineThesis(t, partition, lifecycle)
+        : null;
     const thesisScore = Math.round(thesisMapHomeRankScore(t));
 
     const up = await admin

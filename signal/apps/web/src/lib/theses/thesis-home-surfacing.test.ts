@@ -6,8 +6,10 @@ import {
   HOME_TRADABLE_BUCKET_MAX,
   HOME_TRADABLE_CAP,
   partitionHomeBuckets,
+  surfacedBucketForEngineThesis,
   thesisMapHomeRankScore,
 } from "@/lib/theses/thesis-home-surfacing";
+import { isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 
 describe("thesis-home-surfacing (Phase 1)", () => {
   it("deriveLifecycleState: forming → discovered, ready → live, resolved → resolved", () => {
@@ -66,6 +68,21 @@ describe("thesis-home-surfacing (Phase 1)", () => {
         expect(emergingIds.has(t.id)).toBe(true);
       }
     }
+  });
+
+  it("partitionHomeBuckets excludes terminal lifecycle_state even when status is still ready", () => {
+    const catalog = CATALOG_THESES[0];
+    if (!catalog) return;
+    const stale = { ...catalog, id: "stale-ready", slug: "stale-ready", status: "ready" as const };
+    const p = partitionHomeBuckets([stale], {
+      effectiveLifecycleFor: () => "resolved",
+    });
+    expect(p.tradable).toHaveLength(0);
+    expect(p.emerging).toHaveLength(0);
+    expect(p.monitoring).toHaveLength(0);
+    expect(p.archivePreview).toHaveLength(1);
+    expect(surfacedBucketForEngineThesis(stale, p, "resolved")).toBeNull();
+    expect(isTerminalThesis({ lifecycle_state: "resolved", status: "ready" })).toBe(true);
   });
 
   it("partitionHomeBuckets excludes ineligible rows from tradable/emerging/monitoring pools", () => {
