@@ -7,6 +7,7 @@ import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton
 import { AdvisoryLog } from "@/components/thesis-engine-v2/AdvisoryLog";
 import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
+import { ThesisRecentChangesSummary } from "@/components/thesis-engine-v2/ThesisRecentChangesSummary";
 import { ThesisUpdatesPanel } from "@/components/thesis-engine-v2/ThesisUpdatesPanel";
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
@@ -1021,6 +1022,7 @@ export function ThesisDetailClient({
             </ul>
           </section>
         ) : null}
+        <ThesisRecentChangesSummary slug={slug} />
         <ThesisUpdatesPanel slug={slug} />
         <EvidenceTimeline items={mergedEvidenceTimeline} />
         {/* Insider Flow row (thesis-aware) */}
