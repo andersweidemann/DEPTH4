@@ -7,6 +7,7 @@ import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
+import { createThesisMutationService, isThesisMutationEnabled } from "@/lib/thesis-mutation";
 
 export const runtime = "nodejs";
 
@@ -177,11 +178,37 @@ export async function PUT(req: NextRequest) {
     if (!owner) {
       return NextResponse.json({ ok: false, error: "system_thesis_readonly" }, { status: 403 });
     }
-    const { error: upErr } = await sb.from("theses").update(baseRow).eq("id", thesis.id).eq("owner_user_id", user.id);
-    if (upErr) return NextResponse.json({ ok: false, error: upErr.message }, { status: 400 });
+    if (isThesisMutationEnabled()) {
+      try {
+        const mutation = createThesisMutationService(sb);
+        await mutation.updateThesis(thesis.id, baseRow, {
+          actorType: "user",
+          actorId: user.id,
+          reason: "User thesis save via PUT /api/user/theses",
+        });
+      } catch (e) {
+        return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "update_failed" }, { status: 400 });
+      }
+    } else {
+      const { error: upErr } = await sb.from("theses").update(baseRow).eq("id", thesis.id).eq("owner_user_id", user.id);
+      if (upErr) return NextResponse.json({ ok: false, error: upErr.message }, { status: 400 });
+    }
   } else {
-    const { error: insErr } = await sb.from("theses").insert(insertRow);
-    if (insErr) return NextResponse.json({ ok: false, error: insErr.message }, { status: 400 });
+    if (isThesisMutationEnabled()) {
+      try {
+        const mutation = createThesisMutationService(sb);
+        await mutation.createThesis(insertRow, {
+          actorType: "user",
+          actorId: user.id,
+          reason: "User thesis insert via PUT /api/user/theses",
+        });
+      } catch (e) {
+        return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "insert_failed" }, { status: 400 });
+      }
+    } else {
+      const { error: insErr } = await sb.from("theses").insert(insertRow);
+      if (insErr) return NextResponse.json({ ok: false, error: insErr.message }, { status: 400 });
+    }
   }
 
   return NextResponse.json({ ok: true });

@@ -194,3 +194,23 @@ export interface ThesisArchiveListResponse {
 export interface ThesisHomeSignalsResponse {
   catalogLeader: { thesisId: string; slug: string; thesisScore: number } | null;
 }
+
+/** GET /api/theses/[slug]/updates — append-only mutation history (Phase 1). */
+export interface ThesisUpdateListItem {
+  id: string;
+  thesisId: string;
+  createdAt: string;
+  actorType: string;
+  actorId: string | null;
+  changeType: string;
+  reason: string | null;
+  oldValues: Record<string, unknown> | null;
+  newValues: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+}
+
+export interface ThesisUpdatesResponse {
+  items: ThesisUpdateListItem[];
+  supersedesThesisId: string | null;
+  supersedesSlug: string | null;
+}

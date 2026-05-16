@@ -7,6 +7,7 @@ import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton
 import { AdvisoryLog } from "@/components/thesis-engine-v2/AdvisoryLog";
 import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
+import { ThesisUpdatesPanel } from "@/components/thesis-engine-v2/ThesisUpdatesPanel";
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
 import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFourLevelCascade";
@@ -1020,6 +1021,7 @@ export function ThesisDetailClient({
             </ul>
           </section>
         ) : null}
+        <ThesisUpdatesPanel slug={slug} />
         <EvidenceTimeline items={mergedEvidenceTimeline} />
         {/* Insider Flow row (thesis-aware) */}
         {insider?.latest ? (

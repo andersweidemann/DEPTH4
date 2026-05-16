@@ -13,6 +13,7 @@ import {
 } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { createThesisMutationService, isThesisMutationEnabled } from "@/lib/thesis-mutation";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -82,13 +83,30 @@ export async function POST(req: NextRequest) {
     created_at: nowIso,
   };
 
-  const { error: insErr } = await sb.from("theses").insert(row);
-  if (insErr) {
-    const msg = insErr.message.toLowerCase();
-    if (msg.includes("duplicate") || msg.includes("unique")) {
+  try {
+    if (isThesisMutationEnabled()) {
+      const mutation = createThesisMutationService(sb);
+      await mutation.createThesis(row, {
+        actorType: "user",
+        actorId: user.id,
+        reason: "User created thesis via POST /api/theses",
+      });
+    } else {
+      const { error: insErr } = await sb.from("theses").insert(row);
+      if (insErr) {
+        const msg = insErr.message.toLowerCase();
+        if (msg.includes("duplicate") || msg.includes("unique")) {
+          return NextResponse.json({ error: "slug_conflict" }, { status: 409 });
+        }
+        return NextResponse.json({ error: insErr.message }, { status: 400 });
+      }
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "insert_failed";
+    if (msg.toLowerCase().includes("duplicate") || msg.toLowerCase().includes("unique")) {
       return NextResponse.json({ error: "slug_conflict" }, { status: 409 });
     }
-    return NextResponse.json({ error: insErr.message }, { status: 400 });
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 
   return NextResponse.json({ success: true, thesis: isThesisRecord(thesis) ? { slug: thesis.slug, id: thesis.id } : null });
