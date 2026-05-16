@@ -539,12 +539,16 @@ export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onTogg
     <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
       <div>
         <p className="text-[10px] text-zinc-500">{item.asset}</p>
-        <Link
-          href={`/theses/${item.slug}`}
-          className="mt-0.5 block text-[13px] font-medium text-zinc-100 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-        >
-          {item.title}
-        </Link>
+        {item.detailResolvable ? (
+          <Link
+            href={`/theses/${item.slug}`}
+            className="mt-0.5 block text-[13px] font-medium text-zinc-100 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
+          >
+            {item.title}
+          </Link>
+        ) : (
+          <p className="mt-0.5 text-[13px] font-medium text-zinc-300">{item.title}</p>
+        )}
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <span
             className={cn(

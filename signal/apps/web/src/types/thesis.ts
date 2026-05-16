@@ -164,6 +164,11 @@ export interface ThesisListItem {
   thesis_score?: number;
   /** When set on resolved/invalidated rows (DB or admin). */
   outcome_label?: string | null;
+  /**
+   * True when `/api/theses/[slug]` can resolve this row (catalog bundle, `ai_generated`, or current-user `user`).
+   * List UI must not link to `/theses/[slug]` when false.
+   */
+  detailResolvable: boolean;
 }
 
 export interface ThesisHomeBuckets {

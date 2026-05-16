@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ThesisDbSurfacingPreference } from "@/lib/theses/load-catalog-engine-theses";
 import { partitionHomeBuckets } from "@/lib/theses/thesis-home-surfacing";
 import { buildSurfacingPreferenceFromRow } from "@/lib/theses/load-catalog-engine-theses";
-import { thesisListItemFromEngine } from "@/lib/theses/theses-list-response";
+import { buildDetailResolvableSlugSet, thesisListItemFromEngine } from "@/lib/theses/theses-list-response";
 import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import type { ThesisListItem } from "@/types/thesis";
@@ -49,8 +49,17 @@ export async function buildThesesArchiveListResponse(
       }),
   });
 
+  const resolvableSlugSet = buildDetailResolvableSlugSet([], engines);
+
   const items = engines.map((t) =>
-    thesisListItemFromEngine(t, starredIds.has(t.id), null, partition, surfacingByThesisId.get(t.id)),
+    thesisListItemFromEngine(
+      t,
+      starredIds.has(t.id),
+      null,
+      partition,
+      resolvableSlugSet,
+      surfacingByThesisId.get(t.id),
+    ),
   );
 
   return { items };

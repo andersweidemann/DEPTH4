@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
-import { listRowWhyNowLine } from "@/lib/theses/theses-list-response";
+import { buildDetailResolvableSlugSet, listRowWhyNowLine } from "@/lib/theses/theses-list-response";
 
 function baseThesis(over: Partial<Thesis>): Thesis {
   const t: Thesis = {
@@ -35,6 +35,17 @@ function baseThesis(over: Partial<Thesis>): Thesis {
 }
 
 describe("theses-list-response helpers", () => {
+  it("buildDetailResolvableSlugSet includes catalog, ai, and user slugs only", () => {
+    const set = buildDetailResolvableSlugSet(
+      [baseThesis({ slug: "ai-slug-only", id: "ai-1" })],
+      [baseThesis({ slug: "user-slug-only", id: "user-1" })],
+    );
+    expect(set.has("ai-slug-only")).toBe(true);
+    expect(set.has("user-slug-only")).toBe(true);
+    expect(set.has("ghost-emerging-slug")).toBe(false);
+    expect(set.has("strait-hormuz-oil-long")).toBe(true);
+  });
+
   it("listRowWhyNowLine falls back to oneLineSummary then microLabel then thesisStatement", () => {
     expect(listRowWhyNowLine(baseThesis({ whyNow: "  Live edge  ", oneLineSummary: "" }))).toBe("Live edge");
     expect(

@@ -42,6 +42,7 @@ describe("resolveListRowBaselineThesis (system id guard)", () => {
       whyNow: "",
       lastUpdated: "",
       starred: false,
+      detailResolvable: true,
     };
 
     const base = resolveListRowBaselineThesis(item);

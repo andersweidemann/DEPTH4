@@ -27,6 +27,7 @@ function minimalListItem(partial: Partial<ThesisListItem> & Pick<ThesisListItem,
     whyNow: "",
     lastUpdated: "",
     starred: false,
+    detailResolvable: true,
     ...partial,
   };
 }
@@ -49,6 +50,7 @@ function listItemFromEngineThesis(t: Thesis, starred: boolean): ThesisListItem {
     whyNow: t.whyNow,
     lastUpdated: t.lastUpdated,
     starred,
+    detailResolvable: true,
   };
 }
 

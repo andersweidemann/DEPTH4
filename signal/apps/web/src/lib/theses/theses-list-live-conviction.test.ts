@@ -35,6 +35,7 @@ function engineThesisToListItemLikeServer(t: Thesis, starred: boolean): ThesisLi
     whyNow: t.whyNow,
     lastUpdated: t.lastUpdated,
     starred,
+    detailResolvable: true,
   };
 }
 

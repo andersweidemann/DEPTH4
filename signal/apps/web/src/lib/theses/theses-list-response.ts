@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
+import { CATALOG_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
 import {
   defaultScenarioOverridesFromThesis,
   isCatalogThesisId,
@@ -62,7 +62,30 @@ export function listRowWhyNowLine(t: EngineThesis): string {
   return "";
 }
 
-function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIso: string | null): ThesisListItem {
+/** Slugs that `loadThesisDetailBundleForApi` can resolve — built once per list response. */
+export function buildDetailResolvableSlugSet(aiTheses: EngineThesis[], userTheses: EngineThesis[]): Set<string> {
+  const slugs = new Set<string>();
+  for (const t of CATALOG_THESES) {
+    const slug = t.slug.trim();
+    if (slug) slugs.add(slug);
+  }
+  for (const t of aiTheses) {
+    const slug = t.slug.trim();
+    if (slug) slugs.add(slug);
+  }
+  for (const t of userTheses) {
+    const slug = t.slug.trim();
+    if (slug) slugs.add(slug);
+  }
+  return slugs;
+}
+
+function engineThesisToListItem(
+  t: EngineThesis,
+  starred: boolean,
+  lastUpdatedIso: string | null,
+  resolvableSlugSet: Set<string>,
+): ThesisListItem {
   const mp = getThesisMispricing(t, {});
   const dm = getThesisDisplayModel(t);
   const conviction = Math.round(dm.convictionPct);
@@ -84,6 +107,7 @@ function engineThesisToListItem(t: EngineThesis, starred: boolean, lastUpdatedIs
     whyNow: listRowWhyNowLine(t),
     lastUpdated,
     starred,
+    detailResolvable: resolvableSlugSet.has(t.slug.trim()),
   };
 }
 
@@ -93,9 +117,10 @@ export function thesisListItemFromEngine(
   starred: boolean,
   lastUpdatedIso: string | null,
   partition: ReturnType<typeof partitionHomeBuckets>,
+  resolvableSlugSet: Set<string>,
   db?: ThesisDbSurfacingPreference,
 ): ThesisListItem {
-  const base = engineThesisToListItem(t, starred, lastUpdatedIso);
+  const base = engineThesisToListItem(t, starred, lastUpdatedIso, resolvableSlugSet);
   const lifecycle_state = effectiveLifecycleState({
     lifecycle_state: db?.lifecycle_state,
     status: t.status,
@@ -234,8 +259,17 @@ export async function buildThesesListResponse(
     effectiveLifecycleFor: (t) => effectiveLifecycleState(lifecycleInputFor(t)),
   });
 
+  const resolvableSlugSet = buildDetailResolvableSlugSet(aiTheses, userTheses);
+
   const mapEngine = (t: EngineThesis) =>
-    thesisListItemFromEngine(t, starredIds.has(t.id), null, partition, surfacingByThesisId.get(t.id));
+    thesisListItemFromEngine(
+      t,
+      starredIds.has(t.id),
+      null,
+      partition,
+      resolvableSlugSet,
+      surfacingByThesisId.get(t.id),
+    );
 
   if (process.env.NODE_ENV === "development" && userTheses.length >= 3) {
     const signatures = userTheses.map((t) => {
