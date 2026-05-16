@@ -4,7 +4,15 @@ import { createClient } from "@/lib/supabase/client";
 
 export type PutUserThesisResult = { ok: true } | { ok: false; error: string; status?: number };
 
-export async function putUserThesisToSupabase(thesis: Thesis): Promise<PutUserThesisResult> {
+export type PutUserThesisOptions = {
+  /** Stored in `thesis_updates.reason` when updating an existing row (Phase 1.5). */
+  updateReason?: string | null;
+};
+
+export async function putUserThesisToSupabase(
+  thesis: Thesis,
+  options?: PutUserThesisOptions,
+): Promise<PutUserThesisResult> {
   const sb = createClient();
   const { data: sessionData } = await sb.auth.getSession();
   const tok = sessionData.session?.access_token;
@@ -13,7 +21,12 @@ export async function putUserThesisToSupabase(thesis: Thesis): Promise<PutUserTh
   const r = await authFetch("/api/user/theses", {
     method: "PUT",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok}` },
-    body: JSON.stringify({ thesis }),
+    body: JSON.stringify({
+      thesis,
+      ...(options?.updateReason != null && options.updateReason !== ""
+        ? { updateReason: options.updateReason }
+        : {}),
+    }),
   });
 
   if (r.ok) return { ok: true };

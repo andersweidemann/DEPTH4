@@ -7,7 +7,12 @@ import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
-import { createThesisMutationService, isThesisMutationEnabled } from "@/lib/thesis-mutation";
+import {
+  createThesisMutationService,
+  isThesisMutationEnabled,
+  normalizeUpdateReason,
+} from "@/lib/thesis-mutation";
+import { userThesisUpdateMutationMeta } from "@/lib/thesis-mutation/user-thesis-update-mutation-meta";
 
 export const runtime = "nodejs";
 
@@ -137,8 +142,9 @@ export async function PUT(req: NextRequest) {
   if (auth instanceof NextResponse) return auth;
   const { sb, user } = auth;
 
-  const body = (await req.json().catch(() => null)) as { thesis?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { thesis?: unknown; updateReason?: unknown } | null;
   const rawThesis = body?.thesis;
+  const updateReason = normalizeUpdateReason(body?.updateReason);
   if (!isThesisRecord(rawThesis)) return NextResponse.json({ ok: false, error: "invalid_thesis" }, { status: 400 });
 
   const thesis = normalizeThesisNarrativeFields(rawThesis);
@@ -181,11 +187,7 @@ export async function PUT(req: NextRequest) {
     if (isThesisMutationEnabled()) {
       try {
         const mutation = createThesisMutationService(sb);
-        await mutation.updateThesis(thesis.id, baseRow, {
-          actorType: "user",
-          actorId: user.id,
-          reason: "User thesis save via PUT /api/user/theses",
-        });
+        await mutation.updateThesis(thesis.id, baseRow, userThesisUpdateMutationMeta(user.id, updateReason));
       } catch (e) {
         return NextResponse.json({ ok: false, error: e instanceof Error ? e.message : "update_failed" }, { status: 400 });
       }

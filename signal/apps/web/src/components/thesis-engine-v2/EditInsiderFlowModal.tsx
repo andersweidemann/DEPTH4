@@ -10,7 +10,9 @@ import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-tit
 import { commaFieldsFromInsiderFlow, insiderFlowFromCommaFields } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import { normalizeUpdateReason } from "@/lib/thesis-mutation/normalize-update-reason";
 import { InsiderFlowSetupFields, type InsiderFlowFieldKey } from "@/components/thesis-engine-v2/InsiderFlowSetupFields";
+import { UserThesisUpdateReasonField } from "@/components/thesis-engine-v2/UserThesisUpdateReasonField";
 
 export function EditInsiderFlowModal({
   thesis,
@@ -30,6 +32,7 @@ export function EditInsiderFlowModal({
   const [bearInstruments, setBearInstruments] = useState("");
   const [confirmTags, setConfirmTags] = useState("");
   const [contradictTags, setContradictTags] = useState("");
+  const [updateReason, setUpdateReason] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,6 +43,7 @@ export function EditInsiderFlowModal({
     setBearInstruments(c.bearInstruments);
     setConfirmTags(c.confirmTags);
     setContradictTags(c.contradictTags);
+    setUpdateReason("");
     setError(null);
   }, [open, thesis]);
 
@@ -101,6 +105,8 @@ export function EditInsiderFlowModal({
               largeTouch
             />
 
+            <UserThesisUpdateReasonField value={updateReason} onChange={setUpdateReason} disabled={saving} />
+
             {error ? (
               <p className="mt-3 text-[11px] text-red-300/90">
                 {error === "sign_in_required" ? (
@@ -140,7 +146,9 @@ export function EditInsiderFlowModal({
                   contradictTags,
                 });
                 const nextThesis: Thesis = { ...thesis, insiderFlow };
-                const res = await putUserThesisToSupabase(nextThesis);
+                const res = await putUserThesisToSupabase(nextThesis, {
+                  updateReason: normalizeUpdateReason(updateReason),
+                });
                 if (!res.ok) {
                   setSaving(false);
                   setError(

@@ -89,6 +89,22 @@ describe("ThesisMutationService", () => {
     expect(call.change_type).toBe("field_update");
     expect(call.old_values).toMatchObject({ status: "forming", title: "Before" });
     expect(call.new_values).toMatchObject({ status: "watching", title: "After" });
+    expect(call.reason).toBe("Mutable field update");
+  });
+
+  it("updateThesis stores user-supplied reason in thesis_updates.reason", async () => {
+    const before = baseRow({ title: "Before" });
+    const after = baseRow({ title: "After" });
+    thesisRepo.findById.mockResolvedValue(before);
+    thesisRepo.update.mockResolvedValue(after);
+
+    await service.updateThesis(
+      DB_AI_ID,
+      { title: "After" },
+      { actorType: "user", actorId: "user-1", reason: "New CPI data weakens the original timing." },
+    );
+
+    expect(updateRepo.insert.mock.calls[0][0].reason).toBe("New CPI data weakens the original timing.");
   });
 
   it("createThesis compensates and throws when audit insert fails", async () => {
