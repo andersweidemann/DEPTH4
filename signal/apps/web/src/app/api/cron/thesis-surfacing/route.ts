@@ -64,9 +64,9 @@ async function runThesisSurfacing() {
     const id = typeof r.id === "string" ? r.id.trim() : "";
     if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
   }
-  for (const [id, pref] of catalogSurfacing) {
+  catalogSurfacing.forEach((pref, id) => {
     surfacingByThesisId.set(id, pref);
-  }
+  });
 
   const lifecycleInputFor = (t: { id: string; status: string }) => ({
     lifecycle_state: surfacingByThesisId.get(t.id)?.lifecycle_state,
