@@ -4,6 +4,7 @@ import { isThesisSuccessorEnabled } from "@/lib/thesis-mutation/feature-flags";
 import { rowFieldDiff, snapshotThesisRow } from "@/lib/thesis-mutation/row-diff";
 import { SupabaseThesisRepository } from "@/lib/thesis-mutation/repositories/supabase-thesis-repository";
 import { SupabaseThesisUpdateRepository } from "@/lib/thesis-mutation/repositories/supabase-thesis-update-repository";
+import { ThesisMutationAuditError } from "@/lib/thesis-mutation/errors";
 import type { MutationMeta, ThesisInsertInput, ThesisRow, ThesisUpdateChangeType } from "@/lib/thesis-mutation/types";
 
 export class ThesisMutationService {
@@ -25,15 +26,19 @@ export class ThesisMutationService {
       lineage_root_thesis_id: id,
     };
     const inserted = await this.thesisRepo.insert(row);
-    await this.logUpdate({
-      thesisId: id,
-      actorType: meta?.actorType ?? "system",
-      actorId: meta?.actorId ?? null,
-      changeType: "field_update",
-      reason: meta?.reason ?? "Initial creation",
-      oldValues: null,
-      newValues: snapshotThesisRow(inserted as unknown as Record<string, unknown>),
-    });
+    await this.auditOrCompensate(
+      () =>
+        this.logUpdate({
+          thesisId: id,
+          actorType: meta?.actorType ?? "system",
+          actorId: meta?.actorId ?? null,
+          changeType: "field_update",
+          reason: meta?.reason ?? "Initial creation",
+          oldValues: null,
+          newValues: snapshotThesisRow(inserted as unknown as Record<string, unknown>),
+        }),
+      () => this.thesisRepo.deleteById(id),
+    );
     return inserted;
   }
 
@@ -48,15 +53,19 @@ export class ThesisMutationService {
     const oldSnap = snapshotThesisRow(existing as unknown as Record<string, unknown>);
     const newSnap = snapshotThesisRow(updated as unknown as Record<string, unknown>);
 
-    await this.logUpdate({
-      thesisId,
-      actorType: meta?.actorType ?? "system",
-      actorId: meta?.actorId ?? null,
-      changeType: "field_update",
-      reason: meta?.reason ?? "Mutable field update",
-      oldValues: rowFieldDiff(oldSnap, newSnap),
-      newValues: rowFieldDiff(newSnap, oldSnap),
-    });
+    await this.auditOrCompensate(
+      () =>
+        this.logUpdate({
+          thesisId,
+          actorType: meta?.actorType ?? "system",
+          actorId: meta?.actorId ?? null,
+          changeType: "field_update",
+          reason: meta?.reason ?? "Mutable field update",
+          oldValues: rowFieldDiff(oldSnap, newSnap),
+          newValues: rowFieldDiff(newSnap, oldSnap),
+        }),
+      () => this.thesisRepo.update(thesisId, existing),
+    );
     return updated;
   }
 
@@ -69,15 +78,23 @@ export class ThesisMutationService {
       updated_at: new Date().toISOString(),
     });
 
-    await this.logUpdate({
-      thesisId,
-      actorType: meta?.actorType ?? "system",
-      actorId: meta?.actorId ?? null,
-      changeType: "status_transition",
-      reason: meta?.reason ?? "Lifecycle transition",
-      oldValues: { status: existing.status },
-      newValues: { status: newStatus },
-    });
+    await this.auditOrCompensate(
+      () =>
+        this.logUpdate({
+          thesisId,
+          actorType: meta?.actorType ?? "system",
+          actorId: meta?.actorId ?? null,
+          changeType: "status_transition",
+          reason: meta?.reason ?? "Lifecycle transition",
+          oldValues: { status: existing.status },
+          newValues: { status: newStatus },
+        }),
+      () =>
+        this.thesisRepo.update(thesisId, {
+          status: existing.status,
+          updated_at: existing.updated_at,
+        }),
+    );
     return updated;
   }
 
@@ -106,33 +123,65 @@ export class ThesisMutationService {
       lineage_root_thesis_id: lineageRoot,
     });
 
-    await this.logUpdate({
-      thesisId: successorId,
-      actorType: meta?.actorType ?? "system",
-      actorId: meta?.actorId ?? null,
-      changeType: "successor_created",
-      reason: meta?.reason ?? "Core causal claim changed – new thesis created",
-      oldValues: null,
-      newValues: snapshotThesisRow(successor as unknown as Record<string, unknown>),
-      metadata: { parentThesisId: parent.id },
-    });
+    await this.auditOrCompensate(
+      () =>
+        this.logUpdate({
+          thesisId: successorId,
+          actorType: meta?.actorType ?? "system",
+          actorId: meta?.actorId ?? null,
+          changeType: "successor_created",
+          reason: meta?.reason ?? "Core causal claim changed – new thesis created",
+          oldValues: null,
+          newValues: snapshotThesisRow(successor as unknown as Record<string, unknown>),
+          metadata: { parentThesisId: parent.id },
+        }),
+      () => this.thesisRepo.deleteById(successorId),
+    );
 
-    await this.logUpdate({
-      thesisId: parentThesisId,
-      actorType: meta?.actorType ?? "system",
-      actorId: meta?.actorId ?? null,
-      changeType: "successor_created",
-      reason: meta?.reason ?? "Successor thesis created due to claim change",
-      oldValues: null,
-      newValues: null,
-      metadata: { successorThesisId: successorId },
-    });
+    await this.auditOrCompensate(
+      () =>
+        this.logUpdate({
+          thesisId: parentThesisId,
+          actorType: meta?.actorType ?? "system",
+          actorId: meta?.actorId ?? null,
+          changeType: "successor_created",
+          reason: meta?.reason ?? "Successor thesis created due to claim change",
+          oldValues: null,
+          newValues: null,
+          metadata: { successorThesisId: successorId },
+        }),
+      undefined,
+    );
 
     return successor;
   }
 
   async listUpdatesForThesis(thesisId: string, limit = 100) {
     return this.updateRepo.listByThesisId(thesisId, limit);
+  }
+
+  /**
+   * Not a DB transaction: on audit failure, runs optional compensate (revert thesis write) then throws
+   * {@link ThesisMutationAuditError} so callers return an error instead of silent success.
+   */
+  private async auditOrCompensate(audit: () => Promise<void>, compensate?: () => Promise<void>): Promise<void> {
+    try {
+      await audit();
+    } catch (e) {
+      if (compensate) {
+        try {
+          await compensate();
+        } catch (compErr) {
+          console.error("[DEPTH4] thesis mutation compensate failed after audit_write_failed", {
+            error: compErr instanceof Error ? compErr.message : compErr,
+          });
+        }
+      }
+      console.error("[DEPTH4] thesis_updates audit write failed", {
+        error: e instanceof Error ? e.message : e,
+      });
+      throw new ThesisMutationAuditError(e instanceof Error ? e.message : "audit_write_failed", e);
+    }
   }
 
   private async logUpdate(opts: {

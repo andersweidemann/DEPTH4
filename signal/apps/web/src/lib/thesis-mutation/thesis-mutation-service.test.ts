@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { ThesisMutationAuditError } from "@/lib/thesis-mutation/errors";
 import { ThesisMutationService } from "@/lib/thesis-mutation/thesis-mutation-service";
 import type { ThesisRow } from "@/lib/thesis-mutation/types";
 import type { SupabaseThesisRepository } from "@/lib/thesis-mutation/repositories/supabase-thesis-repository";
@@ -31,6 +32,7 @@ describe("ThesisMutationService", () => {
     findById: ReturnType<typeof vi.fn>;
     insert: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
+    deleteById: ReturnType<typeof vi.fn>;
   };
   let updateRepo: { insert: ReturnType<typeof vi.fn>; listByThesisId: ReturnType<typeof vi.fn> };
   let service: ThesisMutationService;
@@ -40,6 +42,7 @@ describe("ThesisMutationService", () => {
       findById: vi.fn(),
       insert: vi.fn(),
       update: vi.fn(),
+      deleteById: vi.fn().mockResolvedValue(undefined),
     };
     updateRepo = { insert: vi.fn().mockResolvedValue({}), listByThesisId: vi.fn() };
     service = new ThesisMutationService(
@@ -86,6 +89,31 @@ describe("ThesisMutationService", () => {
     expect(call.change_type).toBe("field_update");
     expect(call.old_values).toMatchObject({ status: "forming", title: "Before" });
     expect(call.new_values).toMatchObject({ status: "watching", title: "After" });
+  });
+
+  it("createThesis compensates and throws when audit insert fails", async () => {
+    const row = baseRow({ id: DB_AI_ID, slug: "audit-fail-create" });
+    thesisRepo.insert.mockResolvedValue(row);
+    updateRepo.insert.mockRejectedValue(new Error("rls denied"));
+
+    await expect(
+      service.createThesis(
+        {
+          id: DB_AI_ID,
+          title: row.title,
+          status: row.status,
+          slug: row.slug,
+          thesis_origin: "user",
+          owner_user_id: "user-1",
+          scenario_probabilities: row.scenario_probabilities,
+          insider_flow: null,
+          body: null,
+        },
+        { actorType: "user" },
+      ),
+    ).rejects.toBeInstanceOf(ThesisMutationAuditError);
+
+    expect(thesisRepo.deleteById).toHaveBeenCalledWith(DB_AI_ID);
   });
 
   it("transitionStatus uses status_transition change_type", async () => {

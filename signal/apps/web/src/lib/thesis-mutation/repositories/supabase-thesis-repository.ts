@@ -45,4 +45,9 @@ export class SupabaseThesisRepository {
     if (error) throw new Error(error.message);
     return mapRow(data as Record<string, unknown>);
   }
+
+  async deleteById(id: string): Promise<void> {
+    const { error } = await this.sb.from("theses").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+  }
 }
