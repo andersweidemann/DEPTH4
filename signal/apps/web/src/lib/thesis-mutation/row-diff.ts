@@ -1,7 +1,7 @@
 /** Minimal diff: values from `a` where `a[k] !== b[k]` (JSON-serializable). */
 export function rowFieldDiff<T extends Record<string, unknown>>(a: T, b: T): Record<string, unknown> | null {
   const changes: Record<string, unknown> = {};
-  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  const keys = Array.from(new Set([...Object.keys(a), ...Object.keys(b)]));
   for (const k of keys) {
     const av = serializeAuditValue(a[k]);
     const bv = serializeAuditValue(b[k]);
