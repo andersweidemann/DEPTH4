@@ -1,4 +1,13 @@
 export { ThesisMutationAuditError } from "@/lib/thesis-mutation/errors";
+export {
+  peekAuditHealthMetrics,
+  recordAuditWriteFailure,
+  recordAuditWriteSuccess,
+  resetAuditHealthMetrics,
+} from "@/lib/thesis-mutation/audit-health-metrics";
+export type { AuditHealthSnapshot } from "@/lib/thesis-mutation/audit-health-metrics";
+export { buildAdminThesisLiveMutationBlock } from "@/lib/thesis-mutation/admin-thesis-live-mutation-summary";
+export type { AdminThesisLiveMutationBlock } from "@/lib/thesis-mutation/admin-thesis-live-mutation-summary";
 export { normalizeUpdateReason, THESIS_UPDATE_REASON_MAX_LEN } from "@/lib/thesis-mutation/normalize-update-reason";
 export { isThesisMutationEnabled, isThesisSuccessorEnabled } from "@/lib/thesis-mutation/feature-flags";
 export { createThesisMutationService, ThesisMutationService } from "@/lib/thesis-mutation/thesis-mutation-service";

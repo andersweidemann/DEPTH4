@@ -36,13 +36,68 @@ type MutationCoverage = {
   warnings: string[];
 };
 
+type AuditHealth = {
+  scope: "process_lifetime";
+  auditSuccessCount: number;
+  auditFailureCount: number;
+  auditSuccessRate: number | null;
+  lastAuditFailureAt: string | null;
+  limitations?: string;
+};
+
 type ApiOk = {
   ok: true;
   rows: ApiRow[];
   totals: { evidenceRows: number; starRows: number; thesisRows: number; mutationAuditRows24h?: number };
   mutationAudit24h?: Record<string, number>;
+  mutationEnabled?: boolean;
   mutationCoverage?: MutationCoverage;
+  mutationCounters?: { scope: "process_lifetime"; byPath: Record<string, number> };
+  auditHealth?: AuditHealth;
 };
+
+function formatAuditSuccessRate(rate: number | null): string {
+  if (rate == null) return "—";
+  return `${Math.round(rate * 1000) / 10}%`;
+}
+
+function MutationAuditHealth({ auditHealth }: { auditHealth: AuditHealth }) {
+  const hasFailures = auditHealth.auditFailureCount > 0;
+  return (
+    <div
+      className={cn(
+        "mt-4 border-t border-white/[0.06] pt-3",
+        hasFailures && "rounded border border-amber-500/35 bg-amber-950/20 px-3 py-2",
+      )}
+    >
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Audit health</p>
+      <p className="mt-1 text-[11px] text-zinc-400">
+        Success: <span className="tabular-nums text-zinc-200">{auditHealth.auditSuccessCount}</span>
+        {" · "}
+        Failure: <span className={cn("tabular-nums", hasFailures ? "text-amber-200/90" : "text-zinc-200")}>
+          {auditHealth.auditFailureCount}
+        </span>
+        {" · "}
+        Rate: <span className="tabular-nums text-zinc-200">{formatAuditSuccessRate(auditHealth.auditSuccessRate)}</span>
+      </p>
+      <p className="mt-1 text-[10px] text-zinc-600">
+        Scope: {auditHealth.scope.replace("_", " ")} (resets on deploy)
+        {auditHealth.lastAuditFailureAt ? (
+          <>
+            {" "}
+            · Last failure:{" "}
+            <span className="font-mono text-zinc-500">{auditHealth.lastAuditFailureAt}</span>
+          </>
+        ) : null}
+      </p>
+      {hasFailures ? (
+        <p className="mt-2 text-[11px] font-medium text-amber-200/90">
+          Recent audit failures — inspect logs and thesis_updates RLS.
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 function useAdminGate(sb: ReturnType<typeof createClient>) {
   const [denied, setDenied] = useState(false);
@@ -83,6 +138,8 @@ export default function ThesisLiveAdminPage() {
     mutationAuditRows24h?: number;
   } | null>(null);
   const [mutationAudit24h, setMutationAudit24h] = useState<Record<string, number>>({});
+  const [mutationCoverage, setMutationCoverage] = useState<MutationCoverage | null>(null);
+  const [auditHealth, setAuditHealth] = useState<AuditHealth | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
   const uiIds = useMemo(() => new Set(CATALOG_THESES.map((t) => t.id)), []);
@@ -102,6 +159,7 @@ export default function ThesisLiveAdminPage() {
       setTotals(data.totals);
       setMutationAudit24h(data.mutationAudit24h ?? {});
       setMutationCoverage(data.mutationCoverage ?? null);
+      setAuditHealth(data.auditHealth ?? null);
       const seen = new Set(data.rows.map((r) => r.id));
       const merged = data.rows.map((r) => ({
         ...r,
@@ -218,6 +276,10 @@ export default function ThesisLiveAdminPage() {
               </li>
             ))}
           </ul>
+
+          {auditHealth ? (
+            <MutationAuditHealth auditHealth={auditHealth} />
+          ) : null}
         </section>
       ) : null}
 

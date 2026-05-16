@@ -4,6 +4,7 @@ import { isThesisSuccessorEnabled } from "@/lib/thesis-mutation/feature-flags";
 import { rowFieldDiff, snapshotThesisRow } from "@/lib/thesis-mutation/row-diff";
 import { SupabaseThesisRepository } from "@/lib/thesis-mutation/repositories/supabase-thesis-repository";
 import { SupabaseThesisUpdateRepository } from "@/lib/thesis-mutation/repositories/supabase-thesis-update-repository";
+import { recordAuditWriteFailure, recordAuditWriteSuccess } from "@/lib/thesis-mutation/audit-health-metrics";
 import { ThesisMutationAuditError } from "@/lib/thesis-mutation/errors";
 import type { MutationMeta, ThesisInsertInput, ThesisRow, ThesisUpdateChangeType } from "@/lib/thesis-mutation/types";
 
@@ -170,7 +171,9 @@ export class ThesisMutationService {
   private async auditOrCompensate(audit: () => Promise<void>, compensate?: () => Promise<void>): Promise<void> {
     try {
       await audit();
+      recordAuditWriteSuccess();
     } catch (e) {
+      recordAuditWriteFailure();
       if (compensate) {
         try {
           await compensate();

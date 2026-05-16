@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { peekAuditHealthMetrics, resetAuditHealthMetrics } from "@/lib/thesis-mutation/audit-health-metrics";
 import { ThesisMutationAuditError } from "@/lib/thesis-mutation/errors";
 import { ThesisMutationService } from "@/lib/thesis-mutation/thesis-mutation-service";
 import type { ThesisRow } from "@/lib/thesis-mutation/types";
@@ -38,6 +39,7 @@ describe("ThesisMutationService", () => {
   let service: ThesisMutationService;
 
   beforeEach(() => {
+    resetAuditHealthMetrics();
     thesisRepo = {
       findById: vi.fn(),
       insert: vi.fn(),
@@ -103,6 +105,8 @@ describe("ThesisMutationService", () => {
 
     expect(updateRepo.insert.mock.calls[0][0].metadata).toMatchObject({ discovery_cluster_id: "cluster-1" });
     expect(updateRepo.insert.mock.calls[0][0].actor_type).toBe("macro");
+    expect(peekAuditHealthMetrics().auditSuccessCount).toBe(1);
+    expect(peekAuditHealthMetrics().auditFailureCount).toBe(0);
   });
 
   it("updateThesis writes old/new diff for changed fields only", async () => {
@@ -181,6 +185,9 @@ describe("ThesisMutationService", () => {
     ).rejects.toBeInstanceOf(ThesisMutationAuditError);
 
     expect(thesisRepo.deleteById).toHaveBeenCalledWith(DB_AI_ID);
+    expect(peekAuditHealthMetrics().auditFailureCount).toBe(1);
+    expect(peekAuditHealthMetrics().auditSuccessCount).toBe(0);
+    expect(peekAuditHealthMetrics().lastAuditFailureAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   it("transitionStatus uses status_transition change_type", async () => {
