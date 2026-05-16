@@ -1,6 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureAiThesisForDiscoveryCluster } from "@/lib/macro-reasoning/ensure-ai-thesis-for-cluster";
+import * as mutation from "@/lib/thesis-mutation/system-thesis-mutation";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 
@@ -86,6 +87,54 @@ function createThesesMock(opts: { existingThesisId?: string | null }) {
 }
 
 describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
+  beforeEach(() => {
+    vi.spyOn(mutation, "systemCreateThesis").mockImplementation(async (_sb, row) => ({
+      ok: true as const,
+      audited: true,
+    }));
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("uses systemCreateThesis with macro actor and cluster metadata when inserting", async () => {
+    const reasoning = minimalReasoning({
+      thesis_trade_line:
+        "XLE will stay bid as OPEC discipline holds while the market still embeds too much shale elasticity into the summer window.",
+    });
+    const { admin } = createThesesMock({});
+    const clusterId = "00000000-0000-4000-8000-00000000c0de";
+    await ensureAiThesisForDiscoveryCluster(admin, { clusterId, titleHint: null, reasoning });
+    expect(mutation.systemCreateThesis).toHaveBeenCalledWith(
+      admin,
+      expect.objectContaining({ thesis_origin: "ai_generated", discovery_cluster_id: clusterId }),
+      expect.objectContaining({
+        actorType: "macro",
+        metadata: expect.objectContaining({ discovery_cluster_id: clusterId }),
+      }),
+    );
+  });
+
+  it("returns thesis_audit_write_failed when creation audit fails", async () => {
+    vi.mocked(mutation.systemCreateThesis).mockResolvedValueOnce({
+      ok: false,
+      error: "audit_write_failed",
+      auditFailed: true,
+    });
+    const reasoning = minimalReasoning({
+      thesis_trade_line:
+        "XLE will stay bid as OPEC discipline holds while the market still embeds too much shale elasticity into the summer window.",
+    });
+    const { admin } = createThesesMock({});
+    const out = await ensureAiThesisForDiscoveryCluster(admin, {
+      clusterId: "00000000-0000-4000-8000-00000000c0de",
+      titleHint: null,
+      reasoning,
+    });
+    expect(out).toEqual({ ok: false, reason: "thesis_audit_write_failed" });
+  });
+
   it("rejects junk cluster: no insert when trade/summary are not registry-safe heroes", async () => {
     const hint = "B3 S.A. - Brasil, Bolsa, Balcão (BOLSY) Q1 2026 Earnings Call Transcript.";
     const reasoning = minimalReasoning({
@@ -127,7 +176,7 @@ describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
       }),
     ).toBe(trade);
 
-    const { admin, insertSpy } = createThesesMock({});
+    const { admin } = createThesesMock({});
     const out = await ensureAiThesisForDiscoveryCluster(admin, {
       clusterId: "00000000-0000-4000-8000-00000000babe",
       titleHint: hint,
@@ -136,8 +185,8 @@ describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
     expect(out.ok).toBe(true);
     if (!out.ok) throw new Error("expected insert ok");
     expect(out.created).toBe(true);
-    expect(insertSpy).toHaveBeenCalledTimes(1);
-    const row = insertSpy.mock.calls[0][0] as { title?: string; thesis_origin?: string };
+    expect(mutation.systemCreateThesis).toHaveBeenCalledTimes(1);
+    const row = vi.mocked(mutation.systemCreateThesis).mock.calls[0][1] as { title?: string; thesis_origin?: string };
     expect(row.thesis_origin).toBe("ai_generated");
     expect(row.title).toBe(trade.slice(0, 160));
     expect(row.title).not.toContain("Transcript");

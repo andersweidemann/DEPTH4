@@ -5,6 +5,7 @@ import { SYSTEM_MUTATION } from "@/lib/thesis-mutation/system-mutation-actors";
 import {
   peekSystemMutationCounters,
   resetSystemMutationCounters,
+  systemCreateThesis,
   systemTransitionThesisStatus,
   systemUpdateThesis,
 } from "@/lib/thesis-mutation/system-thesis-mutation";
@@ -13,6 +14,7 @@ import * as factory from "@/lib/thesis-mutation/thesis-mutation-service";
 
 describe("systemUpdateThesis", () => {
   const updateMock = vi.fn();
+  const createMock = vi.fn();
   const transitionMock = vi.fn();
 
   beforeEach(() => {
@@ -20,6 +22,7 @@ describe("systemUpdateThesis", () => {
     vi.spyOn(flags, "isThesisMutationEnabled").mockReturnValue(true);
     vi.spyOn(factory, "createThesisMutationService").mockReturnValue({
       updateThesis: updateMock,
+      createThesis: createMock,
       transitionStatus: transitionMock,
     } as never);
   });
@@ -69,6 +72,29 @@ describe("systemUpdateThesis", () => {
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error("expected failure");
     expect(res.auditFailed).toBe(true);
+  });
+
+  it("systemCreateThesis routes creation through createThesis and returns auditFailed on audit error", async () => {
+    createMock.mockResolvedValue({ id: "t-new" });
+    const sb = {} as SupabaseClient;
+
+    const ok = await systemCreateThesis(
+      sb,
+      { id: "t-new", title: "T", status: "forming", slug: "t", thesis_origin: "ai_generated", owner_user_id: null, scenario_probabilities: null, insider_flow: null, body: null },
+      { actorType: "macro", reason: "AI registry create", metadata: { discovery_cluster_id: "c1" } },
+    );
+    expect(ok).toEqual({ ok: true, audited: true });
+    expect(createMock).toHaveBeenCalled();
+
+    createMock.mockRejectedValue(new ThesisMutationAuditError("audit_write_failed"));
+    const fail = await systemCreateThesis(
+      sb,
+      { id: "t2", title: "T", status: "forming", slug: "t2", thesis_origin: "ai_generated", owner_user_id: null, scenario_probabilities: null, insider_flow: null, body: null },
+      { actorType: "macro" },
+    );
+    expect(fail.ok).toBe(false);
+    if (fail.ok) throw new Error("expected fail");
+    expect(fail.auditFailed).toBe(true);
   });
 
   it("systemTransitionThesisStatus uses transitionStatus with status_transition", async () => {

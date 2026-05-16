@@ -18,11 +18,30 @@ type ApiRow = {
   inDb: boolean;
 };
 
+type MutationCoveragePath = {
+  id: string;
+  label: string;
+  effectiveLabel: string;
+  actorTypes?: string[];
+  notes?: string;
+};
+
+type MutationCoverage = {
+  flagEnabled: boolean;
+  paths: MutationCoveragePath[];
+  audit24hByActor: Record<string, number>;
+  audit24hTotal: number;
+  auditFailures24h: null;
+  auditFailureTracking: string;
+  warnings: string[];
+};
+
 type ApiOk = {
   ok: true;
   rows: ApiRow[];
   totals: { evidenceRows: number; starRows: number; thesisRows: number; mutationAuditRows24h?: number };
   mutationAudit24h?: Record<string, number>;
+  mutationCoverage?: MutationCoverage;
 };
 
 function useAdminGate(sb: ReturnType<typeof createClient>) {
@@ -82,6 +101,7 @@ export default function ThesisLiveAdminPage() {
       const data = j as ApiOk;
       setTotals(data.totals);
       setMutationAudit24h(data.mutationAudit24h ?? {});
+      setMutationCoverage(data.mutationCoverage ?? null);
       const seen = new Set(data.rows.map((r) => r.id));
       const merged = data.rows.map((r) => ({
         ...r,
@@ -165,6 +185,41 @@ export default function ThesisLiveAdminPage() {
       </div>
 
       {loadErr ? <p className="mt-4 text-[12px] text-red-300/90">{loadErr}</p> : null}
+
+      {mutationCoverage ? (
+        <section className="mt-6 rounded-lg border border-white/[0.06] bg-zinc-900/20 p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Mutation coverage</p>
+            <p className="text-[10px] text-zinc-600">
+              USE_THESIS_MUTATION:{" "}
+              <span className={mutationCoverage.flagEnabled ? "text-emerald-400/90" : "text-amber-300/90"}>
+                {mutationCoverage.flagEnabled ? "on" : "off"}
+              </span>
+            </p>
+          </div>
+          <p className="mt-2 text-[11px] text-zinc-500">{mutationCoverage.auditFailureTracking}</p>
+          {mutationCoverage.warnings.length ? (
+            <ul className="mt-2 space-y-1">
+              {mutationCoverage.warnings.map((w) => (
+                <li key={w} className="text-[11px] text-amber-200/85">
+                  {w}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <ul className="mt-3 space-y-1.5">
+            {mutationCoverage.paths.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-baseline gap-x-2 text-[11px]">
+                <span className="font-medium text-zinc-300">{p.label}</span>
+                <span className="text-zinc-600">— {p.effectiveLabel}</span>
+                {p.actorTypes?.length ? (
+                  <span className="font-mono text-[10px] text-zinc-600">({p.actorTypes.join(", ")})</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <div className={cn("mt-6 overflow-x-auto border border-white/[0.06]", !ready && "opacity-60")}>
         <table className="w-full min-w-[800px] text-left text-[12px]">

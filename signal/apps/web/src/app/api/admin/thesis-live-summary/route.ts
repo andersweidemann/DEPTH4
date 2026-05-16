@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient } from "@/lib/supabase/server";
+import { buildMutationCoverageReport } from "@/lib/thesis-mutation/thesis-mutation-coverage";
 
 export const runtime = "nodejs";
 
@@ -120,6 +121,8 @@ export async function GET() {
     return a.id.localeCompare(b.id);
   });
 
+  const mutationCoverage = buildMutationCoverageReport(mutationAudit24h);
+
   return NextResponse.json({
     ok: true,
     rows,
@@ -130,5 +133,6 @@ export async function GET() {
       mutationAuditRows24h: (mutRows ?? []).length,
     },
     mutationAudit24h,
+    mutationCoverage,
   });
 }

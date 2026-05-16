@@ -6,6 +6,7 @@ import { isAcceptableAiThesisRegistryHero, pickAiThesisStatementFromReasoning } 
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
+import { SYSTEM_MUTATION, systemCreateThesis } from "@/lib/thesis-mutation";
 
 const MIN_REASONING_CHAIN_LEVEL_CHARS = 24;
 
@@ -180,9 +181,18 @@ export async function ensureAiThesisForDiscoveryCluster(
     ai_generation_version: "event_reasoning_v1",
   };
 
-  const { error: insErr } = await admin.from("theses").insert(row as never);
-  if (insErr) {
-    const msg = insErr.message.toLowerCase();
+  const ins = await systemCreateThesis(admin, row, {
+    actorType: SYSTEM_MUTATION.macro.actorType,
+    reason: SYSTEM_MUTATION.macro.aiRegistryCreateReason,
+    changeType: "field_update",
+    metadata: {
+      source: "ensure_ai_thesis_for_cluster",
+      discovery_cluster_id: clusterId,
+    },
+  });
+
+  if (!ins.ok) {
+    const msg = ins.error.toLowerCase();
     if (msg.includes("duplicate") || msg.includes("unique")) {
       const { data: again } = await admin
         .from("theses")
@@ -193,7 +203,8 @@ export async function ensureAiThesisForDiscoveryCluster(
       const aid = again && typeof (again as { id?: unknown }).id === "string" ? (again as { id: string }).id.trim() : "";
       if (aid) return { ok: true, thesisId: aid, created: false };
     }
-    return { ok: false, reason: insErr.message };
+    if (ins.auditFailed) return { ok: false, reason: "thesis_audit_write_failed" };
+    return { ok: false, reason: ins.error };
   }
 
   return { ok: true, thesisId: id, created: true };

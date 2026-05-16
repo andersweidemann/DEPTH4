@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ThesisMutationAuditError } from "@/lib/thesis-mutation/errors";
 import { createThesisMutationService, isThesisMutationEnabled } from "@/lib/thesis-mutation";
-import type { MutationMeta, ThesisRowPatch } from "@/lib/thesis-mutation/types";
+import type { MutationMeta, ThesisInsertInput, ThesisRowPatch } from "@/lib/thesis-mutation/types";
 
 export type SystemThesisMutationResult =
   | { ok: true; audited: boolean }
@@ -52,6 +52,39 @@ export async function systemUpdateThesis(
       return { ok: false, error: e.message, auditFailed: true };
     }
     return { ok: false, error: e instanceof Error ? e.message : "update_failed" };
+  }
+}
+
+/**
+ * Phase 2B: audited thesis creation for engine paths (e.g. AI cluster registry).
+ * On audit failure, deletes the inserted thesis row (compensate) and returns `auditFailed: true`.
+ */
+export async function systemCreateThesis(
+  sb: SupabaseClient,
+  data: ThesisInsertInput & Record<string, unknown>,
+  meta: MutationMeta,
+): Promise<SystemThesisMutationResult> {
+  const actorType = meta.actorType ?? "system";
+  const id = String(data.id ?? "").trim();
+  if (!id) return { ok: false, error: "createThesis: id required" };
+
+  if (!isThesisMutationEnabled()) {
+    const { error } = await sb.from("theses").insert(data as never);
+    if (error) return { ok: false, error: error.message };
+    bumpCounter(actorType, false);
+    return { ok: true, audited: false };
+  }
+
+  try {
+    const mutation = createThesisMutationService(sb);
+    await mutation.createThesis(data, meta);
+    bumpCounter(actorType, true);
+    return { ok: true, audited: true };
+  } catch (e) {
+    if (e instanceof ThesisMutationAuditError) {
+      return { ok: false, error: e.message, auditFailed: true };
+    }
+    return { ok: false, error: e instanceof Error ? e.message : "insert_failed" };
   }
 }
 

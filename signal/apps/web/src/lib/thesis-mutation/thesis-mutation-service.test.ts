@@ -77,6 +77,34 @@ describe("ThesisMutationService", () => {
     expect(call.new_values).toMatchObject({ id: DB_AI_ID });
   });
 
+  it("createThesis stores metadata on initial audit row", async () => {
+    const row = baseRow({ id: DB_AI_ID, slug: "ai-registry", thesis_origin: "ai_generated" });
+    thesisRepo.insert.mockResolvedValue(row);
+
+    await service.createThesis(
+      {
+        id: DB_AI_ID,
+        title: row.title,
+        status: row.status,
+        slug: row.slug,
+        thesis_origin: "ai_generated",
+        owner_user_id: null,
+        scenario_probabilities: row.scenario_probabilities,
+        insider_flow: null,
+        body: null,
+        discovery_cluster_id: "cluster-1",
+      } as never,
+      {
+        actorType: "macro",
+        reason: "AI registry create",
+        metadata: { discovery_cluster_id: "cluster-1" },
+      },
+    );
+
+    expect(updateRepo.insert.mock.calls[0][0].metadata).toMatchObject({ discovery_cluster_id: "cluster-1" });
+    expect(updateRepo.insert.mock.calls[0][0].actor_type).toBe("macro");
+  });
+
   it("updateThesis writes old/new diff for changed fields only", async () => {
     const before = baseRow({ status: "forming", title: "Before" });
     const after = baseRow({ status: "watching", title: "After" });

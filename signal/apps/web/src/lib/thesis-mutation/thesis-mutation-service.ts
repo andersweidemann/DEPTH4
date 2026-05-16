@@ -13,7 +13,7 @@ export class ThesisMutationService {
     private readonly updateRepo: SupabaseThesisUpdateRepository,
   ) {}
 
-  async createThesis(data: ThesisInsertInput, meta?: MutationMeta): Promise<ThesisRow> {
+  async createThesis(data: ThesisInsertInput & Record<string, unknown>, meta?: MutationMeta): Promise<ThesisRow> {
     const id = data.id.trim();
     if (!id) throw new Error("createThesis: id required");
     const now = data.updated_at ?? data.created_at ?? new Date().toISOString();
@@ -32,8 +32,9 @@ export class ThesisMutationService {
           thesisId: id,
           actorType: meta?.actorType ?? "system",
           actorId: meta?.actorId ?? null,
-          changeType: "field_update",
+          changeType: meta?.changeType ?? "field_update",
           reason: meta?.reason ?? "Initial creation",
+          metadata: meta?.metadata,
           oldValues: null,
           newValues: snapshotThesisRow(inserted as unknown as Record<string, unknown>),
         }),

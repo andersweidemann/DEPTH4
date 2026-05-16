@@ -6,8 +6,14 @@ export { SYSTEM_MUTATION } from "@/lib/thesis-mutation/system-mutation-actors";
 export {
   peekSystemMutationCounters,
   resetSystemMutationCounters,
+  systemCreateThesis,
   systemTransitionThesisStatus,
   systemUpdateThesis,
 } from "@/lib/thesis-mutation/system-thesis-mutation";
+export {
+  buildMutationCoverageReport,
+  THESIS_MUTATION_PATH_REGISTRY,
+} from "@/lib/thesis-mutation/thesis-mutation-coverage";
+export type { MutationCoverageReport, ThesisMutationPathEntry } from "@/lib/thesis-mutation/thesis-mutation-coverage";
 export type { SystemThesisMutationResult } from "@/lib/thesis-mutation/system-thesis-mutation";
 export type { MutationMeta, ThesisInsertInput, ThesisRow, ThesisRowPatch, ThesisUpdateRow } from "@/lib/thesis-mutation/types";

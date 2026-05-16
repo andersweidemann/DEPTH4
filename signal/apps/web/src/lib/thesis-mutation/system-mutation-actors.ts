@@ -11,6 +11,7 @@ export const SYSTEM_MUTATION = {
   macro: {
     actorType: "macro",
     scenarioReason: "Macro event reasoning adjusted scenario probabilities",
+    aiRegistryCreateReason: "AI discovery cluster materialized thesis registry row",
   },
   system: {
     actorType: "system",
