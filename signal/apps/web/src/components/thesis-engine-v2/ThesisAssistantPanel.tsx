@@ -3,6 +3,11 @@
 import { useMemo, useState } from "react";
 import type { Position, ThesisDetailBundle, ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 import { canonicalConvictionPercentFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import {
+  effectiveLifecycleState,
+  isTerminalLifecycleState,
+} from "@/lib/theses/thesis-lifecycle";
+import type { ThesisLifecycleState } from "@/types/thesis";
 import { cn } from "@/lib/utils";
 
 type QuestionId = "suggest" | "entry" | "risk" | "changed" | "simple";
@@ -23,13 +28,19 @@ function evidenceDelta(ev?: ThesisEvidence) {
   return ev.probabilityAfter - ev.probabilityBefore;
 }
 
-function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Position | null | undefined): AssistantAnswer {
+function answerFor(
+  question: QuestionId,
+  bundle: ThesisDetailBundle,
+  book: Position | null | undefined,
+  lifecycleState: ThesisLifecycleState,
+): AssistantAnswer {
   const t = bundle.thesis;
   const ev = latestEvidence(bundle.evidence);
   void evidenceDelta(ev);
   const hasOpenBook = !!(book && book.tradeStatus === "open");
+  const terminal = isTerminalLifecycleState(lifecycleState);
 
-  const statusLine = `Thesis status: ${t.status} · thesis conviction ${canonicalConvictionPercentFromEngineThesis(t)}%.`;
+  const statusLine = `Lifecycle: ${lifecycleState} · thesis status: ${t.status} · conviction ${canonicalConvictionPercentFromEngineThesis(t)}%.`;
   const lastUpdateLine = ev
     ? ev.logScenarioAfterStored === false
       ? `Latest evidence: “${ev.headline}” (${ev.source}) — scenarios were not re-modeled on this log row; compare the headline to your trigger.`
@@ -38,8 +49,13 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
         : `Latest evidence: “${ev.headline}” (${ev.source}) · headline odds ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
     : "Latest evidence: none logged yet.";
 
-  const mapping =
-    t.status === "invalidated"
+  const mapping = terminal
+    ? lifecycleState === "invalidated"
+      ? "This thesis is invalidated in DEPTH4 — stand down and re-read the tape before sizing again."
+      : lifecycleState === "archived"
+        ? "This thesis is archived in DEPTH4; treat it as closed history, not a live trade lane."
+        : "This thesis is resolved in DEPTH4; fresh adds may not fit the same story."
+    : t.status === "invalidated"
       ? "Invalidation looks live — stand down and re-read the tape before sizing again."
       : t.status === "resolved"
         ? "This thesis is marked resolved; fresh adds may not fit the same story."
@@ -56,8 +72,9 @@ function answerFor(question: QuestionId, bundle: ThesisDetailBundle, book: Posit
   const invalidationRef =
     "If the Invalidation block prints, treat the thesis as broken until you re-test it; odds should drop hard when that happens.";
   const levelsRef = t.entryZone ? "Entry, stop, and targets sit in Trade plan." : "Add levels to Trade plan when you have them.";
-  const triggerGateLine =
-    t.status === "watching" || t.status === "forming"
+  const triggerGateLine = terminal
+    ? "Registry lifecycle is terminal — use Outcome & history and Archive, not new entry sizing."
+    : t.status === "watching" || t.status === "forming"
       ? "Wait for the Trigger gate before acting — the page says what \"live\" means."
       : t.status === "ready"
         ? "Closer to live — still cross-check Trigger, Trade, and Trade plan yourself."
@@ -125,14 +142,28 @@ export function ThesisAssistantPanel({
   bundle,
   variant = "default",
   openBookPosition,
+  lifecycleState: lifecycleStateProp,
 }: {
   bundle: ThesisDetailBundle;
   variant?: "default" | "drawer";
   /** Open Book line for this thesis, if any — shapes answers. */
   openBookPosition?: Position | null;
+  lifecycleState?: ThesisLifecycleState;
 }) {
   const [q, setQ] = useState<QuestionId>("suggest");
-  const ans = useMemo(() => answerFor(q, bundle, openBookPosition ?? null), [bundle, openBookPosition, q]);
+  const lifecycleState = useMemo(
+    () =>
+      lifecycleStateProp ??
+      effectiveLifecycleState({
+        lifecycle_state: bundle.thesis.lifecycle_state,
+        status: bundle.thesis.status,
+      }),
+    [lifecycleStateProp, bundle.thesis.lifecycle_state, bundle.thesis.status],
+  );
+  const ans = useMemo(
+    () => answerFor(q, bundle, openBookPosition ?? null, lifecycleState),
+    [bundle, openBookPosition, lifecycleState, q],
+  );
   const drawer = variant === "drawer";
 
   return (

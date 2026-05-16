@@ -6,6 +6,8 @@ import {
 } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { catalogResolvedTriplesLookLikeBulkWriterCollapse } from "@/lib/thesis-engine-v2/catalog-scenario-universal-collapse-guard";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
+import { parseLifecycleState } from "@/lib/theses/thesis-lifecycle";
+import type { ThesisLifecycleState } from "@/types/thesis";
 
 /**
  * Returns `public.theses.title`, `micro_label`, and optional `body` JSON for catalog thesis IDs (authenticated reads).
@@ -23,6 +25,7 @@ export async function GET() {
       bodiesByThesisId: {} as Record<string, unknown>,
       slugsByThesisId: {} as Record<string, string>,
       scenarioProbabilitiesByThesisId: {} as Record<string, { base: number; bull: number; bear: number }>,
+      lifecycleStatesByThesisId: {} as Record<string, ThesisLifecycleState>,
     });
   }
 
@@ -32,6 +35,7 @@ export async function GET() {
   const bodiesByThesisId: Record<string, unknown> = {};
   const slugsByThesisId: Record<string, string> = {};
   const scenarioProbabilitiesByThesisId: Record<string, { base: number; bull: number; bear: number }> = {};
+  const lifecycleStatesByThesisId: Record<string, ThesisLifecycleState> = {};
   const resolvedByRowIndex: Array<{ base: number; bull: number; bear: number } | null> = new Array(rows.length).fill(null);
   await Promise.all(
     rows.map(async (r, rowIndex) => {
@@ -45,6 +49,8 @@ export async function GET() {
       if (id && r.body !== undefined && r.body !== null && typeof r.body === "object") {
         bodiesByThesisId[id] = r.body as Record<string, unknown>;
       }
+      const ls = parseLifecycleState(r.lifecycle_state);
+      if (id && ls) lifecycleStatesByThesisId[id] = ls;
       const resolved = id ? await resolveCatalogThesisScenarioProbabilities(supabase, id, r.scenario_probabilities) : null;
       resolvedByRowIndex[rowIndex] = resolved;
     }),
@@ -64,5 +70,6 @@ export async function GET() {
     bodiesByThesisId,
     slugsByThesisId,
     scenarioProbabilitiesByThesisId,
+    lifecycleStatesByThesisId,
   });
 }

@@ -1,4 +1,5 @@
 import type { ThesisDepthBook } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
+import type { ThesisLifecycleState } from "@/types/thesis";
 
 export type ThesisStatus =
   | "forming"
@@ -58,6 +59,8 @@ export type Thesis = {
    */
   probability: number;
   status: ThesisStatus;
+  /** When set (e.g. from `public.theses.lifecycle_state`), wins over status for terminal presentation. */
+  lifecycle_state?: ThesisLifecycleState;
   probabilityRationale: string;
   /**
    * Client/session lane hint (system vs user via sessionStorage). Not the same as DB `public.theses.thesis_origin`.

@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await sb
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow, lifecycle_state")
     .eq("slug", slug)
     .eq("owner_user_id", user.id)
     .eq("thesis_origin", "user")
@@ -110,6 +110,7 @@ export async function GET(req: NextRequest) {
     status?: unknown;
     thesis_origin?: unknown;
     insider_flow?: unknown;
+    lifecycle_state?: unknown;
   };
 
   return NextResponse.json({
@@ -125,6 +126,7 @@ export async function GET(req: NextRequest) {
       updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
       status: typeof row.status === "string" ? row.status : null,
       thesis_origin: typeof row.thesis_origin === "string" ? row.thesis_origin : null,
+      lifecycle_state: typeof row.lifecycle_state === "string" ? row.lifecycle_state : null,
     },
   });
 }

@@ -42,6 +42,7 @@ import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-co
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { effectiveLifecycleState } from "@/lib/theses/thesis-lifecycle";
 import {
   buildDisplayScenariosFromThesis,
   currentThesisProbabilityFromThesis,
@@ -243,6 +244,7 @@ export function ThesisDetailClient({
           insider_flow?: unknown;
           updated_at?: string | null;
           status?: string | null;
+          lifecycle_state?: string | null;
         } | null;
       } | null;
       if (cancelled || !j?.ok || !j.thesis?.id || !j.thesis.slug) return;
@@ -257,6 +259,7 @@ export function ThesisDetailClient({
         body: row.body ?? null,
         scenario_probabilities: row.scenario_probabilities,
         status: typeof row.status === "string" ? row.status : "forming",
+        lifecycle_state: typeof row.lifecycle_state === "string" ? row.lifecycle_state : null,
         insider_flow: row.insider_flow,
         updated_at: row.updated_at ?? null,
       });
@@ -382,6 +385,14 @@ export function ThesisDetailClient({
     const m = liveOpt ? liveOpt.mergeThesis(bundle.thesis) : bundle.thesis;
     return thesisWithSyncedLiveProbability(m);
   }, [bundle, liveOpt]);
+
+  const lifecycleState = useMemo(() => {
+    if (!thesisLive) return "live" as const;
+    return effectiveLifecycleState({
+      lifecycle_state: thesisLive.lifecycle_state ?? liveOpt?.catalogDbThesisLifecycleStates.get(thesisLive.id),
+      status: thesisLive.status,
+    });
+  }, [thesisLive, liveOpt?.catalogDbThesisLifecycleStates]);
 
   const liveEvidenceApplied = useMemo(() => {
     if (!bundle || !liveOpt) return false;
@@ -799,6 +810,7 @@ export function ThesisDetailClient({
             bundle={assistBundle}
             openBookPosition={bookSnap.open}
             variant={layout === "drawer" ? "drawer" : "default"}
+            lifecycleState={lifecycleState}
           />
         ) : null}
 
@@ -1053,7 +1065,7 @@ export function ThesisDetailClient({
           </div>
         ) : null}
 
-        <ThesisOutcomePanel thesis={thesis} layout={layout} />
+        <ThesisOutcomePanel thesis={thesis} layout={layout} lifecycleState={lifecycleState} />
       </div>
     </>
   );

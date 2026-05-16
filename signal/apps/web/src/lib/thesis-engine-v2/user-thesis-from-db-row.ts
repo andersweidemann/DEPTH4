@@ -1,4 +1,5 @@
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
+import { parseLifecycleState } from "@/lib/theses/thesis-lifecycle";
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { insiderFlowFromDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
@@ -24,6 +25,7 @@ export function userThesisFromSupabaseRow(row: {
   insider_flow?: unknown;
   updated_at?: string | null;
   thesis_origin?: string | null;
+  lifecycle_state?: unknown;
 }): Thesis {
   const st = ALLOWED.has(row.status as ThesisStatus) ? (row.status as ThesisStatus) : "watching";
   const shell: Thesis = {
@@ -75,5 +77,7 @@ export function userThesisFromSupabaseRow(row: {
     { forceApplyDbProbabilities: true },
   );
   const thesisOrigin = thesisOriginFromDb(row.thesis_origin);
-  return thesisOrigin ? { ...t, thesisOrigin } : t;
+  const lifecycle_state = parseLifecycleState(row.lifecycle_state);
+  const withOrigin = thesisOrigin ? { ...t, thesisOrigin } : t;
+  return lifecycle_state ? { ...withOrigin, lifecycle_state } : withOrigin;
 }

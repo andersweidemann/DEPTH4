@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { positionsForThesis } from "@/lib/thesis-engine-v2/positions-store";
 import {
@@ -12,6 +12,11 @@ import {
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
+import {
+  effectiveLifecycleState,
+  isTerminalLifecycleState,
+} from "@/lib/theses/thesis-lifecycle";
+import type { ThesisLifecycleState } from "@/types/thesis";
 
 function fmtWhen(iso: string) {
   try {
@@ -21,7 +26,21 @@ function fmtWhen(iso: string) {
   }
 }
 
-export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout: "page" | "drawer" }) {
+function terminalLifecycleLabel(ls: ThesisLifecycleState): string {
+  if (ls === "resolved") return "Resolved";
+  if (ls === "invalidated") return "Invalidated";
+  return "Archived";
+}
+
+export function ThesisOutcomePanel({
+  thesis,
+  layout,
+  lifecycleState: lifecycleStateProp,
+}: {
+  thesis: Thesis;
+  layout: "page" | "drawer";
+  lifecycleState?: ThesisLifecycleState;
+}) {
   const live = useThesisLiveOptional();
   const [sessionOutcome, setSessionOutcome] = useState<ManualThesisOutcome | undefined>(() => getThesisOutcome(thesis.id));
 
@@ -32,12 +51,22 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
     return () => window.removeEventListener(DEPTH4_THESIS_OUTCOMES_CHANGED, sync);
   }, [thesis.id]);
 
+  const lifecycleState = useMemo(
+    () =>
+      lifecycleStateProp ??
+      effectiveLifecycleState({
+        lifecycle_state: thesis.lifecycle_state ?? live?.catalogDbThesisLifecycleStates.get(thesis.id),
+        status: thesis.status,
+      }),
+    [lifecycleStateProp, thesis.id, thesis.lifecycle_state, thesis.status, live?.catalogDbThesisLifecycleStates],
+  );
+
+  const terminalFromDb = isTerminalLifecycleState(lifecycleState);
+  const ended = terminalFromDb || sessionOutcome != null;
+
   const book = positionsForThesis(thesis.id);
   const openN = book.filter((p) => p.tradeStatus === "open").length;
   const closedN = book.filter((p) => p.tradeStatus === "closed").length;
-
-  const ended =
-    thesis.status === "resolved" || thesis.status === "invalidated" || sessionOutcome != null;
 
   return (
     <section
@@ -59,7 +88,18 @@ export function ThesisOutcomePanel({ thesis, layout }: { thesis: Thesis; layout:
         <span className="tabular-nums text-zinc-300">{closedN}</span> closed (full exits)
       </div>
 
-      {sessionOutcome ? (
+      {terminalFromDb && !sessionOutcome ? (
+        <div className="mt-2.5 bg-zinc-950/50 px-3 py-2.5 text-[12px] text-zinc-200 ring-1 ring-white/[0.06]">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-500">Registry outcome</p>
+          <p className="mt-1">
+            <span className="font-semibold text-zinc-100">{terminalLifecycleLabel(lifecycleState)}</span>
+            <span className="text-zinc-500"> · lifecycle_state</span>
+          </p>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-zinc-500">
+            This thesis is closed in DEPTH4. Session mark buttons are disabled; use Archive for history.
+          </p>
+        </div>
+      ) : sessionOutcome ? (
         <div className="mt-2.5 bg-amber-500/[0.06] px-3 py-2.5 text-[12px] text-zinc-200">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-amber-200/80">Session outcome</p>
           <p className="mt-1">

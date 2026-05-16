@@ -28,6 +28,8 @@ import {
   setThesisOutcome,
 } from "@/lib/thesis-engine-v2/thesis-outcomes-store";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
+import type { ThesisLifecycleState } from "@/types/thesis";
+import { parseLifecycleState } from "@/lib/theses/thesis-lifecycle";
 import { getThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
 import {
   buildEvidencePollThesisIds,
@@ -322,6 +324,8 @@ type Ctx = {
   catalogDbThesisSlugs: ReadonlyMap<string, string>;
   /** Parsed `public.theses.scenario_probabilities` for catalog rows (when present). */
   catalogDbThesisScenarioProbabilities: ReadonlyMap<string, CatalogThesisScenarioProbabilities>;
+  /** `public.theses.lifecycle_state` for catalog rows (when present). */
+  catalogDbThesisLifecycleStates: ReadonlyMap<string, ThesisLifecycleState>;
 };
 
 const ThesisLiveContext = createContext<Ctx | null>(null);
@@ -359,6 +363,9 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [catalogDbThesisSlugs, setCatalogDbThesisSlugs] = useState(() => new Map<string, string>());
   const [catalogDbThesisScenarioProbabilities, setCatalogDbThesisScenarioProbabilities] = useState(
     () => new Map<string, CatalogThesisScenarioProbabilities>(),
+  );
+  const [catalogDbThesisLifecycleStates, setCatalogDbThesisLifecycleStates] = useState(
+    () => new Map<string, ThesisLifecycleState>(),
   );
 
   const overridesRef = useRef(overrides);
@@ -423,6 +430,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         const bodiesObj = root?.bodiesByThesisId;
         const slugsObj = root?.slugsByThesisId;
         const scenObj = root?.scenarioProbabilitiesByThesisId;
+        const lifecycleObj = root?.lifecycleStatesByThesisId;
         const m = new Map<string, string>();
         if (o && typeof o === "object") {
           for (const [k, v] of Object.entries(o as Record<string, unknown>)) {
@@ -465,6 +473,14 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
           }
         }
         setCatalogDbThesisScenarioProbabilities(pm);
+        const lm = new Map<string, ThesisLifecycleState>();
+        if (lifecycleObj && typeof lifecycleObj === "object") {
+          for (const [k, v] of Object.entries(lifecycleObj as Record<string, unknown>)) {
+            const ls = parseLifecycleState(v);
+            if (k.trim() && ls) lm.set(k.trim(), ls);
+          }
+        }
+        setCatalogDbThesisLifecycleStates(lm);
       })
       .catch(() => {});
     return () => {
@@ -1132,6 +1148,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       catalogDbThesisBodies,
       catalogDbThesisSlugs,
       catalogDbThesisScenarioProbabilities,
+      catalogDbThesisLifecycleStates,
     };
   },
     [
@@ -1168,6 +1185,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       catalogDbThesisBodies,
       catalogDbThesisSlugs,
       catalogDbThesisScenarioProbabilities,
+      catalogDbThesisLifecycleStates,
       outcomeEpoch,
     ],
   );

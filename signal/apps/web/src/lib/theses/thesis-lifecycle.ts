@@ -50,3 +50,67 @@ export function isTerminalLifecycleState(ls: ThesisLifecycleState): boolean {
 export function isTerminalThesis(input: ThesisLifecycleInput): boolean {
   return isTerminalLifecycleState(effectiveLifecycleState(input));
 }
+
+/** List API `ThesisStatus` (Pascal) → engine status for lifecycle fallback. */
+const LIST_STATUS_TO_ENGINE: Record<string, EngineStatus> = {
+  Ready: "ready",
+  Active: "active",
+  Watching: "watching",
+  Draft: "forming",
+};
+
+/** Status dot / label on `/theses` list rows when `lifecycle_state` is present on the item. */
+export function listRowLifecyclePresentation(item: {
+  status: string;
+  lifecycle_state?: ThesisLifecycleState;
+}): { label: string; dotClass: string; textClass: string; lifecycle: ThesisLifecycleState } {
+  const lifecycle =
+    item.lifecycle_state ??
+    effectiveLifecycleState({
+      status: LIST_STATUS_TO_ENGINE[item.status] ?? item.status.toLowerCase(),
+    });
+  if (lifecycle === "resolved") {
+    return {
+      lifecycle,
+      label: "resolved",
+      dotClass: "bg-emerald-500/80",
+      textClass: "text-emerald-400/90",
+    };
+  }
+  if (lifecycle === "invalidated") {
+    return {
+      lifecycle,
+      label: "invalidated",
+      dotClass: "bg-red-500/80",
+      textClass: "text-red-400/90",
+    };
+  }
+  if (lifecycle === "archived") {
+    return {
+      lifecycle,
+      label: "archived",
+      dotClass: "bg-zinc-600",
+      textClass: "text-zinc-500",
+    };
+  }
+  return {
+    lifecycle,
+    label: item.status.toLowerCase(),
+    dotClass:
+      item.status === "Ready"
+        ? "bg-amber-400"
+        : item.status === "Active"
+          ? "bg-zinc-500"
+          : item.status === "Watching"
+            ? "bg-zinc-600"
+            : "bg-zinc-700",
+    textClass:
+      item.status === "Ready"
+        ? "text-amber-400"
+        : item.status === "Active"
+          ? "text-zinc-400"
+          : item.status === "Watching"
+            ? "text-zinc-500"
+            : "text-zinc-600",
+  };
+}

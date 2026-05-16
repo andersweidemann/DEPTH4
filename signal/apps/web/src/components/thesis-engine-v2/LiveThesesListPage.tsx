@@ -19,6 +19,7 @@ import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 import type { ThesisHomeSignalsResponse, ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
+import { listRowLifecyclePresentation } from "@/lib/theses/thesis-lifecycle";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
@@ -531,6 +532,9 @@ export function LiveThesesListPage() {
 
 export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar: () => void }) {
   const lane = statusLane(item.status);
+  const lifecyclePresentation = item.lifecycle_state
+    ? listRowLifecyclePresentation({ status: item.status, lifecycle_state: item.lifecycle_state })
+    : null;
   return (
     <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
       <div>
@@ -575,9 +579,19 @@ export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onTogg
       </div>
       <ProbColumn mispricing={item.mispricingScore} item={item} />
       <div className="hidden sm:block">
-        <span className={cn("inline-flex items-center gap-1 text-[10px] uppercase", getStatusTextColor(item.status))}>
-          <span className={cn("h-1.5 w-1.5 rounded-full", getStatusDotColor(item.status))} />
-          {item.status}
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 text-[10px] uppercase",
+            lifecyclePresentation?.textClass ?? getStatusTextColor(item.status),
+          )}
+        >
+          <span
+            className={cn(
+              "h-1.5 w-1.5 rounded-full",
+              lifecyclePresentation?.dotClass ?? getStatusDotColor(item.status),
+            )}
+          />
+          {lifecyclePresentation?.label ?? item.status}
         </span>
       </div>
       <div className="hidden text-right sm:block">
