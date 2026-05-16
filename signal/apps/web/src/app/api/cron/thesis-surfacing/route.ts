@@ -10,6 +10,12 @@ import { partitionHomeBuckets, surfacedBucketForEngineThesis, thesisMapHomeRankS
 import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
+import {
+  peekSystemMutationCounters,
+  resetSystemMutationCounters,
+  SYSTEM_MUTATION,
+  systemUpdateThesis,
+} from "@/lib/thesis-mutation";
 
 export const runtime = "nodejs";
 
@@ -42,6 +48,7 @@ async function runThesisSurfacing() {
   }
 
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
+  resetSystemMutationCounters();
 
   const { catalogEngine, dbSurfacingByThesisId: catalogSurfacing } = await loadCatalogEngineTheses(admin);
 
@@ -82,6 +89,7 @@ async function runThesisSurfacing() {
   const nowIso = new Date().toISOString();
 
   let updated = 0;
+  let auditFailures = 0;
   const errors: string[] = [];
 
   for (const t of combinedAll) {
@@ -110,22 +118,30 @@ async function runThesisSurfacing() {
         : null;
     const thesisScore = Math.round(thesisMapHomeRankScore(t));
 
-    const up = await admin
-      .from("theses")
-      .update({
-        surfaced_bucket: surfacedBucket,
-        thesis_score: thesisScore,
-        last_meaningful_update_at: lastMeaningfulIso,
-        surfacing_computed_at: nowIso,
-      })
-      .eq("id", t.id)
-      .in("thesis_origin", ["seeded_system", "ai_generated"]);
+    const patch = {
+      surfaced_bucket: surfacedBucket,
+      thesis_score: thesisScore,
+      last_meaningful_update_at: lastMeaningfulIso,
+      surfacing_computed_at: nowIso,
+    };
 
-    if (up.error) {
-      errors.push(`${t.id}:update:${up.error.message}`);
+    const up = await systemUpdateThesis(admin, t.id, patch, {
+      actorType: SYSTEM_MUTATION.scheduler.actorType,
+      reason: SYSTEM_MUTATION.scheduler.surfacingReason,
+      metadata: { cron: "thesis_surfacing", evidence_ms: evidenceMs, thesis_ms: thesisMs },
+    });
+
+    if (!up.ok) {
+      if (up.auditFailed) auditFailures += 1;
+      errors.push(`${t.id}:update:${up.error}`);
     } else {
       updated += 1;
     }
+  }
+
+  const mutationCounters = peekSystemMutationCounters();
+  if (Object.keys(mutationCounters).length) {
+    console.info("[thesis-surfacing] mutation_audit", mutationCounters);
   }
 
   return NextResponse.json({
@@ -135,6 +151,8 @@ async function runThesisSurfacing() {
     rows_update_attempts: combinedAll.length,
     rows_updated_reported: updated,
     surfacing_computed_at: nowIso,
+    audit_failures: auditFailures,
+    mutation_counters: mutationCounters,
     errors: errors.slice(0, 50),
   });
 }

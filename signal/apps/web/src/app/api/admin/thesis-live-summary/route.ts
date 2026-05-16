@@ -42,13 +42,17 @@ export async function GET() {
 
   const admin = createAdminClient(url, service, { auth: { persistSession: false } });
 
-  const [{ data: theses, error: e1 }, { data: evRows, error: e2 }, { data: starRows, error: e3 }] = await Promise.all([
-    admin.from("theses").select("id,title,slug,status").order("id", { ascending: true }).limit(500),
-    admin.from("thesis_evidence_log").select("thesis_id").limit(12_000),
-    admin.from("thesis_stars").select("thesis_id,user_id").limit(12_000),
-  ]);
+  const sinceIso = new Date(Date.now() - 24 * 60 * 60_000).toISOString();
 
-  const err = e1 ?? e2 ?? e3;
+  const [{ data: theses, error: e1 }, { data: evRows, error: e2 }, { data: starRows, error: e3 }, { data: mutRows, error: e4 }] =
+    await Promise.all([
+      admin.from("theses").select("id,title,slug,status").order("id", { ascending: true }).limit(500),
+      admin.from("thesis_evidence_log").select("thesis_id").limit(12_000),
+      admin.from("thesis_stars").select("thesis_id,user_id").limit(12_000),
+      admin.from("thesis_updates").select("actor_type,change_type,created_at").gte("created_at", sinceIso).limit(5000),
+    ]);
+
+  const err = e1 ?? e2 ?? e3 ?? e4;
   if (err) {
     return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
   }
@@ -102,6 +106,12 @@ export async function GET() {
     });
   }
 
+  const mutationAudit24h: Record<string, number> = {};
+  for (const r of mutRows ?? []) {
+    const actor = String((r as { actor_type?: string }).actor_type ?? "unknown");
+    mutationAudit24h[actor] = (mutationAudit24h[actor] ?? 0) + 1;
+  }
+
   rows.sort((a, b) => {
     const d = b.evidenceCount - a.evidenceCount;
     if (d !== 0) return d;
@@ -117,6 +127,8 @@ export async function GET() {
       evidenceRows: (evRows ?? []).length,
       starRows: (starRows ?? []).length,
       thesisRows: dbList.length,
+      mutationAuditRows24h: (mutRows ?? []).length,
     },
+    mutationAudit24h,
   });
 }

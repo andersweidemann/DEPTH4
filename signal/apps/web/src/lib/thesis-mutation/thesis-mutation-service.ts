@@ -42,7 +42,7 @@ export class ThesisMutationService {
     return inserted;
   }
 
-  async updateThesis(thesisId: string, changes: Partial<ThesisRow>, meta?: MutationMeta): Promise<ThesisRow> {
+  async updateThesis(thesisId: string, changes: Partial<ThesisRow> & Record<string, unknown>, meta?: MutationMeta): Promise<ThesisRow> {
     const existing = await this.thesisRepo.findById(thesisId);
     if (!existing) throw new Error(`Thesis ${thesisId} not found`);
 
@@ -59,10 +59,11 @@ export class ThesisMutationService {
           thesisId,
           actorType: meta?.actorType ?? "system",
           actorId: meta?.actorId ?? null,
-          changeType: "field_update",
+          changeType: meta?.changeType ?? "field_update",
           reason: meta?.reason ?? "Mutable field update",
           oldValues: rowFieldDiff(oldSnap, newSnap),
           newValues: rowFieldDiff(newSnap, oldSnap),
+          metadata: meta?.metadata,
         }),
       () => this.thesisRepo.update(thesisId, existing),
     );
@@ -84,10 +85,11 @@ export class ThesisMutationService {
           thesisId,
           actorType: meta?.actorType ?? "system",
           actorId: meta?.actorId ?? null,
-          changeType: "status_transition",
+          changeType: meta?.changeType ?? "status_transition",
           reason: meta?.reason ?? "Lifecycle transition",
           oldValues: { status: existing.status },
           newValues: { status: newStatus },
+          metadata: meta?.metadata,
         }),
       () =>
         this.thesisRepo.update(thesisId, {

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { dbScenarioTripleFromMacroHeadlineLeadPct } from "@/lib/macro-reasoning/macro-headline-probability-to-db-triple";
 import { shouldWriteScenarioProbabilitiesColumnFromNewsCron } from "@/lib/thesis-engine-v2/thesis-scenario-column-writers";
+import { SYSTEM_MUTATION, systemUpdateThesis } from "@/lib/thesis-mutation";
 
 export type PersistEventReasoningToThesisStateParams = {
   reasoning: MacroEventReasoning;
@@ -64,13 +65,30 @@ export async function persistEventReasoningToThesisState(
   const { data: originRow } = await admin.from("theses").select("thesis_origin").eq("id", thesisId).maybeSingle();
   const origin = (originRow as { thesis_origin?: string | null } | null)?.thesis_origin;
   if (shouldWriteScenarioProbabilitiesColumnFromNewsCron(origin)) {
-    const { error: thErr } = await admin
-      .from("theses")
-      .update({ scenario_probabilities: afterTriple, updated_at: new Date().toISOString() })
-      .eq("id", thesisId);
-
-    if (thErr) {
-      console.warn("[event-reasoning] theses scenario_probabilities update failed", { message: thErr.message, thesisId });
+    const upd = await systemUpdateThesis(
+      admin,
+      thesisId,
+      { scenario_probabilities: afterTriple },
+      {
+        actorType: SYSTEM_MUTATION.macro.actorType,
+        reason: SYSTEM_MUTATION.macro.scenarioReason,
+        changeType: "evidence",
+        metadata: {
+          source: "event_reasoning",
+          cluster_id: p.clusterId,
+          news_event_id: p.anchorNewsEventId,
+          event_reasoning_id: p.eventReasoningRowId,
+          dedupe_key: dedupeKey,
+        },
+      },
+    );
+    if (!upd.ok) {
+      console.warn("[event-reasoning] theses scenario_probabilities update failed", {
+        message: upd.error,
+        thesisId,
+        auditFailed: upd.auditFailed === true,
+      });
+      if (upd.auditFailed) return { ok: false, reason: "thesis_audit_write_failed" };
     }
   }
 

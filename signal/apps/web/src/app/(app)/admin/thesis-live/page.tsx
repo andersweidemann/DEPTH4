@@ -21,7 +21,8 @@ type ApiRow = {
 type ApiOk = {
   ok: true;
   rows: ApiRow[];
-  totals: { evidenceRows: number; starRows: number; thesisRows: number };
+  totals: { evidenceRows: number; starRows: number; thesisRows: number; mutationAuditRows24h?: number };
+  mutationAudit24h?: Record<string, number>;
 };
 
 function useAdminGate(sb: ReturnType<typeof createClient>) {
@@ -56,7 +57,13 @@ export default function ThesisLiveAdminPage() {
   const sb = useMemo(() => createClient(), []);
   const { denied, ready, email } = useAdminGate(sb);
   const [rows, setRows] = useState<(ApiRow & { inUiCatalog: boolean })[]>([]);
-  const [totals, setTotals] = useState<{ evidenceRows: number; starRows: number; thesisRows: number } | null>(null);
+  const [totals, setTotals] = useState<{
+    evidenceRows: number;
+    starRows: number;
+    thesisRows: number;
+    mutationAuditRows24h?: number;
+  } | null>(null);
+  const [mutationAudit24h, setMutationAudit24h] = useState<Record<string, number>>({});
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
   const uiIds = useMemo(() => new Set(CATALOG_THESES.map((t) => t.id)), []);
@@ -74,6 +81,7 @@ export default function ThesisLiveAdminPage() {
       }
       const data = j as ApiOk;
       setTotals(data.totals);
+      setMutationAudit24h(data.mutationAudit24h ?? {});
       const seen = new Set(data.rows.map((r) => r.id));
       const merged = data.rows.map((r) => ({
         ...r,
@@ -128,7 +136,7 @@ export default function ThesisLiveAdminPage() {
         </Link>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="border border-white/[0.06] bg-zinc-900/15 px-3 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Evidence rows</p>
           <p className="mt-1 text-lg tabular-nums text-zinc-200">{totals ? totals.evidenceRows : ready ? "0" : "—"}</p>
@@ -140,6 +148,19 @@ export default function ThesisLiveAdminPage() {
         <div className="border border-white/[0.06] bg-zinc-900/15 px-3 py-3">
           <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Theses in DB</p>
           <p className="mt-1 text-lg tabular-nums text-zinc-200">{totals ? totals.thesisRows : ready ? "0" : "—"}</p>
+        </div>
+        <div className="border border-white/[0.06] bg-zinc-900/15 px-3 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Mutation audit (24h)</p>
+          <p className="mt-1 text-lg tabular-nums text-zinc-200">
+            {totals?.mutationAuditRows24h != null ? totals.mutationAuditRows24h : ready ? "0" : "—"}
+          </p>
+          {Object.keys(mutationAudit24h).length ? (
+            <p className="mt-1 text-[10px] leading-relaxed text-zinc-600">
+              {Object.entries(mutationAudit24h)
+                .map(([k, n]) => `${k}: ${n}`)
+                .join(" · ")}
+            </p>
+          ) : null}
         </div>
       </div>
 

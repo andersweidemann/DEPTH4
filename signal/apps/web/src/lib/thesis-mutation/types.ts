@@ -11,11 +11,18 @@ export type ThesisRow = {
   body: unknown;
   micro_label?: string | null;
   lifecycle_state?: string | null;
+  surfaced_bucket?: string | null;
+  thesis_score?: number | null;
+  last_meaningful_update_at?: string | null;
+  surfacing_computed_at?: string | null;
   supersedes_thesis_id: string | null;
   lineage_root_thesis_id: string | null;
   created_at: string;
   updated_at: string;
 };
+
+/** Partial row patch accepted by system cron writers (surfacing + scenario fields). */
+export type ThesisRowPatch = Partial<ThesisRow>;
 
 export type ThesisInsertInput = Omit<
   ThesisRow,
@@ -49,4 +56,6 @@ export type MutationMeta = {
   actorType?: string;
   actorId?: string | null;
   reason?: string;
+  changeType?: ThesisUpdateChangeType;
+  metadata?: Record<string, unknown>;
 };

@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ThesisInsertInput, ThesisRow } from "@/lib/thesis-mutation/types";
 
 const THESIS_SELECT =
-  "id, title, status, slug, thesis_origin, owner_user_id, scenario_probabilities, insider_flow, body, micro_label, lifecycle_state, supersedes_thesis_id, lineage_root_thesis_id, created_at, updated_at";
+  "id, title, status, slug, thesis_origin, owner_user_id, scenario_probabilities, insider_flow, body, micro_label, lifecycle_state, surfaced_bucket, thesis_score, last_meaningful_update_at, surfacing_computed_at, supersedes_thesis_id, lineage_root_thesis_id, created_at, updated_at";
 
 function mapRow(raw: Record<string, unknown>): ThesisRow {
   return {
@@ -17,6 +17,11 @@ function mapRow(raw: Record<string, unknown>): ThesisRow {
     body: raw.body ?? null,
     micro_label: typeof raw.micro_label === "string" ? raw.micro_label : null,
     lifecycle_state: typeof raw.lifecycle_state === "string" ? raw.lifecycle_state : null,
+    surfaced_bucket: typeof raw.surfaced_bucket === "string" ? raw.surfaced_bucket : null,
+    thesis_score: typeof raw.thesis_score === "number" ? raw.thesis_score : null,
+    last_meaningful_update_at:
+      typeof raw.last_meaningful_update_at === "string" ? raw.last_meaningful_update_at : null,
+    surfacing_computed_at: typeof raw.surfacing_computed_at === "string" ? raw.surfacing_computed_at : null,
     supersedes_thesis_id: typeof raw.supersedes_thesis_id === "string" ? raw.supersedes_thesis_id : null,
     lineage_root_thesis_id: typeof raw.lineage_root_thesis_id === "string" ? raw.lineage_root_thesis_id : null,
     created_at: String(raw.created_at ?? ""),

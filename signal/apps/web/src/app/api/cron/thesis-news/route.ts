@@ -11,6 +11,12 @@ import {
   shouldInsertThesisNewsEvidenceLogRow,
   shouldRunThesisNewsThesesTableScenarioUpdate,
 } from "@/lib/thesis-engine-v2/thesis-news-writer-policy";
+import {
+  peekSystemMutationCounters,
+  resetSystemMutationCounters,
+  SYSTEM_MUTATION,
+  systemUpdateThesis,
+} from "@/lib/thesis-mutation";
 
 export const runtime = "nodejs";
 
@@ -182,6 +188,7 @@ async function runThesisNews(req: NextRequest) {
   }
 
   const admin = createSupabaseJsClient(url, service) as unknown as SupabaseClient;
+  resetSystemMutationCounters();
 
   const now = new Date();
   const sinceMin = Number(req.nextUrl.searchParams.get("since_min") || "45");
@@ -232,6 +239,7 @@ async function runThesisNews(req: NextRequest) {
   let evidenceInserted = 0;
   let evidenceDeduped = 0;
   let thesesUpdated = 0;
+  let thesisAuditFailures = 0;
 
   let skipped_no_insider_monitor = 0;
   const skipSampleThesisIds: string[] = [];
@@ -335,11 +343,29 @@ async function runThesisNews(req: NextRequest) {
           suggestion,
         })
       ) {
-        const up = await admin
-          .from("theses")
-          .update({ scenario_probabilities: suggestion.next, updated_at: new Date().toISOString() })
-          .eq("id", t.id);
-        if (!up.error) thesesUpdated += 1;
+        const up = await systemUpdateThesis(
+          admin,
+          t.id,
+          { scenario_probabilities: suggestion.next },
+          {
+            actorType: SYSTEM_MUTATION.news.actorType,
+            reason: SYSTEM_MUTATION.news.scenarioReason,
+            changeType: "evidence",
+            metadata: {
+              source: "news_events",
+              event_id: ev.id,
+              dedupe_key: dedupeKey,
+              signal_level: ev.signal_level,
+              reasons,
+              applied: shouldApply,
+            },
+          },
+        );
+        if (up.ok) {
+          thesesUpdated += 1;
+        } else if (up.auditFailed) {
+          thesisAuditFailures += 1;
+        }
       }
 
       matches.push({
@@ -356,6 +382,11 @@ async function runThesisNews(req: NextRequest) {
     }
   }
 
+  const mutationCounters = peekSystemMutationCounters();
+  if (Object.keys(mutationCounters).length) {
+    console.info("[thesis-news] mutation_audit", mutationCounters);
+  }
+
   console.info(
     "[thesis-news]",
     JSON.stringify({
@@ -367,6 +398,8 @@ async function runThesisNews(req: NextRequest) {
       evidence_inserted: evidenceInserted,
       evidence_deduped: evidenceDeduped,
       theses_scenario_rows_updated: thesesUpdated,
+      thesis_audit_failures: thesisAuditFailures,
+      mutation_counters: mutationCounters,
       auto_apply: autoApply,
       apply_threshold: applyThreshold,
     }),
@@ -383,6 +416,8 @@ async function runThesisNews(req: NextRequest) {
     evidence_inserted: evidenceInserted,
     evidence_deduped: evidenceDeduped,
     theses_updated: thesesUpdated,
+    thesis_audit_failures: thesisAuditFailures,
+    mutation_counters: mutationCounters,
     matches: matches.slice(0, 100),
     errors: { news: newsError, theses: thesesError },
     refresh_scope: {

@@ -92,6 +92,29 @@ describe("ThesisMutationService", () => {
     expect(call.reason).toBe("Mutable field update");
   });
 
+  it("updateThesis stores evidence changeType and metadata", async () => {
+    const before = baseRow({ scenario_probabilities: { base: 40, bull: 35, bear: 25 } });
+    const after = baseRow({ scenario_probabilities: { base: 52, bull: 28, bear: 20 } });
+    thesisRepo.findById.mockResolvedValue(before);
+    thesisRepo.update.mockResolvedValue(after);
+
+    await service.updateThesis(
+      DB_AI_ID,
+      { scenario_probabilities: after.scenario_probabilities },
+      {
+        actorType: "news",
+        reason: "News tag match",
+        changeType: "evidence",
+        metadata: { source: "news_events", event_id: "n-1", dedupe_key: "news:n-1" },
+      },
+    );
+
+    const call = updateRepo.insert.mock.calls[0][0];
+    expect(call.change_type).toBe("evidence");
+    expect(call.actor_type).toBe("news");
+    expect(call.metadata).toMatchObject({ event_id: "n-1", source: "news_events" });
+  });
+
   it("updateThesis stores user-supplied reason in thesis_updates.reason", async () => {
     const before = baseRow({ title: "Before" });
     const after = baseRow({ title: "After" });

@@ -58,6 +58,20 @@ export function ThesisUpdatesPanel({ slug }: { slug: string }) {
               {u.reason?.trim() ? (
                 <p className="mt-1.5 text-[12px] leading-snug text-zinc-200">{u.reason}</p>
               ) : null}
+              {u.metadata?.event_id || u.metadata?.news_event_id || u.metadata?.dedupe_key ? (
+                <p className="mt-1 text-[10px] text-zinc-500">
+                  {u.metadata.source ? <span>{String(u.metadata.source)}</span> : null}
+                  {u.metadata.event_id ? (
+                    <span className="font-mono text-zinc-600">
+                      {u.metadata.source ? " · " : ""}
+                      event {String(u.metadata.event_id).slice(0, 12)}
+                    </span>
+                  ) : null}
+                  {u.metadata.news_event_id && !u.metadata.event_id ? (
+                    <span className="font-mono text-zinc-600"> · news {String(u.metadata.news_event_id).slice(0, 12)}</span>
+                  ) : null}
+                </p>
+              ) : null}
               {u.metadata?.successorThesisId ? (
                 <p className="mt-1 text-[11px] text-zinc-500">
                   Successor id: <span className="font-mono text-zinc-400">{String(u.metadata.successorThesisId)}</span>
