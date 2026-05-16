@@ -88,10 +88,10 @@ function createThesesMock(opts: { existingThesisId?: string | null }) {
 
 describe("ensureAiThesisForDiscoveryCluster (registry insert path)", () => {
   beforeEach(() => {
-    vi.spyOn(mutation, "systemCreateThesis").mockImplementation(async (_sb, row) => ({
+    vi.spyOn(mutation, "systemCreateThesis").mockResolvedValue({
       ok: true as const,
       audited: true,
-    }));
+    });
   });
 
   afterEach(() => {
