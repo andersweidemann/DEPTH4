@@ -62,6 +62,11 @@ export function listRowWhyNowLine(t: EngineThesis): string {
   return "";
 }
 
+const DETAIL_RESOLVABLE_DEBUG_SLUG = "uso-will-find-a-floor-within-this-earnings-s-9535544b43";
+
+const DB_THESIS_ID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 /** Slugs that `loadThesisDetailBundleForApi` can resolve — built once per list response. */
 export function buildDetailResolvableSlugSet(aiTheses: EngineThesis[], userTheses: EngineThesis[]): Set<string> {
   const slugs = new Set<string>();
@@ -78,6 +83,19 @@ export function buildDetailResolvableSlugSet(aiTheses: EngineThesis[], userThese
     if (slug) slugs.add(slug);
   }
   return slugs;
+}
+
+/**
+ * List clickability guard: slug must be in the conservative set and the row must be catalog-backed
+ * or a DB `ai_generated` / `user` thesis (UUID id + origin).
+ */
+export function computeDetailResolvableForListRow(t: EngineThesis, resolvableSlugSet: Set<string>): boolean {
+  const slug = t.slug.trim();
+  if (!slug || !resolvableSlugSet.has(slug)) return false;
+  if (isCatalogThesisId(t.id)) return true;
+  const id = t.id.trim();
+  if (!DB_THESIS_ID_RE.test(id)) return false;
+  return t.thesisOrigin === "ai_generated" || t.thesisOrigin === "user";
 }
 
 function engineThesisToListItem(
@@ -107,7 +125,7 @@ function engineThesisToListItem(
     whyNow: listRowWhyNowLine(t),
     lastUpdated,
     starred,
-    detailResolvable: resolvableSlugSet.has(t.slug.trim()),
+    detailResolvable: computeDetailResolvableForListRow(t, resolvableSlugSet),
   };
 }
 
@@ -135,12 +153,15 @@ export function thesisListItemFromEngine(
   const thesis_score =
     db?.thesis_score !== undefined ? db.thesis_score : Math.round(thesisMapHomeRankScore(t));
   const outcome_label = db?.outcome_label;
+  const detailResolvable = computeDetailResolvableForListRow(t, resolvableSlugSet);
+
   return {
     ...base,
     lifecycle_state,
     surfaced_bucket: bucket,
     thesis_score,
     ...(outcome_label != null ? { outcome_label } : {}),
+    detailResolvable,
   };
 }
 
@@ -260,6 +281,15 @@ export async function buildThesesListResponse(
   });
 
   const resolvableSlugSet = buildDetailResolvableSlugSet(aiTheses, userTheses);
+
+  console.log("[DEPTH4 temp] detailResolvable slug probe", {
+    slug: DETAIL_RESOLVABLE_DEBUG_SLUG,
+    inAiSlugs: new Set(aiTheses.map((t) => t.slug)).has(DETAIL_RESOLVABLE_DEBUG_SLUG),
+    inUserSlugs: new Set(userTheses.map((t) => t.slug)).has(DETAIL_RESOLVABLE_DEBUG_SLUG),
+    inCatalogSlugs: new Set(CATALOG_THESES.map((t) => t.slug)).has(DETAIL_RESOLVABLE_DEBUG_SLUG),
+    inResolvableSlugSet: resolvableSlugSet.has(DETAIL_RESOLVABLE_DEBUG_SLUG),
+    inCombined: combined.some((t) => t.slug === DETAIL_RESOLVABLE_DEBUG_SLUG),
+  });
 
   const mapEngine = (t: EngineThesis) =>
     thesisListItemFromEngine(
