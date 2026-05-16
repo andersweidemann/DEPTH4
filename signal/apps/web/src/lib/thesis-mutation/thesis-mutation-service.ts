@@ -168,7 +168,10 @@ export class ThesisMutationService {
    * Not a DB transaction: on audit failure, runs optional compensate (revert thesis write) then throws
    * {@link ThesisMutationAuditError} so callers return an error instead of silent success.
    */
-  private async auditOrCompensate(audit: () => Promise<void>, compensate?: () => Promise<void>): Promise<void> {
+  private async auditOrCompensate(
+    audit: () => Promise<void>,
+    compensate?: () => Promise<unknown>,
+  ): Promise<void> {
     try {
       await audit();
       recordAuditWriteSuccess();
