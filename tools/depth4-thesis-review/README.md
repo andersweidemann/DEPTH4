@@ -111,6 +111,20 @@ python3 shadow_run.py --fixture fixtures/weak_link_payload.json --quiet
 Stdout prints a short **editorial summary** (counts + top offending slugs). Pass `--quiet` to
 suppress the full JSON dump.
 
+### Summarize shadow reports (Phase 3A.0)
+
+After one or more shadow runs, aggregate weak-link concentration:
+
+```bash
+make shadow-summary
+# or
+python3 summarize_shadow.py --write-json
+python3 summarize_shadow.py --report reports/shadow_reference_<UTC>.json
+```
+
+Writes `reports/shadow_summary_<UTC>.json` when `--write-json` is set. Joins sibling
+`shadow_payload_*.json` for event category, tickers, and `news_events` update paths.
+
 ### GitHub Actions (weekly)
 
 Workflow: `.github/workflows/thesis-verifier-shadow.yml` — runs every Monday, uploads

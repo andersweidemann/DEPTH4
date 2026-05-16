@@ -1,4 +1,4 @@
-.PHONY: install install-hooks review review-fixture shadow-fixture clean
+.PHONY: install install-hooks review review-fixture shadow-fixture shadow-summary clean
 
 install:
 	pip install -r requirements.txt
@@ -17,6 +17,9 @@ review-fixture:
 
 shadow-fixture:
 	python3 shadow_run.py --fixture fixtures/weak_link_payload.json --quiet
+
+shadow-summary:
+	python3 summarize_shadow.py --write-json
 
 clean:
 	rm -f reports/*.json reports/*.md

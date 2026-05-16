@@ -210,6 +210,14 @@ async def build_payload(
         }
         if isinstance(prob, dict):
             item["scenario_probabilities"] = prob
+        if ev:
+            em = ev.get("metadata") if isinstance(ev.get("metadata"), dict) else {}
+            item["last_evidence"] = {
+                "event_type": ev.get("event_type"),
+                "source": em.get("source"),
+                "reasons": em.get("reasons"),
+                "dedupe_key": em.get("dedupe_key"),
+            }
         out_theses.append(item)
 
     return {
