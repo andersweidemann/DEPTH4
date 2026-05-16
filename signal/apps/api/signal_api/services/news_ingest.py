@@ -11,7 +11,9 @@ import hashlib
 import logging
 import time
 from datetime import datetime, UTC
-from typing import Any
+from typing import Any, Literal
+
+ItemProcessOutcome = Literal["success", "skipped", "failed"]
 
 import feedparser
 import httpx
@@ -243,20 +245,35 @@ async def _ensure_scenarios_for_signal3(
   return tree_out
 
 
+def _feed_display_name(url: str) -> str:
+  name = "Wire"
+  if "reuters" in url:
+    name = "Reuters"
+  elif "aljazeera" in url:
+    name = "Al Jazeera"
+  elif "ft.com" in url:
+    name = "FT"
+  elif "bloomberg" in url:
+    name = "Bloomberg"
+  elif "seeking" in url:
+    name = "Seeking Alpha"
+  return name
+
+
 async def _process_item(
   sb: Client,
   item: dict[str, Any],
   source_name: str,
-) -> None:
+) -> ItemProcessOutcome:
   u = (item.get("source_url") or "")[:2_000]
   title = (item.get("headline") or "")[:1_200]
   if not title.strip():
-    return
+    return "skipped"
   if await redis.is_duplicate(u, title):
-    return
+    return "skipped"
   url_key = _source_url_key_for_db(item.get("source_url") or "", title, source_name)
   if await _news_source_url_exists(sb, url_key):
-    return
+    return "skipped"
   try:
     cls: dict = await claude.classify_news(
       title, (item.get("body_text") or "")[:16_000]
@@ -268,7 +285,7 @@ async def _process_item(
       title,
       e,
     )
-    return
+    return "failed"
   sev = int(cls.get("signal_level") or 1)
   row: dict = {
     "headline": title,
@@ -295,20 +312,20 @@ async def _process_item(
         source_name,
         url_key,
       )
-      return
+      return "skipped"
     log.warning(
       "news_ingest: news_events insert failed source=%s headline=%.100s err=%s",
       source_name,
       title,
       e,
     )
-    return
+    return "failed"
   rec = (r.data or [None])[0]
   if not rec or not rec.get("id"):
-    return
+    return "failed"
   eid = str(rec["id"])
   if sev < 3:
-    return
+    return "success"
   sect = [str(s) for s in (cls.get("affected_sectors") or [])]
   tick = [str(s) for s in (cls.get("affected_tickers") or [])]
   body_text = (item.get("body_text") or "")[:32_000]
@@ -371,6 +388,123 @@ async def _process_item(
   await alerts.fan_out(
     eid, title, sev, list(cls.get("affected_tickers") or []), tr, one_line_summary=ols_str
   )
+  return "success"
+
+
+async def bounded_cycle(*, max_items: int) -> dict[str, Any]:
+  """Process up to ``max_items`` RSS entries in deterministic feed order (idempotent skips)."""
+  s = get_settings()
+  if not llm_configured():
+    return {
+      "skipped_cycle": True,
+      "skip_reason": "llm_not_configured",
+      "attempted": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 0,
+      "items": [],
+      "stopped_reason": "llm_not_configured",
+    }
+  if not depth4_can_run_background_llm():
+    return {
+      "skipped_cycle": True,
+      "skip_reason": "depth4_guard",
+      "attempted": 0,
+      "succeeded": 0,
+      "failed": 0,
+      "skipped": 0,
+      "items": [],
+      "stopped_reason": "depth4_guard",
+    }
+
+  sb = supabase_admin()
+  cap = max(1, min(int(max_items), 25))
+  attempted = 0
+  succeeded = 0
+  failed = 0
+  skipped = 0
+  items: list[dict[str, Any]] = []
+  feeds_ok = 0
+  stopped_reason = "feeds_exhausted"
+
+  for url in s.default_rss_feeds:
+    if attempted >= cap:
+      stopped_reason = "max_items"
+      break
+    name = _feed_display_name(url)
+    try:
+      text = await _fetch_rss_url(url)
+    except Exception as e:
+      failed += 1
+      items.append(
+        {
+          "source": name,
+          "outcome": "failed",
+          "reason": "rss_fetch_failed",
+          "error": str(e)[:500],
+          "headline": None,
+        },
+      )
+      continue
+    feeds_ok += 1
+    for item in _parse_feed(text)[:25]:
+      if attempted >= cap:
+        stopped_reason = "max_items"
+        break
+      headline = ((item.get("headline") or "")[:120]).strip() or None
+      attempted += 1
+      try:
+        outcome = await _process_item(sb, item, name)
+      except Exception as e:
+        outcome = "failed"
+        failed += 1
+        items.append(
+          {
+            "source": name,
+            "outcome": "failed",
+            "reason": "process_exception",
+            "error": str(e)[:500],
+            "headline": headline,
+          },
+        )
+        continue
+      if outcome == "success":
+        succeeded += 1
+      elif outcome == "skipped":
+        skipped += 1
+      else:
+        failed += 1
+      items.append(
+        {
+          "source": name,
+          "outcome": outcome,
+          "headline": headline,
+        },
+      )
+    if attempted >= cap:
+      break
+
+  log.info(
+    "news_ingest: bounded_cycle done attempted=%s succeeded=%s failed=%s skipped=%s feeds_ok=%s/%s stopped=%s",
+    attempted,
+    succeeded,
+    failed,
+    skipped,
+    feeds_ok,
+    len(s.default_rss_feeds),
+    stopped_reason,
+  )
+  return {
+    "skipped_cycle": False,
+    "attempted": attempted,
+    "succeeded": succeeded,
+    "failed": failed,
+    "skipped": skipped,
+    "items": items,
+    "feeds_ok": feeds_ok,
+    "feeds_total": len(s.default_rss_feeds),
+    "stopped_reason": stopped_reason,
+  }
 
 
 async def one_cycle() -> None:
@@ -390,17 +524,7 @@ async def one_cycle() -> None:
   feeds_ok = 0
   items_tried = 0
   for url in s.default_rss_feeds:
-    name = "Wire"
-    if "reuters" in url:
-      name = "Reuters"
-    elif "aljazeera" in url:
-      name = "Al Jazeera"
-    elif "ft.com" in url:
-      name = "FT"
-    elif "bloomberg" in url:
-      name = "Bloomberg"
-    elif "seeking" in url:
-      name = "Seeking Alpha"
+    name = _feed_display_name(url)
     try:
       text = await _fetch_rss_url(url)
     except Exception as e:

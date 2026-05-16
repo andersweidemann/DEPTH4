@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import hmac
 
-from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Header, HTTPException, Query, status
 
 from signal_api.ai.depth4_guard import depth4_can_run_background_llm, get_depth4_guard_status
 from signal_api.ai.model_routing import build_llm_routing_matrix
@@ -87,3 +87,21 @@ async def ingest_once(
     "scheduled": True,
     "note": "Ingest runs in the background; check Render logs for news_ingest lines.",
   }
+
+
+@router.post("/ingest-bounded")
+async def ingest_bounded(
+  max_items: int = Query(default=5, ge=1, le=25),
+  x_depth4_ingest_secret: str | None = Header(default=None, alias="X-Depth4-Ingest-Secret"),
+) -> dict:
+  """Synchronous bounded RSS ingest for Vercel cron (deterministic order, idempotent skips)."""
+  _require_ingest_secret(x_depth4_ingest_secret)
+  try:
+    result = await news_ingest.bounded_cycle(max_items=max_items)
+  except Exception:
+    log.exception("cron ingest-bounded: bounded_cycle failed")
+    raise HTTPException(
+      status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+      detail="bounded_cycle_failed",
+    ) from None
+  return {"ok": True, "max_items": max_items, **result}
