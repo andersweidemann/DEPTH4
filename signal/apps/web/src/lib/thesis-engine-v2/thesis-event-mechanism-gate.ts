@@ -243,20 +243,20 @@ export function inferThesisAssetFamily(thesis: MechanismGateThesis): ThesisAsset
   );
   const title = thesis.title.toLowerCase();
 
-  if ([...syms].some((s) => RATE_SYMBOLS.has(s)) || /\b(tlt|treasury|duration|rates|fed|yield|term premium)\b/.test(title)) {
+  if (Array.from(syms).some((s) => RATE_SYMBOLS.has(s)) || /\b(tlt|treasury|duration|rates|fed|yield|term premium)\b/.test(title)) {
     return "rates";
   }
-  if ([...syms].some((s) => OIL_SYMBOLS.has(s)) || /\b(oil|crude|wti|opec|strait|hormuz|brent)\b/.test(title)) {
+  if (Array.from(syms).some((s) => OIL_SYMBOLS.has(s)) || /\b(oil|crude|wti|opec|strait|hormuz|brent)\b/.test(title)) {
     return "oil";
   }
-  if ([...syms].some((s) => CRYPTO_SYMBOLS.has(s)) || /\b(btc|bitcoin|crypto|ethereum)\b/.test(title)) {
+  if (Array.from(syms).some((s) => CRYPTO_SYMBOLS.has(s)) || /\b(btc|bitcoin|crypto|ethereum)\b/.test(title)) {
     return "crypto";
   }
-  if ([...syms].some((s) => DEFENSE_SYMBOLS.has(s)) || /\b(defense|aerospace|pentagon|nato spending)\b/.test(title)) {
+  if (Array.from(syms).some((s) => DEFENSE_SYMBOLS.has(s)) || /\b(defense|aerospace|pentagon|nato spending)\b/.test(title)) {
     return "defense";
   }
   if (
-    [...syms].some((s) => ["META", "AAPL", "MSFT", "NVDA", "QQQ", "SPY", "AMZN", "GOOGL"].includes(s)) ||
+    Array.from(syms).some((s) => ["META", "AAPL", "MSFT", "NVDA", "QQQ", "SPY", "AMZN", "GOOGL"].includes(s)) ||
     /\b(tech|multiple|mega-?cap|platform|earnings)\b/.test(title)
   ) {
     return "equity";
