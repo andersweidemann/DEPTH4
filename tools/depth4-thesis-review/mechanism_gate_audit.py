@@ -46,6 +46,32 @@ def merge_env(file_env: dict[str, str]) -> dict[str, str]:
     return out
 
 
+def validate_supabase_env(env: dict[str, str], *, env_file: str) -> None:
+    url = (env.get("NEXT_PUBLIC_SUPABASE_URL") or env.get("SUPABASE_URL") or "").strip()
+    key = (env.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not url or not key:
+        raise RuntimeError(
+            "NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required "
+            f"(check --env-file {env_file or '(none)'} or shell exports)"
+        )
+    if "paste" in key.lower() or key == "paste_service_role_key_here":
+        raise RuntimeError(
+            "SUPABASE_SERVICE_ROLE_KEY is still the placeholder in .env.production. "
+            "Paste the service_role secret from Supabase → Project Settings → API "
+            "(labeled service_role secret, not anon public)."
+        )
+    if not key.startswith("eyJ") or key.count(".") < 2:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_ROLE_KEY does not look like a Supabase JWT. "
+            "Use the service_role secret (not the anon key) from Project Settings → API."
+        )
+    if "/rest/v1" in url:
+        raise RuntimeError(
+            "NEXT_PUBLIC_SUPABASE_URL must be the project base only "
+            "(e.g. https://xxx.supabase.co), without /rest/v1"
+        )
+
+
 def infer_asset_from_thesis_row(row: dict[str, Any]) -> str:
     insider = row.get("insider_flow") if isinstance(row.get("insider_flow"), dict) else {}
     syms = [
@@ -304,6 +330,7 @@ async def main_async() -> int:
 
     file_env = load_env_file(Path(args.env_file)) if args.env_file else {}
     env = merge_env(file_env)
+    validate_supabase_env(env, env_file=args.env_file or "")
 
     evidence = await fetch_evidence_window(env, days=args.days, limit=args.evidence_limit)
     thesis_ids = list(dict.fromkeys(str(e.get("thesis_id")) for e in evidence if e.get("thesis_id")))
