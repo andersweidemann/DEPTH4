@@ -408,9 +408,11 @@ export function LiveThesesListPage() {
           upsertUserThesis(t);
           void putUserThesisToSupabase(t).then(async (r) => {
             if (!r.ok) {
-              if (r.error !== "sign_in_required") {
-                toast.error(friendlyApiMessage(r.error));
-              }
+              toast.error(
+                r.error === "sign_in_required"
+                  ? "Sign in to save this thesis to your account."
+                  : friendlyApiMessage(r.error),
+              );
               return;
             }
             await mutate();

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
-import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
-import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
@@ -29,11 +28,6 @@ const ALLOWED_STATUS = new Set<ThesisStatus>([
   "invalidated",
 ]);
 
-function bearerToken(req: NextRequest): string {
-  const authHeader = req.headers.get("authorization") ?? "";
-  return authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
-}
-
 function isThesisRecord(x: unknown): x is Thesis {
   if (!x || typeof x !== "object") return false;
   const t = x as Record<string, unknown>;
@@ -45,30 +39,9 @@ function isThesisRecord(x: unknown): x is Thesis {
 type AuthedClient = { sb: SupabaseClient; user: { id: string } };
 
 async function getAuthedUserThesesClient(req: NextRequest): Promise<AuthedClient | NextResponse> {
-  const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  if (!url || !anon) return NextResponse.json({ ok: false, error: "supabase_env_missing" }, { status: 500 });
-
-  const token = bearerToken(req);
-  const cookieSb = await createCookieSupabaseClient();
-  const { data: cookieAuth, error: cookieAuthErr } = await cookieSb.auth.getUser();
-  let sb = cookieSb;
-  let user = cookieAuth.user;
-
-  if ((!user || cookieAuthErr) && token) {
-    const bearerSb = createSupabaseJsClient(url, anon, {
-      auth: { persistSession: false, autoRefreshToken: false },
-      global: { headers: { Authorization: `Bearer ${token}` } },
-    });
-    const { data: bearerAuth, error: bearerErr } = await bearerSb.auth.getUser(token);
-    if (!bearerErr && bearerAuth.user) {
-      sb = bearerSb;
-      user = bearerAuth.user;
-    }
-  }
-
-  if (!user) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  return { sb, user };
+  const auth = await getAuthedSupabase(req);
+  if (!auth) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  return auth;
 }
 
 /** Latest DB slice for the signed-in owner — used to refresh user thesis UI after cron / evidence updates. */
