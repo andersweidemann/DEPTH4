@@ -343,7 +343,15 @@ async def main_async() -> int:
     args = p.parse_args()
 
     file_env = load_env_file(Path(args.env_file)) if args.env_file else {}
-    env = {**file_env, **{k: v for k, v in os.environ.items() if v}}
+
+    def merge_env() -> dict[str, str]:
+        out = {k: v for k, v in file_env.items() if v}
+        for k, v in os.environ.items():
+            if v:
+                out[k] = v
+        return out
+
+    env = merge_env()
 
     if args.fixture:
         payload = json.loads(Path(args.fixture).read_text())
