@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
+import { isThesisReaderSharePath } from "@/lib/thesis-engine-v2/thesis-reader-public";
 
 const PUBLIC_PREFIXES = [
   "/",
@@ -74,6 +75,9 @@ export async function middleware(req: NextRequest) {
   }
 
   if (isPublicPath(pathname)) return NextResponse.next();
+
+  /** Reader share URLs — page enforces per-thesis public flag; middleware must not force login. */
+  if (isThesisReaderSharePath(pathname)) return NextResponse.next();
 
   if (isDepth4PublicReadMode() && !isAdminProtectedPath(pathname)) {
     return NextResponse.next();

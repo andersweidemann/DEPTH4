@@ -15,6 +15,7 @@ import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFour
 import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
 import { ThesisAnatomyDebugPanel } from "@/components/thesis-engine-v2/ThesisAnatomyDebugPanel";
 import { ThesisReaderView } from "@/components/thesis-engine-v2/ThesisReaderView";
+import { ThesisReaderShareControls } from "@/components/thesis-engine-v2/ThesisReaderShareControls";
 import { useAuth } from "@/contexts/AuthContext";
 import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anatomy-debug-access";
 import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
@@ -1185,6 +1186,7 @@ export function ThesisDetailClient({
             Reader mode →
           </Link>
         </div>
+        <ThesisReaderShareControls slug={slug} shareTitle={thesis.title} className="mb-8" />
         {inner}
       </div>
       {modals}

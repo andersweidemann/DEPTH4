@@ -7,6 +7,7 @@ import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFour
 import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { ThesisReaderChrome } from "@/components/thesis-engine-v2/ThesisReaderChrome";
+import { ThesisReaderShareControls } from "@/components/thesis-engine-v2/ThesisReaderShareControls";
 import { cn } from "@/lib/utils";
 
 function ReaderSection({
@@ -38,15 +39,21 @@ export function ThesisReaderView({
   thesis,
   relatedAssets,
   liveEvidenceApplied,
+  publicMode = false,
 }: {
   slug: string;
   thesis: Thesis;
   relatedAssets: RelatedAsset[];
   liveEvidenceApplied?: boolean;
+  /** Anonymous public reader — no auth APIs or share management. */
+  publicMode?: boolean;
 }) {
   return (
     <article className="mx-auto max-w-[42rem] pb-20">
-      <ThesisReaderChrome slug={slug} shareTitle={thesis.title} />
+      <ThesisReaderChrome slug={slug} shareTitle={thesis.title} publicMode={publicMode} />
+      {!publicMode ? (
+        <ThesisReaderShareControls slug={slug} shareTitle={thesis.title} className="mb-10" />
+      ) : null}
 
       <ThesisHero thesis={thesis} variant="reader" displaySourceOpts={{ liveEvidenceApplied }} />
 
@@ -106,7 +113,7 @@ export function ThesisReaderView({
       ) : null}
 
       <div className="mt-12">
-        <TradePlanCard thesis={thesis} variant="reader" />
+        <TradePlanCard thesis={thesis} variant="reader" publicMode={publicMode} />
       </div>
 
       <div className="mt-12">

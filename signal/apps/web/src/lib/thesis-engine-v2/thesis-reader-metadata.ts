@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { loadThesisShareSnapshot } from "@/lib/thesis-engine-v2/load-thesis-share-snapshot";
+import { isThesisReaderPublic } from "@/lib/thesis-engine-v2/thesis-reader-public";
+import { buildPrivateThesisReaderMetadata } from "@/lib/thesis-engine-v2/thesis-reader-private-metadata";
+import { createClient } from "@/lib/supabase/server";
 import {
   THESIS_OG_IMAGE_HEIGHT,
   THESIS_OG_IMAGE_WIDTH,
@@ -7,9 +10,19 @@ import {
   thesisReaderOgImageUrl,
 } from "@/lib/thesis-engine-v2/thesis-share-metadata";
 
-/** Build Next.js metadata for `/theses/[slug]/read` (Phase 4B). */
+/** Build Next.js metadata for `/theses/[slug]/read` (Phase 4B–4C). */
 export async function buildThesisReaderPageMetadata(slug: string): Promise<Metadata> {
-  const snap = await loadThesisShareSnapshot(slug);
+  const s = slug.trim();
+  const isPublic = await isThesisReaderPublic(s);
+  if (!isPublic) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return buildPrivateThesisReaderMetadata(s);
+  }
+
+  const snap = await loadThesisShareSnapshot(s);
   const canonical = thesisReaderCanonicalUrl(snap.slug);
   const ogImage = thesisReaderOgImageUrl(snap.slug);
   const pageTitle = `${snap.ogTitle} · DEPTH4`;
@@ -18,6 +31,7 @@ export async function buildThesisReaderPageMetadata(slug: string): Promise<Metad
     title: pageTitle,
     description: snap.description,
     alternates: { canonical },
+    robots: { index: false, follow: false },
     openGraph: {
       type: "article",
       url: canonical,

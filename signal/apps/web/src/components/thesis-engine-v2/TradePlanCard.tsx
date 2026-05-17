@@ -33,12 +33,21 @@ function levelsComplete(plan: LiveTradePlan): boolean {
   return !!(ez && plan.stop != null && plan.target1 != null && plan.target2 != null);
 }
 
-export function TradePlanCard({ thesis, variant = "default" }: { thesis: Thesis; variant?: "default" | "reader" }) {
+export function TradePlanCard({
+  thesis,
+  variant = "default",
+  publicMode = false,
+}: {
+  thesis: Thesis;
+  variant?: "default" | "reader";
+  publicMode?: boolean;
+}) {
   const reader = variant === "reader";
   const [plan, setPlan] = useState<LiveTradePlan | null>(null);
   const pathConviction = canonicalConvictionPercentFromEngineThesis(thesis);
 
   useEffect(() => {
+    if (publicMode) return;
     let cancelled = false;
     const run = async () => {
       try {
@@ -69,7 +78,7 @@ export function TradePlanCard({ thesis, variant = "default" }: { thesis: Thesis;
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [thesis.asset, thesis.direction, thesis.status, pathConviction]);
+  }, [publicMode, thesis.asset, thesis.direction, thesis.status, pathConviction]);
 
   const blocked = plan?.conviction_blocked === true;
   const showLive = plan != null && levelsComplete(plan) && !blocked;
