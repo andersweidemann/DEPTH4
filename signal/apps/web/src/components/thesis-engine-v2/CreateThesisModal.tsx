@@ -667,14 +667,26 @@ export function CreateThesisModal({
                               anatomy_warnings?: string[];
                             };
                             error?: string;
+                            hint?: string;
+                            missing?: string[];
+                            status?: number;
                           } | null;
+                          if (j?.error === "api_proxy_misconfigured") {
+                            setReviewSource(null);
+                            setAiErr(
+                              typeof j.hint === "string" && j.hint.trim()
+                                ? j.hint
+                                : "AI expand is not configured on this deployment. Set NEXT_PUBLIC_API_URL and INGEST_CRON_SECRET on the Vercel web app (same secret as the Render API).",
+                            );
+                            return;
+                          }
                           if (!res.ok || !j) {
                             const fb = generateDraftFromPrompt(raw);
                             setForm((cur) => ({ ...cur, ...fb, mode: "review" }));
                             setReviewSource("local");
                             setAiErr(
-                              j?.error === "api_proxy_misconfigured"
-                                ? "Configure DEPTH4 API URL and ingest secret on the server for full AI drafts."
+                              j?.error === "upstream_failed"
+                                ? `DEPTH4 API unreachable (${String(j.status ?? res.status)}). Try again in a moment.`
                                 : null,
                             );
                             return;

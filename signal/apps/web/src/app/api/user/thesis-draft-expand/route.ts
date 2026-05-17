@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createSupabaseJsClient } from "@supabase/supabase-js";
 import { normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
 import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
+import { resolveThesisExpandProxyConfig } from "@/lib/thesis-expand-api-proxy";
 
 export const runtime = "nodejs";
 
@@ -39,20 +40,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "idea_required" }, { status: 400 });
   }
 
-  const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
-  const ingest = (process.env.INGEST_CRON_SECRET ?? "").trim();
-  if (!apiBase || !ingest) {
+  const proxy = resolveThesisExpandProxyConfig();
+  if (!proxy.ok) {
     return NextResponse.json(
-      { ok: false, error: "api_proxy_misconfigured", hint: "NEXT_PUBLIC_API_URL and INGEST_CRON_SECRET required" },
+      {
+        ok: false,
+        error: proxy.error,
+        hint: proxy.hint,
+        missing: proxy.missing,
+      },
       { status: 503 },
     );
   }
 
-  const upstream = await fetch(`${apiBase}/user/thesis-draft-expand`, {
+  const upstream = await fetch(`${proxy.apiBase}/user/thesis-draft-expand`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "X-Depth4-Ingest-Secret": ingest,
+      "X-Depth4-Ingest-Secret": proxy.ingestSecret,
     },
     body: JSON.stringify({ idea }),
   });
@@ -60,7 +65,12 @@ export async function POST(req: NextRequest) {
   const j = (await upstream.json().catch(() => null)) as Record<string, unknown> | null;
   if (!upstream.ok || !j) {
     return NextResponse.json(
-      { ok: false, error: "upstream_failed", status: upstream.status },
+      {
+        ok: false,
+        error: "upstream_failed",
+        status: upstream.status,
+        upstreamBody: j,
+      },
       { status: 502 },
     );
   }
