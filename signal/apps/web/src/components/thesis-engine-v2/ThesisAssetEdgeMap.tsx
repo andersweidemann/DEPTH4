@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import type { RelatedAsset, Thesis } from "@/lib/thesis-engine-v2/types";
+import { resolveAssetMispricingText } from "@/lib/thesis-engine-v2/thesis-asset-edge-mispricing";
 
 type EdgeRow = {
   symbol: string;
@@ -41,8 +42,7 @@ function isStructuredAsset(a: RelatedAsset): boolean {
 /** Pure row builder — exported for catalog / regression tests. */
 export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedAsset[]): EdgeRow[] {
   const whyBase = (thesis.whyNow ?? "").trim() || "Connected to the thesis channel.";
-  const wu = (thesis.whatsUnpriced ?? "").trim();
-  const tradeExpr = (thesis.tradeExpression ?? "").trim();
+  const anatomy = thesis.structuredAnatomy ?? null;
   const seen = new Set<string>();
   const rows: EdgeRow[] = [];
 
@@ -57,14 +57,21 @@ export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedA
 
   let legacyPrimaryDone = false;
   for (const a of relatedAssets) {
+    const bias = (a.directionBias ?? biasLabelForSymbol(a.symbol, thesis)).trim();
     if (isStructuredAsset(a)) {
       pushRow({
         symbol: a.symbol,
         headline: (a.displayName ?? a.symbol).trim(),
-        biasLabel: (a.directionBias ?? biasLabelForSymbol(a.symbol, thesis)).trim(),
+        biasLabel: bias,
         whyItMatters: (a.whyItMatters ?? a.note ?? whyBase).trim(),
         consensus: (a.consensusOnAsset ?? "—").trim() || "—",
-        mispriced: (a.whatAssetMisprices ?? "—").trim() || "—",
+        mispriced: resolveAssetMispricingText({
+          symbol: a.symbol,
+          thesis,
+          biasLabel: bias,
+          structuredMispriced: a.whatAssetMisprices,
+          structuredAnatomy: anatomy,
+        }),
         edgeWindow: (a.edgeWindow ?? thesis.horizon ?? "—").trim() || "—",
         depth: (a.depthConfidence ?? "—").trim() || "—",
       });
@@ -73,27 +80,21 @@ export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedA
 
     const isPrimary = !legacyPrimaryDone;
     if (isPrimary) legacyPrimaryDone = true;
-    const mispriced =
-      isPrimary && wu
-        ? wu.length > 280
-          ? `${wu.slice(0, 279)}…`
-          : wu
-        : tradeExpr
-          ? tradeExpr.length > 220
-            ? `${tradeExpr.slice(0, 219)}…`
-            : tradeExpr
-          : wu
-            ? wu.slice(0, 180)
-            : "See Trade plan for how this symbol expresses the thesis.";
     const note = (a.note ?? "").trim();
     pushRow({
       symbol: a.symbol,
       headline: a.symbol,
-      biasLabel: biasLabelForSymbol(a.symbol, thesis),
+      biasLabel: bias,
       whyItMatters:
         note.length > 3 && !/^primary\b/i.test(note) ? note.slice(0, 240) : whyBase.slice(0, 240),
       consensus: "See thesis-level conviction paths above.",
-      mispriced,
+      mispriced: resolveAssetMispricingText({
+        symbol: a.symbol,
+        thesis,
+        biasLabel: bias,
+        allowThesisLevelPrimary: isPrimary,
+        structuredAnatomy: anatomy,
+      }),
       edgeWindow: thesis.horizon || "—",
       depth: "—",
     });
@@ -111,7 +112,12 @@ export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedA
       biasLabel: biasLabelForSymbol(s, thesis),
       whyItMatters: "Tagged as constructive insider-flow confirmation for this thesis.",
       consensus: "—",
-      mispriced: tradeExpr ? tradeExpr.slice(0, 200) : wu.slice(0, 160) || "—",
+      mispriced: resolveAssetMispricingText({
+        symbol: s,
+        thesis,
+        biasLabel: biasLabelForSymbol(s, thesis),
+        structuredAnatomy: anatomy,
+      }),
       edgeWindow: thesis.horizon || "—",
       depth: "—",
     });
@@ -125,7 +131,12 @@ export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedA
       biasLabel: biasLabelForSymbol(s, thesis),
       whyItMatters: "Tagged as defensive / hedge flow relative to this thesis.",
       consensus: "—",
-      mispriced: tradeExpr ? tradeExpr.slice(0, 200) : "—",
+      mispriced: resolveAssetMispricingText({
+        symbol: s,
+        thesis,
+        biasLabel: biasLabelForSymbol(s, thesis),
+        structuredAnatomy: anatomy,
+      }),
       edgeWindow: thesis.horizon || "—",
       depth: "—",
     });
@@ -137,7 +148,13 @@ export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedA
       biasLabel: biasLabelForSymbol(thesis.asset, thesis),
       whyItMatters: "Hero instrument for this thesis book.",
       consensus: "—",
-      mispriced: wu || tradeExpr || "—",
+      mispriced: resolveAssetMispricingText({
+        symbol: thesis.asset,
+        thesis,
+        biasLabel: biasLabelForSymbol(thesis.asset, thesis),
+        allowThesisLevelPrimary: true,
+        structuredAnatomy: anatomy,
+      }),
       edgeWindow: thesis.horizon || "—",
       depth: "—",
     });

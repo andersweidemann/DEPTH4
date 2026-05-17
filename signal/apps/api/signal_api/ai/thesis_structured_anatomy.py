@@ -35,6 +35,11 @@ VALID_FAMILIES = frozenset(
   {"rates", "oil", "crypto", "defense", "equity", "fx", "commodities", "other"}
 )
 
+L2_META_TEMPLATE = re.compile(
+  r"\b(you named the main driver|incoming headlines will test|your draft|will test whether it still holds)\b",
+  re.I,
+)
+
 
 def _as_str(x: Any, fallback: str = "") -> str:
   if x is None:
@@ -150,18 +155,92 @@ def _strip_mispricing_lead(text: str) -> str:
   return re.sub(r"^the market is (still )?pricing\s+", "", _as_str(text), flags=re.I)
 
 
+def _first_sentence(text: str, max_len: int = 220) -> str:
+  t = _as_str(text)
+  if not t:
+    return ""
+  m = re.match(r"^[^.!?]+[.!?]?", t)
+  one = (m.group(0) if m else t).strip()
+  if one and one[-1] not in ".!?" and len(one) < len(t):
+    one = f"{one}."
+  return one if len(one) <= max_len else f"{one[: max_len - 1]}…"
+
+
+def _strings_near_duplicate(a: str, b: str) -> bool:
+  na = _as_str(a).lower()
+  nb = _as_str(b).lower()
+  if not na or not nb:
+    return False
+  if na == nb:
+    return True
+  shorter, longer = (na, nb) if len(na) <= len(nb) else (nb, na)
+  return len(shorter) >= 40 and shorter[:48] in longer
+
+
+def _is_l2_meta(text: str) -> bool:
+  return bool(L2_META_TEMPLATE.search(_as_str(text)))
+
+
+def _build_mechanism_fallback(d: dict[str, Any]) -> str:
+  path = _as_str(d.get("likely_path"))
+  if len(path) > 36 and not _is_l2_meta(path):
+    return path[:320]
+  why = _as_str(d.get("why_now"))
+  if len(why) > 40:
+    lead = why[:140] + ("…" if len(why) > 140 else "")
+    return (
+      f"Near-term mechanism (1–7d): {lead.rstrip('.')} — "
+      "expect flows, vol, and positioning to move before the slower macro repricing."
+    )
+  trig = _as_str(d.get("trigger_entry_setup"))
+  if len(trig) > 24:
+    return f"Near-term mechanism (1–7d): {_first_sentence(trig)} — watch whether tape confirms transmission."
+  stmt = _as_str(d.get("thesis_statement"))
+  if len(stmt) > 36 and not _is_l2_meta(stmt):
+    return f"Near-term mechanism (1–7d): {_first_sentence(stmt)} — first-order tape reaction should lead."
+  return (
+    "Near-term mechanism (1–7d): catalyst confirmation should show up in flows and vol "
+    "before the full macro story reprices."
+  )
+
+
+def _enforce_mispricing_triad(market: str, edge: str, l3: str, whats: str) -> tuple[str, str, str]:
+  m = _first_sentence(market)
+  e = _first_sentence(edge)
+  l3out = _as_str(l3)
+  if _strings_near_duplicate(m, e):
+    e = _first_sentence(
+      f"DEPTH4 wedge: {_strip_mispricing_lead(whats)}"
+      if len(whats) > 28
+      else "The edge is second-order transmission and duration — not the headline itself."
+    )
+    if _strings_near_duplicate(m, e):
+      e = "The edge is in how long the shock persists in positioning — not whether the headline happened."
+  if _strings_near_duplicate(l3out, m) or _strings_near_duplicate(l3out, e):
+    structural = (
+      _as_str(whats)
+      if len(whats) > 32 and not _strings_near_duplicate(whats, m)
+      else "Second-order effects on positioning, duration, and cross-asset beta matter more than the first-day move."
+    )
+    l3out = structural if _strings_near_duplicate(l3out, structural) else f"{_first_sentence(l3out)} {structural}"
+    l3out = l3out[:520]
+  return m, e, l3out
+
+
 def _build_mispricing_pair(whats: str, stmt: str) -> tuple[str, str]:
   wedge = whats if len(whats) > 24 else stmt
-  market = _ensure_explicit_mispricing(
-    whats if len(whats) > 24 else "the first-order headline more than the lagged transmission path"
-  )
-  edge = _strip_mispricing_lead(wedge) or stmt
-  if edge.lower() == market.lower():
-    edge = (
-      "The edge is in the lag between the headline and how positioning and flows reset — "
-      "not in restating the obvious narrative."
+  market = _first_sentence(
+    _ensure_explicit_mispricing(
+      whats if len(whats) > 24 else "the first-order headline more than the lagged transmission path"
     )
-  return market, edge
+  )
+  edge = _first_sentence(_strip_mispricing_lead(wedge) or stmt)
+  if _strings_near_duplicate(edge, market):
+    edge = (
+      "The edge is timing and transmission — consensus is treating the catalyst as one-day noise "
+      "while the path has more duration."
+    )
+  return market, _first_sentence(edge)
 
 
 def _build_distinct_four_level(d: dict[str, Any]) -> dict[str, str]:
@@ -169,9 +248,13 @@ def _build_distinct_four_level(d: dict[str, Any]) -> dict[str, str]:
   stmt = _as_str(d.get("thesis_statement"))
   whats = _as_str(d.get("whats_unpriced"))
   l1 = why or stmt
-  l2 = stmt
+  hidden = _as_str(d.get("hidden_driver"))
+  likely = _as_str(d.get("likely_path"))
+  l2 = hidden if hidden and not _is_l2_meta(hidden) else likely if likely and not _is_l2_meta(likely) else ""
+  if not l2 or _is_l2_meta(l2):
+    l2 = _build_mechanism_fallback(d)
   if l2 and l1 and l2[:48] == l1[:48]:
-    l2 = "Transmission runs through flows and positioning once the catalyst in Why now confirms."
+    l2 = _build_mechanism_fallback(d)
   l3 = whats if len(whats) > 20 else _ensure_explicit_mispricing(
     "a cleaner path than the messy transmission DEPTH4 expects."
   )
@@ -232,14 +315,34 @@ def reconcile_anatomy(anatomy: dict[str, Any], draft: dict[str, Any]) -> dict[st
       return refined
     return inc
 
-  anatomy["asset_family"] = _infer_asset_family(symbols, text)
-  anatomy["market_is_pricing"] = market
+  def pick_l2(incoming: str, refined: str) -> str:
+    if _is_l2_meta(incoming):
+      return refined
+    inc = _as_str(incoming)
+    if len(inc) < 28:
+      return refined
+    if inc.lower() == refined.lower():
+      return refined
+    if len(refined) >= 40 and refined.lower() in inc.lower():
+      return refined
+    return inc
+
+  l3_picked = pick_level("level3_mispricing", refined_four["level3_mispricing"], 40)
   existing_edge = _strip_mispricing_lead(_as_str(anatomy.get("depth4_edge")))
-  anatomy["depth4_edge"] = existing_edge if len(existing_edge) > 24 and existing_edge.lower() != market.lower() else edge
+  edge_use = (
+    _first_sentence(existing_edge)
+    if len(existing_edge) > 24 and not _strings_near_duplicate(existing_edge, market)
+    else edge
+  )
+  m_out, e_out, l3_out = _enforce_mispricing_triad(market, edge_use, l3_picked, whats)
+
+  anatomy["asset_family"] = _infer_asset_family(symbols, text)
+  anatomy["market_is_pricing"] = m_out
+  anatomy["depth4_edge"] = e_out
   anatomy["four_level"] = {
     "level1_narrative": pick_level("level1_narrative", refined_four["level1_narrative"], 28),
-    "level2_mechanism": pick_level("level2_mechanism", refined_four["level2_mechanism"], 28),
-    "level3_mispricing": pick_level("level3_mispricing", refined_four["level3_mispricing"], 40),
+    "level2_mechanism": pick_l2(_as_str(fl.get("level2_mechanism")), refined_four["level2_mechanism"]),
+    "level3_mispricing": l3_out,
     "level4_resolution": pick_level("level4_resolution", refined_four["level4_resolution"], 40),
   }
   trigger = _as_str(draft.get("trigger_entry_setup"))

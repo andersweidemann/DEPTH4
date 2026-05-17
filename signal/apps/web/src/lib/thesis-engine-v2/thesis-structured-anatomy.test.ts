@@ -69,6 +69,26 @@ describe("thesis-structured-anatomy", () => {
     expect(anatomy!.four_level.level2_mechanism).not.toBe(anatomy!.four_level.level1_narrative);
   });
 
+  it("3B.2: reconciled anatomy de-duplicates market vs edge and fixes template L2", () => {
+    const anatomy = anatomyFromDraftPayload({
+      asset: "CL",
+      direction: "long",
+      thesis_statement: "Long CL as Strait risk persists.",
+      why_now: "Tier-1 escalation headlines this week.",
+      whats_unpriced:
+        "The market is still pricing a quick off-ramp while supply risk stays under-embedded.",
+      hidden_driver: "You named the main driver in your draft; incoming headlines will test whether it still holds.",
+      likely_path: "Insurance and freight premia should pass through to front-month crude over the next week.",
+      trigger_entry_setup: "Add on CL holding above the breakout.",
+      horizon: "4–8 weeks",
+      insider_flow: { bull_instruments: ["CL"], bear_instruments: ["SPY"] },
+    });
+    expect(anatomy).not.toBeNull();
+    expect(anatomy!.four_level.level2_mechanism.toLowerCase()).not.toMatch(/you named the main driver/);
+    expect(anatomy!.market_is_pricing.toLowerCase()).not.toBe(anatomy!.depth4_edge.toLowerCase());
+    expect(anatomy!.four_level.level3_mispricing.length).toBeGreaterThan(anatomy!.market_is_pricing.length);
+  });
+
   it("inferAssetFamilyFromSymbolsAndText prefers hero ticker over macro words", () => {
     expect(
       inferAssetFamilyFromSymbolsAndText(

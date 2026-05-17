@@ -10,6 +10,13 @@ import {
   parseRawStructuredAnatomyFromBody,
   reconcileStructuredAnatomyFromBody,
 } from "@/lib/thesis-engine-v2/thesis-db-body";
+import {
+  containsClEntryParagraph,
+  containsTradeExpressionText,
+  stringsNearDuplicate,
+} from "@/lib/thesis-engine-v2/thesis-text-similarity";
+
+export { stringsNearDuplicate };
 
 export const FOUR_LEVEL_TEMPLATE_PHRASES = [
   "You named the main driver",
@@ -40,17 +47,6 @@ export function isDistinctFromL1(levelText: string, l1: string): boolean {
   return true;
 }
 
-export function stringsNearDuplicate(a: string, b: string): boolean {
-  const na = norm(a).toLowerCase();
-  const nb = norm(b).toLowerCase();
-  if (!na || !nb) return false;
-  if (na === nb) return true;
-  const shorter = na.length <= nb.length ? na : nb;
-  const longer = na.length <= nb.length ? nb : na;
-  if (shorter.length >= 40 && longer.includes(shorter.slice(0, Math.min(48, shorter.length)))) return true;
-  return false;
-}
-
 export function mentionsPrimaryTicker(text: string, ticker: string): boolean {
   const sym = ticker.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
   if (!sym || sym === "—") return false;
@@ -74,21 +70,7 @@ export function isAssetSpecificMispricing(text: string, symbol: string): boolean
   return hints.some((w) => body.toLowerCase().includes(w));
 }
 
-export function containsClEntryParagraph(text: string): boolean {
-  const t = text.toLowerCase();
-  return (
-    (/\b(cl|wti|crude)\b/.test(t) && /\b(entry|stop|target|zone)\b/.test(t)) ||
-    /\b\d{2,3}(\.\d+)?\s*(b\/bl|\/bbl|per barrel)\b/.test(t) ||
-    /front[- ]month\s+(crude|oil|wti|cl)/i.test(text)
-  );
-}
-
-export function containsTradeExpressionText(text: string): boolean {
-  const t = text.toLowerCase();
-  const hasSide = /\b(long|short|buy|sell|calls?|puts?)\b/.test(t);
-  const hasPlan = /\b(entry|stop|target|invalidation|horizon)\b/.test(t);
-  return hasSide && hasPlan;
-}
+export { containsClEntryParagraph, containsTradeExpressionText };
 
 export function inferAssetMapRole(biasLabel: string): string {
   const b = biasLabel.toLowerCase();

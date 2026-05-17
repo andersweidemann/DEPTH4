@@ -12,6 +12,11 @@
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { extractReasoningLevelBodies } from "@/lib/theses/ai-registry-depth4-pack";
+import {
+  firstSentence,
+  isL2MetaTemplate,
+  stringsNearDuplicate,
+} from "@/lib/thesis-engine-v2/thesis-text-similarity";
 
 export const THESIS_STRUCTURED_ANATOMY_VERSION = 1 as const;
 
@@ -212,23 +217,85 @@ function stripMispricingLead(text: string): string {
 
 function buildMispricingPair(whats: string, stmt: string): { market_is_pricing: string; depth4_edge: string } {
   const wedge = whats.length > 24 ? whats : stmt;
-  const market_is_pricing = ensureExplicitMispricingPhrase(
-    whats.length > 24 ? whats : "the first-order headline more than the lagged transmission path",
+  const market_is_pricing = firstSentence(
+    ensureExplicitMispricingPhrase(
+      whats.length > 24 ? whats : "the first-order headline more than the lagged transmission path",
+    ),
   );
   let depth4_edge = wedge;
   const stripped = stripMispricingLead(wedge);
   if (stripped.length > 20 && stripped.toLowerCase() !== stripMispricingLead(market_is_pricing).toLowerCase()) {
-    depth4_edge = stripped;
+    depth4_edge = firstSentence(stripped);
   } else if (stmt.length > 24 && stmt.toLowerCase() !== market_is_pricing.toLowerCase()) {
-    depth4_edge = stmt;
+    depth4_edge = firstSentence(stmt);
   } else {
     depth4_edge =
       "The edge is in the lag between the headline and how positioning and flows actually reset — not in restating the obvious narrative.";
   }
-  if (depth4_edge.toLowerCase() === market_is_pricing.toLowerCase()) {
-    depth4_edge = stripped.length > 20 ? stripped : depth4_edge;
+  if (stringsNearDuplicate(depth4_edge, market_is_pricing)) {
+    depth4_edge =
+      "The edge is timing and transmission — consensus is treating the catalyst as one-day noise while the path has more duration.";
   }
-  return { market_is_pricing, depth4_edge };
+  return { market_is_pricing, depth4_edge: firstSentence(depth4_edge) };
+}
+
+function buildMechanismFallback(input: {
+  why: string;
+  stmt: string;
+  trigger: string;
+  likelyPath?: string;
+}): string {
+  const path = norm(input.likelyPath ?? "");
+  if (path.length > 36 && !isL2MetaTemplate(path)) {
+    return path.length > 320 ? `${path.slice(0, 319)}…` : path;
+  }
+  const why = norm(input.why);
+  if (why.length > 40) {
+    const lead = why.length > 140 ? `${why.slice(0, 139)}…` : why;
+    return `Near-term mechanism (1–7d): ${lead.replace(/\.\s*$/, "")} — expect flows, vol, and positioning to move before the slower macro repricing.`;
+  }
+  const trig = norm(input.trigger);
+  if (trig.length > 24 && !/\b(add on|entry|stop|target|above|below)\b/i.test(trig)) {
+    return `Near-term mechanism (1–7d): ${firstSentence(trig)} — watch whether tape confirms transmission into the expression basket.`;
+  }
+  const stmt = norm(input.stmt);
+  if (stmt.length > 36 && !isL2MetaTemplate(stmt)) {
+    return `Near-term mechanism (1–7d): ${firstSentence(stmt)} — first-order tape reaction should lead the narrative.`;
+  }
+  return "Near-term mechanism (1–7d): catalyst confirmation should show up in flows and vol before the full macro story reprices.";
+}
+
+function enforceMispricingTriad(
+  market: string,
+  edge: string,
+  l3: string,
+  whats: string,
+): { market_is_pricing: string; depth4_edge: string; level3_mispricing: string } {
+  let m = firstSentence(market);
+  let e = firstSentence(edge);
+  let l3out = norm(l3);
+
+  if (stringsNearDuplicate(m, e)) {
+    e = firstSentence(
+      whats.length > 28
+        ? `DEPTH4 wedge: ${stripMispricingLead(whats)}`
+        : "The edge is second-order transmission and duration — not the headline itself.",
+    );
+    if (stringsNearDuplicate(m, e)) {
+      e = "The edge is in how long the shock persists in positioning — not whether the headline happened.";
+    }
+  }
+
+  if (stringsNearDuplicate(l3out, m) || stringsNearDuplicate(l3out, e)) {
+    const structural =
+      whats.length > 32 && !stringsNearDuplicate(whats, m)
+        ? norm(whats)
+        : "Second-order effects on positioning, duration, and cross-asset beta matter more than the first-day move.";
+    l3out = stringsNearDuplicate(l3out, structural) ? structural : `${firstSentence(l3out)} ${structural}`;
+    l3out = l3out.length > 520 ? `${l3out.slice(0, 519)}…` : l3out;
+  }
+
+  return { market_is_pricing: m, depth4_edge: e, level3_mispricing: l3out };
 }
 
 function buildDistinctFourLevel(input: {
@@ -244,9 +311,24 @@ function buildDistinctFourLevel(input: {
   horizon?: string;
 }): ThesisFourLevelSemantic {
   const l1 = norm(input.why) || norm(input.stmt);
-  let l2 = norm(input.hiddenDriver) || norm(input.likelyPath) || norm(input.stmt);
+  const hidden = norm(input.hiddenDriver ?? "");
+  const likely = norm(input.likelyPath ?? "");
+  let l2 = !isL2MetaTemplate(hidden) && hidden ? hidden : !isL2MetaTemplate(likely) && likely ? likely : "";
+  if (!l2 || isL2MetaTemplate(l2)) {
+    l2 = buildMechanismFallback({
+      why: input.why,
+      stmt: input.stmt,
+      trigger: input.trigger,
+      likelyPath: input.likelyPath,
+    });
+  }
   if (l2 && l1 && l2.slice(0, 48) === l1.slice(0, 48)) {
-    l2 = "Transmission runs through flows and positioning once the catalyst in Why now confirms.";
+    l2 = buildMechanismFallback({
+      why: input.why,
+      stmt: input.stmt,
+      trigger: input.trigger,
+      likelyPath: input.likelyPath,
+    });
   }
   const l3raw = norm(input.whats);
   const l3 =
@@ -324,26 +406,37 @@ export function applyAnatomySemantics(
     return inc;
   };
 
+  const pickL2 = (incoming: string, refined: string): string => {
+    if (isL2MetaTemplate(incoming)) return refined;
+    return pickLevel(incoming, refined, 28);
+  };
+
   const flIn = anatomy.four_level;
+  const l3Picked = pickLevel(flIn.level3_mispricing, four.level3_mispricing, 40);
+  const triad = enforceMispricingTriad(
+    mispricing.market_is_pricing,
+    anatomy.depth4_edge.length > 24 && !stringsNearDuplicate(anatomy.depth4_edge, mispricing.market_is_pricing)
+      ? firstSentence(stripMispricingLead(anatomy.depth4_edge) || mispricing.depth4_edge)
+      : mispricing.depth4_edge,
+    l3Picked,
+    whats,
+  );
 
   return {
     ...anatomy,
     asset_family: inferAssetFamilyFromSymbolsAndText(symbols, text),
-    market_is_pricing: mispricing.market_is_pricing,
-    depth4_edge:
-      anatomy.depth4_edge.length > 24 && anatomy.depth4_edge.toLowerCase() !== mispricing.market_is_pricing.toLowerCase()
-        ? stripMispricingLead(anatomy.depth4_edge) || mispricing.depth4_edge
-        : mispricing.depth4_edge,
+    market_is_pricing: triad.market_is_pricing,
+    depth4_edge: triad.depth4_edge,
     trade_implication:
       norm(ctx.trigger_entry_setup ?? "") ||
       (anatomy.trade_implication.length > 12 ? anatomy.trade_implication : norm(ctx.trade_expression ?? "")),
     four_level: {
       level1_narrative: pickLevel(flIn.level1_narrative, four.level1_narrative, 28),
-      level2_mechanism: pickLevel(flIn.level2_mechanism, four.level2_mechanism, 28),
-      level3_mispricing: pickLevel(flIn.level3_mispricing, four.level3_mispricing, 40),
+      level2_mechanism: pickL2(flIn.level2_mechanism, four.level2_mechanism),
+      level3_mispricing: triad.level3_mispricing,
       level4_resolution: pickLevel(flIn.level4_resolution, four.level4_resolution, 40),
     },
-    mispricing_type: inferMispricingType(`${mispricing.depth4_edge} ${whats}`),
+    mispricing_type: inferMispricingType(`${triad.depth4_edge} ${whats}`),
   };
 }
 
@@ -454,6 +547,8 @@ function anatomyContextFromDraft(raw: Record<string, unknown>): AnatomySemanticC
     trigger_entry_setup: String(raw.trigger_entry_setup ?? ""),
     target: String(raw.target ?? ""),
     horizon: String(raw.horizon ?? ""),
+    hidden_driver: String(raw.hidden_driver ?? ""),
+    likely_path: String(raw.likely_path ?? ""),
   };
 }
 
@@ -505,6 +600,8 @@ export function anatomyFromDraftPayload(raw: Record<string, unknown>): ThesisStr
       target: norm(String(raw.target ?? "")),
       trade: "",
       horizon: norm(String(raw.horizon ?? "")),
+      hiddenDriver: norm(String(raw.hidden_driver ?? "")),
+      likelyPath: norm(String(raw.likely_path ?? "")),
     }),
     primary_mispriced_depth: "depth_3",
     confirm_signal_hints: mechanism_keywords,
