@@ -1186,7 +1186,7 @@ export function ThesisDetailClient({
             Reader mode →
           </Link>
         </div>
-        <ThesisReaderShareControls slug={slug} shareTitle={thesis.title} className="mb-8" />
+        <ThesisReaderShareControls slug={slug} className="mb-8" />
         {inner}
       </div>
       {modals}

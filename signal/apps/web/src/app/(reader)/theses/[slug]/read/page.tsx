@@ -47,7 +47,7 @@ export default async function ThesisReaderRoutePage({ params }: Props) {
   }
 
   return (
-    <ReaderAuthGate slug={slug}>
+    <ReaderAuthGate>
       <ThesisSlugDetailPage readerMode />
     </ReaderAuthGate>
   );

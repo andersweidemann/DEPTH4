@@ -9,11 +9,9 @@ type ShareStatus = "private" | "public";
 
 export function ThesisReaderShareControls({
   slug,
-  shareTitle,
   className,
 }: {
   slug: string;
-  shareTitle?: string;
   className?: string;
 }) {
   const [status, setStatus] = useState<ShareStatus>("private");

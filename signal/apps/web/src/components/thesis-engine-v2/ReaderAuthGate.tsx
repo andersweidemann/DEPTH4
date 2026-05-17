@@ -5,7 +5,7 @@ import { RouteGuard } from "@/components/RouteGuard";
 import { thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 
 /** Login gate for private thesis reader routes (authenticated product path). */
-export function ReaderAuthGate({ slug, children }: { slug: string; children: React.ReactNode }) {
+export function ReaderAuthGate({ children }: { children: React.ReactNode }) {
   return (
     <RouteGuard requireAuth>
       {children}

@@ -52,7 +52,7 @@ export function ThesisReaderView({
     <article className="mx-auto max-w-[42rem] pb-20">
       <ThesisReaderChrome slug={slug} shareTitle={thesis.title} publicMode={publicMode} />
       {!publicMode ? (
-        <ThesisReaderShareControls slug={slug} shareTitle={thesis.title} className="mb-10" />
+        <ThesisReaderShareControls slug={slug} className="mb-10" />
       ) : null}
 
       <ThesisHero thesis={thesis} variant="reader" displaySourceOpts={{ liveEvidenceApplied }} />
