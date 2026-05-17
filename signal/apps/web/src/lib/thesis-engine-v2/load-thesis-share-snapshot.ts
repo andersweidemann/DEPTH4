@@ -74,7 +74,7 @@ function minimalThesisFromDbRow(row: {
       total: 0,
     },
     insiderFlow: { bullInstruments: [], bearInstruments: [], confirmTags: [] },
-    origin: "ai_generated",
+    thesisOrigin: "ai_generated",
   };
   const micro = typeof row.micro_label === "string" ? row.micro_label.trim() : "";
   if (micro) base.microLabel = micro;
