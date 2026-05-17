@@ -2,6 +2,7 @@
  * Four-level geopolitical chain — prefers Phase 3B `structuredAnatomy.four_level` when present.
  */
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { cn } from "@/lib/utils";
 
 const SEMANTIC_LEVELS = [
   {
@@ -33,7 +34,14 @@ const LEGACY_LEVELS: { key: keyof NonNullable<Thesis["thesisCascade"]>; kicker: 
   { key: "l4Backdrop2026", kicker: "L4 — This quarter (30–90 days)", sub: "Regime-level bias: how this thesis fits the broader DEPTH4 macro backdrop." },
 ];
 
-export function ThesisFourLevelCascade({ thesis }: { thesis: Thesis }) {
+export function ThesisFourLevelCascade({
+  thesis,
+  variant = "default",
+}: {
+  thesis: Thesis;
+  variant?: "default" | "reader";
+}) {
+  const reader = variant === "reader";
   const fl = thesis.structuredAnatomy?.four_level;
   const hasSemantic =
     fl &&
@@ -45,25 +53,42 @@ export function ThesisFourLevelCascade({ thesis }: { thesis: Thesis }) {
   if (hasSemantic && fl) {
     return (
       <section
-        className="rounded-lg border border-white/[0.06] bg-[#111110] p-5"
+        className={cn(
+          reader ? "border-t border-white/[0.06] pt-2" : "rounded-lg border border-white/[0.06] bg-[#111110] p-5",
+        )}
         aria-labelledby="thesis-cascade-heading"
       >
-        <h2 id="thesis-cascade-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <h2
+          id="thesis-cascade-heading"
+          className={cn(
+            "font-semibold uppercase tracking-[0.14em] text-zinc-500",
+            reader ? "text-[10px]" : "text-[11px]",
+          )}
+        >
           Four-level chain
         </h2>
-        <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
-          Confirmed facts → mechanism → mispricing → resolution. Asset-level expression lives in the trade line and edge
-          map below.
-        </p>
-        <ol className="mt-4 space-y-4">
+        {!reader ? (
+          <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+            Confirmed facts → mechanism → mispricing → resolution. Asset-level expression lives in the trade line and edge
+            map below.
+          </p>
+        ) : null}
+        <ol className={cn("space-y-4", reader ? "mt-6" : "mt-4")}>
           {SEMANTIC_LEVELS.map(({ key, kicker, sub }) => {
             const body = fl[key].trim();
             if (!body) return null;
             return (
-              <li key={key} className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-4 py-3">
+              <li
+                key={key}
+                className={cn(
+                  reader ? "border-b border-white/[0.05] pb-6 last:border-0 last:pb-0" : "rounded-md border border-white/[0.05] bg-zinc-900/30 px-4 py-3",
+                )}
+              >
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{kicker}</p>
-                <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p>
-                <p className="mt-2 text-[13px] leading-relaxed text-zinc-200">{body}</p>
+                {!reader ? <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p> : null}
+                <p className={cn("mt-2 text-zinc-200", reader ? "text-[15px] leading-[1.65]" : "text-[13px] leading-relaxed")}>
+                  {body}
+                </p>
               </li>
             );
           })}

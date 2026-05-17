@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { RelatedAsset, Thesis } from "@/lib/thesis-engine-v2/types";
 import { resolveAssetMispricingText } from "@/lib/thesis-engine-v2/thesis-asset-edge-mispricing";
+import { cn } from "@/lib/utils";
 
 type EdgeRow = {
   symbol: string;
@@ -163,59 +164,128 @@ export function buildThesisAssetEdgeRows(thesis: Thesis, relatedAssets: RelatedA
   return rows;
 }
 
+const READER_ASSET_PREVIEW = 4;
+
+function sortRowsPrimaryFirst(rows: EdgeRow[]): EdgeRow[] {
+  const score = (r: EdgeRow) => {
+    const b = r.biasLabel.toLowerCase();
+    if (b.includes("primary")) return 0;
+    if (b.includes("constructive") || b.includes("confirmation")) return 1;
+    if (b.includes("hedge") || b.includes("defensive")) return 3;
+    return 2;
+  };
+  return [...rows].sort((a, b) => score(a) - score(b));
+}
+
 /**
  * Block B: per-instrument edge (consensus vs DEPTH4) — macro timeline stays in the scenario cascade above.
  * Mispricing score is shown once in the hero; this block references it without repeating the numeric breakdown.
  */
-export function ThesisAssetEdgeMap({ thesis, relatedAssets }: { thesis: Thesis; relatedAssets: RelatedAsset[] }) {
+export function ThesisAssetEdgeMap({
+  thesis,
+  relatedAssets,
+  variant = "default",
+}: {
+  thesis: Thesis;
+  relatedAssets: RelatedAsset[];
+  variant?: "default" | "reader";
+}) {
+  const reader = variant === "reader";
+  const [showAllAssets, setShowAllAssets] = useState(false);
   const rows = useMemo(() => buildThesisAssetEdgeRows(thesis, relatedAssets), [thesis, relatedAssets]);
+  const sorted = useMemo(() => sortRowsPrimaryFirst(rows), [rows]);
+  const hiddenCount = Math.max(0, sorted.length - READER_ASSET_PREVIEW);
+  const visibleRows = reader && !showAllAssets ? sorted.slice(0, READER_ASSET_PREVIEW) : sorted;
 
   return (
     <section
-      className="rounded-lg border border-white/[0.06] bg-[#111110] p-5"
+      className={cn(
+        reader ? "border-t border-white/[0.06] pt-8" : "rounded-lg border border-white/[0.06] bg-[#111110] p-5",
+      )}
       aria-labelledby="thesis-asset-edge-heading"
     >
-      <h2 id="thesis-asset-edge-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+      <h2
+        id="thesis-asset-edge-heading"
+        className={cn(
+          "font-semibold uppercase tracking-[0.14em] text-zinc-500",
+          reader ? "text-[10px]" : "text-[11px]",
+        )}
+      >
         Asset mispricing / edge map
       </h2>
-      <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
-        The headline mispricing score above blends path conviction with setup clarity. Below, the same thesis is split
-        across instruments — each row is asset-specific (not a repeat of the L1–L4 macro timeline).
-      </p>
+      {!reader ? (
+        <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+          The headline mispricing score above blends path conviction with setup clarity. Below, the same thesis is split
+          across instruments — each row is asset-specific (not a repeat of the L1–L4 macro timeline).
+        </p>
+      ) : (
+        <p className="mt-2 text-[12px] leading-relaxed text-zinc-600">
+          How the thesis expresses across linked instruments — primary expression first.
+        </p>
+      )}
 
-      <div className="mt-5">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Key expressions</p>
-        <ul className="mt-3 grid gap-4 lg:grid-cols-2">
-          {rows.map((r) => (
-            <li key={r.symbol} className="rounded-md border border-white/[0.05] bg-zinc-900/35 px-3 py-3">
+      <div className={cn(reader ? "mt-6" : "mt-5")}>
+        {!reader ? (
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-600">Key expressions</p>
+        ) : null}
+        <ul className={cn(reader ? "mt-0 space-y-6" : "mt-3 grid gap-4 lg:grid-cols-2")}>
+          {visibleRows.map((r) => (
+            <li
+              key={r.symbol}
+              className={cn(
+                reader ? "border-b border-white/[0.05] pb-6 last:border-0 last:pb-0" : "rounded-md border border-white/[0.05] bg-zinc-900/35 px-3 py-3",
+              )}
+            >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <p className="text-[12px] font-semibold text-zinc-100">{r.headline}</p>
                 <span className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">{r.biasLabel}</span>
               </div>
               <p className="mt-2 font-mono text-[10px] text-zinc-600">{r.symbol}</p>
-              <p className="mt-2 text-[11px] leading-snug text-zinc-300">
-                <span className="font-medium text-zinc-500">Why it matters · </span>
-                {r.whyItMatters}
-              </p>
-              <p className="mt-2 text-[11px] leading-snug text-zinc-400">
-                <span className="font-medium text-zinc-500">Consensus on this asset · </span>
-                {r.consensus}
-              </p>
-              <p className="mt-2 text-[11px] leading-snug text-zinc-200">
+              {!reader ? (
+                <p className="mt-2 text-[11px] leading-snug text-zinc-300">
+                  <span className="font-medium text-zinc-500">Why it matters · </span>
+                  {r.whyItMatters}
+                </p>
+              ) : null}
+              {!reader ? (
+                <p className="mt-2 text-[11px] leading-snug text-zinc-400">
+                  <span className="font-medium text-zinc-500">Consensus on this asset · </span>
+                  {r.consensus}
+                </p>
+              ) : null}
+              <p className={cn("mt-2 leading-snug text-zinc-200", reader ? "text-[15px] leading-[1.65]" : "text-[11px]")}>
                 <span className="font-medium text-zinc-500">What it&apos;s mispricing · </span>
                 {r.mispriced}
               </p>
-              <p className="mt-2 text-[10px] text-zinc-600">
-                <span className="text-zinc-500">Edge window · </span>
-                {r.edgeWindow}
-              </p>
-              <p className="mt-1 text-[10px] text-zinc-600">
-                <span className="text-zinc-500">Depth / confidence · </span>
-                {r.depth}
-              </p>
+              {!reader ? (
+                <>
+                  <p className="mt-2 text-[10px] text-zinc-600">
+                    <span className="text-zinc-500">Edge window · </span>
+                    {r.edgeWindow}
+                  </p>
+                  <p className="mt-1 text-[10px] text-zinc-600">
+                    <span className="text-zinc-500">Depth / confidence · </span>
+                    {r.depth}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-2 text-[11px] text-zinc-600">
+                  <span className="text-zinc-500">Horizon · </span>
+                  {r.edgeWindow}
+                </p>
+              )}
             </li>
           ))}
         </ul>
+        {reader && hiddenCount > 0 && !showAllAssets ? (
+          <button
+            type="button"
+            onClick={() => setShowAllAssets(true)}
+            className="mt-4 text-[11px] font-medium text-[#E8473F]/90 hover:text-[#E8473F]"
+          >
+            Show {hiddenCount} more instrument{hiddenCount === 1 ? "" : "s"}
+          </button>
+        ) : null}
         {rows.length === 0 ? (
           <p className="mt-2 text-[11px] text-zinc-600">No linked instruments yet — refine the thesis book to tag expressions.</p>
         ) : null}

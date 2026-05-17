@@ -48,11 +48,14 @@ function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
 export function ThesisHero({
   thesis,
   displaySourceOpts,
+  variant = "default",
 }: {
   thesis: Thesis;
   /** When live merged thesis differs from bundle base, marks debug source as live-evidence. */
   displaySourceOpts?: { liveEvidenceApplied?: boolean };
+  variant?: "default" | "reader";
 }) {
+  const reader = variant === "reader";
   const dm = getThesisDisplayModel(thesis, displaySourceOpts);
   const pathConviction = dm.convictionPct;
   const entrySetupValid = thesis.status === "ready" && pathConviction >= 50;
@@ -71,12 +74,18 @@ export function ThesisHero({
     anatomy.depth4_edge.toLowerCase() !== anatomy.market_is_pricing.toLowerCase();
 
   return (
-    <div className="border-b border-white/[0.06] pb-7">
+    <div className={cn("border-b border-white/[0.06]", reader ? "pb-8" : "pb-7")}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div className="min-w-0 flex-1">
-          <ThesisHeadingStack thesis={thesis} titleAs="h1" />
+          <ThesisHeadingStack
+            thesis={thesis}
+            titleAs="h1"
+            titleClassName={
+              reader ? "text-xl font-semibold leading-snug tracking-tight text-zinc-50 sm:text-2xl" : undefined
+            }
+          />
         </div>
-        {entrySetupValid ? (
+        {!reader && entrySetupValid ? (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-300/80">
             <span aria-hidden className="text-emerald-300/80">
               ●
@@ -90,14 +99,28 @@ export function ThesisHero({
           {thesis.oneLineSummary}
         </p>
       ) : null}
-      <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-zinc-400">{thesis.thesisStatement}</p>
+      <p
+        className={cn(
+          reader ? "mt-4 text-[15px] leading-[1.65] text-zinc-400" : "mt-3 max-w-2xl text-[13px] leading-relaxed text-zinc-400",
+        )}
+      >
+        {thesis.thesisStatement}
+      </p>
       {showAnatomyMispricing ? (
         <>
-          <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-zinc-400">
+          <p
+            className={cn(
+              reader ? "mt-4 text-[15px] leading-[1.65] text-zinc-400" : "mt-3 max-w-2xl text-[12px] leading-relaxed text-zinc-400",
+            )}
+          >
             <span className="text-zinc-500">Market is pricing · </span>
             {anatomy!.market_is_pricing}
           </p>
-          <p className="mt-2 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
+          <p
+            className={cn(
+              reader ? "mt-3 text-[15px] leading-[1.65] text-amber-200/85" : "mt-2 max-w-2xl text-[12px] leading-relaxed text-amber-200/85",
+            )}
+          >
             <span className="text-zinc-500">DEPTH4 edge · </span>
             {anatomy!.depth4_edge}
           </p>
@@ -119,10 +142,14 @@ export function ThesisHero({
           <span className="text-[10px] text-zinc-600">(headline asset {thesis.asset})</span>
         ) : null}
         <DirectionBadge direction={thesis.direction} />
-        <StatusBadge status={thesis.status} showHint />
-        <QualificationBadge q={thesis.qualification} />
+        {!reader ? (
+          <>
+            <StatusBadge status={thesis.status} showHint />
+            <QualificationBadge q={thesis.qualification} />
+          </>
+        ) : null}
       </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+      <div className={cn("mt-5 grid gap-3", reader ? "max-w-md grid-cols-2" : "sm:grid-cols-2")}>
         <div className="bg-zinc-900/40 px-3 py-2.5">
           <div className="flex items-baseline justify-between gap-2">
             <Tooltip label={THESIS_CONVICTION_TOOLTIP}>
@@ -148,8 +175,10 @@ export function ThesisHero({
               <ProbabilityBar value={pathConviction} />
             </div>
           </div>
-          <ThesisDisplaySourceDebug convictionPct={dm.convictionPct} scenarioSource={dm.scenarioSource} />
-          {dm.convictionIsTemplateEstimate ? (
+          {!reader ? (
+            <ThesisDisplaySourceDebug convictionPct={dm.convictionPct} scenarioSource={dm.scenarioSource} />
+          ) : null}
+          {!reader && dm.convictionIsTemplateEstimate ? (
             <p
               className="mt-2 text-[10px] leading-relaxed text-zinc-600"
               data-testid="thesis-conviction-template-note"
@@ -157,25 +186,35 @@ export function ThesisHero({
               {THESIS_CONVICTION_TEMPLATE_NOTE_SHORT}
             </p>
           ) : null}
-          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500 sm:hidden">{THESIS_CONVICTION_EXPLAINER_SHORT}</p>
-          <p className="mt-2 hidden text-[11px] leading-relaxed text-zinc-500 sm:block">{THESIS_CONVICTION_EXPLAINER_PREFERRED}</p>
-          <p className="mt-2 text-[11px] leading-relaxed text-amber-200/75">{actionGuidance}</p>
+          {!reader ? (
+            <>
+              <p className="mt-2 text-[11px] leading-relaxed text-zinc-500 sm:hidden">{THESIS_CONVICTION_EXPLAINER_SHORT}</p>
+              <p className="mt-2 hidden text-[11px] leading-relaxed text-zinc-500 sm:block">
+                {THESIS_CONVICTION_EXPLAINER_PREFERRED}
+              </p>
+              <p className="mt-2 text-[11px] leading-relaxed text-amber-200/75">{actionGuidance}</p>
+            </>
+          ) : null}
         </div>
-        <div className="bg-zinc-900/40 px-3 py-2.5">
+        <div className={cn(!reader && "bg-zinc-900/40 px-3 py-2.5")}>
           <Tooltip label="Expected timeframe for thesis to play out">
             <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Horizon</p>
           </Tooltip>
-          <p className="mt-1 text-sm text-zinc-200">{thesis.horizon}</p>
+          <p className={cn("mt-1 text-zinc-200", reader ? "text-base" : "text-sm")}>{thesis.horizon}</p>
         </div>
-        <div className="bg-zinc-900/40 px-3 py-2.5">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Advisory</p>
-          <p className="mt-1 text-sm text-amber-200/90">{advisoryCopy}</p>
-        </div>
+        {!reader ? (
+          <div className="bg-zinc-900/40 px-3 py-2.5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-500">Advisory</p>
+            <p className="mt-1 text-sm text-amber-200/90">{advisoryCopy}</p>
+          </div>
+        ) : null}
       </div>
-      <p className="mt-4 text-[12px] leading-relaxed text-red-400/85">
-        <span className="font-medium text-zinc-500">Invalidation · </span>
-        {thesis.invalidation}
-      </p>
+      {!reader ? (
+        <p className="mt-4 text-[12px] leading-relaxed text-red-400/85">
+          <span className="font-medium text-zinc-500">Invalidation · </span>
+          {thesis.invalidation}
+        </p>
+      ) : null}
     </div>
   );
 }

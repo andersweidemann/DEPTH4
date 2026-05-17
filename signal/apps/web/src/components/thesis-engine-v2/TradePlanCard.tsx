@@ -6,6 +6,7 @@ import {
   formatTradePlanPrice,
 } from "@/lib/thesis-engine-v2/live-trade-plan";
 import { StatusBadge } from "./StatusBadge";
+import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { authFetch } from "@/lib/api";
 import { canonicalConvictionPercentFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
@@ -32,7 +33,8 @@ function levelsComplete(plan: LiveTradePlan): boolean {
   return !!(ez && plan.stop != null && plan.target1 != null && plan.target2 != null);
 }
 
-export function TradePlanCard({ thesis }: { thesis: Thesis }) {
+export function TradePlanCard({ thesis, variant = "default" }: { thesis: Thesis; variant?: "default" | "reader" }) {
+  const reader = variant === "reader";
   const [plan, setPlan] = useState<LiveTradePlan | null>(null);
   const pathConviction = canonicalConvictionPercentFromEngineThesis(thesis);
 
@@ -87,13 +89,13 @@ export function TradePlanCard({ thesis }: { thesis: Thesis }) {
     showLive && plan && plan.target2 != null ? formatTradePlanPrice(plan.target2) : blocked ? "—" : PENDING_TGT;
 
   return (
-    <section className="rounded-none bg-zinc-900/25 p-4">
+    <section className={cn(reader ? "border-t border-white/[0.06] pt-8" : "rounded-none bg-zinc-900/25 p-4")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Trade plan</h2>
-        <StatusBadge status={thesis.status} />
+        {!reader ? <StatusBadge status={thesis.status} /> : null}
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">{helperText}</p>
-      {showLive ? (
+      {!reader ? <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">{helperText}</p> : null}
+      {!reader && showLive ? (
         <p className="mt-1 text-[10px] leading-relaxed text-zinc-600">
           Estimated from the latest daily close and recent volatility (ATR) — not a broker quote or guaranteed fill.
         </p>

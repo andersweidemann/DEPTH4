@@ -14,8 +14,10 @@ import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
 import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFourLevelCascade";
 import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
 import { ThesisAnatomyDebugPanel } from "@/components/thesis-engine-v2/ThesisAnatomyDebugPanel";
+import { ThesisReaderView } from "@/components/thesis-engine-v2/ThesisReaderView";
 import { useAuth } from "@/contexts/AuthContext";
 import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anatomy-debug-access";
+import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomePanel";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
@@ -175,6 +177,7 @@ export function ThesisDetailClient({
   catalogScenarioProbabilities = null,
   anatomyDebugForce = false,
   anatomyDebugOnly = false,
+  readerMode = false,
 }: {
   slug: string;
   layout?: "page" | "drawer";
@@ -191,16 +194,21 @@ export function ThesisDetailClient({
   anatomyDebugForce?: boolean;
   /** When true, render only the anatomy debug panel (internal route). */
   anatomyDebugOnly?: boolean;
+  /** Phase 4A — editorial reader / share view (also from ?view=reader or /theses/[slug]/read). */
+  readerMode?: boolean;
 }) {
   const requireFeature = useRequireFeature();
   const { user } = useAuth();
   const searchParams = useSearchParams();
+  const readerActive =
+    readerMode || isThesisReaderViewSearchParam(searchParams?.get("view"));
   const anatomyDebugVisible =
-    anatomyDebugForce ||
-    isThesisAnatomyDebugVisible({
-      searchParamsDebug: searchParams?.get("debug"),
-      userId: user?.id ?? null,
-    });
+    !readerActive &&
+    (anatomyDebugForce ||
+      isThesisAnatomyDebugVisible({
+        searchParamsDebug: searchParams?.get("debug"),
+        userId: user?.id ?? null,
+      }));
   const liveOpt = useThesisLiveOptional();
   const liveScenarioProbModelEnabled = liveScenarioProbabilitiesForThesesEnabled();
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() =>
@@ -606,6 +614,17 @@ export function ThesisDetailClient({
         dbBody={debugDbBody}
         relatedAssets={relatedAssets}
         defaultOpen
+      />
+    );
+  }
+
+  if (readerActive && layout === "page") {
+    return (
+      <ThesisReaderView
+        slug={slug}
+        thesis={thesis}
+        relatedAssets={relatedAssets}
+        liveEvidenceApplied={liveEvidenceApplied}
       />
     );
   }
@@ -1155,9 +1174,17 @@ export function ThesisDetailClient({
         <p className="mb-4 text-[12px] leading-snug text-zinc-500 sm:text-[11px]">{liveLine}</p>
       ) : null}
       <div className="pb-24 pt-2">
-        <Link href="/theses" className="text-[11px] font-medium text-zinc-500 transition-colors hover:text-amber-500/90">
-          ← All theses
-        </Link>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <Link href="/theses" className="text-[11px] font-medium text-zinc-500 transition-colors hover:text-amber-500/90">
+            ← All theses
+          </Link>
+          <Link
+            href={thesisReaderPath(slug)}
+            className="text-[11px] font-medium text-[#E8473F]/90 transition-colors hover:text-[#E8473F]"
+          >
+            Reader mode →
+          </Link>
+        </div>
         {inner}
       </div>
       {modals}
