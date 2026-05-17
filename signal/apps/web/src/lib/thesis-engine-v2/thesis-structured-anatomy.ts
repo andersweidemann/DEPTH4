@@ -169,12 +169,12 @@ function dominantSymbolFamily(symbols: string[]): ThesisAnatomyAssetFamily | nul
   if (heroFam && (counts.get(heroFam) ?? 0) >= 1) return heroFam;
   let best: ThesisAnatomyAssetFamily = "other";
   let bestN = 0;
-  for (const [fam, n] of counts) {
+  counts.forEach((n, fam) => {
     if (n > bestN) {
       best = fam;
       bestN = n;
     }
-  }
+  });
   return best;
 }
 
