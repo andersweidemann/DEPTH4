@@ -284,7 +284,7 @@ export function anatomyFromDraftPayload(raw: Record<string, unknown>): ThesisStr
   };
 }
 
-export function buildAnatomyFromThesis(thesis: Thesis): ThesisStructuredAnatomy | null {
+export function buildAnatomyFromThesis(thesis: Thesis): ThesisStructuredAnatomy {
   if (thesis.structuredAnatomy) return thesis.structuredAnatomy;
 
   const symbols = [
