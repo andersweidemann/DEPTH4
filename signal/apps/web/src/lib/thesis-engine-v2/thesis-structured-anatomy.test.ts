@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import {
   anatomyFromDraftPayload,
   buildAnatomyFromMacroReasoning,
@@ -94,22 +95,38 @@ describe("thesis-structured-anatomy", () => {
 
 describe("buildAnatomyFromMacroReasoning", () => {
   it("builds registry-grade anatomy from macro reasoning", () => {
+    const reasoning: MacroEventReasoning = {
+      event_summary: "Strait tension rises after naval incident.",
+      actors: ["Iran"],
+      geography: ["Persian Gulf"],
+      domain: "oil",
+      direction_of_change: "supply_shock",
+      confidence: 0.7,
+      first_order_effects: ["Hormuz transit risk lifts insurance premia."],
+      second_order_effects: ["Freight rates spike through the chokepoint."],
+      third_order_effects: ["OPEC discipline holds while inventories draw."],
+      impacted_assets: ["WTI", "USO"],
+      impacted_sectors: ["energy"],
+      affected_theses: [],
+      thesis_relation: "confirm",
+      thesis_trade_line: "Long WTI on sustained transit disruption headlines.",
+      probability_before_pct: null,
+      probability_after_pct: null,
+      probability_update: "",
+      trade_implication: "Long crude on chokepoint risk.",
+      reasoning_summary: "Insurance premia and freight rates signal tighter effective supply.",
+      mispricing_hypothesis:
+        "The market is still pricing a quick diplomatic fix while futures underprice chokepoint duration risk.",
+      reasoning_chain:
+        "LEVEL 1 (confirmed): Strait headlines hit the tape with insurance premia rising on the first print.\n" +
+        "LEVEL 2 (mechanism): Freight and insurance costs spike, tightening effective supply through the chokepoint.\n" +
+        "LEVEL 3 (mispricing): The market is still pricing a quick diplomatic fix while futures underprice chokepoint duration risk.\n" +
+        "LEVEL 4 (resolution): Front-month crude reprices higher over several weeks if transit disruption persists.",
+      per_catalog_thesis: [],
+    };
     const anatomy = buildAnatomyFromMacroReasoning({
       hero: "WTI rips if Hormuz risk reprices supply",
-      reasoning: {
-        event_summary: "Strait tension rises after naval incident.",
-        reasoning_summary: "Insurance premia and freight rates signal tighter effective supply.",
-        mispricing_hypothesis:
-          "The market is still pricing a quick diplomatic fix while futures underprice chokepoint duration risk.",
-        thesis_trade_line: "Long WTI on sustained transit disruption headlines.",
-        reasoning_chain:
-          "LEVEL 1 (confirmed): Strait headlines hit the tape with insurance premia rising on the first print.\n" +
-          "LEVEL 2 (mechanism): Freight and insurance costs spike, tightening effective supply through the chokepoint.\n" +
-          "LEVEL 3 (mispricing): The market is still pricing a quick diplomatic fix while futures underprice chokepoint duration risk.\n" +
-          "LEVEL 4 (resolution): Front-month crude reprices higher over several weeks if transit disruption persists.",
-        confirm_tags: ["hormuz", "opec"],
-        confidence: 0.7,
-      },
+      reasoning,
       assetSymbols: ["WTI"],
     });
     const v = validateThesisStructuredAnatomy(anatomy, { hero: "WTI rips if Hormuz risk reprices supply" });

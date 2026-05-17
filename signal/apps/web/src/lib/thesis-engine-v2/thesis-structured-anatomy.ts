@@ -332,6 +332,25 @@ export function buildAnatomyFromThesis(thesis: Thesis): ThesisStructuredAnatomy 
   };
 }
 
+/** Mechanism hints from macro reasoning fields (no `confirm_tags` on {@link MacroEventReasoning}). */
+function mechanismKeywordsFromMacroReasoning(r: MacroEventReasoning): string[] {
+  const effectTokens = [...r.first_order_effects, ...r.second_order_effects]
+    .join(" ")
+    .toLowerCase()
+    .split(/\W+/)
+    .filter((w) => w.length >= 4 && w.length <= 20);
+  return normList(
+    [
+      ...r.impacted_assets,
+      ...r.impacted_sectors,
+      r.domain,
+      r.direction_of_change,
+      ...effectTokens,
+    ],
+    16,
+  );
+}
+
 export function buildAnatomyFromMacroReasoning(args: {
   hero: string;
   reasoning: MacroEventReasoning;
@@ -339,6 +358,7 @@ export function buildAnatomyFromMacroReasoning(args: {
 }): ThesisStructuredAnatomy {
   const hero = norm(args.hero);
   const r = args.reasoning;
+  const mechanismKeywords = mechanismKeywordsFromMacroReasoning(r);
   const bodies = extractReasoningLevelBodies(r.reasoning_chain ?? "");
   const four = bodies
     ? mapReasoningBodiesToFourLevel(bodies)
@@ -357,7 +377,7 @@ export function buildAnatomyFromMacroReasoning(args: {
     asset_family: family,
     primary_drivers: normList([hero, r.event_summary ?? ""].filter(Boolean)),
     secondary_drivers: normList([r.reasoning_summary ?? ""].filter(Boolean)),
-    mechanism_keywords: normList(r.confirm_tags ?? [], 16),
+    mechanism_keywords: mechanismKeywords,
     noise_categories: ["entertainment", "culture", "sports", "celebrity", "generic_macro_headline"],
     mispricing_type: inferMispricingType(`${r.mispricing_hypothesis ?? ""} ${hero}`),
     market_is_pricing: ensureExplicitMispricingPhrase(
@@ -369,7 +389,7 @@ export function buildAnatomyFromMacroReasoning(args: {
     trade_implication: norm(r.thesis_trade_line ?? ""),
     four_level: four,
     primary_mispriced_depth: "depth_3",
-    confirm_signal_hints: normList(r.confirm_tags, 16),
+    confirm_signal_hints: mechanismKeywords,
     generated_at: new Date().toISOString(),
   };
 }
