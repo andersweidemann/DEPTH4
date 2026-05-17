@@ -143,6 +143,7 @@ function sentimentFromDeltas(before: { base: number; bull: number; bear: number 
 /** When cron rows omit `probability_after` (legacy) or deltas are flat, use `thesis-news` metadata reasons. */
 function sentimentFromEvidenceMetadata(meta: Record<string, unknown> | undefined): NewsSignal["sentiment"] | null {
   if (!meta || typeof meta !== "object") return null;
+  if (meta.mechanism_gate === "log_only" || meta.movement_blocked === true) return "neutral";
   const reasons = meta.reasons;
   if (!Array.isArray(reasons)) return null;
   const tags = reasons.map((x) => String(x).toLowerCase());

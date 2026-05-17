@@ -29,3 +29,11 @@ export function shouldRunThesisNewsThesesTableScenarioUpdate(args: {
     shouldWriteScenarioProbabilitiesColumnFromNewsCron(args.thesisOrigin)
   );
 }
+
+/** Phase 3A: weak tag/ticker match logged without scenario movement (`probability_after` = prior). */
+export function shouldInsertMechanismWeakEvidenceLogRow(args: {
+  logOnly: boolean;
+  allowed: boolean;
+}): boolean {
+  return args.logOnly && !args.allowed;
+}

@@ -7,7 +7,9 @@ import {
   redistributeAfterBaseChange,
   type DbScenarioTriple,
 } from "@/lib/thesis-engine-v2/scenario-triple-zero-sum";
+import { evaluateThesisEventMechanismGate } from "@/lib/thesis-engine-v2/thesis-event-mechanism-gate";
 import {
+  shouldInsertMechanismWeakEvidenceLogRow,
   shouldInsertThesisNewsEvidenceLogRow,
   shouldRunThesisNewsThesesTableScenarioUpdate,
 } from "@/lib/thesis-engine-v2/thesis-news-writer-policy";
@@ -237,9 +239,12 @@ async function runThesisNews(req: NextRequest) {
   }
 
   let evidenceInserted = 0;
+  let evidenceWeakLogged = 0;
   let evidenceDeduped = 0;
   let thesesUpdated = 0;
   let thesisAuditFailures = 0;
+  let mechanismAllowed = 0;
+  let mechanismLogOnly = 0;
 
   let skipped_no_insider_monitor = 0;
   const skipSampleThesisIds: string[] = [];
@@ -254,6 +259,9 @@ async function runThesisNews(req: NextRequest) {
     contradict_tags: string[];
     applied: boolean;
     delta_max?: number;
+    mechanism_gate?: "allowed" | "log_only";
+    mechanism_block_code?: string;
+    mechanism_reason?: string;
   }> = [];
 
   for (const t of theses) {
@@ -293,17 +301,69 @@ async function runThesisNews(req: NextRequest) {
       if (confirmMatched.length) reasons.push("confirm_tag");
       if (contradictMatched.length) reasons.push("contradict_tag");
 
-      const suggestion = computeSuggestedUpdate({
-        prior,
-        signalLevel: ev.signal_level,
-        confirmHit: confirmMatched.length > 0,
-        contradictHit: contradictMatched.length > 0,
+      const gate = evaluateThesisEventMechanismGate({
+        thesis: {
+          title: t.title,
+          bullInstruments: (t.insider_flow?.bullInstruments ?? []).map(String),
+          bearInstruments: (t.insider_flow?.bearInstruments ?? []).map(String),
+        },
+        event: {
+          headline: ev.headline,
+          category: ev.category,
+          region: ev.region,
+          bodyText: ev.body_text,
+          oneLineSummary: ev.one_line_summary,
+          rawJson: ev.raw_json,
+        },
+        match: {
+          matchText: text,
+          confirmMatched,
+          contradictMatched,
+          tickerHits,
+          signalLevel: ev.signal_level,
+        },
       });
 
-      const deltaMax = suggestion ? meaningfulDelta(prior, suggestion.next) : 0;
-      const shouldApply = autoApply && !!suggestion && deltaMax >= applyThreshold;
+      if (gate.allowed) mechanismAllowed += 1;
+      else if (gate.logOnly) mechanismLogOnly += 1;
 
-      const dedupeKey = `news:${ev.id}:${t.id}:r:${reasons.slice().sort().join("+")}:c:${confirmMatched.join("|")}:x:${contradictMatched.join("|")}:t:${tickerHits.join("|")}`;
+      const movementAllowed = gate.allowed;
+      const mechanismBackedTicker =
+        movementAllowed && tickerHit && gate.mechanismSignals.length > 0 && !contradictMatched.length;
+      const suggestion = movementAllowed
+        ? computeSuggestedUpdate({
+            prior,
+            signalLevel: ev.signal_level,
+            confirmHit: confirmMatched.length > 0 || mechanismBackedTicker,
+            contradictHit: contradictMatched.length > 0,
+          })
+        : null;
+
+      const deltaMax = suggestion ? meaningfulDelta(prior, suggestion.next) : 0;
+      const shouldApply = movementAllowed && autoApply && !!suggestion && deltaMax >= applyThreshold;
+
+      const dedupeKey = movementAllowed
+        ? `news:${ev.id}:${t.id}:r:${reasons.slice().sort().join("+")}:c:${confirmMatched.join("|")}:x:${contradictMatched.join("|")}:t:${tickerHits.join("|")}`
+        : `news:weak:${gate.blockCode ?? "blocked"}:${ev.id}:${t.id}:r:${reasons.slice().sort().join("+")}:c:${confirmMatched.join("|")}:x:${contradictMatched.join("|")}:t:${tickerHits.join("|")}`;
+
+      const sharedMeta = {
+        source: "news_events",
+        event_id: ev.id,
+        signal_level: ev.signal_level,
+        published_at: ev.published_at,
+        ticker_hits: tickerHits,
+        confirm_tags: confirmMatched,
+        contradict_tags: contradictMatched,
+        reasons,
+        mechanism_gate: movementAllowed ? "allowed" : "log_only",
+        mechanism_block_code: gate.blockCode,
+        mechanism_block_detail: gate.blockDetail,
+        mechanism_signals: gate.mechanismSignals,
+        mechanism_reason: gate.mechanismReason,
+        movement_blocked: !movementAllowed,
+        asset_family: gate.assetFamily,
+        tree: treeByEvent.get(ev.id) ? { present: true } : { present: false },
+      };
 
       // Policy: {@link shouldInsertThesisNewsEvidenceLogRow} — no `probability_after = null` NEWS_DEVELOPMENT rows.
       if (suggestion && shouldInsertThesisNewsEvidenceLogRow(suggestion)) {
@@ -313,25 +373,30 @@ async function runThesisNews(req: NextRequest) {
           description: ev.headline,
           probability_before: prior,
           probability_after: suggestion.next,
-          metadata: {
-            source: "news_events",
-            event_id: ev.id,
-            signal_level: ev.signal_level,
-            published_at: ev.published_at,
-            ticker_hits: tickerHits,
-            confirm_tags: confirmMatched,
-            contradict_tags: contradictMatched,
-            reasons,
-            tree: treeByEvent.get(ev.id) ? { present: true } : { present: false },
-          },
+          metadata: sharedMeta,
           dedupe_key: dedupeKey,
         } as never);
 
         if (insertRes.error) {
-          // Most likely unique violation due to retries.
           evidenceDeduped += 1;
         } else {
           evidenceInserted += 1;
+        }
+      } else if (shouldInsertMechanismWeakEvidenceLogRow(gate)) {
+        const insertRes = await admin.from("thesis_evidence_log").insert({
+          thesis_id: t.id,
+          event_type: "NEWS_DEVELOPMENT",
+          description: `[Under evaluation] ${ev.headline}`,
+          probability_before: prior,
+          probability_after: prior,
+          metadata: sharedMeta,
+          dedupe_key: dedupeKey,
+        } as never);
+
+        if (insertRes.error) {
+          evidenceDeduped += 1;
+        } else {
+          evidenceWeakLogged += 1;
         }
       }
 
@@ -349,7 +414,7 @@ async function runThesisNews(req: NextRequest) {
           { scenario_probabilities: suggestion.next },
           {
             actorType: SYSTEM_MUTATION.news.actorType,
-            reason: SYSTEM_MUTATION.news.scenarioReason,
+            reason: gate.mechanismReason ?? SYSTEM_MUTATION.news.scenarioReason,
             changeType: "evidence",
             metadata: {
               source: "news_events",
@@ -358,6 +423,7 @@ async function runThesisNews(req: NextRequest) {
               signal_level: ev.signal_level,
               reasons,
               applied: shouldApply,
+              mechanism_reason: gate.mechanismReason,
             },
           },
         );
@@ -378,6 +444,9 @@ async function runThesisNews(req: NextRequest) {
         contradict_tags: contradictMatched,
         applied: shouldApply,
         delta_max: suggestion ? deltaMax : undefined,
+        mechanism_gate: movementAllowed ? "allowed" : "log_only",
+        mechanism_block_code: gate.blockCode ?? undefined,
+        mechanism_reason: gate.mechanismReason ?? undefined,
       });
     }
   }
@@ -396,6 +465,9 @@ async function runThesisNews(req: NextRequest) {
       skip_sample_thesis_ids: skipSampleThesisIds,
       news_count: news.length,
       evidence_inserted: evidenceInserted,
+      evidence_weak_logged: evidenceWeakLogged,
+      mechanism_allowed: mechanismAllowed,
+      mechanism_log_only: mechanismLogOnly,
       evidence_deduped: evidenceDeduped,
       theses_scenario_rows_updated: thesesUpdated,
       thesis_audit_failures: thesisAuditFailures,
@@ -414,6 +486,9 @@ async function runThesisNews(req: NextRequest) {
     news_count: news.length,
     theses_count: theses.length,
     evidence_inserted: evidenceInserted,
+    evidence_weak_logged: evidenceWeakLogged,
+    mechanism_allowed: mechanismAllowed,
+    mechanism_log_only: mechanismLogOnly,
     evidence_deduped: evidenceDeduped,
     theses_updated: thesesUpdated,
     thesis_audit_failures: thesisAuditFailures,

@@ -5,6 +5,7 @@ import {
 } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { SCENARIO_PROBABILITY_SEED_DB } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import {
+  shouldInsertMechanismWeakEvidenceLogRow,
   shouldInsertThesisNewsEvidenceLogRow,
   shouldRunThesisNewsThesesTableScenarioUpdate,
 } from "@/lib/thesis-engine-v2/thesis-news-writer-policy";
@@ -22,6 +23,12 @@ describe("thesis-news + catalog scenario regression (2b642e4)", () => {
 
   it("inserts NEWS_DEVELOPMENT evidence when a modeled suggestion exists", () => {
     expect(shouldInsertThesisNewsEvidenceLogRow(suggestion)).toBe(true);
+  });
+
+  it("inserts flat weak evidence when mechanism gate is log-only", () => {
+    expect(shouldInsertMechanismWeakEvidenceLogRow({ logOnly: true, allowed: false })).toBe(true);
+    expect(shouldInsertMechanismWeakEvidenceLogRow({ logOnly: false, allowed: true })).toBe(false);
+    expect(shouldInsertMechanismWeakEvidenceLogRow({ logOnly: true, allowed: true })).toBe(false);
   });
 
   it("does not run theses.scenario_probabilities update for seeded_system even when auto-apply would fire", () => {
