@@ -409,7 +409,7 @@ export function LiveThesesListPage() {
           void putUserThesisToSupabase(t).then(async (r) => {
             if (!r.ok) {
               if (r.error !== "sign_in_required") {
-                toast.error(friendlyApiMessage(r.error, "Could not save thesis to your account"));
+                toast.error(friendlyApiMessage(r.error));
               }
               return;
             }
