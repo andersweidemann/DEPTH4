@@ -5,6 +5,7 @@ import {
   anatomyToDbJson,
   applyAnatomySemantics,
   parseThesisStructuredAnatomy,
+  type AnatomySemanticContext,
 } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 
 /**
@@ -126,6 +127,38 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
   };
 
   return normalizeThesisNarrativeFields(next);
+}
+
+/** Parsed `body.thesis_structured_anatomy` before {@link applyAnatomySemantics} (Phase 3C debug). */
+export function parseRawStructuredAnatomyFromBody(body: unknown) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  return parseThesisStructuredAnatomy((body as Record<string, unknown>).thesis_structured_anatomy);
+}
+
+export function anatomySemanticContextFromThesis(thesis: Thesis): AnatomySemanticContext {
+  return {
+    asset: thesis.asset,
+    direction: thesis.direction,
+    thesis_statement: thesis.thesisStatement,
+    why_now: thesis.whyNow,
+    whats_unpriced: thesis.whatsUnpriced,
+    trigger_entry_setup: thesis.trigger,
+    target: thesis.target1,
+    horizon: thesis.horizon,
+    trade: thesis.trade,
+    hidden_driver: thesis.hiddenDriver,
+    likely_path: thesis.likelyPath,
+    trade_expression: thesis.tradeExpression,
+    bullInstruments: thesis.insiderFlow?.bullInstruments,
+    bearInstruments: thesis.insiderFlow?.bearInstruments,
+  };
+}
+
+/** Reconcile stored anatomy the same way {@link mergeDbBodyIntoThesis} does on read. */
+export function reconcileStructuredAnatomyFromBody(body: unknown, thesis: Thesis) {
+  const raw = parseRawStructuredAnatomyFromBody(body);
+  if (!raw) return null;
+  return applyAnatomySemantics(raw, anatomySemanticContextFromThesis(thesis));
 }
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { AdvisoryLog } from "@/components/thesis-engine-v2/AdvisoryLog";
@@ -13,6 +13,9 @@ import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
 import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
 import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFourLevelCascade";
 import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
+import { ThesisAnatomyDebugPanel } from "@/components/thesis-engine-v2/ThesisAnatomyDebugPanel";
+import { useAuth } from "@/contexts/AuthContext";
+import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anatomy-debug-access";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomePanel";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
@@ -170,6 +173,8 @@ export function ThesisDetailClient({
   catalogMicroLabel = null,
   catalogBody = null,
   catalogScenarioProbabilities = null,
+  anatomyDebugForce = false,
+  anatomyDebugOnly = false,
 }: {
   slug: string;
   layout?: "page" | "drawer";
@@ -182,8 +187,20 @@ export function ThesisDetailClient({
   catalogBody?: unknown | null;
   /** When set, seeds `thesis.scenarioOverrides` from `public.theses.scenario_probabilities` (catalog theses). */
   catalogScenarioProbabilities?: CatalogThesisScenarioProbabilities | null;
+  /** When true, show anatomy debug even without ?debug=1 (e.g. `/theses/[slug]/debug`). */
+  anatomyDebugForce?: boolean;
+  /** When true, render only the anatomy debug panel (internal route). */
+  anatomyDebugOnly?: boolean;
 }) {
   const requireFeature = useRequireFeature();
+  const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const anatomyDebugVisible =
+    anatomyDebugForce ||
+    isThesisAnatomyDebugVisible({
+      searchParamsDebug: searchParams?.get("debug"),
+      userId: user?.id ?? null,
+    });
   const liveOpt = useThesisLiveOptional();
   const liveScenarioProbModelEnabled = liveScenarioProbabilitiesForThesesEnabled();
   const [bundle, setBundle] = useState<ThesisDetailBundle | null>(() =>
@@ -194,7 +211,12 @@ export function ThesisDetailClient({
   const [alertsMenuOpen, setAlertsMenuOpen] = useState(false);
   const alertsMenuRef = useRef<HTMLDivElement>(null);
   const [editInsiderOpen, setEditInsiderOpen] = useState(false);
+  const [debugDbBody, setDebugDbBody] = useState<unknown | null>(catalogBody ?? null);
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (catalogBody != null) setDebugDbBody(catalogBody);
+  }, [catalogBody]);
 
   useEffect(() => {
     if (!alertsMenuOpen) return;
@@ -267,6 +289,7 @@ export function ThesisDetailClient({
       });
       upsertUserThesis(engine);
       if (cancelled) return;
+      if (row.body != null) setDebugDbBody(row.body);
       setBundle(bundleForUserThesis(engine));
     })();
     return () => {
@@ -316,6 +339,7 @@ export function ThesisDetailClient({
       } | null;
       if (cancelled || !j?.ok || !j.thesis?.slug) return;
       const row = j.thesis;
+      if (row.body != null) setDebugDbBody(row.body);
       setBundle((prev) => {
         if (!prev || prev.thesis.origin !== "user" || prev.thesis.slug !== row.slug) return prev;
         let mergedThesis = mergeUserThesisWithServerCatalog(prev.thesis, {
@@ -574,6 +598,18 @@ export function ThesisDetailClient({
 
   const { advisoryLog, relatedAssets } = bundle;
   const thesis = thesisLive!;
+
+  if (anatomyDebugOnly && anatomyDebugVisible) {
+    return (
+      <ThesisAnatomyDebugPanel
+        thesis={thesis}
+        dbBody={debugDbBody}
+        relatedAssets={relatedAssets}
+        defaultOpen
+      />
+    );
+  }
+
   const isUserThesis = bundle.thesis.origin === "user";
   const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
   const returnToPath = pathname && pathname.length > 0 ? pathname : `/theses/${slug}`;
@@ -1070,6 +1106,12 @@ export function ThesisDetailClient({
         ) : null}
 
         <ThesisOutcomePanel thesis={thesis} layout={layout} lifecycleState={lifecycleState} />
+
+        {anatomyDebugVisible ? (
+          <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
+            <ThesisAnatomyDebugPanel thesis={thesis} dbBody={debugDbBody} relatedAssets={relatedAssets} />
+          </div>
+        ) : null}
       </div>
     </>
   );
