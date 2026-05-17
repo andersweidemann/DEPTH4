@@ -46,7 +46,7 @@ export function ThesisReaderView({
 }) {
   return (
     <article className="mx-auto max-w-[42rem] pb-20">
-      <ThesisReaderChrome slug={slug} />
+      <ThesisReaderChrome slug={slug} shareTitle={thesis.title} />
 
       <ThesisHero thesis={thesis} variant="reader" displaySourceOpts={{ liveEvidenceApplied }} />
 

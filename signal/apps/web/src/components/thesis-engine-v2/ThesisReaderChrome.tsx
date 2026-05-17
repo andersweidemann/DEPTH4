@@ -2,21 +2,48 @@
 
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
+import { thesisReaderShareUrl } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 
-export function ThesisReaderChrome({ slug }: { slug: string }) {
+export function ThesisReaderChrome({
+  slug,
+  shareTitle,
+}: {
+  slug: string;
+  /** Thesis title for native share sheet (optional). */
+  shareTitle?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
+  const canonicalShareUrl = useCallback(() => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    return thesisReaderShareUrl(slug, origin);
+  }, [slug]);
+
   const copyShareLink = useCallback(async () => {
-    const url = typeof window !== "undefined" ? `${window.location.origin}${thesisReaderPath(slug)}` : thesisReaderPath(slug);
+    const url = canonicalShareUrl();
     try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: shareTitle?.trim() || "DEPTH4 macro thesis",
+          text: shareTitle?.trim() || undefined,
+          url,
+        });
+        return;
+      }
       await navigator.clipboard.writeText(url);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(false);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      try {
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+      } catch {
+        setCopied(false);
+      }
     }
-  }, [slug]);
+  }, [canonicalShareUrl, shareTitle]);
 
   return (
     <header className="mb-10 border-b border-white/[0.06] pb-6">

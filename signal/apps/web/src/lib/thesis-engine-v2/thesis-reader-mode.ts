@@ -12,6 +12,11 @@ export function thesisReaderUrl(slug: string, origin = ""): string {
   return `${base}${thesisReaderPath(slug)}`;
 }
 
+/** Canonical absolute share URL — never includes query params (debug, view, etc.). */
+export function thesisReaderShareUrl(slug: string, origin = ""): string {
+  return thesisReaderUrl(slug, origin);
+}
+
 export function isThesisReaderViewSearchParam(value: string | null | undefined): boolean {
   return value === THESIS_READER_VIEW_VALUE;
 }
