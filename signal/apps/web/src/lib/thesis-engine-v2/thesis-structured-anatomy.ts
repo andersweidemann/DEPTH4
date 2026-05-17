@@ -271,7 +271,7 @@ function enforceMispricingTriad(
   l3: string,
   whats: string,
 ): { market_is_pricing: string; depth4_edge: string; level3_mispricing: string } {
-  let m = firstSentence(market);
+  const m = firstSentence(market);
   let e = firstSentence(edge);
   let l3out = norm(l3);
 
