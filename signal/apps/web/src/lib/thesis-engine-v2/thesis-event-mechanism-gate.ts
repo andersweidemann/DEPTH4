@@ -1,6 +1,9 @@
 /**
  * Phase 3A — runtime mechanism gate for event→thesis news updates.
  * Blocks weak tag/ticker matches from moving scenario probabilities; allows log-only rows.
+ *
+ * Phase 3B: when `structuredAnatomy` / `assetFamily` / `mechanismKeywords` are set on the thesis input,
+ * prefer them over title/symbol heuristics. TODO(phase-3c): load anatomy everywhere theses are matched to news.
  */
 
 export const MECHANISM_GATE_STOP_LIST_TAGS = new Set([
@@ -31,6 +34,10 @@ export type MechanismGateThesis = {
   title: string;
   bullInstruments: string[];
   bearInstruments: string[];
+  /** Phase 3B — when set, wins over `inferThesisAssetFamily` title/symbol heuristics. */
+  assetFamily?: ThesisAssetFamily | null;
+  mechanismKeywords?: string[];
+  noiseCategories?: string[];
 };
 
 export type MechanismGateMatch = {
@@ -237,7 +244,47 @@ function normSym(s: string): string {
     .toUpperCase();
 }
 
+function mapAnatomyFamilyToGate(family: string | undefined | null): ThesisAssetFamily | null {
+  const f = (family ?? "").toLowerCase();
+  if (f === "rates" || f === "oil" || f === "crypto" || f === "defense" || f === "equity") return f;
+  if (f === "fx" || f === "commodities" || f === "other") return "other";
+  return null;
+}
+
+/** Build gate thesis input from DB row parts (body may carry `thesis_structured_anatomy`). */
+export function mechanismGateThesisFromRow(parts: {
+  title: string;
+  bullInstruments: string[];
+  bearInstruments: string[];
+  body?: unknown;
+}): MechanismGateThesis {
+  const base: MechanismGateThesis = {
+    title: parts.title,
+    bullInstruments: parts.bullInstruments,
+    bearInstruments: parts.bearInstruments,
+  };
+  if (!parts.body || typeof parts.body !== "object" || Array.isArray(parts.body)) return base;
+  const o = parts.body as Record<string, unknown>;
+  const raw = o.thesis_structured_anatomy;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
+  const a = raw as Record<string, unknown>;
+  const mapped = mapAnatomyFamilyToGate(String(a.asset_family ?? ""));
+  return {
+    ...base,
+    ...(mapped ? { assetFamily: mapped } : {}),
+    mechanismKeywords: Array.isArray(a.mechanism_keywords)
+      ? a.mechanism_keywords.map((x) => String(x).trim()).filter(Boolean)
+      : undefined,
+    noiseCategories: Array.isArray(a.noise_categories)
+      ? a.noise_categories.map((x) => String(x).trim().toLowerCase()).filter(Boolean)
+      : undefined,
+  };
+}
+
 export function inferThesisAssetFamily(thesis: MechanismGateThesis): ThesisAssetFamily {
+  const fromAnatomy = mapAnatomyFamilyToGate(thesis.assetFamily ?? null);
+  if (fromAnatomy) return fromAnatomy;
+
   const syms = new Set(
     [...thesis.bullInstruments, ...thesis.bearInstruments].map((x) => normSym(String(x))).filter(Boolean),
   );
@@ -323,13 +370,19 @@ function collectMechanismSignals(args: {
   match: MechanismGateMatch;
   event: MechanismGateEvent;
   family: ThesisAssetFamily;
+  thesis?: MechanismGateThesis;
 }): string[] {
-  const { match, event, family } = args;
+  const { match, event, family, thesis } = args;
   const hay = match.matchText.toLowerCase();
   const signals: string[] = [];
 
   const specificTags = specificMatchedTags(match.confirmMatched, match.contradictMatched);
   for (const t of specificTags) signals.push(`tag:${normTag(t)}`);
+
+  const thesisKw = (thesis?.mechanismKeywords ?? []).map((k) => k.toLowerCase()).filter(Boolean);
+  for (const kw of thesisKw) {
+    if (kw.length >= 4 && hay.includes(kw)) signals.push(`thesis_keyword:${kw}`);
+  }
 
   const familyKw = textHasKeyword(hay, FAMILY_MECHANISM_KEYWORDS[family]);
   for (const kw of familyKw) signals.push(`keyword:${kw}`);
@@ -466,7 +519,25 @@ export function evaluateThesisEventMechanismGate(args: {
 }): MechanismGateResult {
   const family = inferThesisAssetFamily(args.thesis);
   const hay = args.match.matchText.toLowerCase();
-  const signals = collectMechanismSignals({ match: args.match, event: args.event, family });
+  const signals = collectMechanismSignals({ match: args.match, event: args.event, family, thesis: args.thesis });
+
+  const noiseCats = args.thesis.noiseCategories ?? [];
+  const eventCat = (args.event.category ?? "").toLowerCase();
+  if (
+    noiseCats.length > 0 &&
+    eventCat &&
+    noiseCats.some((n) => eventCat.includes(n) || n.includes(eventCat))
+  ) {
+    return {
+      allowed: false,
+      logOnly: true,
+      blockCode: "category_mismatch",
+      blockDetail: "Event category matches thesis noise_categories",
+      mechanismReason: null,
+      assetFamily: family,
+      mechanismSignals: signals,
+    };
+  }
 
   const base: MechanismGateResult = {
     allowed: false,

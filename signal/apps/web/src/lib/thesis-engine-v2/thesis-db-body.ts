@@ -1,6 +1,10 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { applyThesisNarrativeProbabilityGuardToThesis } from "@/lib/thesis-engine-v2/thesis-narrative-probability-guard";
 import { parseThesisDepthBookFromUnknown } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
+import {
+  anatomyToDbJson,
+  parseThesisStructuredAnatomy,
+} from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 
 /**
  * Supabase `public.theses.body` — optional JSON narrative for thesis book copy.
@@ -45,6 +49,8 @@ export type ThesisBodyJson = {
   target2?: string | null;
   /** Canonical four-depth book — see `thesis-depth-canonical.ts`. */
   thesis_depth_book?: unknown;
+  /** Phase 3B structured anatomy — see `thesis-structured-anatomy.ts`. */
+  thesis_structured_anatomy?: unknown;
 };
 
 function str(v: unknown): string | undefined {
@@ -71,10 +77,12 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
   }
 
   const depthBook = parseThesisDepthBookFromUnknown(o.thesis_depth_book);
+  const structuredAnatomy = parseThesisStructuredAnatomy(o.thesis_structured_anatomy);
 
   const next: Thesis = {
     ...thesis,
     ...(depthBook ? { thesisDepthBook: depthBook } : {}),
+    ...(structuredAnatomy ? { structuredAnatomy } : {}),
     ...(str(o.one_line_summary) !== undefined ? { oneLineSummary: str(o.one_line_summary) } : {}),
     ...(str(o.thesis_statement) !== undefined ? { thesisStatement: str(o.thesis_statement)! } : {}),
     ...(str(o.why_thesis_exists) !== undefined ? { whyThesisExists: str(o.why_thesis_exists) } : {}),
@@ -168,5 +176,6 @@ export function thesisToDbBodyPayload(thesis: Thesis): Record<string, unknown> {
     target1: thesis.target1 ?? null,
     target2: thesis.target2 ?? null,
     thesis_depth_book: thesis.thesisDepthBook ?? null,
+    thesis_structured_anatomy: thesis.structuredAnatomy ? anatomyToDbJson(thesis.structuredAnatomy) : null,
   };
 }

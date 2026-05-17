@@ -7,7 +7,10 @@ import {
   redistributeAfterBaseChange,
   type DbScenarioTriple,
 } from "@/lib/thesis-engine-v2/scenario-triple-zero-sum";
-import { evaluateThesisEventMechanismGate } from "@/lib/thesis-engine-v2/thesis-event-mechanism-gate";
+import {
+  evaluateThesisEventMechanismGate,
+  mechanismGateThesisFromRow,
+} from "@/lib/thesis-engine-v2/thesis-event-mechanism-gate";
 import {
   shouldInsertMechanismWeakEvidenceLogRow,
   shouldInsertThesisNewsEvidenceLogRow,
@@ -46,6 +49,7 @@ type DbThesis = {
   id: string;
   title: string;
   status: string;
+  body?: unknown;
   thesis_origin?: string | null;
   insider_flow: {
     bullInstruments?: string[];
@@ -218,7 +222,7 @@ async function runThesisNews(req: NextRequest) {
   // when they have insider_flow monitoring + eligible status.
   const thesesRes = await admin
     .from("theses")
-    .select("id,title,status,thesis_origin,insider_flow,scenario_probabilities")
+    .select("id,title,status,thesis_origin,insider_flow,scenario_probabilities,body")
     .in("status", ["forming", "watching", "ready", "active"]);
 
   const theses = (thesesRes.data ?? []) as DbThesis[];
@@ -302,11 +306,12 @@ async function runThesisNews(req: NextRequest) {
       if (contradictMatched.length) reasons.push("contradict_tag");
 
       const gate = evaluateThesisEventMechanismGate({
-        thesis: {
+        thesis: mechanismGateThesisFromRow({
           title: t.title,
           bullInstruments: (t.insider_flow?.bullInstruments ?? []).map(String),
           bearInstruments: (t.insider_flow?.bearInstruments ?? []).map(String),
-        },
+          body: t.body,
+        }),
         event: {
           headline: ev.headline,
           category: ev.category,

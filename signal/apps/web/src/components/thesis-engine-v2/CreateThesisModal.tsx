@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { authFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { buildAnatomyFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import { InsiderFlowSetupFields, type InsiderFlowFieldKey } from "@/components/thesis-engine-v2/InsiderFlowSetupFields";
 import {
   repairLongFormNarrativeField,
@@ -88,7 +89,7 @@ function buildUserThesis(form: FormState): Thesis {
       ? "Express the view using the levels in Trade plan once the gate in Trigger is observable; adjust sizing as evidence updates — keep numbers out of this sentence."
       : "Optional setup pending — define levels in Trade plan when trigger compresses.";
 
-  return {
+  const shell: Thesis = {
     id: nowId,
     slug: `${baseSlug}-${nowId.slice(-4)}`,
     title: title || "Untitled thesis",
@@ -168,6 +169,9 @@ function buildUserThesis(form: FormState): Thesis {
         .filter(Boolean),
     },
   };
+
+  const withAnatomy = { ...shell, structuredAnatomy: buildAnatomyFromThesis(shell) };
+  return withAnatomy;
 }
 
 function generateDraftFromPrompt(prompt: string): Pick<

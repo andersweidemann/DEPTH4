@@ -1,4 +1,5 @@
 import type { ThesisDepthBook } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
+import type { ThesisStructuredAnatomy } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import type { ThesisLifecycleState } from "@/types/thesis";
 
 export type ThesisStatus =
@@ -92,6 +93,12 @@ export type Thesis = {
    * derive from these nodes — see `thesis-depth-canonical.ts`. Legacy `thesisCascade` prose remains until migrated.
    */
   thesisDepthBook?: ThesisDepthBook;
+
+  /**
+   * Phase 3B explicit anatomy (`body.thesis_structured_anatomy`) — drivers, mispricing, semantic 4-L.
+   * Prefer over title/symbol heuristics for mechanism gate and future Analyst Debug (Phase 3C).
+   */
+  structuredAnatomy?: ThesisStructuredAnatomy;
 
   // causal framework (legacy cards when `whyThesisExists` absent)
   hiddenDriver: string;

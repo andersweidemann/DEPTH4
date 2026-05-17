@@ -4,6 +4,10 @@ import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { extractReasoningLevelBodies, passesAiThesisRegistryDepth4Pack } from "@/lib/theses/ai-registry-depth4-pack";
 import { isAcceptableAiThesisRegistryHero, pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
+import {
+  buildAnatomyFromMacroReasoning,
+  validateThesisStructuredAnatomy,
+} from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { SYSTEM_MUTATION, systemCreateThesis } from "@/lib/thesis-mutation";
@@ -152,13 +156,28 @@ export async function ensureAiThesisForDiscoveryCluster(
 
   const slug = slugify(statement, clusterId.replace(/-/g, "").slice(0, 10));
 
-  const thesis = buildMinimalAiThesis({
+  const thesisShell = buildMinimalAiThesis({
     id,
     slug,
     statement,
     clusterId,
     reasoning: p.reasoning,
   });
+
+  const structuredAnatomy = buildAnatomyFromMacroReasoning({
+    hero: statement,
+    reasoning: p.reasoning,
+    assetSymbols: [],
+  });
+  const anatomyCheck = validateThesisStructuredAnatomy(structuredAnatomy, {
+    hero: statement,
+    title: statement,
+  });
+  if (!anatomyCheck.ok) {
+    return { ok: false, reason: `anatomy_${anatomyCheck.reasons.join("_")}` };
+  }
+
+  const thesis = { ...thesisShell, structuredAnatomy };
 
   const nowIso = new Date().toISOString();
   const row = {

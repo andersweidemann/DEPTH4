@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from signal_api.ai.llm_client import llm_text_routed
+from signal_api.ai.thesis_structured_anatomy import build_anatomy_from_draft, validate_anatomy
 from signal_api.ai.model_routing import ModelTaskType, strip_json_fences
 from signal_api.config import Settings
 
@@ -82,6 +83,25 @@ SCHEMA (exact keys):
     "bear_instruments": ["…"],
     "confirm_tags": ["short tags tied to thesis"],
     "contradict_tags": ["tags that kill/weaken thesis"]
+  },
+  "thesis_structured_anatomy": {
+    "asset_family": "rates|oil|crypto|defense|equity|fx|commodities|other",
+    "primary_drivers": ["2–4 concrete driver phrases — not 'macro' or 'sentiment'"],
+    "secondary_drivers": ["optional supporting drivers"],
+    "mechanism_keywords": ["tags/keywords that should move this thesis"],
+    "noise_categories": ["entertainment", "culture", "…"],
+    "mispricing_type": "timing|path|resolution|magnitude|attention|policy_lag|flows|other",
+    "market_is_pricing": "what the crowd/futures/tape is effectively pricing — explicit",
+    "depth4_edge": "what DEPTH4 sees differently — must name the wedge",
+    "resolution_horizon": "e.g. 2–8 weeks",
+    "resolution_path": "how the thesis resolves if right",
+    "trade_implication": "tradeable expression without duplicating hero title",
+    "four_level": {
+      "level1_narrative": "immediate claim / first-order narrative (distinct from L2)",
+      "level2_mechanism": "transmission path / mechanism (distinct from L1 and L3)",
+      "level3_mispricing": "why consensus is wrong — use 'market is pricing…' / under- or over-pricing language",
+      "level4_resolution": "resolution + trade consequence over time (distinct from L3)"
+    }
   }
 }
 
@@ -354,7 +374,7 @@ def normalize_draft(raw: dict[str, Any]) -> dict[str, Any]:
   if direction not in ("long", "short"):
     direction = "long"
 
-  return {
+  out = {
     "title": _as_str(raw.get("title"))[:200],
     "asset": _as_str(raw.get("asset")).upper()[:32],
     "direction": direction,
@@ -376,6 +396,8 @@ def normalize_draft(raw: dict[str, Any]) -> dict[str, Any]:
       "contradict_tags": str_list("contradict_tags"),
     },
   }
+  out["thesis_structured_anatomy"] = build_anatomy_from_draft(out)
+  return out
 
 
 def _has_brackets(s: str) -> bool:
@@ -488,6 +510,15 @@ def validate_draft(d: dict[str, Any], seed_idea: str) -> tuple[bool, list[str]]:
 
   if len(ast) >= 2 and _insider_flow_total(d) == 0:
     errs.append("insider_flow_empty_inferable")
+
+  anatomy = d.get("thesis_structured_anatomy")
+  if not isinstance(anatomy, dict):
+    anatomy = build_anatomy_from_draft(d)
+    d["thesis_structured_anatomy"] = anatomy
+  ok_anat, anat_errs = validate_anatomy(anatomy, hero=_as_str(d.get("title")), title=_as_str(d.get("title")))
+  if not ok_anat:
+    for e in anat_errs:
+      errs.append(f"anatomy:{e}")
 
   return (len(errs) == 0, errs)
 

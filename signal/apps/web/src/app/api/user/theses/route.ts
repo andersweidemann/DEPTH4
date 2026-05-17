@@ -6,6 +6,7 @@ import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesi
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { normalizeInsiderFlowForDb, scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { buildAnatomyFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import {
   createThesisMutationService,
@@ -147,7 +148,10 @@ export async function PUT(req: NextRequest) {
   const updateReason = normalizeUpdateReason(body?.updateReason);
   if (!isThesisRecord(rawThesis)) return NextResponse.json({ ok: false, error: "invalid_thesis" }, { status: 400 });
 
-  const thesis = normalizeThesisNarrativeFields(rawThesis);
+  let thesis = normalizeThesisNarrativeFields(rawThesis);
+  if (!thesis.structuredAnatomy) {
+    thesis = { ...thesis, structuredAnatomy: buildAnatomyFromThesis(thesis) };
+  }
 
   if (thesis.origin === "system") {
     return NextResponse.json({ ok: false, error: "system_thesis_readonly" }, { status: 403 });
