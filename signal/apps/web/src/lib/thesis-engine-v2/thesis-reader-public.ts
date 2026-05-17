@@ -1,5 +1,10 @@
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
+import {
+  canManageThesisReaderPublic,
+  type ThesisReaderPublishingContext,
+} from "@/lib/thesis-engine-v2/thesis-reader-publishing-access";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { SupabaseThesisUpdateRepository } from "@/lib/thesis-mutation/repositories/supabase-thesis-update-repository";
 import { loadThesisDetailBundleForApi } from "@/lib/thesis-engine-v2/load-thesis-api-bundle";
 import { overlayDbScenarioProbabilities, scenarioOverridesFromRows, thesisWithSyncedLiveProbability } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
@@ -51,34 +56,74 @@ export async function isThesisReaderPublic(slug: string): Promise<boolean> {
   return row?.reader_public_enabled === true;
 }
 
-/** Authenticated user may toggle public reader for this slug. */
-export function canManageThesisReaderPublic(
+export type SetThesisReaderPublicResult = "ok" | "not_found" | "forbidden";
+
+async function resolveThesisReaderPublicRow(slug: string): Promise<ThesisReaderPublicRow | null> {
+  const existing = await fetchThesisReaderPublicRow(slug);
+  if (existing) return existing;
+  return ensureThesisRowForCatalogSlug(slug);
+}
+
+async function auditReaderPublicChange(
   row: ThesisReaderPublicRow,
-  userId: string,
-): boolean {
-  if (row.owner_user_id) return row.owner_user_id === userId;
-  return getThesisDetail(slugFromRow(row)) != null;
+  ctx: ThesisReaderPublishingContext,
+  enabled: boolean,
+  slug: string,
+): Promise<void> {
+  const svc = createServiceRoleClient();
+  if (!svc) return;
+
+  const isOwner = row.owner_user_id === ctx.userId;
+  const repo = new SupabaseThesisUpdateRepository(svc);
+  try {
+    await repo.insert({
+      thesis_id: row.id,
+      actor_type: ctx.isElevated && !isOwner ? "operator" : "user",
+      actor_id: ctx.userId,
+      change_type: enabled ? "reader_public_enabled" : "reader_public_disabled",
+      reason: enabled ? "Public reader link enabled" : "Public reader link disabled",
+      old_values: { reader_public_enabled: !enabled, slug },
+      new_values: { reader_public_enabled: enabled, slug },
+      metadata: {
+        slug,
+        thesis_origin: row.thesis_origin,
+        elevated: ctx.isElevated,
+      },
+    });
+  } catch (err) {
+    console.error("[DEPTH4] reader_public audit write failed", {
+      thesisId: row.id,
+      slug,
+      err,
+    });
+  }
 }
 
-function slugFromRow(row: ThesisReaderPublicRow): string {
-  return (row.slug ?? "").trim();
-}
-
-export async function setThesisReaderPublic(slug: string, enabled: boolean, userId: string): Promise<boolean> {
-  let row = await fetchThesisReaderPublicRow(slug);
-  if (!row) row = await ensureThesisRowForCatalogSlug(slug);
-  if (!row || !canManageThesisReaderPublic(row, userId)) return false;
+export async function setThesisReaderPublic(
+  slug: string,
+  enabled: boolean,
+  ctx: ThesisReaderPublishingContext,
+): Promise<SetThesisReaderPublicResult> {
+  const row = await resolveThesisReaderPublicRow(slug);
+  if (!row) return "not_found";
+  if (!canManageThesisReaderPublic(row, ctx)) return "forbidden";
 
   const svc = createServiceRoleClient();
-  if (!svc) return false;
+  if (!svc) return "forbidden";
 
   const { error } = await svc
     .from("theses")
     .update({ reader_public_enabled: enabled, updated_at: new Date().toISOString() })
     .eq("id", row.id);
 
-  return !error;
+  if (error) return "forbidden";
+
+  await auditReaderPublicChange(row, ctx, enabled, slug);
+  return "ok";
 }
+
+/** Re-export for API routes. */
+export { canManageThesisReaderPublic } from "@/lib/thesis-engine-v2/thesis-reader-publishing-access";
 
 /**
  * Read-only bundle for anonymous reader when `reader_public_enabled` is true.

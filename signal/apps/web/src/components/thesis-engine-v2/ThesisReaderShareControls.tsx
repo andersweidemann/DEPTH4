@@ -31,6 +31,10 @@ export function ThesisReaderShareControls({
         canManage?: boolean;
         status?: string;
       } | null;
+      if (res.status === 404) {
+        setCanManage(false);
+        return;
+      }
       if (!res.ok) {
         setCanManage(false);
         return;
@@ -71,6 +75,14 @@ export function ThesisReaderShareControls({
         body: JSON.stringify({ enabled: next }),
       });
       const j = (await res.json().catch(() => null)) as { enabled?: boolean } | null;
+      if (res.status === 403) {
+        setError("You do not have permission to change public sharing for this thesis.");
+        return;
+      }
+      if (res.status === 404) {
+        setError("Thesis not found.");
+        return;
+      }
       if (!res.ok) {
         setError("Could not update share setting.");
         return;
@@ -91,7 +103,27 @@ export function ThesisReaderShareControls({
     );
   }
 
-  if (!canManage) return null;
+  if (!canManage) {
+    if (status !== "public") return null;
+    return (
+      <section
+        className={cn("rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-3", className)}
+        aria-label="Reader share status"
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Reader link</p>
+        <p className="mt-1 text-[12px] text-zinc-500">
+          Public reader link is active. Only operators can change sharing settings.
+        </p>
+        <button
+          type="button"
+          onClick={() => void copyLink()}
+          className="mt-3 rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] font-medium text-zinc-400 hover:text-zinc-200"
+        >
+          {copied ? "Link copied" : "Copy share link"}
+        </button>
+      </section>
+    );
+  }
 
   return (
     <section

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isDepth4ElevatedUser } from "@/lib/depth4-elevated-access";
 import { createClient } from "@/lib/supabase/server";
 import {
   canManageThesisReaderPublic,
@@ -10,20 +11,33 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+async function resolveRow(slug: string) {
+  let row = await fetchThesisReaderPublicRow(slug);
+  if (!row) row = await ensureThesisRowForCatalogSlug(slug);
+  return row;
+}
+
+function publishingContext(user: { id: string; email?: string | null }) {
+  return {
+    userId: user.id,
+    isElevated: isDepth4ElevatedUser({ userId: user.id, email: user.email }),
+  };
+}
+
 export async function GET(_req: NextRequest, context: { params: { slug: string } }) {
   const slug = context.params.slug?.trim() ?? "";
   if (!slug) return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
 
-  let row = await fetchThesisReaderPublicRow(slug);
-  if (!row) row = await ensureThesisRowForCatalogSlug(slug);
+  const row = await resolveRow(slug);
+  if (!row) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const enabled = row?.reader_public_enabled === true;
-  const canManage = row && user ? canManageThesisReaderPublic(row, user.id) : false;
+  const enabled = row.reader_public_enabled === true;
+  const canManage = user ? canManageThesisReaderPublic(row, publishingContext(user)) : false;
 
   return NextResponse.json({
     enabled,
@@ -53,8 +67,9 @@ export async function PATCH(req: NextRequest, context: { params: { slug: string 
     return NextResponse.json({ error: "invalid_enabled" }, { status: 400 });
   }
 
-  const ok = await setThesisReaderPublic(slug, enabled, user.id);
-  if (!ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const result = await setThesisReaderPublic(slug, enabled, publishingContext(user));
+  if (result === "not_found") return NextResponse.json({ error: "not_found" }, { status: 404 });
+  if (result === "forbidden") return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
   return NextResponse.json({
     enabled,
