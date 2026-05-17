@@ -132,6 +132,8 @@ export function isThesisMapListableThesis(t: Thesis): boolean {
   const dm = getThesisDisplayModel(t);
   if (dm.convictionIsTemplateEstimate && (t.status === "forming" || t.status === "watching")) {
     if (t.thesisOrigin === "ai_generated") return true;
+    // User-owned drafts belong on the map (Emerging bucket) once they pass the quality bar above.
+    if (t.thesisOrigin === "user") return true;
     return false;
   }
 

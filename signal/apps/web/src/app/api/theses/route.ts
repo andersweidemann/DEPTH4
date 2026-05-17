@@ -7,6 +7,7 @@ import {
   normalizeThesisNarrativeFields,
   thesisToDbBodyPayload,
 } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { buildAnatomyFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import {
   normalizeInsiderFlowForDb,
   scenarioProbabilitiesForDb,
@@ -63,7 +64,10 @@ export async function POST(req: NextRequest) {
   }
 
   const id = randomUUID();
-  const thesis = normalizeThesisNarrativeFields(buildDraftUserThesisFromForm({ statement, asset, direction, id }));
+  let thesis = normalizeThesisNarrativeFields(buildDraftUserThesisFromForm({ statement, asset, direction, id }));
+  if (!thesis.structuredAnatomy) {
+    thesis = { ...thesis, structuredAnatomy: buildAnatomyFromThesis(thesis) };
+  }
   if (thesis.origin === "system" || isSystemThesisId(thesis.id)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }

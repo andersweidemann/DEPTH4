@@ -511,16 +511,17 @@ def validate_draft(d: dict[str, Any], seed_idea: str) -> tuple[bool, list[str]]:
   if len(ast) >= 2 and _insider_flow_total(d) == 0:
     errs.append("insider_flow_empty_inferable")
 
+  return (len(errs) == 0, errs)
+
+
+def anatomy_warnings_for_draft(d: dict[str, Any]) -> list[str]:
+  """Non-blocking anatomy QA — surfaced in expand meta; persisted on save via normalize_draft."""
   anatomy = d.get("thesis_structured_anatomy")
   if not isinstance(anatomy, dict):
     anatomy = build_anatomy_from_draft(d)
     d["thesis_structured_anatomy"] = anatomy
   ok_anat, anat_errs = validate_anatomy(anatomy, hero=_as_str(d.get("title")), title=_as_str(d.get("title")))
-  if not ok_anat:
-    for e in anat_errs:
-      errs.append(f"anatomy:{e}")
-
-  return (len(errs) == 0, errs)
+  return [] if ok_anat else anat_errs
 
 
 def expand_user_idea(settings: Settings, user_idea: str) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -542,6 +543,7 @@ def expand_user_idea(settings: Settings, user_idea: str) -> tuple[dict[str, Any]
   else:
     draft = normalize_draft(parsed)
     ok, errs = validate_draft(draft, user_idea)
+    meta["anatomy_warnings"] = anatomy_warnings_for_draft(draft)
     if ok:
       meta["passes"] = True
       return draft, meta
@@ -573,12 +575,14 @@ Output ONLY the corrected full JSON object."""
   if parsed2 is None:
     meta["repaired"] = True
     meta["repair_parse_failed"] = True
+    meta["anatomy_warnings"] = anatomy_warnings_for_draft(draft)
     return draft, meta
 
   draft2 = normalize_draft(parsed2)
   meta["repaired"] = True
   ok2, errs2 = validate_draft(draft2, user_idea)
   meta["errors_after_repair"] = errs2
+  meta["anatomy_warnings"] = anatomy_warnings_for_draft(draft2)
   if ok2:
     meta["passes"] = True
     return draft2, meta

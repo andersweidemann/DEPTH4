@@ -144,18 +144,21 @@ describe("thesis-surfacing-quality", () => {
     expect(isThesisMapListableThesis(t)).toBe(true);
   });
 
-  it("isThesisMapListableThesis still hides user forming rows on template triple", () => {
+  it("isThesisMapListableThesis lists user forming rows on template triple in Emerging", () => {
     const t = minimalThesis({
       id: "user-1",
       thesisOrigin: "user",
       status: "forming",
+      title: "TLT should underperform as sticky CPI keeps the Fed higher for longer than futures price",
+      thesisStatement:
+        "TLT should underperform as sticky CPI keeps the Fed higher for longer than futures price when payrolls stay firm.",
       scenarioOverrides: {
         base: { probability: 40, confirmation: "Messy", marketConsequence: "m" },
         bull: { probability: 35, confirmation: "Clean", marketConsequence: "c" },
         bear: { probability: 25, confirmation: "Broken", marketConsequence: "b" },
       },
     });
-    expect(isThesisMapListableThesis(t)).toBe(false);
+    expect(isThesisMapListableThesis(t)).toBe(true);
   });
 
   it("registry hero accepts forecast movement verbs (rally) without relying on the length-only bypass", () => {

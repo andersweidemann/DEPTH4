@@ -21,8 +21,9 @@ import { cn } from "@/lib/utils";
 import type { ThesisHomeSignalsResponse, ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 import { listRowLifecyclePresentation } from "@/lib/theses/thesis-lifecycle";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
+import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
+import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
-import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
 function StarOutlineIcon({ className }: { className?: string }) {
   return (
@@ -164,12 +165,7 @@ export function LiveThesesListPage() {
   const requireFeature = useRequireFeature();
   const [activeFilter, setActiveFilter] = useState<"all" | "starred" | "ready">("all");
   const [assetClass, setAssetClass] = useState("All");
-  const [showNewThesisModal, setShowNewThesisModal] = useState(false);
-  const [newStatement, setNewStatement] = useState("");
-  const [newAsset, setNewAsset] = useState("");
-  const [newDirection, setNewDirection] = useState<"long" | "short">("long");
-  const [createBusy, setCreateBusy] = useState(false);
-  const [createErr, setCreateErr] = useState<string | null>(null);
+  const [createThesisOpen, setCreateThesisOpen] = useState(false);
 
   const listKey = useMemo(() => {
     const params = new URLSearchParams();
@@ -227,78 +223,6 @@ export function LiveThesesListPage() {
       toast.success(starred ? "Thesis unstarred" : "Thesis starred");
     } catch {
       toast.error("Could not update star");
-    }
-  };
-
-  const submitNewThesis = async () => {
-    setCreateErr(null);
-    setCreateBusy(true);
-    try {
-      const res = await authFetch("/api/theses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          statement: newStatement.trim(),
-          asset: newAsset.trim(),
-          direction: newDirection,
-        }),
-      });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(j.error || "Create failed");
-      }
-      const created = (await res.json().catch(() => null)) as {
-        success?: boolean;
-        thesis?: { id?: string; slug?: string };
-      } | null;
-      const createdSlug = created?.thesis?.slug;
-      if (createdSlug) {
-        try {
-          const tr = await authFetch(`/api/user/theses?slug=${encodeURIComponent(createdSlug)}`);
-          const tj = (await tr.json().catch(() => null)) as {
-            ok?: boolean;
-            thesis?: {
-              id?: string | null;
-              slug?: string | null;
-              title?: string | null;
-              micro_label?: string | null;
-              body?: unknown;
-              scenario_probabilities?: unknown;
-              insider_flow?: unknown;
-              updated_at?: string | null;
-              status?: string | null;
-            } | null;
-          } | null;
-          const th = tj?.ok ? tj.thesis : null;
-          if (th?.id && th.slug) {
-            upsertUserThesis(
-              userThesisFromSupabaseRow({
-                id: th.id,
-                slug: th.slug,
-                title: (th.title ?? "").trim() || "Thesis",
-                micro_label: th.micro_label,
-                body: th.body ?? null,
-                scenario_probabilities: th.scenario_probabilities,
-                status: typeof th.status === "string" ? th.status : "forming",
-                insider_flow: th.insider_flow,
-                updated_at: th.updated_at ?? null,
-              }),
-            );
-          }
-        } catch {
-          /* List still refreshes via mutate; detail bootstrap can load from API */
-        }
-      }
-      setShowNewThesisModal(false);
-      setNewStatement("");
-      setNewAsset("");
-      setNewDirection("long");
-      await mutate();
-      toast.success("Thesis created");
-    } catch (e: unknown) {
-      setCreateErr(e instanceof Error ? e.message : "Create failed");
-    } finally {
-      setCreateBusy(false);
     }
   };
 
@@ -372,7 +296,7 @@ export function LiveThesesListPage() {
         <button
           type="button"
           className="no-print inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
-          onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setShowNewThesisModal(true))}
+          onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setCreateThesisOpen(true))}
         >
           <PlusIcon className="h-3.5 w-3.5" />
           New thesis
@@ -477,55 +401,23 @@ export function LiveThesesListPage() {
         </div>
       </section>
 
-      {showNewThesisModal ? (
-        <div className="no-print fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-md rounded-lg border border-white/[0.06] bg-zinc-900 p-6">
-            <h3 className="text-lg font-semibold text-zinc-100">New thesis</h3>
-            <p className="mt-1 text-[12px] text-zinc-500">Creates a draft row via POST /api/theses — refine on the detail page.</p>
-            {createErr ? <p className="mt-2 text-[12px] text-red-400">{createErr}</p> : null}
-            <label className="mt-4 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Statement</label>
-            <textarea
-              value={newStatement}
-              onChange={(e) => setNewStatement(e.target.value)}
-              rows={4}
-              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
-            />
-            <label className="mt-3 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Asset</label>
-            <input
-              value={newAsset}
-              onChange={(e) => setNewAsset(e.target.value)}
-              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
-              placeholder="e.g. XAUUSD"
-            />
-            <label className="mt-3 block text-[10px] uppercase tracking-[0.14em] text-zinc-500">Direction</label>
-            <select
-              value={newDirection}
-              onChange={(e) => setNewDirection(e.target.value as "long" | "short")}
-              className="mt-1 w-full rounded-md border border-white/[0.08] bg-zinc-900/50 px-3 py-2 text-[13px] text-zinc-100 transition-colors hover:border-white/[0.12] focus:outline-none focus:ring-2 focus:ring-slate-400"
-            >
-              <option value="long">long</option>
-              <option value="short">short</option>
-            </select>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowNewThesisModal(false)}
-                className="rounded-md bg-zinc-800 px-3 py-1.5 text-[12px] text-zinc-200 transition-colors hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={createBusy || !newStatement.trim() || !newAsset.trim()}
-                onClick={() => void submitNewThesis()}
-                className="rounded-md bg-amber-500 px-3 py-1.5 text-[12px] font-medium text-zinc-950 transition-colors hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e] disabled:opacity-50"
-              >
-                {createBusy ? "Saving…" : "Create"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <CreateThesisModal
+        open={createThesisOpen}
+        onOpenChange={setCreateThesisOpen}
+        onCreate={(t) => {
+          upsertUserThesis(t);
+          void putUserThesisToSupabase(t).then(async (r) => {
+            if (!r.ok) {
+              if (r.error !== "sign_in_required") {
+                toast.error(friendlyApiMessage(r.error, "Could not save thesis to your account"));
+              }
+              return;
+            }
+            await mutate();
+            toast.success("Thesis created");
+          });
+        }}
+      />
     </>
   );
 }

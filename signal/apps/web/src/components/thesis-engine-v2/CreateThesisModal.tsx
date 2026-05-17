@@ -432,6 +432,13 @@ function joinListField(x: unknown): string {
   return x.map((v) => String(v).trim()).filter(Boolean).join(", ");
 }
 
+function expandDraftIsUsable(d: Record<string, unknown> | undefined | null): boolean {
+  if (!d || typeof d !== "object") return false;
+  return (
+    String(d.title ?? "").trim().length >= 4 && String(d.thesis_statement ?? "").trim().length >= 20
+  );
+}
+
 /** Maps POST /api/user/thesis-draft-expand `draft` JSON into modal form fields. */
 function draftFromApiResponse(d: Record<string, unknown>): AiDraftFormPatch {
   const dir: "long" | "short" = d.direction === "short" ? "short" : "long";
@@ -654,7 +661,11 @@ export function CreateThesisModal({
                           const j = (await res.json().catch(() => null)) as {
                             ok?: boolean;
                             draft?: Record<string, unknown>;
-                            meta?: { errors?: string[]; errors_after_repair?: string[] };
+                            meta?: {
+                              errors?: string[];
+                              errors_after_repair?: string[];
+                              anatomy_warnings?: string[];
+                            };
                             error?: string;
                           } | null;
                           if (!res.ok || !j) {
@@ -668,10 +679,21 @@ export function CreateThesisModal({
                             );
                             return;
                           }
-                          if (j.ok === true && j.draft && typeof j.draft === "object") {
-                            const patch = draftFromApiResponse(j.draft);
+                          if (expandDraftIsUsable(j.draft)) {
+                            const patch = draftFromApiResponse(j.draft!);
                             setReviewSource("api");
-                            setAiErr(null);
+                            const anatomyNote = j.meta?.anatomy_warnings?.length
+                              ? `Anatomy notes: ${j.meta.anatomy_warnings.join(", ")}.`
+                              : null;
+                            const validateNote =
+                              j.ok !== true
+                                ? `Core validation: ${
+                                    j.meta?.errors_after_repair?.join(", ") ??
+                                    j.meta?.errors?.join(", ") ??
+                                    "review mispricing and 4-L before publishing"
+                                  }.`
+                                : null;
+                            setAiErr([anatomyNote, validateNote].filter(Boolean).join(" ") || null);
                             setForm((cur) => ({ ...cur, ...patch, mode: "review" }));
                             return;
                           }
