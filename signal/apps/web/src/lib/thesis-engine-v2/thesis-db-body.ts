@@ -3,6 +3,7 @@ import { applyThesisNarrativeProbabilityGuardToThesis } from "@/lib/thesis-engin
 import { parseThesisDepthBookFromUnknown } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
 import {
   anatomyToDbJson,
+  applyAnatomySemantics,
   parseThesisStructuredAnatomy,
 } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 
@@ -77,7 +78,25 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
   }
 
   const depthBook = parseThesisDepthBookFromUnknown(o.thesis_depth_book);
-  const structuredAnatomy = parseThesisStructuredAnatomy(o.thesis_structured_anatomy);
+  const parsedAnatomy = parseThesisStructuredAnatomy(o.thesis_structured_anatomy);
+  const structuredAnatomy = parsedAnatomy
+    ? applyAnatomySemantics(parsedAnatomy, {
+        asset: thesis.asset,
+        direction: thesis.direction,
+        thesis_statement: thesis.thesisStatement,
+        why_now: thesis.whyNow,
+        whats_unpriced: thesis.whatsUnpriced,
+        trigger_entry_setup: thesis.trigger,
+        target: thesis.target1,
+        horizon: thesis.horizon,
+        trade: thesis.trade,
+        hidden_driver: thesis.hiddenDriver,
+        likely_path: thesis.likelyPath,
+        trade_expression: thesis.tradeExpression,
+        bullInstruments: thesis.insiderFlow?.bullInstruments,
+        bearInstruments: thesis.insiderFlow?.bearInstruments,
+      })
+    : null;
 
   const next: Thesis = {
     ...thesis,

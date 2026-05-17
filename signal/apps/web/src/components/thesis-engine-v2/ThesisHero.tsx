@@ -19,6 +19,7 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
+import { primaryTradeSymbolFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 
 function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
@@ -61,6 +62,13 @@ export function ThesisHero({
   const advisoryCopy = advisoryHeadlineFromResolutionPaths(cleanPct, messyPct, brokenPct, thesis.advisoryAction);
   const showMispricingHeadline =
     Number.isFinite(mispricing.score) && Math.abs(Math.round(mispricing.score) - Math.round(pathConviction)) >= 2;
+  const primarySym = primaryTradeSymbolFromThesis(thesis);
+  const anatomy = thesis.structuredAnatomy;
+  const showAnatomyMispricing =
+    anatomy &&
+    anatomy.market_is_pricing.trim() &&
+    anatomy.depth4_edge.trim() &&
+    anatomy.depth4_edge.toLowerCase() !== anatomy.market_is_pricing.toLowerCase();
 
   return (
     <div className="border-b border-white/[0.06] pb-7">
@@ -83,14 +91,33 @@ export function ThesisHero({
         </p>
       ) : null}
       <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-zinc-400">{thesis.thesisStatement}</p>
-      {thesis.marketMisread.trim() ? (
+      {showAnatomyMispricing ? (
+        <>
+          <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-zinc-400">
+            <span className="text-zinc-500">Market is pricing · </span>
+            {anatomy!.market_is_pricing}
+          </p>
+          <p className="mt-2 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
+            <span className="text-zinc-500">DEPTH4 edge · </span>
+            {anatomy!.depth4_edge}
+          </p>
+        </>
+      ) : thesis.marketMisread.trim() ? (
         <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
           <span className="text-zinc-500">Market misread · </span>
           {thesis.marketMisread}
         </p>
       ) : null}
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <span className="font-mono text-xs text-zinc-500">{thesis.asset}</span>
+        <span className="font-mono text-xs text-zinc-300">
+          Trade · {primarySym}
+          {thesis.direction === "long" || thesis.direction === "short" ? (
+            <span className="text-zinc-500"> · {thesis.direction}</span>
+          ) : null}
+        </span>
+        {primarySym !== thesis.asset.trim().toUpperCase() && thesis.asset.trim() && thesis.asset !== "—" ? (
+          <span className="text-[10px] text-zinc-600">(headline asset {thesis.asset})</span>
+        ) : null}
         <DirectionBadge direction={thesis.direction} />
         <StatusBadge status={thesis.status} showHint />
         <QualificationBadge q={thesis.qualification} />

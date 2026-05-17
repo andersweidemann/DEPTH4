@@ -616,7 +616,7 @@ export function ThesisDetailClient({
         />
       </div>
 
-      {thesis.thesisCascade ? (
+      {thesis.structuredAnatomy?.four_level || thesis.thesisCascade ? (
         <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
           <ThesisFourLevelCascade thesis={thesis} />
         </div>

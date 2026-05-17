@@ -1,10 +1,32 @@
 /**
- * Legacy prose cascade. Canonical structured four-depth UI should read `thesis.thesisDepthBook` when present
- * (`thesis-depth-canonical.ts`); keep this component until all rows migrate.
+ * Four-level geopolitical chain — prefers Phase 3B `structuredAnatomy.four_level` when present.
  */
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
-const LEVELS: { key: keyof NonNullable<Thesis["thesisCascade"]>; kicker: string; sub: string }[] = [
+const SEMANTIC_LEVELS = [
+  {
+    key: "level1_narrative" as const,
+    kicker: "L1 — Confirmed (0–24h)",
+    sub: "What Tier 1–2 sources verify now — officials, prints, hard data; no speculation.",
+  },
+  {
+    key: "level2_mechanism" as const,
+    kicker: "L2 — This week (1–7 days)",
+    sub: "Transmission path — how the catalyst moves positioning, flows, and the first tape reaction.",
+  },
+  {
+    key: "level3_mispricing" as const,
+    kicker: "L3 — This month (7–30 days)",
+    sub: "What consensus is still pricing wrong or too cleanly — the wedge DEPTH4 is trading.",
+  },
+  {
+    key: "level4_resolution" as const,
+    kicker: "L4 — This quarter (30–90+ days)",
+    sub: "How the thesis resolves if right — trade consequence and stand-down path.",
+  },
+];
+
+const LEGACY_LEVELS: { key: keyof NonNullable<Thesis["thesisCascade"]>; kicker: string; sub: string }[] = [
   { key: "l1Confirmed", kicker: "L1 — Confirmed (today)", sub: "What Tier 1–2 sources verify now — officials, prints, hard data; no speculation." },
   { key: "l2ThisQuarter", kicker: "L2 — This week (1–7 days)", sub: "Near-term tape: first moves, positioning, spillover, immediate catalysts." },
   { key: "l3ThisYear", kicker: "L3 — This month (7–30 days)", sub: "Second-order story: policy, supply chains, FX, commodities, sector rotation." },
@@ -12,6 +34,50 @@ const LEVELS: { key: keyof NonNullable<Thesis["thesisCascade"]>; kicker: string;
 ];
 
 export function ThesisFourLevelCascade({ thesis }: { thesis: Thesis }) {
+  const fl = thesis.structuredAnatomy?.four_level;
+  const hasSemantic =
+    fl &&
+    (fl.level1_narrative.trim() ||
+      fl.level2_mechanism.trim() ||
+      fl.level3_mispricing.trim() ||
+      fl.level4_resolution.trim());
+
+  if (hasSemantic && fl) {
+    return (
+      <section
+        className="rounded-lg border border-white/[0.06] bg-[#111110] p-5"
+        aria-labelledby="thesis-cascade-heading"
+      >
+        <h2 id="thesis-cascade-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Four-level chain
+        </h2>
+        <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
+          Confirmed facts → mechanism → mispricing → resolution. Asset-level expression lives in the trade line and edge
+          map below.
+        </p>
+        <ol className="mt-4 space-y-4">
+          {SEMANTIC_LEVELS.map(({ key, kicker, sub }) => {
+            const body = fl[key].trim();
+            if (!body) return null;
+            return (
+              <li key={key} className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-4 py-3">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{kicker}</p>
+                <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p>
+                <p className="mt-2 text-[13px] leading-relaxed text-zinc-200">{body}</p>
+              </li>
+            );
+          })}
+        </ol>
+        {thesis.structuredAnatomy?.trade_implication?.trim() ? (
+          <p className="mt-4 border-t border-white/[0.06] pt-3 text-[12px] leading-relaxed text-zinc-400">
+            <span className="font-medium text-zinc-500">Trade expression · </span>
+            {thesis.structuredAnatomy.trade_implication}
+          </p>
+        ) : null}
+      </section>
+    );
+  }
+
   const c = thesis.thesisCascade;
   if (!c) return null;
 
@@ -28,7 +94,7 @@ export function ThesisFourLevelCascade({ thesis }: { thesis: Thesis }) {
         mispricing lives in the edge map below.)
       </p>
       <ol className="mt-4 space-y-4">
-        {LEVELS.map(({ key, kicker, sub }) => (
+        {LEGACY_LEVELS.map(({ key, kicker, sub }) => (
           <li key={key} className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{kicker}</p>
             <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p>

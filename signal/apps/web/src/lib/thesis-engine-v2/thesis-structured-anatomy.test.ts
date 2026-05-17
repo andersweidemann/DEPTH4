@@ -3,6 +3,7 @@ import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import {
   anatomyFromDraftPayload,
   buildAnatomyFromMacroReasoning,
+  inferAssetFamilyFromSymbolsAndText,
   validateThesisStructuredAnatomy,
 } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import {
@@ -38,6 +39,44 @@ describe("thesis-structured-anatomy", () => {
     });
     expect(v.ok).toBe(true);
     expect(anatomy!.four_level.level3_mispricing).toMatch(/market is still pricing/i);
+  });
+
+  it("classifies SPY political thesis as equity even when Fed/rates appear in narrative", () => {
+    const anatomy = anatomyFromDraftPayload({
+      title: "SPY lags as election gridlock lifts mega-cap policy risk",
+      asset: "SPY",
+      direction: "long",
+      thesis_statement:
+        "Long SPY: election gridlock delays fiscal drag but mega-cap policy risk is still under-owned versus defensive cash piles.",
+      why_now: "Primary season headlines and Fed speak are moving the tape this week.",
+      whats_unpriced:
+        "The market is still pricing a quick Fed pivot while equity risk premium stays compressed on mega-cap policy wins.",
+      trigger_entry_setup: "Add on confirmed policy clarity plus SPY holding above the prior range high.",
+      stop: "Hard fiscal accident or Fed surprise that breaks the index trend.",
+      target: "SPY grinds toward prior highs as policy risk premium fades.",
+      horizon: "4–8 weeks",
+      insider_flow: {
+        bull_instruments: ["SPY"],
+        bear_instruments: ["TLT"],
+        confirm_tags: ["election", "fed"],
+        contradict_tags: ["recession scare"],
+      },
+    });
+    expect(anatomy).not.toBeNull();
+    expect(anatomy!.asset_family).toBe("equity");
+    expect(anatomy!.market_is_pricing.toLowerCase()).toMatch(/market is (still )?pricing/);
+    expect(anatomy!.depth4_edge.toLowerCase()).not.toBe(anatomy!.market_is_pricing.toLowerCase());
+    expect(anatomy!.four_level.level2_mechanism).not.toBe(anatomy!.four_level.level1_narrative);
+  });
+
+  it("inferAssetFamilyFromSymbolsAndText prefers hero ticker over macro words", () => {
+    expect(
+      inferAssetFamilyFromSymbolsAndText(
+        ["SPY"],
+        "Fed rates duration yield CPI FOMC election policy",
+      ),
+    ).toBe("equity");
+    expect(inferAssetFamilyFromSymbolsAndText(["TLT"], "SPY equity rally")).toBe("rates");
   });
 
   it("rejects collapsed mispricing and generic drivers", () => {

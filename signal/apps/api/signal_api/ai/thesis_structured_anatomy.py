@@ -60,16 +60,68 @@ def _norm_list(raw: Any, max_n: int = 8) -> list[str]:
   return out
 
 
-def _infer_asset_family(asset: str, text: str) -> str:
-  sym = asset.upper()
-  if re.search(r"\b(TLT|IEF|SHY|ZB|ZN|TMV)\b", sym):
+def _collect_trade_symbols(draft: dict[str, Any]) -> list[str]:
+  out: list[str] = []
+  asset = _as_str(draft.get("asset")).upper()
+  if asset and asset not in ("—", "-"):
+    out.append(asset)
+  inf = draft.get("insider_flow") if isinstance(draft.get("insider_flow"), dict) else {}
+  direction = _as_str(draft.get("direction")).lower()
+  bulls = [_as_str(x).upper() for x in (inf.get("bull_instruments") or []) if _as_str(x)]
+  bears = [_as_str(x).upper() for x in (inf.get("bear_instruments") or []) if _as_str(x)]
+  ordered = bulls + bears if direction == "long" else bears + bulls if direction == "short" else bulls + bears
+  for sym in ordered:
+    if sym and sym not in out:
+      out.append(sym)
+  return out
+
+
+def _family_from_symbol(sym: str) -> str | None:
+  s = _as_str(sym).upper()
+  if not s:
+    return None
+  if re.search(r"\b(TLT|IEF|SHY|ZB|ZN|TMV)\b", s):
     return "rates"
-  if re.search(r"\b(WTI|USOIL|CL|BRENT|XLE)\b", sym):
+  if re.search(r"\b(WTI|USOIL|CL|BRENT|XLE|USO)\b", s):
     return "oil"
-  if re.search(r"\b(BTC|ETH|BITO|IBIT)\b", sym):
+  if re.search(r"\b(BTC|ETH|BITO|IBIT)\b", s):
     return "crypto"
-  blob = f"{asset} {text}".upper()
-  if re.search(r"\b(TLT|IEF|SHY|ZB|ZN|TMV|RATES|FED|DURATION|YIELD)\b", blob):
+  if re.search(r"\b(LMT|RTX|NOC|GD|ITA)\b", s):
+    return "defense"
+  if re.search(
+    r"\b(SPY|QQQ|IWM|DIA|VOO|VTI|XLK|XLF|XLY|XLP|XLU|XLB|XLI|XLC|ARKK|META|NVDA|AAPL|MSFT|GOOGL|AMZN|TSLA|COIN)\b",
+    s,
+  ):
+    return "equity"
+  if re.search(r"\b(XAU|XAUUSD|GLD|HG|COPPER|GC|SI)\b", s):
+    return "commodities"
+  if re.search(r"\b(DXY|UUP|EURUSD|USDJPY|GBPUSD|FXE|FXY)\b", s):
+    return "fx"
+  return None
+
+
+def _infer_asset_family(symbols: list[str], text: str) -> str:
+  """Symbol-first — macro words in narrative must not override SPY/QQQ hero tickers."""
+  counts: dict[str, int] = {}
+  for sym in symbols:
+    fam = _family_from_symbol(sym)
+    if fam:
+      counts[fam] = counts.get(fam, 0) + 1
+  if symbols and symbols[0]:
+    hero_fam = _family_from_symbol(symbols[0])
+    if hero_fam:
+      return hero_fam
+  if counts:
+    return max(counts, key=counts.get)
+
+  blob = f"{' '.join(symbols)} {text}".upper()
+  if re.search(r"\b(SPY|QQQ|IWM|DIA|EQUITY|STOCK|S&P|NASDAQ|EPS|EARNINGS)\b", blob):
+    return "equity"
+  if re.search(r"\b(TLT|IEF|SHY|ZB|ZN|TMV|RATES|DURATION|YIELD)\b", blob):
+    return "rates"
+  if re.search(r"\b(FED|FOMC|CPI|PCE|PAYROLL)\b", blob) and not re.search(
+    r"\b(SPY|QQQ|STOCK|EQUITY)\b", blob
+  ):
     return "rates"
   if re.search(r"\b(WTI|USOIL|OIL|OPEC|CRUDE|BRENT|XLE|CL)\b", blob):
     return "oil"
@@ -77,9 +129,7 @@ def _infer_asset_family(asset: str, text: str) -> str:
     return "crypto"
   if re.search(r"\b(LMT|RTX|NOC|GD|ITA|DEFENSE|PENTAGON|NATO)\b", blob):
     return "defense"
-  if re.search(r"\b(META|NVDA|QQQ|SPY|AAPL|MSFT|EARNINGS|TECH|DMA)\b", blob):
-    return "equity"
-  if re.search(r"\b(DXY|FX|EURUSD)\b", blob):
+  if re.search(r"\b(DXY|FX|EURUSD|EM FX)\b", blob):
     return "fx"
   if re.search(r"\b(GOLD|XAU|GLD|COPPER|HG|COMMOD)\b", blob):
     return "commodities"
@@ -94,6 +144,46 @@ def _ensure_explicit_mispricing(text: str) -> str:
     return t
   rest = t[0].lower() + t[1:] if t else t
   return f"The market is still pricing {rest}"
+
+
+def _strip_mispricing_lead(text: str) -> str:
+  return re.sub(r"^the market is (still )?pricing\s+", "", _as_str(text), flags=re.I)
+
+
+def _build_mispricing_pair(whats: str, stmt: str) -> tuple[str, str]:
+  wedge = whats if len(whats) > 24 else stmt
+  market = _ensure_explicit_mispricing(
+    whats if len(whats) > 24 else "the first-order headline more than the lagged transmission path"
+  )
+  edge = _strip_mispricing_lead(wedge) or stmt
+  if edge.lower() == market.lower():
+    edge = (
+      "The edge is in the lag between the headline and how positioning and flows reset — "
+      "not in restating the obvious narrative."
+    )
+  return market, edge
+
+
+def _build_distinct_four_level(d: dict[str, Any]) -> dict[str, str]:
+  why = _as_str(d.get("why_now"))
+  stmt = _as_str(d.get("thesis_statement"))
+  whats = _as_str(d.get("whats_unpriced"))
+  l1 = why or stmt
+  l2 = stmt
+  if l2 and l1 and l2[:48] == l1[:48]:
+    l2 = "Transmission runs through flows and positioning once the catalyst in Why now confirms."
+  l3 = whats if len(whats) > 20 else _ensure_explicit_mispricing(
+    "a cleaner path than the messy transmission DEPTH4 expects."
+  )
+  l4 = _as_str(d.get("target")) or _as_str(d.get("horizon"))
+  if l4 and l3 and l4[:40] == l3[:40]:
+    l4 = _as_str(d.get("trigger_entry_setup")) or l4
+  return {
+    "level1_narrative": l1,
+    "level2_mechanism": l2,
+    "level3_mispricing": l3,
+    "level4_resolution": l4,
+  }
 
 
 def _infer_mispricing_type(text: str) -> str:
@@ -113,13 +203,60 @@ def _infer_mispricing_type(text: str) -> str:
   return "other"
 
 
+def reconcile_anatomy(anatomy: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any]:
+  """Tighten LLM/heuristic anatomy without schema changes."""
+  symbols = _collect_trade_symbols(draft)
+  text = " ".join(
+    _as_str(draft.get(k))
+    for k in (
+      "thesis_statement",
+      "why_now",
+      "whats_unpriced",
+      "trigger_entry_setup",
+      "target",
+    )
+  )
+  whats = _as_str(draft.get("whats_unpriced"))
+  stmt = _as_str(draft.get("thesis_statement"))
+  market, edge = _build_mispricing_pair(whats, stmt)
+  refined_four = _build_distinct_four_level(draft)
+  fl = anatomy.get("four_level") if isinstance(anatomy.get("four_level"), dict) else {}
+
+  def pick_level(key: str, refined: str, min_len: int) -> str:
+    inc = _as_str(fl.get(key))
+    if len(inc) < min_len:
+      return refined
+    if inc.lower() == refined.lower():
+      return refined
+    if len(refined) >= 40 and refined.lower() in inc.lower():
+      return refined
+    return inc
+
+  anatomy["asset_family"] = _infer_asset_family(symbols, text)
+  anatomy["market_is_pricing"] = market
+  existing_edge = _strip_mispricing_lead(_as_str(anatomy.get("depth4_edge")))
+  anatomy["depth4_edge"] = existing_edge if len(existing_edge) > 24 and existing_edge.lower() != market.lower() else edge
+  anatomy["four_level"] = {
+    "level1_narrative": pick_level("level1_narrative", refined_four["level1_narrative"], 28),
+    "level2_mechanism": pick_level("level2_mechanism", refined_four["level2_mechanism"], 28),
+    "level3_mispricing": pick_level("level3_mispricing", refined_four["level3_mispricing"], 40),
+    "level4_resolution": pick_level("level4_resolution", refined_four["level4_resolution"], 40),
+  }
+  trigger = _as_str(draft.get("trigger_entry_setup"))
+  if trigger:
+    anatomy["trade_implication"] = trigger
+  anatomy["mispricing_type"] = _infer_mispricing_type(f"{anatomy.get('depth4_edge')} {whats}")
+  return anatomy
+
+
 def build_anatomy_from_draft(d: dict[str, Any]) -> dict[str, Any]:
   """Build or merge `thesis_structured_anatomy` on a normalized draft."""
   nested = d.get("thesis_structured_anatomy")
   if isinstance(nested, dict) and nested.get("four_level"):
-    return nested
+    return reconcile_anatomy(dict(nested), d)
 
   asset = _as_str(d.get("asset")).upper()
+  symbols = _collect_trade_symbols(d)
   text = " ".join(
     _as_str(d.get(k))
     for k in (
@@ -139,34 +276,27 @@ def build_anatomy_from_draft(d: dict[str, Any]) -> dict[str, Any]:
   whats = _as_str(d.get("whats_unpriced"))
   why = _as_str(d.get("why_now"))
   stmt = _as_str(d.get("thesis_statement"))
-  market = _ensure_explicit_mispricing(
-    whats if len(whats) > 24 else "the first-order headline more than the lagged transmission path"
-  )
+  market, edge = _build_mispricing_pair(whats, stmt)
 
-  return {
+  anatomy = {
     "schema_version": 1,
-    "asset_family": _infer_asset_family(asset, text),
+    "asset_family": _infer_asset_family(symbols, text),
     "primary_drivers": _norm_list([stmt[:80], why[:80]], 4),
     "secondary_drivers": _norm_list([_as_str(d.get("horizon"))], 4),
     "mechanism_keywords": mechanism_keywords,
     "noise_categories": ["entertainment", "culture", "sports", "generic_macro_headline"],
     "mispricing_type": _infer_mispricing_type(f"{whats} {stmt}"),
     "market_is_pricing": market,
-    "depth4_edge": whats or stmt,
+    "depth4_edge": edge,
     "resolution_horizon": _as_str(d.get("horizon")) or "weeks to quarters",
     "resolution_path": _as_str(d.get("target")),
     "trade_implication": _as_str(d.get("trigger_entry_setup")),
-    "four_level": {
-      "level1_narrative": why or stmt,
-      "level2_mechanism": stmt,
-      "level3_mispricing": whats
-      or "Consensus embeds a cleaner path than the messy transmission DEPTH4 expects.",
-      "level4_resolution": _as_str(d.get("target")) or _as_str(d.get("horizon")),
-    },
+    "four_level": _build_distinct_four_level(d),
     "primary_mispriced_depth": "depth_3",
     "confirm_signal_hints": mechanism_keywords,
     "generated_at": datetime.now(timezone.utc).isoformat(),
   }
+  return reconcile_anatomy(anatomy, d)
 
 
 def _levels_too_similar(four: dict[str, Any]) -> bool:

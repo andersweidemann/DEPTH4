@@ -97,8 +97,8 @@ const GENERIC_MISPRICING = /\b(market is wrong|could impact|remains to be seen|i
 const MISPRICING_EXPLICIT =
   /\b(market is (still )?pricing|market prices|crowd (still )?embed|futures (still )?price|priced for|mispric|under-?pric|over-?pric|consensus (still )?assumes|not pricing|unpriced)\b/i;
 
-function norm(s: string): string {
-  return s.replace(/\s+/g, " ").trim();
+function norm(s: string | null | undefined): string {
+  return String(s ?? "").replace(/\s+/g, " ").trim();
 }
 
 function normList(raw: unknown, max = 8): string[] {
@@ -114,24 +114,237 @@ function normList(raw: unknown, max = 8): string[] {
   return out;
 }
 
-function inferAssetFamilyFromSymbolsAndText(symbols: string[], text: string): ThesisAnatomyAssetFamily {
-  const symBlob = symbols.join(" ").toUpperCase();
-  if (/\b(TLT|IEF|SHY|ZB|ZN|TMV)\b/.test(symBlob)) return "rates";
-  if (/\b(WTI|USOIL|CL|BRENT|XLE)\b/.test(symBlob)) return "oil";
-  if (/\b(BTC|ETH|BITO|IBIT)\b/.test(symBlob)) return "crypto";
-  if (/\b(LMT|RTX|NOC|GD|ITA)\b/.test(symBlob)) return "defense";
-  if (/\b(META|NVDA|QQQ|SPY|AAPL|MSFT)\b/.test(symBlob)) return "equity";
-  if (/\b(XAU|GLD|HG|COPPER)\b/.test(symBlob)) return "commodities";
+/** Primary + expression tickers in trade-priority order (hero asset first). */
+export function collectPrimaryTradeSymbols(args: {
+  asset?: string | null;
+  bullInstruments?: string[];
+  bearInstruments?: string[];
+  direction?: Thesis["direction"];
+}): string[] {
+  const out: string[] = [];
+  const add = (raw: string) => {
+    const t = norm(raw).toUpperCase();
+    if (!t || t === "—" || t === "-") return;
+    if (!out.includes(t)) out.push(t);
+  };
+  add(args.asset ?? "");
+  const bulls = args.bullInstruments ?? [];
+  const bears = args.bearInstruments ?? [];
+  if (args.direction === "long") {
+    bulls.forEach(add);
+    bears.forEach(add);
+  } else if (args.direction === "short") {
+    bears.forEach(add);
+    bulls.forEach(add);
+  } else {
+    [...bulls, ...bears].forEach(add);
+  }
+  return out;
+}
 
-  const blob = `${symBlob} ${text}`.toUpperCase();
-  if (/\b(TLT|IEF|SHY|ZB|ZN|TMV|RATES|FED|DURATION|YIELD)\b/.test(blob)) return "rates";
+function assetFamilyFromSymbol(sym: string): ThesisAnatomyAssetFamily | null {
+  const s = norm(sym).toUpperCase();
+  if (!s) return null;
+  if (/\b(TLT|IEF|SHY|ZB|ZN|TMV)\b/.test(s)) return "rates";
+  if (/\b(WTI|USOIL|CL|BRENT|XLE|USO)\b/.test(s)) return "oil";
+  if (/\b(BTC|ETH|BITO|IBIT)\b/.test(s)) return "crypto";
+  if (/\b(LMT|RTX|NOC|GD|ITA)\b/.test(s)) return "defense";
+  if (/\b(SPY|QQQ|IWM|DIA|VOO|VTI|XLK|XLF|XLY|XLP|XLE|XLU|XLB|XLI|XLC|ARKK|META|NVDA|AAPL|MSFT|GOOGL|AMZN|TSLA|COIN)\b/.test(s)) {
+    return "equity";
+  }
+  if (/\b(XAU|XAUUSD|GLD|HG|COPPER|GC|SI)\b/.test(s)) return "commodities";
+  if (/\b(DXY|UUP|EURUSD|USDJPY|GBPUSD|FXE|FXY)\b/.test(s)) return "fx";
+  return null;
+}
+
+function dominantSymbolFamily(symbols: string[]): ThesisAnatomyAssetFamily | null {
+  const counts = new Map<ThesisAnatomyAssetFamily, number>();
+  for (const sym of symbols) {
+    const fam = assetFamilyFromSymbol(sym);
+    if (!fam) continue;
+    counts.set(fam, (counts.get(fam) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+  const heroFam = symbols[0] ? assetFamilyFromSymbol(symbols[0]) : null;
+  if (heroFam && (counts.get(heroFam) ?? 0) >= 1) return heroFam;
+  let best: ThesisAnatomyAssetFamily = "other";
+  let bestN = 0;
+  for (const [fam, n] of counts) {
+    if (n > bestN) {
+      best = fam;
+      bestN = n;
+    }
+  }
+  return best;
+}
+
+/** Symbol-first inference — narrative macro words (Fed, rates) must not override SPY/QQQ hero tickers. */
+export function inferAssetFamilyFromSymbolsAndText(symbols: string[], text: string): ThesisAnatomyAssetFamily {
+  const fromSymbols = dominantSymbolFamily(symbols);
+  if (fromSymbols) return fromSymbols;
+
+  const blob = `${symbols.join(" ")} ${text}`.toUpperCase();
+  if (/\b(SPY|QQQ|IWM|DIA|EQUITY|STOCK|S&P|NASDAQ|EPS|EARNINGS)\b/.test(blob)) return "equity";
+  if (/\b(TLT|IEF|SHY|ZB|ZN|TMV|RATES|DURATION|YIELD)\b/.test(blob)) return "rates";
+  if (/\b(FED|FOMC|CPI|PCE|PAYROLL)\b/.test(blob) && !/\b(SPY|QQQ|STOCK|EQUITY)\b/.test(blob)) return "rates";
   if (/\b(WTI|USOIL|OIL|OPEC|CRUDE|BRENT|XLE|CL)\b/.test(blob)) return "oil";
   if (/\b(BTC|ETH|BITO|CRYPTO|BITCOIN)\b/.test(blob)) return "crypto";
   if (/\b(LMT|RTX|NOC|GD|ITA|DEFENSE|PENTAGON|NATO)\b/.test(blob)) return "defense";
-  if (/\b(META|NVDA|QQQ|SPY|AAPL|MSFT|EARNINGS|TECH|DMA)\b/.test(blob)) return "equity";
   if (/\b(DXY|FX|EURUSD|EM FX)\b/.test(blob)) return "fx";
   if (/\b(GOLD|XAU|GLD|COPPER|HG|COMMOD)\b/.test(blob)) return "commodities";
   return "other";
+}
+
+/** Human label for the main trade expression on the thesis page. */
+export function primaryTradeSymbolFromThesis(thesis: Pick<Thesis, "asset" | "direction" | "insiderFlow">): string {
+  const symbols = collectPrimaryTradeSymbols({
+    asset: thesis.asset,
+    bullInstruments: thesis.insiderFlow?.bullInstruments,
+    bearInstruments: thesis.insiderFlow?.bearInstruments,
+    direction: thesis.direction,
+  });
+  return symbols[0] ?? (norm(thesis.asset).toUpperCase() || "—");
+}
+
+function stripMispricingLead(text: string): string {
+  return norm(text).replace(/^the market is (still )?pricing\s+/i, "");
+}
+
+function buildMispricingPair(whats: string, stmt: string): { market_is_pricing: string; depth4_edge: string } {
+  const wedge = whats.length > 24 ? whats : stmt;
+  const market_is_pricing = ensureExplicitMispricingPhrase(
+    whats.length > 24 ? whats : "the first-order headline more than the lagged transmission path",
+  );
+  let depth4_edge = wedge;
+  const stripped = stripMispricingLead(wedge);
+  if (stripped.length > 20 && stripped.toLowerCase() !== stripMispricingLead(market_is_pricing).toLowerCase()) {
+    depth4_edge = stripped;
+  } else if (stmt.length > 24 && stmt.toLowerCase() !== market_is_pricing.toLowerCase()) {
+    depth4_edge = stmt;
+  } else {
+    depth4_edge =
+      "The edge is in the lag between the headline and how positioning and flows actually reset — not in restating the obvious narrative.";
+  }
+  if (depth4_edge.toLowerCase() === market_is_pricing.toLowerCase()) {
+    depth4_edge = stripped.length > 20 ? stripped : depth4_edge;
+  }
+  return { market_is_pricing, depth4_edge };
+}
+
+function buildDistinctFourLevel(input: {
+  why: string;
+  stmt: string;
+  whats: string;
+  trigger: string;
+  target: string;
+  trade: string;
+  hiddenDriver?: string;
+  likelyPath?: string;
+  tradeExpression?: string;
+  horizon?: string;
+}): ThesisFourLevelSemantic {
+  const l1 = norm(input.why) || norm(input.stmt);
+  let l2 = norm(input.hiddenDriver) || norm(input.likelyPath) || norm(input.stmt);
+  if (l2 && l1 && l2.slice(0, 48) === l1.slice(0, 48)) {
+    l2 = "Transmission runs through flows and positioning once the catalyst in Why now confirms.";
+  }
+  const l3raw = norm(input.whats);
+  const l3 =
+    l3raw.length > 20
+      ? l3raw
+      : ensureExplicitMispricingPhrase("a cleaner path than the messy transmission DEPTH4 expects.");
+  let l4 =
+    norm(input.target) || norm(input.trade) || norm(input.tradeExpression) || norm(input.horizon);
+  if (l4 && l3 && l4.slice(0, 40) === l3.slice(0, 40)) {
+    l4 = norm(input.trigger) || norm(input.horizon) || l4;
+  }
+  return {
+    level1_narrative: l1,
+    level2_mechanism: l2,
+    level3_mispricing: l3,
+    level4_resolution: l4,
+  };
+}
+
+export type AnatomySemanticContext = {
+  asset?: string;
+  direction?: Thesis["direction"];
+  bullInstruments?: string[];
+  bearInstruments?: string[];
+  thesis_statement?: string;
+  why_now?: string;
+  whats_unpriced?: string;
+  trigger_entry_setup?: string;
+  target?: string;
+  horizon?: string;
+  trade?: string;
+  hidden_driver?: string;
+  likely_path?: string;
+  trade_expression?: string;
+};
+
+/** Tighten LLM/heuristic anatomy: asset family, mispricing split, distinct 4-L. */
+export function applyAnatomySemantics(
+  anatomy: ThesisStructuredAnatomy,
+  ctx: AnatomySemanticContext,
+): ThesisStructuredAnatomy {
+  const symbols = collectPrimaryTradeSymbols({
+    asset: ctx.asset,
+    bullInstruments: ctx.bullInstruments,
+    bearInstruments: ctx.bearInstruments,
+    direction: ctx.direction,
+  });
+  const text = [ctx.thesis_statement, ctx.why_now, ctx.whats_unpriced, ctx.trigger_entry_setup, ctx.target]
+    .map((x) => String(x ?? ""))
+    .join(" ");
+  const stmt = norm(ctx.thesis_statement ?? "");
+  const why = norm(ctx.why_now ?? "");
+  const whats = norm(ctx.whats_unpriced ?? "");
+  const mispricing = buildMispricingPair(whats, stmt);
+  const four = buildDistinctFourLevel({
+    why,
+    stmt,
+    whats,
+    trigger: norm(ctx.trigger_entry_setup ?? ""),
+    target: norm(ctx.target ?? ""),
+    trade: norm(ctx.trade ?? ""),
+    hiddenDriver: norm(ctx.hidden_driver ?? ""),
+    likelyPath: norm(ctx.likely_path ?? ""),
+    tradeExpression: norm(ctx.trade_expression ?? ""),
+    horizon: norm(ctx.horizon ?? ""),
+  });
+  const pickLevel = (incoming: string, refined: string, minLen: number): string => {
+    const inc = norm(incoming);
+    if (inc.length < minLen) return refined;
+    const rLow = refined.toLowerCase();
+    const iLow = inc.toLowerCase();
+    if (iLow === rLow || (rLow.length >= 40 && rLow.includes(iLow.slice(0, Math.min(48, iLow.length))))) {
+      return refined;
+    }
+    return inc;
+  };
+
+  const flIn = anatomy.four_level;
+
+  return {
+    ...anatomy,
+    asset_family: inferAssetFamilyFromSymbolsAndText(symbols, text),
+    market_is_pricing: mispricing.market_is_pricing,
+    depth4_edge:
+      anatomy.depth4_edge.length > 24 && anatomy.depth4_edge.toLowerCase() !== mispricing.market_is_pricing.toLowerCase()
+        ? stripMispricingLead(anatomy.depth4_edge) || mispricing.depth4_edge
+        : mispricing.depth4_edge,
+    trade_implication:
+      norm(ctx.trigger_entry_setup ?? "") ||
+      (anatomy.trade_implication.length > 12 ? anatomy.trade_implication : norm(ctx.trade_expression ?? "")),
+    four_level: {
+      level1_narrative: pickLevel(flIn.level1_narrative, four.level1_narrative, 28),
+      level2_mechanism: pickLevel(flIn.level2_mechanism, four.level2_mechanism, 28),
+      level3_mispricing: pickLevel(flIn.level3_mispricing, four.level3_mispricing, 40),
+      level4_resolution: pickLevel(flIn.level4_resolution, four.level4_resolution, 40),
+    },
+    mispricing_type: inferMispricingType(`${mispricing.depth4_edge} ${whats}`),
+  };
 }
 
 function mapCascadeToFourLevel(cascade: Thesis["thesisCascade"] | undefined): ThesisFourLevelSemantic | null {
@@ -223,23 +436,33 @@ export function parseThesisStructuredAnatomy(raw: unknown): ThesisStructuredAnat
   };
 }
 
+function anatomyContextFromDraft(raw: Record<string, unknown>): AnatomySemanticContext {
+  const inf =
+    raw.insider_flow && typeof raw.insider_flow === "object" ? (raw.insider_flow as Record<string, unknown>) : {};
+  return {
+    asset: String(raw.asset ?? ""),
+    direction: raw.direction === "short" ? "short" : raw.direction === "long" ? "long" : "watch",
+    bullInstruments: Array.isArray(inf.bull_instruments)
+      ? inf.bull_instruments.map((x) => String(x))
+      : [],
+    bearInstruments: Array.isArray(inf.bear_instruments)
+      ? inf.bear_instruments.map((x) => String(x))
+      : [],
+    thesis_statement: String(raw.thesis_statement ?? ""),
+    why_now: String(raw.why_now ?? ""),
+    whats_unpriced: String(raw.whats_unpriced ?? ""),
+    trigger_entry_setup: String(raw.trigger_entry_setup ?? ""),
+    target: String(raw.target ?? ""),
+    horizon: String(raw.horizon ?? ""),
+  };
+}
+
 export function anatomyFromDraftPayload(raw: Record<string, unknown>): ThesisStructuredAnatomy | null {
+  const ctx = anatomyContextFromDraft(raw);
   const nested = raw.thesis_structured_anatomy ?? raw.structured_anatomy;
   const parsed = parseThesisStructuredAnatomy(nested);
-  if (parsed) return parsed;
+  if (parsed) return applyAnatomySemantics(parsed, ctx);
 
-  const asset = norm(String(raw.asset ?? "")).toUpperCase();
-  const symbols = asset && asset !== "—" ? [asset] : [];
-  const text = [
-    raw.thesis_statement,
-    raw.why_now,
-    raw.whats_unpriced,
-    raw.trigger_entry_setup,
-    raw.target,
-  ]
-    .map((x) => String(x ?? ""))
-    .join(" ");
-  const family = inferAssetFamilyFromSymbolsAndText(symbols, text);
   const inf =
     raw.insider_flow && typeof raw.insider_flow === "object" ? (raw.insider_flow as Record<string, unknown>) : {};
   const mechanism_keywords = normList(
@@ -252,46 +475,69 @@ export function anatomyFromDraftPayload(raw: Record<string, unknown>): ThesisStr
   const whats = norm(String(raw.whats_unpriced ?? ""));
   const why = norm(String(raw.why_now ?? ""));
   const stmt = norm(String(raw.thesis_statement ?? ""));
-  const market = ensureExplicitMispricingPhrase(
-    whats.length > 24 ? whats : "the first-order headline more than the lagged transmission path",
-  );
-  const edge = whats.length > 24 ? whats : stmt;
+  const mispricing = buildMispricingPair(whats, stmt);
+  const symbols = collectPrimaryTradeSymbols({
+    asset: ctx.asset,
+    bullInstruments: ctx.bullInstruments,
+    bearInstruments: ctx.bearInstruments,
+    direction: ctx.direction,
+  });
+  const text = [stmt, why, whats, ctx.trigger_entry_setup, ctx.target].join(" ");
 
-  const four: ThesisFourLevelSemantic = {
-    level1_narrative: why || stmt,
-    level2_mechanism: stmt,
-    level3_mispricing: whats || "Consensus embeds a cleaner path than the messy transmission DEPTH4 expects.",
-    level4_resolution: norm(String(raw.target ?? raw.horizon ?? "")),
-  };
-
-  return {
+  const shell: ThesisStructuredAnatomy = {
     schema_version: THESIS_STRUCTURED_ANATOMY_VERSION,
-    asset_family: family,
+    asset_family: inferAssetFamilyFromSymbolsAndText(symbols, text),
     primary_drivers: normList([stmt.slice(0, 80), why.slice(0, 80)].filter((x) => x.length > 8)),
     secondary_drivers: normList([norm(String(raw.horizon ?? ""))]),
     mechanism_keywords,
     noise_categories: ["entertainment", "culture", "sports", "generic_macro_headline"],
     mispricing_type: inferMispricingType(`${whats} ${stmt}`),
-    market_is_pricing: market,
-    depth4_edge: edge,
+    market_is_pricing: mispricing.market_is_pricing,
+    depth4_edge: mispricing.depth4_edge,
     resolution_horizon: norm(String(raw.horizon ?? "weeks to quarters")),
     resolution_path: norm(String(raw.target ?? "")),
     trade_implication: norm(String(raw.trigger_entry_setup ?? "")),
-    four_level: four,
+    four_level: buildDistinctFourLevel({
+      why,
+      stmt,
+      whats,
+      trigger: norm(String(raw.trigger_entry_setup ?? "")),
+      target: norm(String(raw.target ?? "")),
+      trade: "",
+      horizon: norm(String(raw.horizon ?? "")),
+    }),
     primary_mispriced_depth: "depth_3",
     confirm_signal_hints: mechanism_keywords,
     generated_at: new Date().toISOString(),
   };
+  return applyAnatomySemantics(shell, ctx);
 }
 
 export function buildAnatomyFromThesis(thesis: Thesis): ThesisStructuredAnatomy {
-  if (thesis.structuredAnatomy) return thesis.structuredAnatomy;
+  const ctx: AnatomySemanticContext = {
+    asset: thesis.asset,
+    direction: thesis.direction,
+    bullInstruments: thesis.insiderFlow?.bullInstruments,
+    bearInstruments: thesis.insiderFlow?.bearInstruments,
+    thesis_statement: thesis.thesisStatement,
+    why_now: thesis.whyNow,
+    whats_unpriced: thesis.whatsUnpriced,
+    trigger_entry_setup: thesis.trigger,
+    target: thesis.target1,
+    horizon: thesis.horizon,
+    trade: thesis.trade,
+    hidden_driver: thesis.hiddenDriver,
+    likely_path: thesis.likelyPath,
+    trade_expression: thesis.tradeExpression,
+  };
+  if (thesis.structuredAnatomy) return applyAnatomySemantics(thesis.structuredAnatomy, ctx);
 
-  const symbols = [
-    ...(thesis.insiderFlow?.bullInstruments ?? []),
-    ...(thesis.insiderFlow?.bearInstruments ?? []),
-    thesis.asset,
-  ].filter(Boolean);
+  const symbols = collectPrimaryTradeSymbols({
+    asset: thesis.asset,
+    bullInstruments: thesis.insiderFlow?.bullInstruments,
+    bearInstruments: thesis.insiderFlow?.bearInstruments,
+    direction: thesis.direction,
+  });
   const text = [
     thesis.title,
     thesis.thesisStatement,
@@ -302,14 +548,23 @@ export function buildAnatomyFromThesis(thesis: Thesis): ThesisStructuredAnatomy 
   ].join(" ");
 
   const fourFromCascade = mapCascadeToFourLevel(thesis.thesisCascade);
-  const four = fourFromCascade ?? {
-    level1_narrative: norm(thesis.whyNow || thesis.thesisStatement),
-    level2_mechanism: norm(thesis.hiddenDriver || thesis.likelyPath),
-    level3_mispricing: norm(thesis.whatsUnpriced || thesis.marketMisread),
-    level4_resolution: norm(thesis.trade || thesis.horizon),
-  };
+  const mispricing = buildMispricingPair(norm(thesis.whatsUnpriced), norm(thesis.thesisStatement));
+  const four =
+    fourFromCascade ??
+    buildDistinctFourLevel({
+      why: thesis.whyNow,
+      stmt: thesis.thesisStatement,
+      whats: thesis.whatsUnpriced,
+      trigger: thesis.trigger,
+      target: thesis.target1 ?? "",
+      trade: thesis.trade,
+      hiddenDriver: thesis.hiddenDriver,
+      likelyPath: thesis.likelyPath,
+      tradeExpression: thesis.tradeExpression,
+      horizon: thesis.horizon,
+    });
 
-  return {
+  const shell: ThesisStructuredAnatomy = {
     schema_version: THESIS_STRUCTURED_ANATOMY_VERSION,
     asset_family: inferAssetFamilyFromSymbolsAndText(symbols, text),
     primary_drivers: normList([thesis.thesisStatement, thesis.hiddenDriver].filter(Boolean)),
@@ -320,8 +575,10 @@ export function buildAnatomyFromThesis(thesis: Thesis): ThesisStructuredAnatomy 
     ]),
     noise_categories: ["entertainment", "culture", "sports", "generic_macro_headline"],
     mispricing_type: inferMispricingType(`${thesis.whatsUnpriced} ${thesis.thesisStatement}`),
-    market_is_pricing: norm(thesis.marketMisread || "Crowd still prices the first headline more than the lagged path."),
-    depth4_edge: norm(thesis.whatsUnpriced || thesis.thesisStatement),
+    market_is_pricing: thesis.marketMisread.trim()
+      ? ensureExplicitMispricingPhrase(thesis.marketMisread)
+      : mispricing.market_is_pricing,
+    depth4_edge: mispricing.depth4_edge,
     resolution_horizon: norm(thesis.horizon),
     resolution_path: norm(thesis.likelyPath || thesis.trade),
     trade_implication: norm(thesis.tradeExpression || thesis.trade),
@@ -330,6 +587,7 @@ export function buildAnatomyFromThesis(thesis: Thesis): ThesisStructuredAnatomy 
     confirm_signal_hints: thesis.insiderFlow?.confirmTags ?? [],
     generated_at: new Date().toISOString(),
   };
+  return applyAnatomySemantics(shell, ctx);
 }
 
 /** Mechanism hints from macro reasoning fields (no `confirm_tags` on {@link MacroEventReasoning}). */
@@ -372,7 +630,7 @@ export function buildAnatomyFromMacroReasoning(args: {
   const symbols = args.assetSymbols ?? [];
   const family = inferAssetFamilyFromSymbolsAndText(symbols, `${hero} ${r.mispricing_hypothesis ?? ""}`);
 
-  return {
+  const shell: ThesisStructuredAnatomy = {
     schema_version: THESIS_STRUCTURED_ANATOMY_VERSION,
     asset_family: family,
     primary_drivers: normList([hero, r.event_summary ?? ""].filter(Boolean)),
@@ -392,6 +650,14 @@ export function buildAnatomyFromMacroReasoning(args: {
     confirm_signal_hints: mechanismKeywords,
     generated_at: new Date().toISOString(),
   };
+  return applyAnatomySemantics(shell, {
+    asset: symbols[0],
+    bullInstruments: symbols,
+    thesis_statement: hero,
+    whats_unpriced: r.mispricing_hypothesis ?? "",
+    trade_expression: r.thesis_trade_line ?? "",
+    target: r.thesis_trade_line ?? "",
+  });
 }
 
 function levelBodiesTooSimilar(four: ThesisFourLevelSemantic): boolean {

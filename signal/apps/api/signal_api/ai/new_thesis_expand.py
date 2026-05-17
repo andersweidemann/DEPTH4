@@ -85,7 +85,7 @@ SCHEMA (exact keys):
     "contradict_tags": ["tags that kill/weaken thesis"]
   },
   "thesis_structured_anatomy": {
-    "asset_family": "rates|oil|crypto|defense|equity|fx|commodities|other",
+    "asset_family": "rates|oil|crypto|defense|equity|fx|commodities|other — MUST match the primary trade ticker in asset (SPY/QQQ→equity, TLT→rates, BTC→crypto; do not label equity theses rates just because Fed/rates appear in the narrative)",
     "primary_drivers": ["2–4 concrete driver phrases — not 'macro' or 'sentiment'"],
     "secondary_drivers": ["optional supporting drivers"],
     "mechanism_keywords": ["tags/keywords that should move this thesis"],
