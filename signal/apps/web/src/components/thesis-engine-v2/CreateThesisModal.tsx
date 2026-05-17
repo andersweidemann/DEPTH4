@@ -78,7 +78,10 @@ function buildUserThesis(form: FormState): Thesis {
   const s = scoreFromProb(p);
   const title = form.title.trim();
   const baseSlug = slugify(title || "user-thesis");
-  const nowId = `user-${Date.now().toString(36)}`;
+  const nowId =
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `user-${Date.now().toString(36)}`;
   const asset = form.asset.trim().toUpperCase();
 
   const tradeLine = form.entrySetup || form.stop || form.target

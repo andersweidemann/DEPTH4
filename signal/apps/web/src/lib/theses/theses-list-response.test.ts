@@ -110,6 +110,22 @@ describe("theses-list-response helpers", () => {
     expect(computeDetailResolvableForListRow(catalog!, set)).toBe(true);
   });
 
+  it("DB-backed user thesis with client-style id is detailResolvable (list link)", () => {
+    const slug = "gold-peace-fade-m1abc2";
+    const user = baseThesis({
+      id: "user-m1abc2",
+      slug,
+      thesisOrigin: "user",
+      status: "watching",
+    });
+    const set = buildDetailResolvableSlugSet([], [user]);
+    expect(computeDetailResolvableForListRow(user, set)).toBe(true);
+    const partition = partitionHomeBuckets([user]);
+    const item = thesisListItemFromEngine(user, false, null, partition, set);
+    expect(item.detailResolvable).toBe(true);
+    expect(item.slug).toBe(slug);
+  });
+
   it("listRowWhyNowLine falls back to oneLineSummary then microLabel then thesisStatement", () => {
     expect(listRowWhyNowLine(baseThesis({ whyNow: "  Live edge  ", oneLineSummary: "" }))).toBe("Live edge");
     expect(

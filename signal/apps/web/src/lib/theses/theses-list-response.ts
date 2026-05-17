@@ -87,15 +87,20 @@ export function buildDetailResolvableSlugSet(aiTheses: EngineThesis[], userThese
 
 /**
  * List clickability guard: slug must be in the conservative set and the row must be catalog-backed
- * or a DB `ai_generated` / `user` thesis (UUID id + origin).
+ * or a DB-backed `ai_generated` / `user` thesis.
+ *
+ * User rows may use client ids (`user-…`) from CreateThesisModal; only `ai_generated` requires a UUID
+ * so ghost emerging slugs without a real DB row stay non-clickable.
  */
 export function computeDetailResolvableForListRow(t: EngineThesis, resolvableSlugSet: Set<string>): boolean {
   const slug = t.slug.trim();
   if (!slug || !resolvableSlugSet.has(slug)) return false;
   if (isCatalogThesisId(t.id)) return true;
   const id = t.id.trim();
-  if (!DB_THESIS_ID_RE.test(id)) return false;
-  return t.thesisOrigin === "ai_generated" || t.thesisOrigin === "user";
+  if (!id) return false;
+  if (t.thesisOrigin === "user") return true;
+  if (t.thesisOrigin === "ai_generated" && DB_THESIS_ID_RE.test(id)) return true;
+  return false;
 }
 
 function engineThesisToListItem(
