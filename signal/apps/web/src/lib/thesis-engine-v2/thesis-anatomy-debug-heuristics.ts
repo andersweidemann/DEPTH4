@@ -1,4 +1,4 @@
-import type { Thesis, RelatedAsset } from "@/lib/thesis-engine-v2/types";
+import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import {
   applyAnatomySemantics,
   primaryTradeSymbolFromThesis,
