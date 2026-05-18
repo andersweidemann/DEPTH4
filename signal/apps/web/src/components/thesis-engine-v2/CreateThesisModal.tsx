@@ -424,6 +424,7 @@ type AiDraftFormPatch = Pick<
   | "bearInstruments"
   | "confirmTags"
   | "contradictTags"
+  | "incentiveAnalysis"
 >;
 
 function scenBlock(o: unknown): { probability: number; confirms: string; consequence: string } {
