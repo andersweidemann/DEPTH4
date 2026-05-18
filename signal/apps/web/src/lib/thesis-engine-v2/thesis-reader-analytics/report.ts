@@ -92,7 +92,7 @@ export async function fetchReaderAnalyticsReport(days = 30): Promise<{
     for (const e of human) {
       sourceCounts.set(e.source_bucket, (sourceCounts.get(e.source_bucket) ?? 0) + 1);
     }
-    const topSources = [...sourceCounts.entries()]
+    const topSources = Array.from(sourceCounts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([bucket, count]) => ({ bucket, count }));
@@ -145,7 +145,7 @@ export async function fetchReaderAnalyticsDaily(
     byDate.set(d, bucket);
   }
 
-  return [...byDate.entries()]
+  return Array.from(byDate.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, v]) => ({
       date,
