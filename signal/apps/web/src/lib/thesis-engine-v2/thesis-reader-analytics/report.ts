@@ -160,7 +160,6 @@ export async function fetchReaderAnalyticsReport(options: {
   const svc = createServiceRoleClient();
   const since = new Date(Date.now() - days * 24 * 60 * 60_000).toISOString();
   const sinceDate = since.slice(0, 10);
-  const serviceRoleConfigured = svc != null;
 
   if (!svc) {
     const ops = getReaderAnalyticsOpsState();
