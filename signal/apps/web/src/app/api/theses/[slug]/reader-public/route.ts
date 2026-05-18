@@ -3,19 +3,12 @@ import { isDepth4ElevatedUser } from "@/lib/depth4-elevated-access";
 import { createClient } from "@/lib/supabase/server";
 import {
   canManageThesisReaderPublic,
-  ensureThesisRowForCatalogSlug,
-  fetchThesisReaderPublicRow,
+  resolveThesisReaderPublicRow,
   setThesisReaderPublic,
 } from "@/lib/thesis-engine-v2/thesis-reader-public";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-async function resolveRow(slug: string) {
-  let row = await fetchThesisReaderPublicRow(slug);
-  if (!row) row = await ensureThesisRowForCatalogSlug(slug);
-  return row;
-}
 
 function publishingContext(user: { id: string; email?: string | null }) {
   return {
@@ -28,7 +21,7 @@ export async function GET(_req: NextRequest, context: { params: { slug: string }
   const slug = context.params.slug?.trim() ?? "";
   if (!slug) return NextResponse.json({ error: "invalid_slug" }, { status: 400 });
 
-  const row = await resolveRow(slug);
+  const row = await resolveThesisReaderPublicRow(slug);
   if (!row) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
   const supabase = await createClient();

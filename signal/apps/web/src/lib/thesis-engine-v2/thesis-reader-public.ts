@@ -32,19 +32,8 @@ export function isPublicReaderViewApiPath(pathname: string): boolean {
   return /^\/api\/theses\/[^/]+\/reader-view\/?$/.test(p);
 }
 
-export async function fetchThesisReaderPublicRow(slug: string): Promise<ThesisReaderPublicRow | null> {
-  const s = slug.trim();
-  if (!s) return null;
-  const svc = createServiceRoleClient();
-  if (!svc) return null;
-
-  const { data, error } = await svc
-    .from("theses")
-    .select("id, slug, reader_public_enabled, owner_user_id, thesis_origin")
-    .eq("slug", s)
-    .maybeSingle();
-
-  if (error || !data) return null;
+export function parseThesisReaderPublicRow(data: unknown): ThesisReaderPublicRow | null {
+  if (!data || typeof data !== "object") return null;
   const row = data as Record<string, unknown>;
   const id = typeof row.id === "string" ? row.id : "";
   if (!id) return null;
@@ -57,18 +46,60 @@ export async function fetchThesisReaderPublicRow(slug: string): Promise<ThesisRe
   };
 }
 
-export async function isThesisReaderPublic(slug: string): Promise<boolean> {
-  const row = await fetchThesisReaderPublicRow(slug);
-  return row?.reader_public_enabled === true;
+/**
+ * When multiple rows share a slug, prefer `reader_public_enabled` then newest `updated_at`.
+ * Used in tests; production fetch uses the same ordering in SQL + `limit(1)`.
+ */
+export function pickThesisReaderPublicRowFromDbRows(rows: unknown[]): ThesisReaderPublicRow | null {
+  const ranked = rows
+    .map((raw) => ({
+      raw: raw as Record<string, unknown>,
+      parsed: parseThesisReaderPublicRow(raw),
+    }))
+    .filter((x): x is { raw: Record<string, unknown>; parsed: ThesisReaderPublicRow } => x.parsed != null)
+    .sort((a, b) => {
+      const pubA = a.parsed.reader_public_enabled ? 1 : 0;
+      const pubB = b.parsed.reader_public_enabled ? 1 : 0;
+      if (pubB !== pubA) return pubB - pubA;
+      const ta = typeof a.raw.updated_at === "string" ? Date.parse(a.raw.updated_at) : 0;
+      const tb = typeof b.raw.updated_at === "string" ? Date.parse(b.raw.updated_at) : 0;
+      return tb - ta;
+    });
+  return ranked[0]?.parsed ?? null;
 }
 
-export type SetThesisReaderPublicResult = "ok" | "not_found" | "forbidden";
+export async function fetchThesisReaderPublicRow(slug: string): Promise<ThesisReaderPublicRow | null> {
+  const s = slug.trim();
+  if (!s) return null;
+  const svc = createServiceRoleClient();
+  if (!svc) return null;
 
-async function resolveThesisReaderPublicRow(slug: string): Promise<ThesisReaderPublicRow | null> {
+  const { data, error } = await svc
+    .from("theses")
+    .select("id, slug, reader_public_enabled, owner_user_id, thesis_origin, updated_at")
+    .eq("slug", s)
+    .order("reader_public_enabled", { ascending: false })
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  if (error) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  return parseThesisReaderPublicRow(row);
+}
+
+/** DB row + catalog ensure fallback — shared by `/read` and `reader-public` API. */
+export async function resolveThesisReaderPublicRow(slug: string): Promise<ThesisReaderPublicRow | null> {
   const existing = await fetchThesisReaderPublicRow(slug);
   if (existing) return existing;
   return ensureThesisRowForCatalogSlug(slug);
 }
+
+export async function isThesisReaderPublic(slug: string): Promise<boolean> {
+  const row = await resolveThesisReaderPublicRow(slug);
+  return row?.reader_public_enabled === true;
+}
+
+export type SetThesisReaderPublicResult = "ok" | "not_found" | "forbidden";
 
 async function auditReaderPublicChange(
   row: ThesisReaderPublicRow,
@@ -136,7 +167,8 @@ export { canManageThesisReaderPublic } from "@/lib/thesis-engine-v2/thesis-reade
  * Service-role load — never exposed to client except rendered reader fields.
  */
 export async function loadPublicThesisReaderBundle(slug: string): Promise<ThesisDetailBundle | null> {
-  if (!(await isThesisReaderPublic(slug))) return null;
+  const publicRow = await resolveThesisReaderPublicRow(slug);
+  if (!publicRow?.reader_public_enabled) return null;
 
   const svc = createServiceRoleClient();
   if (!svc) return null;
@@ -153,17 +185,19 @@ export async function loadPublicThesisReaderBundle(slug: string): Promise<Thesis
     )
     .eq("slug", slug)
     .eq("reader_public_enabled", true)
-    .maybeSingle();
+    .order("updated_at", { ascending: false })
+    .limit(1);
 
-  if (error || !data) return null;
+  const dataRow = Array.isArray(data) ? data[0] : data;
+  if (error || !dataRow) return null;
 
-  const thesis = userThesisFromSupabaseRow(data as Parameters<typeof userThesisFromSupabaseRow>[0]);
+  const thesis = userThesisFromSupabaseRow(dataRow as Parameters<typeof userThesisFromSupabaseRow>[0]);
   const parsed = parseScenarioProbabilities(
-    (data as { scenario_probabilities?: unknown }).scenario_probabilities,
+    (dataRow as { scenario_probabilities?: unknown }).scenario_probabilities,
   );
   let bundle = bundleForUserThesis(thesis, { scenarioProbabilitiesFromDb: parsed != null });
 
-  const body = (data as { body?: unknown }).body;
+  const body = (dataRow as { body?: unknown }).body;
   if (body != null) {
     const merged = mergeDbBodyIntoThesis(bundle.thesis, body);
     bundle = { ...bundle, thesis: merged };

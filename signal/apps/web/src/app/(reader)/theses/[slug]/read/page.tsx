@@ -4,7 +4,10 @@ import { ThesisSlugDetailPage } from "@/components/thesis-engine-v2/ThesisSlugDe
 import { ThesisReaderView } from "@/components/thesis-engine-v2/ThesisReaderView";
 import { ReaderAuthGate, PrivateThesisReaderLoginPrompt } from "@/components/thesis-engine-v2/ReaderAuthGate";
 import { buildThesisReaderPageMetadata } from "@/lib/thesis-engine-v2/thesis-reader-metadata";
-import { isThesisReaderPublic, loadPublicThesisReaderBundle } from "@/lib/thesis-engine-v2/thesis-reader-public";
+import {
+  loadPublicThesisReaderBundle,
+  resolveThesisReaderPublicRow,
+} from "@/lib/thesis-engine-v2/thesis-reader-public";
 import { recordPublicReaderView } from "@/lib/thesis-engine-v2/thesis-reader-analytics/record";
 import { createClient } from "@/lib/supabase/server";
 
@@ -23,7 +26,8 @@ export default async function ThesisReaderRoutePage({ params }: Props) {
   const slug = params.slug?.trim() ?? "";
   if (!slug) notFound();
 
-  const isPublic = await isThesisReaderPublic(slug);
+  const publicRow = await resolveThesisReaderPublicRow(slug);
+  const isPublic = publicRow?.reader_public_enabled === true;
 
   if (isPublic) {
     const bundle = await loadPublicThesisReaderBundle(slug);
