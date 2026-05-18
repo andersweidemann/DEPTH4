@@ -166,7 +166,7 @@ const handlers = {
         process.exit(1);
       }
     }
-    console.log(JSON.stringify({ ok: true }));
+    console.log(JSON.stringify({ ok: true, command }));
   },
 
   'post-edit': () => {
@@ -275,7 +275,7 @@ const handlers = {
     }
   } else if (command) {
     // Unknown command - pass through without error
-    console.log(`[OK] Hook: ${command}`);
+    console.log(JSON.stringify({ ok: true, command }));
   } else {
     console.log('Usage: hook-handler.cjs <route|pre-bash|post-edit|session-restore|session-end|pre-task|post-task|stats>');
   }
