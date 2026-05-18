@@ -78,7 +78,7 @@ export async function buildCausalChainForSlug(
     supabase
       .from("causal_affects")
       .select(
-        "id, thesis_id, asset_id, direction, strength, priced_in_percent, mispricing_score, why_it_matters, has_dedicated_thesis, thesis_slug",
+        "id, thesis_id, asset_id, direction, strength, priced_in_percent, mispricing_score, why_it_matters, has_dedicated_thesis, thesis_slug, time_depth, asset_depth",
       )
       .eq("thesis_id", thesisRow.id),
     supabase.from("causal_assets").select("id, symbol, name"),
@@ -107,7 +107,7 @@ export async function buildCausalChainForSlug(
       ? await supabase
           .from("causal_affects")
           .select(
-            "id, thesis_id, asset_id, direction, strength, priced_in_percent, mispricing_score, why_it_matters, has_dedicated_thesis, thesis_slug",
+            "id, thesis_id, asset_id, direction, strength, priced_in_percent, mispricing_score, why_it_matters, has_dedicated_thesis, thesis_slug, time_depth, asset_depth",
           )
           .in("thesis_id", clusterThesisIds)
       : { data: [], error: null };

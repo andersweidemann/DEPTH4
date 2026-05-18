@@ -6,6 +6,7 @@ import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { thesisConvictionPctFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import type {
+  AssetDepth,
   CausalAffect,
   CausalEvent,
   CausalEventStatus,
@@ -16,6 +17,7 @@ import type {
   CausalGraphClustersResponse,
   GlobalCausalGraph,
   ThesisCluster,
+  TimeDepth,
 } from "@/types/causal-graph";
 
 export type EventRow = {
@@ -47,7 +49,22 @@ export type AffectRow = {
   why_it_matters: string | null;
   has_dedicated_thesis: boolean;
   thesis_slug: string | null;
+  time_depth?: string | null;
+  asset_depth?: string | null;
 };
+
+const TIME_DEPTHS_SET = new Set(["L1_confirmed", "L2_this_week", "L3_this_month", "L4_this_quarter"]);
+const ASSET_DEPTHS_SET = new Set(["root", "direct", "indirect", "speculative"]);
+
+function parseTimeDepth(v: string | null | undefined): TimeDepth | undefined {
+  if (v && TIME_DEPTHS_SET.has(v)) return v as TimeDepth;
+  return undefined;
+}
+
+function parseAssetDepth(v: string | null | undefined): AssetDepth | undefined {
+  if (v && ASSET_DEPTHS_SET.has(v)) return v as AssetDepth;
+  return undefined;
+}
 
 export type ThesisRow = {
   id: string;
@@ -90,6 +107,7 @@ export function mapEvent(row: EventRow): CausalEvent {
     status: mapEventStatus(row.status),
     confidence: row.confidence,
     firstDetected: row.first_detected,
+    lastUpdated: row.last_updated,
   };
 }
 
@@ -139,6 +157,7 @@ export function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): Caus
     direction,
     conviction,
     mispricingScore: thesisMispricingScore(row, slug),
+    timeHorizon: thesis?.horizon?.trim() || "2–8 weeks",
     affects,
   };
 }
@@ -148,7 +167,10 @@ export function mapAffect(row: AffectRow, assetById: Map<string, AssetRow>): Cau
   if (!asset) return null;
   const dir = row.direction === "up" || row.direction === "down" || row.direction === "neutral" ? row.direction : "neutral";
   return {
+    id: row.id,
+    assetId: row.asset_id,
     assetSymbol: asset.symbol,
+    assetName: asset.name,
     direction: dir,
     strength: row.strength,
     pricedInPercent: row.priced_in_percent,
@@ -156,6 +178,8 @@ export function mapAffect(row: AffectRow, assetById: Map<string, AssetRow>): Cau
     whyItMatters: row.why_it_matters?.trim() || "",
     hasDedicatedThesis: row.has_dedicated_thesis,
     thesisSlug: row.thesis_slug ?? undefined,
+    timeDepth: parseTimeDepth(row.time_depth),
+    assetDepth: parseAssetDepth(row.asset_depth),
   };
 }
 
@@ -288,7 +312,7 @@ export async function buildGlobalCausalGraph(supabase: SupabaseClient): Promise<
     supabase
       .from("causal_affects")
       .select(
-        "id, thesis_id, asset_id, direction, strength, priced_in_percent, mispricing_score, why_it_matters, has_dedicated_thesis, thesis_slug",
+        "id, thesis_id, asset_id, direction, strength, priced_in_percent, mispricing_score, why_it_matters, has_dedicated_thesis, thesis_slug, time_depth, asset_depth",
       ),
     supabase
       .from("theses")

@@ -42,10 +42,39 @@ export interface CausalEvent {
   status: CausalEventStatus;
   confidence: number;
   firstDetected: string;
+  lastUpdated?: string;
 }
 
+export type TimeDepth = "L1_confirmed" | "L2_this_week" | "L3_this_month" | "L4_this_quarter";
+export type AssetDepth = "root" | "direct" | "indirect" | "speculative";
+
+export const TIME_DEPTH_LABELS: Record<TimeDepth, string> = {
+  L1_confirmed: "Confirmed now",
+  L2_this_week: "This week",
+  L3_this_month: "This month",
+  L4_this_quarter: "This quarter",
+};
+
+export const ASSET_DEPTH_LABELS: Record<AssetDepth, string> = {
+  root: "Primary",
+  direct: "Direct",
+  indirect: "Indirect",
+  speculative: "Speculative",
+};
+
+export const TIME_DEPTHS: TimeDepth[] = [
+  "L1_confirmed",
+  "L2_this_week",
+  "L3_this_month",
+  "L4_this_quarter",
+];
+export const ASSET_DEPTHS: AssetDepth[] = ["root", "direct", "indirect", "speculative"];
+
 export interface CausalAffect {
+  id?: string;
+  assetId?: string;
   assetSymbol: string;
+  assetName?: string;
   direction: "up" | "down" | "neutral";
   strength: number;
   pricedInPercent: number;
@@ -53,6 +82,8 @@ export interface CausalAffect {
   whyItMatters: string;
   hasDedicatedThesis: boolean;
   thesisSlug?: string;
+  timeDepth?: TimeDepth;
+  assetDepth?: AssetDepth;
 }
 
 export interface CausalThesis {
@@ -64,8 +95,31 @@ export interface CausalThesis {
   direction: "up" | "down";
   conviction: number;
   mispricingScore: number;
+  timeHorizon: string;
   affects: CausalAffect[];
   incentive_analysis?: IncentiveAnalysis;
+}
+
+export interface MatrixCell {
+  assetId: string;
+  assetSymbol: string;
+  assetName: string;
+  direction: "up" | "down" | "neutral";
+  strength: number;
+  pricedInPercent: number;
+  mispricingScore: number;
+  hasThesis: boolean;
+  thesisSlug?: string;
+  thesisTitle?: string;
+  conviction?: number;
+  whyItMatters: string;
+}
+
+export interface CausalMatrixData {
+  event: CausalEvent;
+  cells: Partial<Record<TimeDepth, Partial<Record<AssetDepth, MatrixCell>>>>;
+  missingCells: Array<{ timeDepth: TimeDepth; assetDepth: AssetDepth; note: string }>;
+  lastUpdated: string;
 }
 
 export interface ClusterImpliedEffect {

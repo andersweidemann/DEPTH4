@@ -9,6 +9,8 @@ import { useCausalChain } from "@/hooks/use-causal-chain";
 import { formatTimeAgo } from "@/lib/thesis-helpers";
 import { cn } from "@/lib/utils";
 import type { CausalAffectWithAsset, CausalChainResponse } from "@/types/causal-graph";
+import { buildMatrixFromThesis } from "@/lib/causal-matrix/build-matrix";
+import { MiniCausalMatrix } from "@/components/causal-matrix/MiniCausalMatrix";
 
 export function CausalChainGraph({
   thesisSlug,
@@ -87,6 +89,15 @@ function CausalChainContent({
 
   const directionLabel = thesis.direction === "up" ? "LONG" : "SHORT";
   const arrow = thesis.direction === "up" ? "↑" : "↓";
+  const thesisForMatrix = {
+    ...thesis,
+    affects: affects.map((a) => ({
+      ...a,
+      assetId: a.asset.id,
+      assetName: a.asset.name,
+    })),
+  };
+  const thesisMatrix = buildMatrixFromThesis(thesisForMatrix, rootEvent);
 
   return (
     <section
@@ -112,27 +123,36 @@ function CausalChainContent({
         </label>
       </div>
 
-      <div className="mx-auto mt-4 flex max-w-lg flex-col items-stretch">
-        <RootEventNode event={rootEvent} />
-        <VerticalConnector />
-        <ThisThesisNode thesis={thesis} directionLabel={directionLabel} arrow={arrow} />
-        {visibleAffects.length > 0 ? (
-          <>
-            <VerticalConnector />
-            <ul className="space-y-2 pl-4">
-              {visibleAffects.map((affect) => (
-                <AffectTreeNode
-                  key={affect.asset.id}
-                  affect={affect}
-                  isTarget={affect.asset.symbol.toUpperCase() === targetAsset.symbol.toUpperCase()}
-                />
-              ))}
-            </ul>
-          </>
-        ) : hidePricedIn ? (
-          <p className="mt-3 pl-4 text-[11px] text-zinc-600">All affects hidden by priced-in filter.</p>
-        ) : null}
+      <div className="mt-4">
+        <MiniCausalMatrix matrix={thesisMatrix} />
       </div>
+
+      <details className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/20">
+        <summary className="cursor-pointer px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Causal tree (detail)
+        </summary>
+        <div className="mx-auto flex max-w-lg flex-col items-stretch px-3 pb-4">
+          <RootEventNode event={rootEvent} />
+          <VerticalConnector />
+          <ThisThesisNode thesis={thesis} directionLabel={directionLabel} arrow={arrow} />
+          {visibleAffects.length > 0 ? (
+            <>
+              <VerticalConnector />
+              <ul className="space-y-2 pl-4">
+                {visibleAffects.map((affect) => (
+                  <AffectTreeNode
+                    key={affect.asset.id}
+                    affect={affect}
+                    isTarget={affect.asset.symbol.toUpperCase() === targetAsset.symbol.toUpperCase()}
+                  />
+                ))}
+              </ul>
+            </>
+          ) : hidePricedIn ? (
+            <p className="mt-3 pl-4 text-[11px] text-zinc-600">All affects hidden by priced-in filter.</p>
+          ) : null}
+        </div>
+      </details>
 
       {relatedTheses.length > 0 ? (
         <div className="mt-6 rounded-lg border border-white/[0.06] bg-zinc-900/30 p-4">

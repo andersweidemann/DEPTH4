@@ -25,6 +25,7 @@ export const CAUSAL_FILTER_FIXTURE: ThesisCluster[] = [
         direction: "down",
         conviction: 72,
         mispricingScore: 55,
+        timeHorizon: "2–8 weeks",
         affects: [
           {
             assetSymbol: "XAUUSD",
@@ -55,6 +56,7 @@ export const CAUSAL_FILTER_FIXTURE: ThesisCluster[] = [
         direction: "up",
         conviction: 68,
         mispricingScore: 42,
+        timeHorizon: "6–18 months",
         affects: [],
       },
     ],
@@ -94,6 +96,7 @@ export const CAUSAL_FILTER_FIXTURE: ThesisCluster[] = [
         direction: "up",
         conviction: 60,
         mispricingScore: 25,
+        timeHorizon: "1–3 months",
         affects: [
           {
             assetSymbol: "BHP",

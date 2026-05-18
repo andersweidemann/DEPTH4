@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { clusterHasVisibleContent } from "@/lib/causal-map/causal-map-filters";
 import { ClusterCard } from "@/components/causal-map/ClusterCard";
 import { CausalTreePreview } from "@/components/causal-map/CausalTreePreview";
+import { CausalMatrix } from "@/components/causal-matrix/CausalMatrix";
+import { buildMatrixFromCluster } from "@/lib/causal-matrix/build-matrix";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
 import type { GlobalCausalGraph } from "@/types/causal-graph";
@@ -96,6 +98,7 @@ export function CausalMapPage() {
   const activeEvents = graph?.activeEvents ?? 0;
   const totalTheses = graph?.totalTheses ?? 0;
   const featuredCluster = clusters[0];
+  const featuredMatrix = featuredCluster ? buildMatrixFromCluster(featuredCluster) : null;
 
   const visibleClusters = useMemo(
     () => clusters.filter((c) => clusterHasVisibleContent(c, hidePricedIn)),
@@ -157,12 +160,24 @@ export function CausalMapPage() {
         </p>
       ) : (
         <>
-          {featuredCluster ? (
+          {featuredMatrix ? (
             <section className="mt-8">
               <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                Featured causal chain
+                4×4 causal matrix
               </h2>
-              <CausalTreePreview cluster={featuredCluster} hidePricedIn={hidePricedIn} />
+              <CausalMatrix
+                matrix={featuredMatrix}
+                detailTreeSlot={
+                  featuredCluster ? (
+                    <div>
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
+                        Causal tree (detail)
+                      </p>
+                      <CausalTreePreview cluster={featuredCluster} hidePricedIn={hidePricedIn} />
+                    </div>
+                  ) : undefined
+                }
+              />
             </section>
           ) : null}
 
