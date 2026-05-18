@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isThesisReaderPublic, fetchThesisReaderPublicRow } from "@/lib/thesis-engine-v2/thesis-reader-public";
+import { classifyReaderUserAgent } from "@/lib/thesis-engine-v2/thesis-reader-analytics/classify";
 import {
-  classifyReaderUserAgent,
   recordPublicReaderView,
   readRecordReaderViewContext,
 } from "@/lib/thesis-engine-v2/thesis-reader-analytics/record";
