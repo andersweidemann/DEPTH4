@@ -1,8 +1,12 @@
 // Simplified test for the guardrail logic without external dependencies
 
+type MockThesisRef = { slug: string; thesisId?: string };
+
+type MockListThesis = { slug: string; status: string; thesisId?: string };
+
 describe("detailResolvable guardrail logic", () => {
   // Simulate the buildDetailResolvableSlugSet function logic
-  function buildDetailResolvableSlugSetMock(aiTheses: any[], userTheses: any[]): Set<string> {
+  function buildDetailResolvableSlugSetMock(aiTheses: MockThesisRef[], userTheses: MockThesisRef[]): Set<string> {
     const slugs = new Set<string>();
     // Mock CATALOG_THESES - in real code this would be imported
     const CATALOG_THESES = [{ slug: "catalog-test-slug" }];
@@ -29,8 +33,8 @@ describe("detailResolvable guardrail logic", () => {
 
   // Simulate the thesisListItemFromEngine function logic
   function thesisListItemFromEngineMock(
-    thesis: any,
-    resolvableSlugSet: Set<string>
+    thesis: MockListThesis,
+    resolvableSlugSet: Set<string>,
   ): { detailResolvable: boolean } {
     const isResolvableViaSet = resolvableSlugSet.has(thesis.slug.trim());
 
@@ -40,70 +44,62 @@ describe("detailResolvable guardrail logic", () => {
 
     // If it's a Draft status AND not resolvable via the set, force false
     // Also if the thesisId doesn't look like a valid DB UUID, force false
-    const detailResolvable = (!isDraft || isResolvableViaSet) && hasValidId && isResolvableViaSet;
+    const detailResolvable = (!isDraft || isResolvableViaSet) && Boolean(hasValidId) && isResolvableViaSet;
 
     return { detailResolvable };
-  };
+  }
 
   describe("buildDetailResolvableSlugSetMock", () => {
     it("should include catalog thesis slugs", () => {
-      const catalogTheses = [{ slug: "catalog-test-slug" }];
-      const aiTheses: any[] = [];
-      const userTheses: any[] = [];
-
-      const resolvableSet = buildDetailResolvableSlugSetMock(aiTheses, userTheses);
+      const resolvableSet = buildDetailResolvableSlugSetMock([], []);
       expect(resolvableSet.has("catalog-test-slug")).toBe(true);
     });
 
     it("should include AI-generated theses with valid UUID thesisId", () => {
-      const catalogTheses: any[] = [];
-      const aiTheses = [{
-        slug: "test-ai-slug",
-        thesisId: "123e4567-e89b-12d3-a456-426614174000"
-      }];
-      const userTheses: any[] = [];
+      const aiTheses: MockThesisRef[] = [
+        {
+          slug: "test-ai-slug",
+          thesisId: "123e4567-e89b-12d3-a456-426614174000",
+        },
+      ];
 
-      const resolvableSet = buildDetailResolvableSlugSetMock(aiTheses, userTheses);
+      const resolvableSet = buildDetailResolvableSlugSetMock(aiTheses, []);
       expect(resolvableSet.has("test-ai-slug")).toBe(true);
     });
 
     it("should exclude AI-generated theses with invalid/missing thesisId", () => {
-      const catalogTheses: any[] = [];
-      const aiTheses = [
-        { slug: "test-ai-slug-1", thesisId: "" }, // empty ID
-        { slug: "test-ai-slug-2", thesisId: "invalid-id" }, // invalid format
-        { slug: "test-ai-slug-3" } // missing ID
+      const aiTheses: MockThesisRef[] = [
+        { slug: "test-ai-slug-1", thesisId: "" },
+        { slug: "test-ai-slug-2", thesisId: "invalid-id" },
+        { slug: "test-ai-slug-3" },
       ];
-      const userTheses: any[] = [];
 
-      const resolvableSet = buildDetailResolvableSlugSetMock(aiTheses, userTheses);
+      const resolvableSet = buildDetailResolvableSlugSetMock(aiTheses, []);
       expect(resolvableSet.has("test-ai-slug-1")).toBe(false);
       expect(resolvableSet.has("test-ai-slug-2")).toBe(false);
       expect(resolvableSet.has("test-ai-slug-3")).toBe(false);
     });
 
     it("should include user theses with valid UUID thesisId", () => {
-      const catalogTheses: any[] = [];
-      const aiTheses: any[] = [];
-      const userTheses = [{
-        slug: "test-user-slug",
-        thesisId: "123e4567-e89b-12d3-a456-426614174000"
-      }];
+      const userTheses: MockThesisRef[] = [
+        {
+          slug: "test-user-slug",
+          thesisId: "123e4567-e89b-12d3-a456-426614174000",
+        },
+      ];
 
-      const resolvableSet = buildDetailResolvableSlugSetMock(aiTheses, userTheses);
+      const resolvableSet = buildDetailResolvableSlugSetMock([], userTheses);
       expect(resolvableSet.has("test-user-slug")).toBe(true);
     });
 
     it("should exclude user theses with invalid/missing thesisId", () => {
-      const catalogTheses: any[] = [];
-      const aiTheses: any[] = [];
-      const userTheses = [
+      const userTheses: MockThesisRef[] = [
         { slug: "test-user-slug-1", thesisId: "" },
         { slug: "test-user-slug-2", thesisId: "invalid-id" },
-        { slug: "test-user-slug-3" }
+        { slug: "test-user-slug-3" },
       ];
 
-      const resolvableSet = buildDetailResolvableSlugSetMock(aiTheses, userTheses);
+      const resolvableSet = buildDetailResolvableSlugSetMock([], userTheses);
       expect(resolvableSet.has("test-user-slug-1")).toBe(false);
       expect(resolvableSet.has("test-user-slug-2")).toBe(false);
       expect(resolvableSet.has("test-user-slug-3")).toBe(false);
@@ -115,11 +111,10 @@ describe("detailResolvable guardrail logic", () => {
     const resolvableSetWithoutSlug = new Set<string>(["different-slug"]);
 
     it("should set detailResolvable to false for Draft status thesis not in resolvable set", () => {
-      const thesis = {
-        id: "01abad62-7f89-43e9-810b-46c8e56154fd",
+      const thesis: MockListThesis = {
         slug: "uso-will-find-a-floor-within-this-earnings-s-9535544b43",
         status: "Draft",
-        thesisId: "01abad62-7f89-43e9-810b-46c8e56154fd" // valid UUID
+        thesisId: "01abad62-7f89-43e9-810b-46c8e56154fd",
       };
 
       const result = thesisListItemFromEngineMock(thesis, resolvableSetWithoutSlug);
@@ -127,11 +122,10 @@ describe("detailResolvable guardrail logic", () => {
     });
 
     it("should set detailResolvable to true for Draft status thesis that IS in resolvable set", () => {
-      const thesis = {
-        id: "01abad62-7f89-43e9-810b-46c8e56154fd",
+      const thesis: MockListThesis = {
         slug: "resolvable-slug",
         status: "Draft",
-        thesisId: "01abad62-7f89-43e9-810b-46c8e56154fd" // valid UUID
+        thesisId: "01abad62-7f89-43e9-810b-46c8e56154fd",
       };
 
       const result = thesisListItemFromEngineMock(thesis, resolvableSetWithSlug);
@@ -139,11 +133,10 @@ describe("detailResolvable guardrail logic", () => {
     });
 
     it("should set detailResolvable to false for thesis with invalid thesisId even if slug is in set", () => {
-      const thesis = {
-        id: "invalid-id", // Invalid thesisId
+      const thesis: MockListThesis = {
         slug: "resolvable-slug",
-        status: "ready", // Not Draft
-        thesisId: "invalid-id"
+        status: "ready",
+        thesisId: "invalid-id",
       };
 
       const result = thesisListItemFromEngineMock(thesis, resolvableSetWithSlug);
@@ -151,11 +144,10 @@ describe("detailResolvable guardrail logic", () => {
     });
 
     it("should set detailResolvable to true for valid non-Draft thesis with valid ID in set", () => {
-      const thesis = {
-        id: "123e4567-e89b-12d3-a456-426614174000", // Valid UUID
+      const thesis: MockListThesis = {
         slug: "resolvable-slug",
-        status: "ready", // Not Draft
-        thesisId: "123e4567-e89b-12d3-a456-426614174000" // Valid UUID
+        status: "ready",
+        thesisId: "123e4567-e89b-12d3-a456-426614174000",
       };
 
       const result = thesisListItemFromEngineMock(thesis, resolvableSetWithSlug);
@@ -163,11 +155,10 @@ describe("detailResolvable guardrail logic", () => {
     });
 
     it("should set detailResolvable to false for thesis with missing ID even if slug is in set", () => {
-      const thesis = {
-        id: "", // Missing thesisId
+      const thesis: MockListThesis = {
         slug: "resolvable-slug",
         status: "ready",
-        thesisId: ""
+        thesisId: "",
       };
 
       const result = thesisListItemFromEngineMock(thesis, resolvableSetWithSlug);

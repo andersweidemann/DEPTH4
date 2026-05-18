@@ -1,4 +1,5 @@
-import { buildDetailResolvableSlugSet, engineThesisToListItem, thesisListItemFromEngine } from "../theses-list-response";
+import { CATALOG_THESES } from "@/lib/thesis-engine-v2/catalog-data";
+import { buildDetailResolvableSlugSet, thesisListItemFromEngine } from "../theses-list-response";
 import type { Thesis as EngineThesis } from "../../../lib/thesis-engine-v2/types";
 
 describe("detailResolvable guardrail", () => {
@@ -6,17 +7,12 @@ describe("detailResolvable guardrail", () => {
 
   describe("buildDetailResolvableSlugSet", () => {
     it("should include catalog thesis slugs", () => {
-      // Mock catalog theses (simplified)
-      const catalogTheses = [{ slug: "test-catalog-slug" } as any];
-      const aiTheses: EngineThesis[] = [];
-      const userTheses: EngineThesis[] = [];
-
-      const resolvableSet = buildDetailResolvableSlugSet(aiTheses, userTheses);
-      expect(resolvableSet.has("test-catalog-slug")).toBe(true);
+      const catalogSlug = CATALOG_THESES[0]!.slug;
+      const resolvableSet = buildDetailResolvableSlugSet([], []);
+      expect(resolvableSet.has(catalogSlug)).toBe(true);
     });
 
     it("should include AI-generated theses with valid UUID thesisId", () => {
-      const catalogTheses: any[] = [];
       const aiTheses = [{
         slug: "test-ai-slug",
         thesisId: "123e4567-e89b-12d3-a456-426614174000"
@@ -28,7 +24,6 @@ describe("detailResolvable guardrail", () => {
     });
 
     it("should exclude AI-generated theses with invalid/missing thesisId", () => {
-      const catalogTheses: any[] = [];
       const aiTheses = [
         { slug: "test-ai-slug-1", thesisId: "" } as EngineThesis, // empty ID
         { slug: "test-ai-slug-2", thesisId: "invalid-id" } as EngineThesis, // invalid format
@@ -43,7 +38,6 @@ describe("detailResolvable guardrail", () => {
     });
 
     it("should include user theses with valid UUID thesisId", () => {
-      const catalogTheses: any[] = [];
       const aiTheses: EngineThesis[] = [];
       const userTheses = [{
         slug: "test-user-slug",
@@ -55,7 +49,6 @@ describe("detailResolvable guardrail", () => {
     });
 
     it("should exclude user theses with invalid/missing thesisId", () => {
-      const catalogTheses: any[] = [];
       const aiTheses: EngineThesis[] = [];
       const userTheses = [
         { slug: "test-user-slug-1", thesisId: "" } as EngineThesis,
@@ -71,7 +64,6 @@ describe("detailResolvable guardrail", () => {
   });
 
   describe("thesisListItemFromEngine defensive overrides", () => {
-    const mockDb: any = undefined;
     const mockResolvableSet = new Set<string>(["resolvable-slug"]);
 
     it("should set detailResolvable to false for Draft status thesis not in resolvable set", () => {
@@ -146,7 +138,7 @@ describe("detailResolvable guardrail", () => {
         null,
         mockPartition,
         mockResolvableSet, // Does NOT contain the thesis slug
-        mockDb
+        undefined,
       );
 
       expect(result.detailResolvable).toBe(false);
@@ -224,7 +216,7 @@ describe("detailResolvable guardrail", () => {
         null,
         mockPartition,
         mockResolvableSet, // DOES contain the thesis slug
-        mockDb
+        undefined
       );
 
       expect(result.detailResolvable).toBe(true);
@@ -302,7 +294,7 @@ describe("detailResolvable guardrail", () => {
         null,
         mockPartition,
         mockResolvableSet, // DOES contain the thesis slug
-        mockDb
+        undefined
       );
 
       expect(result.detailResolvable).toBe(false);
@@ -380,7 +372,7 @@ describe("detailResolvable guardrail", () => {
         null,
         mockPartition,
         mockResolvableSet, // DOES contain the thesis slug
-        mockDb
+        undefined
       );
 
       expect(result.detailResolvable).toBe(true);
