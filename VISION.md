@@ -1,14 +1,188 @@
 # DEPTH4 Vision
 
-## Product promise
+## What DEPTH4 Is
 
-DEPTH4 is a macro intelligence engine that turns messy real-world developments into **tradable theses** that think several moves ahead. It analyzes breaking news and macro developments, maps how they will propagate into assets, finds the mispricing, and formulates a thesis that a serious trader could act on. It analyses breaking geopolitical news and forecasts four levels of future ramifications on specific stocks and asset classes, then updates probability scores as new information emerges. All claims must be verified against multiple independent sources before they influence user-visible output.
+DEPTH4 is a macro intelligence engine that reads the news, maps how stories cascade through markets, and turns narratives into tradeable theses with probabilities, mispricing scores, price levels, and early-warning signals.
+
+The core insight: **prices don't move because of headlines — they move because of chains of consequences that most traders never trace.** A Fed pause headline moves bonds. But the real edge is in credit spreads tightening the following month, and leadership rotating to cash-flow names for the quarter. Most traders stop at the headline. DEPTH4 follows the full chain.
+
+---
+
+## The Two Dimensions of Depth
+
+DEPTH4 operates across two dimensions of analysis. The product name literally refers to this dual-depth system:
+
+### Dimension 1: Time Depth (THE FOUR-LEVEL CASCADE)
+
+How a story unfolds across the calendar:
+
+| Level | Timeframe | What It Tracks |
+|-------|-----------|---------------|
+| L1 | Confirmed (now) | What is already true — verified facts |
+| L2 | This week (1-7d) | First market reaction, headline repricing |
+| L3 | This month (7-30d) | Second-order spillovers, cross-asset effects |
+| L4 | This quarter (30-90d+) | Systemic shifts, regime changes |
+
+**Status:** Built and live. Every thesis has a four-level cascade showing how the story plays out over time.
+
+### Dimension 2: Asset Depth (THE CAUSAL CHAIN) ← NEW
+
+How a story ripples through interconnected markets:
+
+| Depth | Relationship | What It Tracks |
+|-------|-------------|---------------|
+| Root | Thesis → Event | What macro event triggered this thesis |
+| Direct | Thesis → Asset | Primary instrument the thesis targets |
+| Indirect | Thesis → Affects | Secondary assets the thesis ripples into |
+| Speculative | Thesis → Implied | Third-order effects with weak signal |
+
+**Status:** Under development. This is the next major product evolution.
+
+### The 4×4 Matrix
+
+The true power comes at the intersection:
+
+```
+                    L1 (now)   L2 (week)   L3 (month)   L4 (quarter)
+                   ┌─────────┬───────────┬────────────┬─────────────┐
+Root (thesis)     │ GLD fade│ Entry     │ 1st target │ Full unwind │
+                  │  now    │ window    │ hit        │ scenario    │
+                  ├─────────┼───────────┼────────────┼─────────────┤
+Direct (GLD,IAU)  │ Confirmed│ ETF flows │ Premium    │ Calendar    │
+                  │ talks   │ react     │ leak       │ proves it   │
+                  ├─────────┼───────────┼────────────┼─────────────┤
+Indirect (GDX,UUP)│ Watch   │ Miners    │ USD weakens│ Carry trade │
+                  │ miners  │ lag       │ on peace   │ unwind      │
+                  ├─────────┼───────────┼────────────┼─────────────┤
+Speculative (fert)│ Monitor │ Fertilizer│ Input cost │ Global      │
+                  │ supply  │ stocks?   │ chain      │ rebalancing │
+                   └─────────┴───────────┴────────────┴─────────────┘
+```
+
+At every (time, asset) intersection, DEPTH4 estimates:
+- **Conviction**: How likely is this outcome? (0-100%)
+- **Mispricing**: How much of this is already priced in? (0-100)
+- **Priced-in %**: Specific to this cell — how much of this move has the market absorbed?
+
+---
+
+## Product Architecture
+
+### Thesis = Edge in a Causal Graph
+
+A DEPTH4 thesis is not a document. It is an **edge** in a graph connecting:
+- A **CausalEvent** (what triggered it — "War de-escalation")
+- A **CausalAsset** (what it targets — XAUUSD)
+- With a **direction** (SHORT) and **confidence** (79%)
+
+The thesis then declares **affects** — secondary assets it ripples into:
+- GLD: ↑ 72% priced in (strong link)
+- IAU: ↑ 34% priced in (moderate link — EDGE HERE)
+- GDX: ↑ 45% priced in (moderate link)
+- UUP: ↓ 12% priced in (weak link — UNPRICED OPPORTUNITY)
+
+### Cluster = Shared Root Event
+
+Theses that share the same root event form a **cluster**:
+
+**War de-escalation cluster:**
+- Gold SHORT (conviction 79%, mispricing 79) ← top thesis
+- Defense LONG (conviction 78%, mispricing 61)
+- Oil implied (no thesis yet — opportunity)
+- ⚠ Conflict: Gold short and Defense long both active from same event
+
+**Fed policy cluster:**
+- Rates SHORT (conviction 78%, mispricing 69)
+- Credit spreads implied (no thesis yet)
+
+The cluster view shows: event → all thesis edges → implied effects → conflicts.
+
+### Global Graph = The Market's Causal Map
+
+All active events, all thesis edges, all implied effects form the **Global Causal Graph** at `/map`. This is the "god view" of the platform — showing the complete causal map of current macro forces and their market implications.
+
+---
+
+## Key Product Principles
+
+### 1. No thesis is an island
+Every thesis is connected. The gold thesis shares an event with the defense thesis. The oil thesis implies the fertilizer thesis. The rates thesis contradicts the gold thesis on USD direction. These connections are as important as the theses themselves.
+
+### 2. The edge lives in the intersection
+The moat is at the intersection of time depth and asset depth. A thesis is strongest not when it predicts a move at one level on one asset, but when it traces the full 4×4 matrix and finds the (time, asset) pair with the highest mispricing.
+
+### 3. Show priced-in, not just prediction
+Every cell shows "what the thesis expects" AND "how much is already priced in." A thesis with 80% conviction but 85% priced-in is a weak trade. A thesis with 65% conviction but 20% priced-in is a strong trade.
+
+### 4. Conflicts are signals
+When two theses from the same event predict opposite directions on the same asset, that's not a bug — it's a portfolio risk signal. The system should surface these conflicts, not hide them.
+
+### 5. Implied effects are opportunities
+When an event propagates to an asset with high mispricing but no dedicated thesis, that's a product opportunity. The "Create thesis →" button on implied effects turns AI-detected implications into tracked positions.
+
+---
+
+## User Experience
+
+### For the macro trader
+- Sees thesis clusters grouped by root event — understands how their positions interconnect
+- Sees which assets are most mispriced across the full causal chain
+- Gets conflict warnings when their portfolio has contradictory bets
+- Converts implied effects into tracked theses with one click
+
+### For the serious retail trader
+- Sees the full story chain from headline to fourth-order effect
+- Understands WHY a thesis exists, not just WHAT to trade
+- Can read the causal graph even without deep macro expertise
+- Sees where the market is still behind, not just what happened
+
+---
+
+## Competitive Moat
+
+DEPTH4's moat is not in predicting headlines (everyone does that). It is in:
+
+1. **Time depth**: Following a story across 4 time horizons when competitors stop at the headline
+2. **Asset depth**: Tracing causal chains across interconnected markets when competitors treat each asset in isolation
+3. **The intersection**: Finding the specific (time, asset) pair with the highest mispricing in the full 4×4 matrix
+4. **Dynamic conviction**: Updating as news flows in, not static predictions
+
+No competitor systematically maps both time depth AND asset depth for macro theses. This is the core product differentiator.
+
+---
+
+## Current Status
+
+### Built (live)
+- Time-depth analysis (L1-L4 cascade)
+- Thesis generation from news
+- Conviction + mispricing scoring
+- Resolution paths (Clean/Messy/Broken)
+- Trade plans with entry/stop/target
+- AI chat assistant
+- Position tracking
+- Feed with news analysis
+- Help documentation
+
+### In Development
+- Asset-depth causal chain (per-thesis)
+- Global causal map (/map page)
+- Thesis clustering by event
+- Cross-thesis conflict detection
+- Implied effect → thesis creation flow
+- Graph-aware feed (cross-thesis updates)
+
+---
+
+*The name DEPTH4 refers to the two dimensions of depth: time (4 levels) and assets (4 depths). The product's job is to find the single cell in the 4×4 matrix with the highest mispricing — and build a thesis around it.*
+
+---
 
 ## Who it is for
 
-DEPTH4 is for serious market participants who need fast, differentiated, decision‑relevant thinking. They do not want generic analyst notes or headline rewrites; they want clear, causal theses with timing, conviction, and mispricing they can plug into a trade plan.
+DEPTH4 is for serious market participants who need fast, differentiated, decision-relevant thinking. They do not want generic analyst notes or headline rewrites; they want clear, causal theses with timing, conviction, and mispricing they can plug into a trade plan.
 
-## Non‑negotiables
+## Non-negotiables
 
 - Every visible thesis must contain **cause, path, timing, and market implication**.
 - Generic summaries or simple headline rewrites are failure.
@@ -18,81 +192,30 @@ DEPTH4 is for serious market participants who need fast, differentiated, decisio
 
 ## Source hierarchy — strict ranking
 
-Treat sources in this order. Never rely on, or prominently cite, a lower‑tier source when a higher‑tier source is available for the same fact.
+Treat sources in this order. Never rely on, or prominently cite, a lower-tier source when a higher-tier source is available for the same fact.
 
 1. **Tier 1 — Primary:** AFP wire, Reuters, AP, named government officials on record, CENTCOM statements, ISW Special Reports.
 2. **Tier 2 — Verified regional:** Anadolu Agency, ABC Australia live updates, Al Jazeera confirmed reporting, GMA Network live updates, Times of India live.
 3. **Tier 3 — Analytical:** Iran International, Jerusalem Post live blog, ISW daily updates, Chatham House.
 4. **Tier 4 — Market intelligence:** Argus Media, ING Think, TradingEconomics, Polymarket, Robinhood prediction markets.
-5. **Tier 5 — Use with caution:** RT, PressTV, Mehr News, TASS — always cross‑reference with Tier 1–2 before acting, and flag the source explicitly when used.
+5. **Tier 5 — Use with caution:** RT, PressTV, Mehr News, TASS — always cross-reference with Tier 1–2 before acting, and flag the source explicitly when used.
 
-RT and similar outlets are confirmed state media with editorial agendas. Any “verified fact” that originates from Tier 5 must have independent Tier 1–2 confirmation before it enters DEPTH4’s reasoning or thesis matrix.
-
-## Geopolitical analysis framework — DEPTH4 four levels
-
-For every major geopolitical development, analyse four levels:
-
-- **Level 1 — Confirmed (0–24h):** What is verified by Tier 1–2 sources right now. Named officials on record. Confirmed events. No speculation.
-- **Level 2 — This week (1–7 days):** Direct near‑term consequences. First-order market moves and specific catalysts over the coming days.
-- **Level 3 — This month (7–30 days):** Structural implications and second‑order effects on policy, supply chains, currencies, and commodities.
-- **Level 4 — This quarter (30–90+ days):** Systemic changes, geopolitical realignments, and long‑duration asset impacts (including Armstrong‑style cycle context where relevant).
-
-A DEPTH4 thesis should make it clear which levels matter for the trade and where the real edge lives. The same story can be fully priced at Level 2 while the true edge survives at Level 3–4.
-
-## How it works — from headline to trade plan
-
-Most traders react to the first headline. DEPTH4 follows the full story arc so the user can see the second, third, and fourth moves before the market prices them in.
-
-1. **Pick a thesis or create your own**  
-   The user starts from DEPTH4’s live macro board — war risk, Fed policy, oil supply, AI earnings, etc. — or types an idea and lets the engine map it.
-
-2. **DEPTH4 maps four future states**  
-   Each thesis unfolds across confirmed facts, first market reaction, spillover effects, and systemic backdrop. The user sees the chain, not just the headline.
-
-3. **Conviction and mispricing at every depth**  
-   The engine estimates how likely the thesis is to play out (conviction) and where the market still looks behind at each step (mispricing). Probability scores update as new information arrives, instead of staying static.
-
-4. **Trade the depth with the edge**  
-   Entry, stop, and target levels are sketched for the most mispriced depth — not just the hero headline — and monitored with scenario‑based alerts as the story evolves.
-
-## The DEPTH4 difference — think four moves ahead
-
-Strong chess players see the sequence that follows. DEPTH4 does the same for macro shocks, mapping how each story unfolds across four future states so users see where the real edge lives.
-
-Example structure for a rates thesis:
-
-- **Level 1 · Confirmed (0–24h):**  
-  “Fed pauses; statement verifies higher‑for‑longer bias.”  
-  Wait for confirmation from Tier 1–2 sources, then consider sizing into the chain rather than front‑running rumours.
-
-- **Level 2 · This week (1–7 days):**  
-  “Rates reprice first; duration whipsaws as cuts drift.”  
-  Duration reacts — e.g. TLT and curve proxies.
-
-- **Level 3 · This month (7–30 days):**  
-  “Spillovers hit funding and margins; credit and cyclicals diverge.”  
-  Credit vs quality becomes the core axis if funding stays tight.
-
-- **Level 4 · This quarter (30–90+ days):**  
-  “Systemic shift: leadership rotates toward cashflows and defensives.”  
-  Delayed cuts plus USD strength pressure duration and EM importers.
-
-DEPTH4’s moat is **depth selection**: for any story, it identifies at which level the thesis is still mispriced and focuses the user there.
+RT and similar outlets are confirmed state media with editorial agendas. Any "verified fact" that originates from Tier 5 must have independent Tier 1–2 confirmation before it enters DEPTH4's reasoning or thesis matrix.
 
 ## Model usage
 
-- Use the **best LLM (Opus)** for important analysis that needs high‑quality, four‑level reasoning, strict source handling, and user‑visible theses.
-- Use cheaper LLMs (for example, Nvidia‑backed or smaller models) for low‑risk, non‑user‑facing tasks such as clustering, tagging, or draft generation that will be heavily filtered before surfacing.
+- Use the **best LLM (Opus)** for important analysis that needs high-quality, four-level reasoning, strict source handling, and user-visible theses.
+- Use cheaper LLMs for low-risk, non-user-facing tasks such as clustering, tagging, or draft generation that will be heavily filtered before surfacing.
 
 ## Phrasing and language
 
 - Use **simple retail trading language** that is easy to understand and feels conversational but serious.
 - Explain moves, not jargon.
-- A good pattern is the “least bad exit” example: clear headline, concrete bullet points, and explicit “why this works” / “why this is costly” sections.
+- A good pattern is the "least bad exit" example: clear headline, concrete bullet points, and explicit "why this works" / "why this is costly" sections.
 
-For example, a DEPTH4‑quality paragraph might look like:
+For example, a DEPTH4-quality paragraph might look like:
 
-> “Trump declares a ‘Phase 1 victory’: he claims to have destroyed Iran’s offensive capacity, protected allies, and kept oil flowing under American protection. Project Freedom stays active as a permanent armed escort operation, rebranded as a ‘freedom of navigation’ mission rather than a declared war. Iran keeps nominal Hormuz sovereignty but loses the practical ability to weaponise tolls or closures. There is no humiliating peace treaty; the long‑term problem is handed to the next administration.”
+> "Trump declares a 'Phase 1 victory': he claims to have destroyed Iran's offensive capacity, protected allies, and kept oil flowing under American protection. Project Freedom stays active as a permanent armed escort operation, rebranded as a 'freedom of navigation' mission rather than a declared war. Iran keeps nominal Hormuz sovereignty but loses the practical ability to weaponise tolls or closures. There is no humiliating peace treaty; the long-term problem is handed to the next administration."
 
 This tone is specific, political, and concrete, not generic.
 
@@ -102,10 +225,10 @@ DEPTH4 must actively avoid:
 
 - Rewriting or paraphrasing headlines.
 - Static thesis pages despite live inputs.
-- Generic analyst‑note tone.
+- Generic analyst-note tone.
 - Vague scenario language without a clear, tradable implication.
-- Over‑confident probabilities that do not react as new information arrives.
-- Any thesis that could have been produced by a generic “AI market news summary” tool.
+- Over-confident probabilities that do not react as new information arrives.
+- Any thesis that could have been produced by a generic "AI market news summary" tool.
 
 ## Release standard
 
