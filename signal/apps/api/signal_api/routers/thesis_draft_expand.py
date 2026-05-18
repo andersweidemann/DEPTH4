@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from signal_api.ai.llm_client import llm_configured, llm_interactive_configured
 from signal_api.ai.new_thesis_expand import expand_user_idea
+from signal_api.causal.validator import validate_thesis_event_link
 from signal_api.config import get_settings
 from signal_api.routers.ingest_cron import _require_ingest_secret
 
@@ -19,6 +20,14 @@ router = APIRouter()
 
 class ThesisDraftExpandBody(BaseModel):
   idea: str = Field(..., min_length=4, max_length=8_000)
+  causal_event: dict | None = Field(
+    default=None,
+    description="Optional causal_events row shape for pre-save validation (title, description, category).",
+  )
+  cluster_theses: list[dict] | None = Field(
+    default=None,
+    description="Existing theses already linked to causal_event (slug, title, asset, direction).",
+  )
 
 
 @router.post("/thesis-draft-expand")
@@ -36,4 +45,14 @@ def thesis_draft_expand(
   if not ok:
     log.warning("thesis_draft_expand: incomplete draft meta=%s", meta)
 
-  return {"ok": ok, "draft": draft, "meta": meta}
+  causal_validation = None
+  if body.causal_event and ok:
+    cluster = body.cluster_theses or []
+    cv = validate_thesis_event_link(draft, body.causal_event, cluster)
+    causal_validation = {"valid": cv.valid, "errors": cv.errors, "warnings": cv.warnings}
+    meta = {**meta, "causal_validation": causal_validation}
+    if not cv.valid:
+      log.error("thesis_draft_expand: causal validation failed errors=%s", cv.errors)
+      ok = False
+
+  return {"ok": ok, "draft": draft, "meta": meta, "causal_validation": causal_validation}

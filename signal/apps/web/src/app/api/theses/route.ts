@@ -17,6 +17,11 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import { resolveIncentiveAnalysisColumn } from "@/lib/thesis/resolve-incentive-analysis-column";
 import { createThesisMutationService, isThesisMutationEnabled } from "@/lib/thesis-mutation";
+import { applyThesisEventLink } from "@/lib/causal-graph/apply-thesis-event-link";
+import { loadEventLinkContext, resolveEventId } from "@/lib/causal-graph/load-event-link-context";
+import { validateThesisEventLink } from "@/lib/causal-graph/causal-validator";
+import { thesisLinkInputFromThesis } from "@/lib/causal-graph/thesis-link-input";
+import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -78,6 +83,38 @@ export async function POST(req: NextRequest) {
 
   const incentiveColumn = await resolveIncentiveAnalysisColumn(thesis, null, true);
 
+  const eventIdRaw =
+    typeof o.eventId === "string"
+      ? o.eventId
+      : typeof o.causalEventId === "string"
+        ? o.causalEventId
+        : undefined;
+  const eventSlugRaw =
+    typeof o.eventSlug === "string" ? o.eventSlug : typeof o.causalEventSlug === "string" ? o.causalEventSlug : undefined;
+
+  let pendingEventId: string | null = null;
+  if (eventIdRaw || eventSlugRaw) {
+    const admin = createServiceRoleClient();
+    if (!admin) {
+      return NextResponse.json({ error: "server_misconfigured" }, { status: 500 });
+    }
+    pendingEventId = await resolveEventId(admin, { eventId: eventIdRaw, eventSlug: eventSlugRaw });
+    if (!pendingEventId) {
+      return NextResponse.json({ error: "event_not_found" }, { status: 404 });
+    }
+    const linkCtx = await loadEventLinkContext(admin, pendingEventId);
+    if (!linkCtx) {
+      return NextResponse.json({ error: "event_not_found" }, { status: 404 });
+    }
+    const validation = validateThesisEventLink(thesisLinkInputFromThesis(thesis), linkCtx.event, linkCtx.clusterTheses);
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: "causal_validation_failed", details: validation.errors, warnings: validation.warnings },
+        { status: 400 },
+      );
+    }
+  }
+
   const nowIso = new Date().toISOString();
   const row = {
     id: thesis.id,
@@ -118,6 +155,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "slug_conflict" }, { status: 409 });
     }
     return NextResponse.json({ error: msg }, { status: 400 });
+  }
+
+  if (pendingEventId) {
+    const admin = createServiceRoleClient();
+    if (!admin) {
+      return NextResponse.json({ error: "server_misconfigured" }, { status: 500 });
+    }
+    const linked = await applyThesisEventLink(admin, {
+      thesisId: thesis.id,
+      eventId: pendingEventId,
+      thesisForValidation: thesisLinkInputFromThesis(thesis),
+    });
+    if (!linked.ok) {
+      await admin.from("theses").delete().eq("id", thesis.id);
+      return NextResponse.json(
+        {
+          error: linked.error,
+          details: linked.validation.errors,
+          warnings: linked.validation.warnings,
+        },
+        { status: linked.status },
+      );
+    }
+    return NextResponse.json({
+      success: true,
+      thesis: isThesisRecord(thesis) ? { slug: thesis.slug, id: thesis.id, eventId: pendingEventId } : null,
+      warnings: linked.validation.warnings,
+    });
   }
 
   return NextResponse.json({ success: true, thesis: isThesisRecord(thesis) ? { slug: thesis.slug, id: thesis.id } : null });
