@@ -12,6 +12,25 @@ export type EventCategory =
   | "climate"
   | "trade_policy";
 
+export interface CausalAsset {
+  id: string;
+  symbol: string;
+  name: string;
+}
+
+export interface CausalAffectWithAsset extends CausalAffect {
+  asset: CausalAsset;
+}
+
+export interface CausalChainResponse {
+  thesis: CausalThesis;
+  rootEvent: CausalEvent;
+  targetAsset: CausalAsset;
+  affects: CausalAffectWithAsset[];
+  relatedTheses: CausalThesis[];
+  impliedEffects: ClusterImpliedEffect[];
+}
+
 export interface CausalEvent {
   id: string;
   slug: string;

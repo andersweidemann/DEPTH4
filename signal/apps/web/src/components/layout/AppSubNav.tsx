@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useThesisHasCausalCluster } from "@/hooks/use-causal-chain";
 import { cn } from "@/lib/utils";
 
 const TABS = [
@@ -14,19 +15,24 @@ const TABS = [
   { label: "Help", path: "/help" },
 ] as const;
 
-function tabIsActive(pathname: string, path: string) {
+function tabIsActive(pathname: string, path: string, mapClusterActive: boolean) {
+  if (path === "/map") {
+    return pathname === "/map" || mapClusterActive;
+  }
   if (pathname === path) return true;
   return pathname.startsWith(`${path}/`);
 }
 
 export function AppSubNav() {
   const pathname = usePathname() || "";
+  const thesisSlug = pathname.match(/^\/theses\/([^/]+)/)?.[1] ?? null;
+  const mapClusterActive = useThesisHasCausalCluster(thesisSlug);
 
   return (
     <nav className="no-print border-b border-white/[0.06]" aria-label="App sections">
       <div className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-5 py-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {TABS.map((tab) => {
-          const active = tabIsActive(pathname, tab.path);
+          const active = tabIsActive(pathname, tab.path, mapClusterActive);
           return (
             <Link
               key={tab.path}

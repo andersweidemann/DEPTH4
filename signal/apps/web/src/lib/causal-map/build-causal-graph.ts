@@ -16,7 +16,7 @@ import type {
   ThesisCluster,
 } from "@/types/causal-graph";
 
-type EventRow = {
+export type EventRow = {
   id: string;
   slug: string;
   title: string;
@@ -27,13 +27,13 @@ type EventRow = {
   last_updated: string;
 };
 
-type AssetRow = {
+export type AssetRow = {
   id: string;
   symbol: string;
   name: string;
 };
 
-type AffectRow = {
+export type AffectRow = {
   id: string;
   thesis_id: string;
   asset_id: string;
@@ -46,7 +46,7 @@ type AffectRow = {
   thesis_slug: string | null;
 };
 
-type ThesisRow = {
+export type ThesisRow = {
   id: string;
   slug: string | null;
   title: string;
@@ -58,7 +58,7 @@ type ThesisRow = {
   micro_label: string | null;
 };
 
-type LinkRow = { event_id: string; thesis_id: string; is_primary: boolean };
+export type LinkRow = { event_id: string; thesis_id: string; is_primary: boolean };
 
 type RelationRow = {
   from_thesis_id: string;
@@ -72,7 +72,7 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, Math.round(n)));
 }
 
-function mapEvent(row: EventRow): CausalEvent {
+export function mapEvent(row: EventRow): CausalEvent {
   return {
     id: row.id,
     slug: row.slug,
@@ -109,7 +109,7 @@ function thesisMispricingScore(row: ThesisRow, slug: string | null): number {
   return 50;
 }
 
-function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): CausalThesis {
+export function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): CausalThesis {
   const slug = row.slug?.trim() || row.id;
   const bundle = slug ? getThesisDetail(slug) : null;
   let thesis: Thesis | null = bundle?.thesis ?? null;
@@ -134,7 +134,7 @@ function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): CausalThesi
   };
 }
 
-function mapAffect(row: AffectRow, assetById: Map<string, AssetRow>): CausalAffect | null {
+export function mapAffect(row: AffectRow, assetById: Map<string, AssetRow>): CausalAffect | null {
   const asset = assetById.get(row.asset_id);
   if (!asset) return null;
   const dir = row.direction === "up" || row.direction === "down" || row.direction === "neutral" ? row.direction : "neutral";
@@ -150,7 +150,7 @@ function mapAffect(row: AffectRow, assetById: Map<string, AssetRow>): CausalAffe
   };
 }
 
-function computeImpliedEffects(clusterTheses: CausalThesis[]): ClusterImpliedEffect[] {
+export function computeImpliedEffects(clusterTheses: CausalThesis[]): ClusterImpliedEffect[] {
   const byAsset = new Map<
     string,
     {

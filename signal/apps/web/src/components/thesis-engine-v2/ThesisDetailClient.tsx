@@ -22,6 +22,7 @@ import { useDepth4Privileges } from "@/hooks/use-depth4-privileges";
 import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anatomy-debug-access";
 import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
+import { CausalChainGraph } from "@/components/causal-graph/CausalChainGraph";
 import { IncentiveAnalysisSection } from "@/components/thesis/IncentiveAnalysisSection";
 import { ThesisResolutionSection } from "@/components/thesis-engine-v2/ThesisResolutionSection";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
@@ -1087,6 +1088,9 @@ export function ThesisDetailClient({
         <ThesisUpdatesPanel slug={slug} />
         <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
           <IncentiveAnalysisSection analysis={thesis.incentiveAnalysis ?? null} />
+        </div>
+        <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
+          <CausalChainGraph thesisSlug={slug} />
         </div>
         <CollapsibleThesisSection
           title="Evidence timeline"
