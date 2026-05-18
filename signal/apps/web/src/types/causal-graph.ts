@@ -31,12 +31,15 @@ export interface CausalChainResponse {
   impliedEffects: ClusterImpliedEffect[];
 }
 
+export type CausalEventStatus = "active" | "resolved" | "faded";
+
 export interface CausalEvent {
   id: string;
   slug: string;
   title: string;
   description: string;
   category: EventCategory;
+  status: CausalEventStatus;
   confidence: number;
   firstDetected: string;
 }
@@ -93,6 +96,16 @@ export interface ThesisCluster {
 
 export interface GlobalCausalGraph {
   clusters: ThesisCluster[];
+  activeEvents: number;
+  totalTheses: number;
+  lastUpdated: string;
+}
+
+/** GET /api/causal-graph/clusters — thesis list clustering surface. */
+export interface CausalGraphClustersResponse {
+  clusters: ThesisCluster[];
+  isolated: CausalThesis[];
+  drafts: CausalThesis[];
   activeEvents: number;
   totalTheses: number;
   lastUpdated: string;

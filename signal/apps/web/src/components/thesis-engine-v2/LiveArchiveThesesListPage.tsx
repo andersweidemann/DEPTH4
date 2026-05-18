@@ -10,7 +10,7 @@ import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import type { ThesisArchiveListResponse } from "@/types/thesis";
-import { ThesisRow, TABLE_GRID } from "@/components/thesis-engine-v2/LiveThesesListPage";
+import { ThesisRow, TABLE_GRID } from "@/components/thesis-engine-v2/ThesisListRow";
 import { cn } from "@/lib/utils";
 
 export function LiveArchiveThesesListPage() {

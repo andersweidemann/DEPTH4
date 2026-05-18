@@ -8,10 +8,12 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import type {
   CausalAffect,
   CausalEvent,
+  CausalEventStatus,
   CausalThesis,
   ClusterImpliedEffect,
   ConflictWarning,
   EventCategory,
+  CausalGraphClustersResponse,
   GlobalCausalGraph,
   ThesisCluster,
 } from "@/types/causal-graph";
@@ -22,6 +24,7 @@ export type EventRow = {
   title: string;
   description: string | null;
   category: string;
+  status: string;
   confidence: number;
   first_detected: string;
   last_updated: string;
@@ -72,6 +75,11 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, Math.round(n)));
 }
 
+function mapEventStatus(status: string): CausalEventStatus {
+  if (status === "resolved" || status === "faded") return status;
+  return "active";
+}
+
 export function mapEvent(row: EventRow): CausalEvent {
   return {
     id: row.id,
@@ -79,6 +87,7 @@ export function mapEvent(row: EventRow): CausalEvent {
     title: row.title,
     description: row.description?.trim() || "",
     category: row.category as EventCategory,
+    status: mapEventStatus(row.status),
     confidence: row.confidence,
     firstDetected: row.first_detected,
   };
@@ -354,5 +363,70 @@ export async function buildGlobalCausalGraph(supabase: SupabaseClient): Promise<
     activeEvents: events.length,
     totalTheses,
     lastUpdated,
+  };
+}
+
+export async function buildCausalGraphClusters(
+  supabase: SupabaseClient,
+): Promise<CausalGraphClustersResponse> {
+  const graph = await buildGlobalCausalGraph(supabase);
+
+  const linksRes = await supabase.from("event_thesis_links").select("thesis_id");
+  if (linksRes.error) throw linksRes.error;
+
+  const linkedIds = new Set((linksRes.data ?? []).map((l: { thesis_id: string }) => l.thesis_id));
+  const clusteredIds = new Set(graph.clusters.flatMap((c) => c.theses.map((t) => t.id)));
+
+  const thesesRes = await supabase
+    .from("theses")
+    .select("id, slug, title, status, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label")
+    .in("status", Array.from(LIVE_STATUSES));
+
+  if (thesesRes.error) throw thesesRes.error;
+
+  const affectsRes = await supabase
+    .from("causal_affects")
+    .select(
+      "id, thesis_id, asset_id, direction, strength, priced_in_percent, mispricing_score, why_it_matters, has_dedicated_thesis, thesis_slug",
+    );
+
+  if (affectsRes.error) throw affectsRes.error;
+
+  const assetsRes = await supabase.from("causal_assets").select("id, symbol, name");
+  if (assetsRes.error) throw assetsRes.error;
+
+  const assets = (assetsRes.data ?? []) as AssetRow[];
+  const assetById = new Map(assets.map((a) => [a.id, a]));
+  const affectRows = (affectsRes.data ?? []) as AffectRow[];
+  const thesisRows = (thesesRes.data ?? []) as ThesisRow[];
+
+  const affectsByThesis = new Map<string, CausalAffect[]>();
+  for (const row of affectRows) {
+    const mapped = mapAffect(row, assetById);
+    if (!mapped) continue;
+    const list = affectsByThesis.get(row.thesis_id) ?? [];
+    list.push(mapped);
+    affectsByThesis.set(row.thesis_id, list);
+  }
+
+  const isolated: CausalThesis[] = [];
+  const drafts: CausalThesis[] = [];
+
+  for (const row of thesisRows) {
+    if (linkedIds.has(row.id)) continue;
+    const causal = buildCausalThesis(row, affectsByThesis.get(row.id) ?? []);
+    isolated.push(causal);
+    if (row.status === "forming") drafts.push(causal);
+  }
+
+  const clusters = graph.clusters.filter((c) => c.theses.length > 0);
+
+  return {
+    clusters,
+    isolated,
+    drafts,
+    activeEvents: graph.activeEvents,
+    totalTheses: clusteredIds.size + isolated.length,
+    lastUpdated: graph.lastUpdated,
   };
 }
