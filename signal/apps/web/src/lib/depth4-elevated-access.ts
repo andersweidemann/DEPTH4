@@ -5,12 +5,8 @@
  */
 
 import {
-  isDepth4AdminUserAsync,
-  isDepth4ElevatedUserAsync,
   legacyDepth4AdminEmailsFromEnv,
   legacyDepth4OperatorUserIdsFromEnv,
-  resolveDepth4Privileges,
-  type Depth4Privileges,
 } from "@/lib/depth4-user-roles";
 
 export type { Depth4Privileges, Depth4Role } from "@/lib/depth4-user-roles";

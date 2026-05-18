@@ -258,7 +258,7 @@ export async function resolveDepth4Privileges(input: {
 
   await seedOperatorRolesFromEnvIfEmpty(svc);
 
-  let roles = await fetchDepth4RolesFromDb(svc, userId);
+  const roles = await fetchDepth4RolesFromDb(svc, userId);
   if (roles.length) return privilegesFromRoles(userId, roles, "db");
 
   if (envFallbackEnabled()) {
