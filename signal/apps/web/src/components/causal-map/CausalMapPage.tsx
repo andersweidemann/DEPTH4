@@ -1,15 +1,23 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { clusterHasVisibleContent } from "@/lib/causal-map/causal-map-filters";
-import { ClusterCard } from "@/components/causal-map/ClusterCard";
-import { CausalTreePreview } from "@/components/causal-map/CausalTreePreview";
-import { CausalMatrix } from "@/components/causal-matrix/CausalMatrix";
-import { buildMatrixFromCluster } from "@/lib/causal-matrix/build-matrix";
+import { filterCluster, filterThesis } from "@/lib/causal-map/causal-map-filters";
+import { ThesisMapCard } from "@/components/causal-map/ThesisMapCard";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
-import type { GlobalCausalGraph } from "@/types/causal-graph";
+import type { CausalEvent, CausalGraphClustersResponse, ThesisCluster } from "@/types/causal-graph";
 import { cn } from "@/lib/utils";
+
+const ISOLATED_EVENT: CausalEvent = {
+  id: "isolated",
+  slug: "isolated",
+  title: "No linked event",
+  description: "",
+  category: "geopolitics",
+  status: "active",
+  confidence: 0,
+  firstDetected: new Date().toISOString(),
+};
 
 function ToggleButton({
   label,
@@ -40,17 +48,18 @@ function ToggleButton({
   );
 }
 
-function ClusterGridSkeleton() {
+function sortThesesByEdge(cluster: ThesisCluster): ThesisCluster {
+  return {
+    ...cluster,
+    theses: [...cluster.theses].sort((a, b) => b.mispricingScore - a.mispricingScore),
+  };
+}
+
+function ThesisListSkeleton() {
   return (
-    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="rounded-lg border border-white/[0.06] bg-zinc-900/30 p-4 space-y-3">
-          <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-4 w-3/4" />
-          <Skeleton className="h-3 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+    <div className="mt-8 space-y-2">
+      {[0, 1, 2, 3].map((i) => (
+        <Skeleton key={i} className="h-14 w-full rounded-lg" />
       ))}
     </div>
   );
@@ -59,9 +68,10 @@ function ClusterGridSkeleton() {
 export function CausalMapPage() {
   const [hidePricedIn, setHidePricedIn] = useState(false);
   const [showConflicts, setShowConflicts] = useState(false);
-  const [graph, setGraph] = useState<GlobalCausalGraph | null>(null);
+  const [graph, setGraph] = useState<CausalGraphClustersResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedThesis, setExpandedThesis] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "DEPTH4 · Causal map";
@@ -73,12 +83,12 @@ export function CausalMapPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/causal-graph", { credentials: "include" });
+        const res = await fetch("/api/causal-graph/clusters", { credentials: "include" });
         if (!res.ok) {
           const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
           throw new Error(body.message || body.error || `HTTP ${res.status}`);
         }
-        const data = (await res.json()) as GlobalCausalGraph;
+        const data = (await res.json()) as CausalGraphClustersResponse;
         if (!cancelled) setGraph(data);
       } catch (e) {
         if (!cancelled) {
@@ -94,25 +104,29 @@ export function CausalMapPage() {
     };
   }, []);
 
-  const clusters = graph?.clusters ?? [];
   const activeEvents = graph?.activeEvents ?? 0;
   const totalTheses = graph?.totalTheses ?? 0;
-  const featuredCluster = clusters[0];
-  const featuredMatrix = featuredCluster ? buildMatrixFromCluster(featuredCluster) : null;
 
-  const visibleClusters = useMemo(
-    () => clusters.filter((c) => clusterHasVisibleContent(c, hidePricedIn)),
-    [clusters, hidePricedIn],
-  );
+  const visibleClusters = useMemo(() => {
+    const clusters = graph?.clusters ?? [];
+    return clusters
+      .map((c) => filterCluster(c, hidePricedIn))
+      .filter((c) => c.theses.length > 0)
+      .map(sortThesesByEdge);
+  }, [graph?.clusters, hidePricedIn]);
+
+  const visibleIsolated = useMemo(() => {
+    const isolated = graph?.isolated ?? [];
+    return isolated
+      .filter((t) => filterThesis(t, hidePricedIn))
+      .sort((a, b) => b.mispricingScore - a.mispricingScore);
+  }, [graph?.isolated, hidePricedIn]);
 
   if (loading) {
     return (
       <div data-causal-map className="mx-auto max-w-6xl">
         <PageHeaderSkeleton />
-        <div className="mt-8">
-          <Skeleton className="h-48 w-full rounded-lg" />
-        </div>
-        <ClusterGridSkeleton />
+        <ThesisListSkeleton />
       </div>
     );
   }
@@ -125,18 +139,18 @@ export function CausalMapPage() {
     );
   }
 
+  const nothingVisible = visibleClusters.length === 0 && visibleIsolated.length === 0;
+
   return (
     <div data-causal-map className="mx-auto max-w-6xl">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Causal map</h1>
           <p className="mt-1 text-[13px] text-zinc-400">
             {activeEvents} active events · {totalTheses} theses · live data
           </p>
-          <p className="mt-1 text-[11px] text-zinc-600">
-            Theses are edges between events and assets — not isolated documents.
-          </p>
+          <p className="mt-0.5 text-[11px] text-zinc-600">Click a thesis to see the full causal chain.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <ToggleButton
@@ -154,51 +168,80 @@ export function CausalMapPage() {
         </div>
       </div>
 
-      {clusters.length === 0 ? (
+      {nothingVisible ? (
         <p className="mt-10 text-[13px] text-zinc-500">
-          No active macro events in the causal graph yet. Run the causal graph migration and link theses to events.
+          No theses match the current filters. Try turning off &quot;Hide priced-in&quot; or link theses to events in
+          the causal graph.
         </p>
       ) : (
-        <>
-          {featuredMatrix ? (
-            <section className="mt-8">
-              <h2 className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                4×4 causal matrix
-              </h2>
-              <CausalMatrix
-                matrix={featuredMatrix}
-                detailTreeSlot={
-                  featuredCluster ? (
-                    <div>
-                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
-                        Causal tree (detail)
-                      </p>
-                      <CausalTreePreview cluster={featuredCluster} hidePricedIn={hidePricedIn} />
-                    </div>
-                  ) : undefined
-                }
-              />
-            </section>
-          ) : null}
+        <div className="space-y-8">
+          {visibleClusters.map((cluster) => {
+            const hasConflicts = cluster.conflictWarnings.length > 0;
+            return (
+              <section key={cluster.event.id}>
+                <div className="mb-3 flex flex-wrap items-center gap-2">
+                  <span
+                    className={cn(
+                      "text-[10px] font-semibold uppercase tracking-[0.14em]",
+                      showConflicts && hasConflicts ? "text-red-400" : "text-[#E8473F]/90",
+                    )}
+                  >
+                    {cluster.event.title}
+                  </span>
+                  <span className="text-[10px] text-zinc-600">
+                    · {cluster.theses.length} thesis{cluster.theses.length === 1 ? "" : "es"}
+                    {hasConflicts ? ` · ${cluster.conflictWarnings.length} conflict${cluster.conflictWarnings.length === 1 ? "" : "s"}` : ""}
+                  </span>
+                </div>
 
-          <section className="mt-10">
-            <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Event clusters</h2>
-            {visibleClusters.length === 0 ? (
-              <p className="mt-4 text-[13px] text-zinc-500">No clusters match the current filters.</p>
-            ) : (
-              <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {visibleClusters.map((cluster) => (
-                  <ClusterCard
-                    key={cluster.event.id}
-                    cluster={cluster}
+                <div className="space-y-2">
+                  {cluster.theses.map((thesis) => (
+                    <ThesisMapCard
+                      key={thesis.slug}
+                      thesis={thesis}
+                      rootEvent={cluster.event}
+                      isExpanded={expandedThesis === thesis.slug}
+                      onToggle={() =>
+                        setExpandedThesis((cur) => (cur === thesis.slug ? null : thesis.slug))
+                      }
+                      hidePricedIn={hidePricedIn}
+                    />
+                  ))}
+                </div>
+
+                {hasConflicts ? (
+                  <div className="mt-2 space-y-1 rounded-md border border-red-500/20 bg-red-500/5 p-2">
+                    {cluster.conflictWarnings.map((w, i) => (
+                      <p key={`${w.thesisA}-${i}`} className="text-[11px] text-red-400/80">
+                        ⚠ {w.conflict}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
+
+          {visibleIsolated.length > 0 ? (
+            <section>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+                Isolated theses
+              </p>
+              <div className="space-y-2">
+                {visibleIsolated.map((thesis) => (
+                  <ThesisMapCard
+                    key={thesis.slug}
+                    thesis={thesis}
+                    rootEvent={ISOLATED_EVENT}
+                    isExpanded={expandedThesis === thesis.slug}
+                    onToggle={() => setExpandedThesis((cur) => (cur === thesis.slug ? null : thesis.slug))}
                     hidePricedIn={hidePricedIn}
-                    highlightConflicts={showConflicts}
                   />
                 ))}
               </div>
-            )}
-          </section>
-        </>
+            </section>
+          ) : null}
+        </div>
       )}
 
       {graph?.lastUpdated ? (

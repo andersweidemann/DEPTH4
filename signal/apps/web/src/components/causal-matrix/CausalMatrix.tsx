@@ -15,35 +15,45 @@ import { MatrixCellDetail } from "@/components/causal-matrix/MatrixCellDetail";
 interface CausalMatrixProps {
   matrix: CausalMatrixData;
   detailTreeSlot?: ReactNode;
+  variant?: "full" | "compact";
 }
 
-export function CausalMatrix({ matrix, detailTreeSlot }: CausalMatrixProps) {
+export function CausalMatrix({ matrix, detailTreeSlot, variant = "full" }: CausalMatrixProps) {
+  const compact = variant === "compact";
   const [selectedCell, setSelectedCell] = useState<{ td: TimeDepth; ad: AssetDepth } | null>(null);
   const [hoveredCell, setHoveredCell] = useState<{ td: TimeDepth; ad: AssetDepth } | null>(null);
 
   const selected = selectedCell ? matrix.cells[selectedCell.td]?.[selectedCell.ad] : undefined;
+  const rowHeaderClass = compact ? "grid-cols-[72px_repeat(4,1fr)]" : "grid-cols-[100px_repeat(4,1fr)]";
 
   return (
     <div className="w-full">
-      <div className="mb-4">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-[#E8473F]/10 px-2 py-0.5 text-[10px] font-medium text-[#E8473F]">
-            {matrix.event.category.replace(/_/g, " ")}
-          </span>
-          <span className="text-[10px] text-zinc-500">Confidence {matrix.event.confidence}%</span>
+      {!compact ? (
+        <div className="mb-4">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-[#E8473F]/10 px-2 py-0.5 text-[10px] font-medium text-[#E8473F]">
+              {matrix.event.category.replace(/_/g, " ")}
+            </span>
+            <span className="text-[10px] text-zinc-500">Confidence {matrix.event.confidence}%</span>
+          </div>
+          <h3 className="mt-1 text-[14px] font-semibold text-zinc-100">{matrix.event.title}</h3>
         </div>
-        <h3 className="mt-1 text-[14px] font-semibold text-zinc-100">{matrix.event.title}</h3>
-      </div>
+      ) : null}
 
-      <MatrixLegend />
+      {!compact ? <MatrixLegend /> : null}
 
-      <div className="mt-4 overflow-x-auto">
-        <div className="min-w-[640px]">
-          <div className="mb-1 grid grid-cols-[100px_repeat(4,1fr)] gap-1">
+      <div className={cn(compact ? "overflow-x-auto" : "mt-4 overflow-x-auto")}>
+        <div className={compact ? "min-w-[480px]" : "min-w-[640px]"}>
+          <div className={cn("mb-1 grid gap-1", rowHeaderClass)}>
             <div />
             {ASSET_DEPTHS.map((ad) => (
-              <div key={ad} className="py-1.5 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+              <div key={ad} className={cn("text-center", compact ? "py-0.5" : "py-1.5")}>
+                <p
+                  className={cn(
+                    "font-semibold uppercase tracking-[0.14em] text-zinc-500",
+                    compact ? "text-[8px]" : "text-[10px]",
+                  )}
+                >
                   {ASSET_DEPTH_LABELS[ad]}
                 </p>
               </div>
@@ -51,18 +61,20 @@ export function CausalMatrix({ matrix, detailTreeSlot }: CausalMatrixProps) {
           </div>
 
           {TIME_DEPTHS.map((td) => (
-            <div key={td} className="mb-1 grid grid-cols-[100px_repeat(4,1fr)] gap-1">
+            <div key={td} className={cn("mb-1 grid gap-1", rowHeaderClass)}>
               <div className="flex items-center pr-2">
                 <div>
-                  <p className="text-[10px] font-semibold text-zinc-400">
+                  <p className={cn("font-semibold text-zinc-400", compact ? "text-[9px]" : "text-[10px]")}>
                     {td === "L1_confirmed" && "L1"}
                     {td === "L2_this_week" && "L2"}
                     {td === "L3_this_month" && "L3"}
                     {td === "L4_this_quarter" && "L4"}
                   </p>
-                  <p className="text-[9px] leading-tight text-zinc-600">
-                    {TIME_DEPTH_LABELS[td].replace(/^Confirmed /, "")}
-                  </p>
+                  {!compact ? (
+                    <p className="text-[9px] leading-tight text-zinc-600">
+                      {TIME_DEPTH_LABELS[td].replace(/^Confirmed /, "")}
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
@@ -72,6 +84,7 @@ export function CausalMatrix({ matrix, detailTreeSlot }: CausalMatrixProps) {
                   <MatrixGridCell
                     key={`${td}-${ad}`}
                     cell={cell}
+                    compact={compact}
                     isHovered={hoveredCell?.td === td && hoveredCell?.ad === ad}
                     onHover={() => setHoveredCell({ td, ad })}
                     onLeave={() => setHoveredCell(null)}
@@ -84,7 +97,7 @@ export function CausalMatrix({ matrix, detailTreeSlot }: CausalMatrixProps) {
         </div>
       </div>
 
-      {selectedCell && selected ? (
+      {selectedCell && selected && !compact ? (
         <MatrixCellDetail
           cell={selected}
           timeDepth={selectedCell.td}
@@ -99,12 +112,14 @@ export function CausalMatrix({ matrix, detailTreeSlot }: CausalMatrixProps) {
 
 function MatrixGridCell({
   cell,
+  compact,
   isHovered,
   onHover,
   onLeave,
   onClick,
 }: {
   cell?: MatrixCell;
+  compact: boolean;
   isHovered: boolean;
   onHover: () => void;
   onLeave: () => void;
@@ -113,7 +128,10 @@ function MatrixGridCell({
   if (!cell) {
     return (
       <div
-        className="flex aspect-square items-center justify-center rounded-md border border-dashed border-white/[0.04] bg-zinc-900/20"
+        className={cn(
+          "flex items-center justify-center rounded-md border border-dashed border-white/[0.04] bg-zinc-900/20",
+          compact ? "h-14" : "aspect-square",
+        )}
         aria-hidden
       >
         <span className="text-[9px] text-zinc-700">—</span>
@@ -131,7 +149,8 @@ function MatrixGridCell({
       onMouseLeave={onLeave}
       onClick={onClick}
       className={cn(
-        "relative flex aspect-square cursor-pointer flex-col justify-between overflow-hidden rounded-md border p-2 text-left transition-all",
+        "relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-md border text-left transition-all",
+        compact ? "h-14 p-1.5" : "aspect-square p-2",
         isEdge && !isPricedIn && "border-[#E8473F]/30 bg-[#E8473F]/[0.06]",
         isEdge && isPricedIn && "border-[#E8473F]/15 bg-[#E8473F]/[0.03]",
         !isEdge && "border-white/[0.06] bg-zinc-900/40",
@@ -141,7 +160,8 @@ function MatrixGridCell({
       <div className="flex items-center justify-between">
         <span
           className={cn(
-            "text-[10px] font-bold",
+            "font-bold",
+            compact ? "text-[9px]" : "text-[10px]",
             cell.direction === "up" && "text-emerald-400",
             cell.direction === "down" && "text-red-400",
             cell.direction === "neutral" && "text-zinc-500",
@@ -149,36 +169,44 @@ function MatrixGridCell({
         >
           {cell.direction === "up" ? "↑" : cell.direction === "down" ? "↓" : "→"}
         </span>
-        {cell.hasThesis ? <span className="text-[8px] text-[#E8473F]">★</span> : null}
+        {cell.hasThesis ? <span className="text-[7px] text-[#E8473F]">★</span> : null}
       </div>
 
       <div className="text-center">
-        <span className="text-[11px] font-semibold text-zinc-200">{cell.assetSymbol}</span>
+        <span className={cn("font-semibold text-zinc-200", compact ? "text-[10px]" : "text-[11px]")}>
+          {cell.assetSymbol}
+        </span>
       </div>
 
-      <div>
-        <div className="h-1 overflow-hidden rounded-full bg-zinc-800">
-          <div
-            className={cn(
-              "h-full rounded-full transition-all",
-              cell.pricedInPercent >= 70
-                ? "bg-red-500/50"
-                : cell.pricedInPercent >= 40
-                  ? "bg-amber-500/50"
-                  : "bg-emerald-500/50",
-            )}
-            style={{ width: `${Math.min(100, Math.max(0, cell.pricedInPercent))}%` }}
-          />
+      {!compact ? (
+        <div>
+          <div className="h-1 overflow-hidden rounded-full bg-zinc-800">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                cell.pricedInPercent >= 70
+                  ? "bg-red-500/50"
+                  : cell.pricedInPercent >= 40
+                    ? "bg-amber-500/50"
+                    : "bg-emerald-500/50",
+              )}
+              style={{ width: `${Math.min(100, Math.max(0, cell.pricedInPercent))}%` }}
+            />
+          </div>
+          <div className="mt-0.5 flex justify-between">
+            <span className="text-[7px] text-zinc-600">{cell.pricedInPercent}%PI</span>
+            <span
+              className={cn("text-[7px]", cell.mispricingScore >= 50 ? "text-[#E8473F]" : "text-zinc-600")}
+            >
+              {cell.mispricingScore}M
+            </span>
+          </div>
         </div>
-        <div className="mt-0.5 flex justify-between">
-          <span className="text-[7px] text-zinc-600">{cell.pricedInPercent}%PI</span>
-          <span
-            className={cn("text-[7px]", cell.mispricingScore >= 50 ? "text-[#E8473F]" : "text-zinc-600")}
-          >
-            {cell.mispricingScore}M
-          </span>
-        </div>
-      </div>
+      ) : (
+        <span className={cn("text-center text-[7px]", cell.mispricingScore >= 50 ? "text-[#E8473F]" : "text-zinc-600")}>
+          {cell.mispricingScore}M
+        </span>
+      )}
     </button>
   );
 }
