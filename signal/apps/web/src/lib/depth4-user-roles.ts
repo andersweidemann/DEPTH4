@@ -271,7 +271,7 @@ export async function getDepth4RoleOperationalHealth(
 ): Promise<Depth4RoleOperationalHealth> {
   const policy = getDepth4RolePolicy();
   const roles = await listDepth4UserRoles(svc);
-  const dbUserIds = [...new Set(roles.map((r) => r.userId))];
+  const dbUserIds = Array.from(new Set(roles.map((r) => r.userId)));
   const operatorUserIds = legacyDepth4OperatorUserIdsFromEnv();
   const operatorUserIdsNotInDb = operatorUserIds.filter((id) => !dbUserIds.includes(id));
   const adminEmails = legacyDepth4AdminEmailsFromEnv();
