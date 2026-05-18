@@ -54,7 +54,7 @@ import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-co
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
-import { effectiveLifecycleState } from "@/lib/theses/thesis-lifecycle";
+import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 import {
   buildDisplayScenariosFromThesis,
   currentThesisProbabilityFromThesis,
@@ -366,7 +366,7 @@ export function ThesisDetailClient({
         if (row.updated_at) {
           mergedThesis = {
             ...mergedThesis,
-            lastUpdated: `Synced · ${new Date(row.updated_at).toLocaleString([], {
+            lastUpdated: `Synced · ${new Date(row.updated_at).toLocaleString("en-US", {
               month: "short",
               day: "numeric",
               hour: "2-digit",
@@ -644,6 +644,10 @@ export function ThesisDetailClient({
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
   const mispricing = getThesisMispricing(thesis, { liveEvidenceCount: liveEvidence.length });
   const horizonTimeStopReview = evaluateHorizonTimeStopCoherence(thesis.horizon, thesis.timeStop);
+  const thesisTerminal =
+    isTerminalThesis({ lifecycle_state: lifecycleState ?? thesis.lifecycle_state, status: thesis.status }) ||
+    thesis.status === "resolved" ||
+    thesis.status === "invalidated";
 
   const scenarioAuthenticityNote =
     showAuthoritativeScenarioPercents && isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows)
@@ -659,17 +663,24 @@ export function ThesisDetailClient({
       </div>
 
       <div className={cn("mt-6 space-y-8", layout === "drawer" && "px-4 sm:px-5")}>
-        <ScenarioPanel
-          scenarios={scenarioViewScenarios.rows}
-          showPercentages={showAuthoritativeScenarioPercents}
-          probabilitySource={scenarioViewScenarios.probabilitySource}
-          templateAuthenticityNote={scenarioAuthenticityNote}
-        />
+        <CollapsibleThesisSection
+          title="Resolution paths"
+          subtitle="How this thesis could resolve — clean, messy, or broken."
+          defaultOpen={false}
+        >
+          <ScenarioPanel
+            scenarios={scenarioViewScenarios.rows}
+            showPercentages={showAuthoritativeScenarioPercents}
+            probabilitySource={scenarioViewScenarios.probabilitySource}
+            templateAuthenticityNote={scenarioAuthenticityNote}
+            hideHeader
+          />
+        </CollapsibleThesisSection>
         <AdvisoryLog
           updates={(() => {
             if (!insider?.latest || (!insider.applied && !insider.suggested)) return advisoryLog;
             const eff = insider.applied ?? insider.suggested;
-            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Messy win ${eff!.base}%, Clean win ${eff!.bull}%, Thesis broken ${eff!.bear}%.`;
+            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Messy win ${eff!.base}%, Clean win ${eff!.bull}%, Thesis broken ${eff!.bear}%.`;
             return [
               { id: `${thesis.id}-if-${insider.latest.id}`, thesisId: thesis.id, timestamp: "Now", text: line },
               ...advisoryLog,
@@ -729,7 +740,7 @@ export function ThesisDetailClient({
               {bookSnap.latest.closedAt ? (
                 <span className="text-zinc-600">
                   ·{" "}
-                  {new Date(bookSnap.latest.closedAt).toLocaleString([], {
+                  {new Date(bookSnap.latest.closedAt).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
@@ -939,7 +950,9 @@ export function ThesisDetailClient({
           </div>
         </CollapsibleThesisSection>
 
-        <TradePlanCard thesis={thesis} />
+        <CollapsibleThesisSection title="Trade plan" subtitle="Actionable levels when the setup is live." defaultOpen>
+          <TradePlanCard thesis={thesis} />
+        </CollapsibleThesisSection>
 
         {isUserThesis && !insiderMonitoring ? (
           <section
@@ -1087,15 +1100,27 @@ export function ThesisDetailClient({
         <ThesisRecentChangesSummary slug={slug} />
         <ThesisUpdatesPanel slug={slug} />
         <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
-          <IncentiveAnalysisSection analysis={thesis.incentiveAnalysis ?? null} />
+          <CollapsibleThesisSection
+            title="Incentive analysis"
+            subtitle="Who benefits, who loses, and what that means for price."
+            defaultOpen
+          >
+            <IncentiveAnalysisSection analysis={thesis.incentiveAnalysis ?? null} embedded />
+          </CollapsibleThesisSection>
         </div>
         <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
-          <CausalChainGraph thesisSlug={slug} />
+          <CollapsibleThesisSection
+            title="Causal chain"
+            subtitle="How this thesis links to macro events and related assets."
+            defaultOpen
+          >
+            <CausalChainGraph thesisSlug={slug} embedded />
+          </CollapsibleThesisSection>
         </div>
         <CollapsibleThesisSection
           title="Evidence timeline"
           subtitle="Headlines and conviction moves tied to this thesis."
-          defaultOpen={false}
+          defaultOpen={mergedEvidenceTimeline.length <= 3}
           contentClassName="pb-5"
         >
           <EvidenceTimeline items={mergedEvidenceTimeline} initialVisible={5} showHeading={false} />
@@ -1144,13 +1169,20 @@ export function ThesisDetailClient({
           </div>
         ) : null}
 
-        <ThesisResolutionSection
-          thesis={thesis}
-          slug={slug}
-          layout={layout}
-          lifecycleState={lifecycleState}
-          isAuthenticated={!!user}
-        />
+        <CollapsibleThesisSection
+          title="Thesis resolution"
+          subtitle="Mark how this thesis resolved when the trade is done."
+          defaultOpen={!thesisTerminal}
+        >
+          <ThesisResolutionSection
+            thesis={thesis}
+            slug={slug}
+            layout={layout}
+            lifecycleState={lifecycleState}
+            isAuthenticated={!!user}
+            embedded
+          />
+        </CollapsibleThesisSection>
 
         {anatomyDebugVisible ? (
           <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>

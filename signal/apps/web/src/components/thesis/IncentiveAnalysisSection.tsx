@@ -25,11 +25,22 @@ function IncentiveRow({
   );
 }
 
-export function IncentiveAnalysisSection({ analysis }: { analysis: IncentiveAnalysis | null }) {
+export function IncentiveAnalysisSection({
+  analysis,
+  embedded = false,
+}: {
+  analysis: IncentiveAnalysis | null;
+  embedded?: boolean;
+}) {
   if (!analysis) return null;
 
   return (
-    <section className="mt-6 rounded-lg border border-amber-500/15 bg-amber-500/[0.03] p-4">
+    <section
+      className={cn(
+        "rounded-lg border border-amber-500/15 bg-amber-500/[0.03] p-4",
+        !embedded && "mt-6",
+      )}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
           Incentive analysis

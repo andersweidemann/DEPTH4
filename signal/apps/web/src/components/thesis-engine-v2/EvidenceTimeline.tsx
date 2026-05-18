@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
-import { evidenceConvictionSummary } from "@/lib/thesis-engine-v2/display-format";
+import { evidenceConvictionSummary, formatEvidenceSource } from "@/lib/thesis-engine-v2/display-format";
 import { cn } from "@/lib/utils";
 
 function impactLabel(impact: ThesisEvidence["impact"]): { text: string; className: string } {
@@ -89,7 +89,7 @@ function EvidenceRowBody({
     <>
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-[10px] tabular-nums text-zinc-500">{ev.timestamp}</span>
-        <span className="text-[10px] font-medium text-zinc-400">{ev.source}</span>
+        <span className="text-[10px] font-medium text-zinc-400">{formatEvidenceSource(ev.source)}</span>
         <span
           className={cn(
             "rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide",

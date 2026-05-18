@@ -195,7 +195,7 @@ function evidenceRowsToTickerItems(rows: ThesisEvidenceLogRow[], titleForThesisI
   const sorted = [...rows].sort((a, b) => b.createdAt - a.createdAt);
   const out: LiveSignalTickerItem[] = [];
   const tsFmt = (ms: number) =>
-    new Date(ms).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    new Date(ms).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
   for (const r of sorted) {
     if (out.length >= MAX_TICKER) break;

@@ -18,7 +18,7 @@ export function relTime(publishedAt: string | null | undefined): string {
   if (diff < 1) return "just now";
   if (diff < 60) return `${Math.max(1, Math.floor(diff))}m ago`;
   if (diff < 60 * 24) return `${Math.floor(diff / 60)}h ago`;
-  return d.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  return d.toLocaleDateString("en-US", { day: "numeric", month: "short" });
 }
 
 export type L1FromFeed = { event: string; why: string; next: string; signal: string };

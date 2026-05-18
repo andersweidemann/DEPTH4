@@ -20,6 +20,8 @@ describe("evidence labels", () => {
   it("maps internal event types and sources to user-facing labels", () => {
     expect(formatEvidenceEventLabel("NEWS_DEVELOPMENT")).toBe("News development");
     expect(formatEvidenceSource("news_events")).toBe("News wire");
+    expect(formatEvidenceSource("thesis_evidence_log")).toBe("News wire");
+    expect(formatEvidenceSource("Financial Times")).toBe("Financial Times");
   });
 });
 

@@ -78,8 +78,8 @@ function SignupPageInner() {
       setError("Password must be at least 8 characters");
       return;
     }
-    if (!/[a-zA-Z]/.test(password)) {
-      setError("Password must contain a letter");
+    if (!/[A-Z]/.test(password)) {
+      setError("Password must contain an uppercase letter");
       return;
     }
     if (!/[0-9]/.test(password)) {
@@ -175,15 +175,33 @@ function SignupPageInner() {
                 </button>
               </div>
               <div className="mt-2 space-y-1">
-                <p className={cn("text-[11px]", password.length >= 8 ? "text-emerald-400" : "text-zinc-500")}>
-                  - At least 8 characters
-                </p>
-                <p className={cn("text-[11px]", /[a-zA-Z]/.test(password) ? "text-emerald-400" : "text-zinc-500")}>
-                  - Contains a letter
-                </p>
-                <p className={cn("text-[11px]", /[0-9]/.test(password) ? "text-emerald-400" : "text-zinc-500")}>
-                  - Contains a number
-                </p>
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 text-[11px]",
+                    password.length >= 8 ? "text-emerald-400" : "text-zinc-500",
+                  )}
+                >
+                  <span aria-hidden>{password.length >= 8 ? "✓" : "○"}</span>
+                  8+ characters
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 text-[11px]",
+                    /[A-Z]/.test(password) ? "text-emerald-400" : "text-zinc-500",
+                  )}
+                >
+                  <span aria-hidden>{/[A-Z]/.test(password) ? "✓" : "○"}</span>
+                  One uppercase letter
+                </div>
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 text-[11px]",
+                    /[0-9]/.test(password) ? "text-emerald-400" : "text-zinc-500",
+                  )}
+                >
+                  <span aria-hidden>{/[0-9]/.test(password) ? "✓" : "○"}</span>
+                  One number
+                </div>
               </div>
             </div>
 

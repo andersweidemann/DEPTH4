@@ -1,6 +1,15 @@
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 
-const DISPLAY_LOCALE = "en-US";
+export const DISPLAY_LOCALE = "en-US";
+
+const INTERNAL_SOURCE_KEYS = new Set([
+  "news_events",
+  "event_reasoning",
+  "thesis_discovery_clusters",
+  "thesis_evidence_log",
+  "thesis_depth_book",
+  "thesis_updates",
+]);
 
 /** English-facing timestamps for thesis surfaces (avoids locale-driven CJK month/day glyphs). */
 export function formatThesisDisplayTimestamp(ms: number): string {
@@ -49,7 +58,27 @@ export function formatEvidenceEventLabel(eventType: string): string {
 export function formatEvidenceSource(source: string): string {
   const key = source.trim();
   if (!key) return "DEPTH4";
-  return SOURCE_LABELS[key] ?? humanizeToken(key);
+  const mapped = SOURCE_LABELS[key];
+  if (mapped) return mapped;
+  if (INTERNAL_SOURCE_KEYS.has(key)) return "News wire";
+  if (/^[a-z][a-z0-9_]*$/i.test(key) && key.includes("_")) {
+    return "News wire";
+  }
+  return humanizeToken(key);
+}
+
+/** en-US date/time for product surfaces (avoids locale-driven CJK glyphs). */
+export function formatAppLocaleDateTime(
+  value: string | number | Date,
+  opts?: Intl.DateTimeFormatOptions,
+): string {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString(DISPLAY_LOCALE, opts);
+}
+
+export function formatAppLocaleDate(value: string | number | Date): string {
+  return formatAppLocaleDateTime(value, { month: "short", day: "numeric", year: "numeric" });
 }
 
 /** One-line conviction change for timeline rows; null when redundant or unknown. */

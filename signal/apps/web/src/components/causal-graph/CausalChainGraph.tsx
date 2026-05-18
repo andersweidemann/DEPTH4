@@ -10,7 +10,13 @@ import { formatTimeAgo } from "@/lib/thesis-helpers";
 import { cn } from "@/lib/utils";
 import type { CausalAffectWithAsset, CausalChainResponse } from "@/types/causal-graph";
 
-export function CausalChainGraph({ thesisSlug }: { thesisSlug: string }) {
+export function CausalChainGraph({
+  thesisSlug,
+  embedded = false,
+}: {
+  thesisSlug: string;
+  embedded?: boolean;
+}) {
   const { data, error, isLoading } = useCausalChain(thesisSlug);
   const [hidePricedIn, setHidePricedIn] = useState(false);
 
@@ -46,7 +52,12 @@ export function CausalChainGraph({ thesisSlug }: { thesisSlug: string }) {
   }
 
   return (
-    <CausalChainContent chain={data} hidePricedIn={hidePricedIn} onHidePricedInChange={setHidePricedIn} />
+    <CausalChainContent
+      chain={data}
+      hidePricedIn={hidePricedIn}
+      onHidePricedInChange={setHidePricedIn}
+      embedded={embedded}
+    />
   );
 }
 
@@ -54,10 +65,12 @@ function CausalChainContent({
   chain,
   hidePricedIn,
   onHidePricedInChange,
+  embedded = false,
 }: {
   chain: CausalChainResponse;
   hidePricedIn: boolean;
   onHidePricedInChange: (v: boolean) => void;
+  embedded?: boolean;
 }) {
   const { thesis, rootEvent, targetAsset, affects, relatedTheses } = chain;
 
@@ -77,12 +90,17 @@ function CausalChainContent({
 
   return (
     <section
-      className="mt-6 rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4"
+      className={cn(
+        "rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4",
+        !embedded && "mt-6",
+      )}
       aria-label="Causal chain"
       data-testid="causal-chain-graph"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Causal chain</p>
+      <div className={cn("flex flex-wrap items-center gap-3", embedded ? "justify-end" : "justify-between")}>
+        {!embedded ? (
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Causal chain</p>
+        ) : null}
         <label className="flex cursor-pointer items-center gap-2 text-[11px] text-zinc-400">
           <input
             type="checkbox"

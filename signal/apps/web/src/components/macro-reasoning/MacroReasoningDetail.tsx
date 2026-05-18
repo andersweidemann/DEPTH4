@@ -102,7 +102,7 @@ export function MacroReasoningDetail({
   thesisMetaById: Map<string, ThesisMeta>;
   meta: { model: string; prompt_version: string; created_at: string };
 }) {
-  const fmtMeta = new Date(meta.created_at).toLocaleString(undefined, {
+  const fmtMeta = new Date(meta.created_at).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });

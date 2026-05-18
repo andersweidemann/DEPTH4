@@ -136,7 +136,7 @@ export function toPromotedCardModel(row: EventReasoningNewsJoin): PromotedCardMo
   const headline = news?.headline?.trim() || pr.parsed.event_summary.slice(0, 200);
   const publishedLabel =
     news?.published_at != null && news.published_at !== ""
-      ? new Date(news.published_at).toLocaleString(undefined, {
+      ? new Date(news.published_at).toLocaleString("en-US", {
           month: "short",
           day: "numeric",
           hour: "2-digit",

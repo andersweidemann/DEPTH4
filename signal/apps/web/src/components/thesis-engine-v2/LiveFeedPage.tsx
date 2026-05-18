@@ -102,7 +102,7 @@ function dayGroupLabel(iso: string): string {
   const diffDays = Math.round((t0 - t1) / (24 * 60 * 60 * 1000));
   if (diffDays === 0) return "Today";
   if (diffDays === 1) return "Yesterday";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 function groupByDay(items: FeedItem[]): { label: string; items: FeedItem[] }[] {

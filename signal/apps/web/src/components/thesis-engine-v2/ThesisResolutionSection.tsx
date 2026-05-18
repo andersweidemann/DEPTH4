@@ -61,12 +61,14 @@ export function ThesisResolutionSection({
   layout,
   lifecycleState,
   isAuthenticated,
+  embedded = false,
 }: {
   thesis: Thesis;
   slug: string;
   layout: "page" | "drawer";
   lifecycleState?: ThesisLifecycleState;
   isAuthenticated: boolean;
+  embedded?: boolean;
 }) {
   const [outcome, setOutcome] = useState<ThesisOutcomeRecord | null>(null);
   const [loading, setLoading] = useState(true);
@@ -160,9 +162,15 @@ export function ThesisResolutionSection({
     }
   };
 
+  const sectionClass = cn(
+    "rounded-lg border border-white/[0.06] bg-zinc-900/20 p-4",
+    !embedded && "mt-6",
+    layout === "drawer" && "p-3.5",
+  );
+
   if (loading) {
     return (
-      <section className={cn("mt-6 rounded-lg border border-white/[0.06] bg-zinc-900/20 p-4", layout === "drawer" && "p-3.5")}>
+      <section className={sectionClass}>
         <p className="text-[11px] text-zinc-600">Loading resolution…</p>
       </section>
     );
@@ -173,7 +181,8 @@ export function ThesisResolutionSection({
     return (
       <section
         className={cn(
-          "mt-6 rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4",
+          "rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4",
+          !embedded && "mt-6",
           layout === "drawer" && "p-3.5",
         )}
       >
@@ -211,12 +220,15 @@ export function ThesisResolutionSection({
   return (
     <section
       className={cn(
-        "mt-6 rounded-lg border border-amber-500/20 bg-amber-500/5 p-4",
+        "rounded-lg border border-amber-500/20 bg-amber-500/5 p-4",
+        !embedded && "mt-6",
         layout === "drawer" && "p-3.5",
       )}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-400">Thesis resolution</p>
-      <p className="mt-1 text-[12px] text-zinc-400">
+      {!embedded ? (
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-amber-400">Thesis resolution</p>
+      ) : null}
+      <p className={cn("text-[12px] text-zinc-400", embedded ? "mt-0" : "mt-1")}>
         When this thesis resolves, mark the outcome to build your track record.
       </p>
       {autoHint ? <p className="mt-2 text-[11px] text-amber-200/70">{autoHint}</p> : null}

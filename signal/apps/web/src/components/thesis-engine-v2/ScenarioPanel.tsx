@@ -39,6 +39,7 @@ export function ScenarioPanel({
   showPercentages = true,
   probabilitySource = null,
   templateAuthenticityNote,
+  hideHeader = false,
 }: {
   scenarios: ThesisScenarioLike[];
   /** When false, path labels and scenario copy stay; numeric weights and bars are hidden (template / calibrating). */
@@ -47,6 +48,7 @@ export function ScenarioPanel({
   probabilitySource?: ScenarioPanelProbabilitySource;
   /** When odds are visible but the triple is still a shipped template (user thesis), optional honesty line. */
   templateAuthenticityNote?: string | null;
+  hideHeader?: boolean;
 }) {
   const ordered = normalizeThesisScenarios(scenarios);
 
@@ -54,9 +56,17 @@ export function ScenarioPanel({
     <section data-testid="scenario-view-section">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Resolution paths</h2>
-          <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-600">{SCENARIO_SECTION_SUBTITLE}</p>
-          <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">{SCENARIO_PATHS_DEFINITION}</p>
+          {!hideHeader ? (
+            <>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Resolution paths</h2>
+              <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-600">
+                {SCENARIO_SECTION_SUBTITLE}
+              </p>
+            </>
+          ) : null}
+          <p className={cn("text-[11px] leading-relaxed text-zinc-600", !hideHeader && "mt-1")}>
+            {SCENARIO_PATHS_DEFINITION}
+          </p>
           {!showPercentages ? (
             <p
               className="mt-2 text-[11px] leading-relaxed text-zinc-500"

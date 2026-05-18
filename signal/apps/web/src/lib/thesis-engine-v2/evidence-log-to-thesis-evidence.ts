@@ -124,10 +124,17 @@ export function thesisEvidenceFromLogRow(
   const after = row.probabilityAfter ? thesisConvictionPctFromDbTriple(row.probabilityAfter) : before;
   const d = after - before;
   const ts = formatThesisDisplayTimestamp(row.createdAt);
+  const meta = row.metadata ?? {};
+  const publication =
+    (typeof meta.publication === "string" && meta.publication.trim()) ||
+    (typeof meta.source_label === "string" && meta.source_label.trim()) ||
+    (typeof meta.publisher === "string" && meta.publisher.trim()) ||
+    "";
   const rawSource =
-    typeof row.metadata?.source === "string" && row.metadata.source.trim()
-      ? row.metadata.source.trim()
-      : row.eventType || "DEPTH4";
+    publication ||
+    (typeof meta.source === "string" && meta.source.trim() ? meta.source.trim() : "") ||
+    row.eventType ||
+    "DEPTH4";
   const src = formatEvidenceSource(rawSource);
   const headline =
     (row.description || "").trim() || formatEvidenceEventLabel(row.eventType) || "Thesis update";
