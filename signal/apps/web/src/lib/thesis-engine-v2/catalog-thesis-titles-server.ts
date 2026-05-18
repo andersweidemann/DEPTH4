@@ -174,6 +174,7 @@ export async function fetchCatalogThesisHeaderBySlug(supabase: SupabaseClient, s
     micro_label?: unknown;
     body?: unknown;
     scenario_probabilities?: unknown;
+    incentive_analysis?: unknown;
   };
   const thesisId = typeof row.id === "string" ? row.id.trim() : "";
   const title = typeof row.title === "string" ? row.title.trim() : "";
