@@ -1,3 +1,18 @@
+export type CrossThesisUpdateSeverity = "info" | "conflict" | "opportunity";
+
+/** Graph-derived connection surfaced on `/feed` (computed on demand, not persisted in v1). */
+export interface CrossThesisUpdate {
+  id: string;
+  type: "cross_thesis_update";
+  message: string;
+  affectedThesisSlug: string;
+  affectingThesisSlug: string;
+  sharedEventId: string;
+  severity: CrossThesisUpdateSeverity;
+  timestamp: string;
+  read: boolean;
+}
+
 /** Unified feed row for `/feed` — conviction changes, promoted reasoning, and raw headlines. */
 export interface FeedItem {
   id: string;

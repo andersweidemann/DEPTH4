@@ -3,13 +3,20 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
+import { toast } from "sonner";
 import { friendlyApiMessage } from "@/lib/api-error-message";
 import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { formatTimeAgo } from "@/lib/thesis-helpers";
+import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
+import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
+import { CrossThesisFeedItem } from "@/components/feed/CrossThesisFeedItem";
+import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
+import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import type { FeedItem } from "@/types/feed";
+import type { User } from "@/types/auth";
+import type { CrossThesisUpdate, FeedItem } from "@/types/feed";
 
 const FEED_TABLE_HEADER =
   "grid grid-cols-[1fr_100px_minmax(132px,1.1fr)_72px_40px] gap-3 border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600";
@@ -66,6 +73,19 @@ function ThesisFeedColumn({ item }: { item: FeedItem }) {
 
 function isFeedItemArray(x: unknown): x is FeedItem[] {
   return Array.isArray(x) && x.every((i) => i && typeof i === "object" && "type" in i && "id" in i);
+}
+
+function isCrossThesisUpdateArray(x: unknown): x is CrossThesisUpdate[] {
+  return (
+    Array.isArray(x) &&
+    x.every(
+      (i) =>
+        i &&
+        typeof i === "object" &&
+        (i as CrossThesisUpdate).type === "cross_thesis_update" &&
+        "severity" in i,
+    )
+  );
 }
 
 function startOfLocalDay(d: Date): number {
@@ -279,15 +299,96 @@ function FeedRow({ item }: { item: FeedItem }) {
   return <HeadlineRow item={item} />;
 }
 
+function ConnectionsSection({
+  user,
+  crossUpdates,
+  crossLoading,
+  crossError,
+  hasConflicts,
+  onRetryCross,
+  onCreateThesis,
+}: {
+  user: User | null;
+  crossUpdates: CrossThesisUpdate[];
+  crossLoading: boolean;
+  crossError: unknown;
+  hasConflicts: boolean;
+  onRetryCross: () => void;
+  onCreateThesis: () => void;
+}) {
+  return (
+    <section className="mt-8">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Connections</p>
+          <p className="mt-0.5 text-[11px] text-zinc-600">
+            Cross-thesis relationships detected by the causal graph
+          </p>
+        </div>
+        {crossUpdates.length > 0 ? (
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              hasConflicts ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400",
+            )}
+          >
+            {crossUpdates.length} active
+          </span>
+        ) : null}
+      </div>
+
+      {!user ? (
+        <p className="text-[12px] text-zinc-500">Sign in to see cross-thesis intelligence</p>
+      ) : crossLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-16 w-full rounded-lg" />
+          <Skeleton className="h-16 w-full rounded-lg" />
+        </div>
+      ) : crossError ? (
+        <ErrorBanner message={friendlyApiMessage(crossError)} onRetry={onRetryCross} />
+      ) : user.starredTheses.length === 0 ? (
+        <p className="text-[12px] text-zinc-500">Star theses to see cross-thesis connections</p>
+      ) : crossUpdates.length === 0 ? (
+        <p className="text-[12px] text-zinc-500">Your theses are not yet connected in the causal graph</p>
+      ) : (
+        <div className="space-y-2">
+          {crossUpdates.map((update) => (
+            <CrossThesisFeedItem
+              key={update.id}
+              update={update}
+              onCreateThesis={update.severity === "opportunity" ? onCreateThesis : undefined}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function LiveFeedPage() {
+  const { user } = useAuth();
+  const [createThesisOpen, setCreateThesisOpen] = useState(false);
+
   const feedKey = useMemo(() => "/api/feed", []);
+  const crossThesisKey = user ? "/api/feed/cross-thesis" : null;
   const { data, error, isLoading, mutate } = useSWR<unknown>(feedKey, swrJsonFetcher);
+  const {
+    data: crossData,
+    error: crossError,
+    isLoading: crossLoading,
+    mutate: mutateCross,
+  } = useSWR<unknown>(crossThesisKey, swrJsonFetcher);
 
   useEffect(() => {
     document.title = "DEPTH4 · Feed";
   }, []);
 
   const items = useMemo(() => (isFeedItemArray(data) ? data : []), [data]);
+  const crossUpdates = useMemo(
+    () => (isCrossThesisUpdateArray(crossData) ? crossData : []),
+    [crossData],
+  );
+  const hasConflicts = crossUpdates.some((u) => u.severity === "conflict");
   const grouped = useMemo(() => groupByDay(items), [items]);
 
   if (isLoading) {
@@ -321,6 +422,16 @@ export function LiveFeedPage() {
         <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Feed</h1>
         <p className="mt-1 text-[13px] text-zinc-400">News read, analyzed, and mapped to your theses.</p>
       </div>
+
+      <ConnectionsSection
+        user={user}
+        crossUpdates={crossUpdates}
+        crossLoading={crossLoading}
+        crossError={crossError}
+        hasConflicts={hasConflicts}
+        onRetryCross={() => void mutateCross()}
+        onCreateThesis={() => setCreateThesisOpen(true)}
+      />
 
       <div className="mt-8 flex items-center justify-between">
         <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Latest events</p>
@@ -357,6 +468,26 @@ export function LiveFeedPage() {
           </div>
         </div>
       )}
+
+      <CreateThesisModal
+        open={createThesisOpen}
+        onOpenChange={setCreateThesisOpen}
+        onCreate={(t) => {
+          upsertUserThesis(t);
+          void putUserThesisToSupabase(t).then(async (r) => {
+            if (!r.ok) {
+              toast.error(
+                r.error === "sign_in_required"
+                  ? "Sign in to save this thesis to your account."
+                  : friendlyApiMessage(r.error),
+              );
+              return;
+            }
+            await Promise.all([mutate(), mutateCross()]);
+            toast.success("Thesis created");
+          });
+        }}
+      />
     </div>
   );
 }
