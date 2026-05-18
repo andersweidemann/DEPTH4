@@ -158,6 +158,7 @@ export function thesisListItemFromEngine(
   const thesis_score =
     db?.thesis_score !== undefined ? db.thesis_score : Math.round(thesisMapHomeRankScore(t));
   const outcome_label = db?.outcome_label;
+  const outcome = db?.outcome;
   const detailResolvable = computeDetailResolvableForListRow(t, resolvableSlugSet);
 
   return {
@@ -166,6 +167,7 @@ export function thesisListItemFromEngine(
     surfaced_bucket: bucket,
     thesis_score,
     ...(outcome_label != null ? { outcome_label } : {}),
+    ...(outcome != null ? { outcome } : {}),
     detailResolvable,
   };
 }
@@ -200,7 +202,7 @@ export async function buildThesesListResponse(
   const { data: userRows } = await sb
     .from("theses")
     .select(
-      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, thesis_origin",
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin",
     )
     .eq("owner_user_id", userId)
     .eq("thesis_origin", "user")
@@ -214,7 +216,7 @@ export async function buildThesesListResponse(
   const { data: aiRows } = await sb
     .from("theses")
     .select(
-      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, thesis_origin",
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin",
     )
     .eq("thesis_origin", "ai_generated")
     .order("updated_at", { ascending: false })

@@ -7,6 +7,7 @@ import {
   dbScenarioTripleEqualsSeed,
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis as EngineThesis } from "@/lib/thesis-engine-v2/types";
+import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
 import type { ThesisLifecycleState, ThesisSurfacedBucket } from "@/types/thesis";
 import { THESIS_SURFACED_BUCKETS } from "@/lib/theses/thesis-surfacing-db-constants";
 import { parseLifecycleState } from "@/lib/theses/thesis-lifecycle";
@@ -17,6 +18,7 @@ export type ThesisDbSurfacingPreference = {
   surfaced_bucket?: ThesisSurfacedBucket | null;
   thesis_score?: number;
   outcome_label?: string | null;
+  outcome?: ThesisOutcomeKind | null;
 };
 
 function parseSurfacedBucket(v: unknown): ThesisSurfacedBucket | null | undefined {
@@ -32,6 +34,7 @@ export function buildSurfacingPreferenceFromRow(row: {
   surfaced_bucket?: unknown;
   thesis_score?: unknown;
   outcome_label?: unknown;
+  outcome?: unknown;
 }): ThesisDbSurfacingPreference {
   const lifecycle_state = parseLifecycleState(row.lifecycle_state);
   const surfaced_bucket = parseSurfacedBucket(row.surfaced_bucket);
@@ -44,6 +47,13 @@ export function buildSurfacingPreferenceFromRow(row: {
   if (surfaced_bucket !== undefined) out.surfaced_bucket = surfaced_bucket;
   if (thesis_score !== undefined) out.thesis_score = thesis_score;
   if (outcome_label != null) out.outcome_label = outcome_label;
+  const outcomeRaw = row.outcome;
+  if (
+    typeof outcomeRaw === "string" &&
+    ["won_clean", "won_messy", "failed", "expired", "withdrawn", "superseded"].includes(outcomeRaw)
+  ) {
+    out.outcome = outcomeRaw as ThesisOutcomeKind;
+  }
   return out;
 }
 
@@ -63,7 +73,7 @@ export async function loadCatalogEngineTheses(sb: SupabaseClient): Promise<LoadC
   const { data: headerRows } = await sb
     .from("theses")
     .select(
-      "id, slug, updated_at, scenario_probabilities, lifecycle_state, surfaced_bucket, thesis_score, outcome_label",
+      "id, slug, updated_at, scenario_probabilities, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome",
     )
     .in("slug", slugs);
 

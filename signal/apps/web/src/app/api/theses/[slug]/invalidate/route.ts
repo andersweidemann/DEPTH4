@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
 import { requireThesisForSlug } from "@/lib/thesis-engine-v2/thesis-api-route-helpers";
-import { resolveThesis } from "@/lib/thesis/thesis-outcome-service";
-import { RESOLVABLE_OUTCOMES } from "@/types/thesis-outcome";
+import { invalidateThesis } from "@/lib/thesis/thesis-outcome-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,14 +23,10 @@ export async function POST(req: Request, context: { params: { slug: string } }) 
   }
 
   const o = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
-  const outcome = o.outcome;
-  if (typeof outcome !== "string" || !(RESOLVABLE_OUTCOMES as readonly string[]).includes(outcome)) {
-    return NextResponse.json({ ok: false, error: "invalid_outcome" }, { status: 400 });
+  const catalyst = typeof o.catalyst === "string" ? o.catalyst.trim() : "";
+  if (!catalyst) {
+    return NextResponse.json({ ok: false, error: "catalyst_required" }, { status: 400 });
   }
-
-  const resolvedPrice = typeof o.resolvedPrice === "number" ? o.resolvedPrice : undefined;
-  const catalyst = typeof o.catalyst === "string" ? o.catalyst : undefined;
-  const pnl = typeof o.pnl === "number" ? o.pnl : undefined;
 
   const loaded = await requireThesisForSlug(authed.sb, slug, authed.user.id);
   if (!loaded) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
@@ -42,17 +37,11 @@ export async function POST(req: Request, context: { params: { slug: string } }) 
   }
 
   try {
-    const record = await resolveThesis(authed.sb, loaded.thesis, slug, {
-      outcome: outcome as (typeof RESOLVABLE_OUTCOMES)[number],
-      resolvedPrice,
-      catalyst,
-      pnl,
-      resolvedBy: "manual",
-    });
+    const record = await invalidateThesis(authed.sb, loaded.thesis, slug, catalyst);
     return NextResponse.json({ ok: true, outcome: record });
   } catch (e) {
-    const message = e instanceof Error ? e.message : "resolve_failed";
-    console.error("[api/theses/resolve]", message, e);
-    return NextResponse.json({ ok: false, error: "resolve_failed", message }, { status: 500 });
+    const message = e instanceof Error ? e.message : "invalidate_failed";
+    console.error("[api/theses/invalidate]", message, e);
+    return NextResponse.json({ ok: false, error: "invalidate_failed", message }, { status: 500 });
   }
 }

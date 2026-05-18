@@ -23,6 +23,7 @@ import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anato
 import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomePanel";
+import { ThesisResolutionSection } from "@/components/thesis-engine-v2/ThesisResolutionSection";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
 import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
@@ -1136,6 +1137,13 @@ export function ThesisDetailClient({
           </div>
         ) : null}
 
+        <ThesisResolutionSection
+          thesis={thesis}
+          slug={slug}
+          layout={layout}
+          lifecycleState={lifecycleState}
+          isAuthenticated={!!user}
+        />
         <ThesisOutcomePanel thesis={thesis} layout={layout} lifecycleState={lifecycleState} />
 
         {anatomyDebugVisible ? (

@@ -1,3 +1,5 @@
+import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
+
 export type ThesisDirection = "short" | "long";
 export type ThesisStatus = "Ready" | "Active" | "Watching" | "Draft";
 
@@ -164,6 +166,8 @@ export interface ThesisListItem {
   thesis_score?: number;
   /** When set on resolved/invalidated rows (DB or admin). */
   outcome_label?: string | null;
+  /** Formal resolution from `thesis_outcomes` / `theses.outcome`. */
+  outcome?: ThesisOutcomeKind | null;
   /**
    * True when `/api/theses/[slug]` can resolve this row (catalog bundle, `ai_generated`, or current-user `user`).
    * List UI must not link to `/theses/[slug]` when false.

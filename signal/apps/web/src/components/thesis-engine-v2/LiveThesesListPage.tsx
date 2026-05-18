@@ -18,6 +18,9 @@ import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
+import { TrackRecordCard } from "@/components/track-record/TrackRecordCard";
+import { ThesisOutcomeInlineBadge } from "@/lib/thesis/outcome-badge";
+import type { TrackRecord, TrackRecordResolvedThesisRow } from "@/types/thesis-outcome";
 import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 import { listRowLifecyclePresentation } from "@/lib/theses/thesis-lifecycle";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
@@ -163,6 +166,7 @@ export function LiveThesesListPage() {
   }, []);
 
   const requireFeature = useRequireFeature();
+  const [listTab, setListTab] = useState<"focus" | "emerging" | "monitor" | "archive">("focus");
   const [activeFilter, setActiveFilter] = useState<"all" | "starred" | "ready">("all");
   const [assetClass, setAssetClass] = useState("All");
   const [createThesisOpen, setCreateThesisOpen] = useState(false);
@@ -178,6 +182,10 @@ export function LiveThesesListPage() {
   }, [activeFilter, assetClass]);
 
   const { data, error, isLoading, mutate } = useSWR<ThesisListResponse>(listKey, swrJsonFetcher);
+  const { data: trackRecord } = useSWR<TrackRecord>(
+    listTab === "archive" ? "/api/track-record" : null,
+    swrJsonFetcher,
+  );
 
   const warnedStaleListTriple = useRef(false);
   useEffect(() => {
@@ -199,7 +207,6 @@ export function LiveThesesListPage() {
   const homeTradable = data?.home?.tradable ?? [];
   const homeEmerging = data?.home?.emerging ?? [];
   const homeMonitoring = data?.home?.monitoring ?? [];
-  const homeArchive = data?.home?.archivePreview ?? [];
 
   const starredCount = useMemo(() => {
     if (!data) return 0;
@@ -290,7 +297,30 @@ export function LiveThesesListPage() {
         </button>
       </div>
 
-      <div className="no-print mt-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="no-print mt-4 flex flex-wrap gap-1">
+        {(
+          [
+            ["focus", "Focus"],
+            ["monitor", "Monitor"],
+            ["emerging", "Emerging"],
+            ["archive", "Archive"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            className={cn(
+              "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]",
+              listTab === id ? "bg-white/[0.08] text-zinc-100" : "text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
+            )}
+            onClick={() => setListTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="no-print mt-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-1">
           {(["all", "starred", "ready"] as const).map((f) => (
             <button
@@ -308,12 +338,6 @@ export function LiveThesesListPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/theses/archive"
-            className="rounded-full border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-400 transition-colors hover:border-[#E8473F]/35 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
-          >
-            Archive
-          </Link>
           <div className="flex items-center gap-1.5">
             <label className="text-[10px] uppercase tracking-[0.14em] text-zinc-500">Asset class</label>
             <select
@@ -331,62 +355,89 @@ export function LiveThesesListPage() {
         </div>
       </div>
 
-      <HomeBucketSection
-        title="Tradable now"
-        subtitle="Top ready/active by blended rank (conviction · mispricing · recency · status), capped for focus."
-        rows={homeTradable}
-        accent="accent"
-        onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
-      />
-      <HomeBucketSection
-        title="Emerging"
+      {listTab === "focus" ? (
+        <HomeBucketSection
+          title="Tradable now"
+          subtitle="Top ready/active by blended rank (conviction · mispricing · recency · status), capped for focus."
+          rows={homeTradable}
+          accent="accent"
+          onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
+        />
+      ) : null}
+      {listTab === "emerging" ? (
+        <HomeBucketSection
+          title="Emerging"
         subtitle="Watching and drafts — every forming-stage thesis in your current set."
         rows={homeEmerging}
         onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
-      />
-      <HomeBucketSection
-        title="Monitoring"
+        />
+      ) : null}
+      {listTab === "monitor" ? (
+        <HomeBucketSection
+          title="Monitoring"
         subtitle="Still-live rows outside the top Tradable slice — includes strong ready/active that did not fit the slot cap."
         rows={homeMonitoring}
         onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
-      />
-      <section className="mt-8 rounded-lg border border-white/[0.06] bg-zinc-950/15 p-4 sm:p-5">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Archive & outcomes</p>
-            <p className="mt-0.5 text-[10px] text-zinc-600">Recent resolved / invalidated — forecast track record.</p>
-          </div>
-          <Link
-            href="/theses/archive"
-            className="text-[11px] text-zinc-400 underline decoration-zinc-600 underline-offset-2 transition-colors hover:text-[#E8473F]"
-          >
-            Full archive
-          </Link>
-        </div>
-        <div className="mt-3 overflow-x-auto">
-          <div className="min-w-[640px]">
-            <div
-              className={cn(
-                TABLE_GRID,
-                "border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600",
-              )}
-            >
-              <span>Thesis</span>
-              <span className="text-right">Prob</span>
-              <span className="hidden sm:block">Status</span>
-              <span className="hidden text-right sm:block">Update</span>
-              <span />
-            </div>
-            {homeArchive.length === 0 ? (
-              <p className="mt-4 text-[12px] text-zinc-600">No recent resolved or invalidated rows.</p>
-            ) : (
-              homeArchive.map((t) => (
-                <ThesisRow key={t.slug} item={t} onToggleStar={() => void toggleStar(t.slug, t.starred)} />
-              ))
-            )}
-          </div>
-        </div>
-      </section>
+        />
+      ) : null}
+      {listTab === "archive" ? (
+        <section className="mt-8 space-y-4">
+          {trackRecord ? (
+            <>
+              <TrackRecordCard trackRecord={trackRecord} />
+              <div className="mb-4 flex flex-wrap gap-4 text-[11px] text-zinc-400">
+                <span>{trackRecord.total} resolved</span>
+                <span className="text-emerald-400">{trackRecord.wonClean + trackRecord.wonMessy} won</span>
+                <span className="text-red-400">{trackRecord.failed} failed</span>
+                <span className="text-zinc-500">{trackRecord.expired} expired</span>
+                <span className="ml-auto font-medium text-zinc-300">{trackRecord.winRate}% win rate</span>
+              </div>
+              {trackRecord.total > 0 ? (
+                <div className="mb-6 flex h-2 gap-0.5 overflow-hidden rounded-full">
+                  {(() => {
+                    const t = Math.max(trackRecord.total, 1);
+                    const wonCleanPct = (trackRecord.wonClean / t) * 100;
+                    const wonMessyPct = (trackRecord.wonMessy / t) * 100;
+                    const failedPct = (trackRecord.failed / t) * 100;
+                    const expiredPct = (trackRecord.expired / t) * 100;
+                    return (
+                      <>
+                        {wonCleanPct > 0 ? <div className="bg-emerald-500" style={{ width: `${wonCleanPct}%` }} /> : null}
+                        {wonMessyPct > 0 ? <div className="bg-emerald-400" style={{ width: `${wonMessyPct}%` }} /> : null}
+                        {failedPct > 0 ? <div className="bg-red-500" style={{ width: `${failedPct}%` }} /> : null}
+                        {expiredPct > 0 ? <div className="bg-zinc-600" style={{ width: `${expiredPct}%` }} /> : null}
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : null}
+              <div className="overflow-x-auto">
+                <div className="min-w-[640px]">
+                  <div
+                    className={cn(
+                      TABLE_GRID,
+                      "border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600",
+                    )}
+                  >
+                    <span>Thesis</span>
+                    <span className="text-right">Outcome</span>
+                    <span className="hidden sm:block">Hold</span>
+                    <span className="hidden text-right sm:block">Resolved</span>
+                    <span />
+                  </div>
+                  {trackRecord.resolvedTheses.length === 0 ? (
+                    <p className="mt-4 text-[12px] text-zinc-600">No resolved theses yet.</p>
+                  ) : (
+                    trackRecord.resolvedTheses.map((r) => <ArchiveOutcomeRow key={r.slug} row={r} />)
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-[12px] text-zinc-500">Loading track record…</p>
+          )}
+        </section>
+      ) : null}
 
       <CreateThesisModal
         open={createThesisOpen}
@@ -408,6 +459,35 @@ export function LiveThesesListPage() {
         }}
       />
     </>
+  );
+}
+
+function ArchiveOutcomeRow({ row }: { row: TrackRecordResolvedThesisRow }) {
+  return (
+    <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
+      <div>
+        <p className="text-[10px] text-zinc-500">{row.asset}</p>
+        <Link
+          href={`/theses/${row.slug}`}
+          className="mt-0.5 block text-[13px] font-medium text-zinc-100 transition-colors hover:text-amber-400"
+        >
+          {row.title}
+        </Link>
+        <div className="mt-1.5 sm:hidden">
+          <ThesisOutcomeInlineBadge outcome={row.outcome} />
+        </div>
+      </div>
+      <div className="hidden text-right sm:block">
+        <ThesisOutcomeInlineBadge outcome={row.outcome} />
+      </div>
+      <div className="hidden text-[11px] text-zinc-400 sm:block">
+        {row.holdDurationDays != null ? `${row.holdDurationDays}d` : "—"}
+      </div>
+      <div className="hidden text-right text-[11px] text-zinc-500 sm:block">
+        {formatListTime(row.resolvedAt)}
+      </div>
+      <span />
+    </div>
   );
 }
 
@@ -456,7 +536,11 @@ export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onTogg
         {item.whyNow?.trim() ? (
           <p className="mt-1.5 max-w-lg line-clamp-2 text-[11px] leading-relaxed text-zinc-500">{item.whyNow}</p>
         ) : null}
-        {item.outcome_label ? (
+        {item.outcome ? (
+          <div className="mt-1.5">
+            <ThesisOutcomeInlineBadge outcome={item.outcome} />
+          </div>
+        ) : item.outcome_label ? (
           <p className="mt-1.5 text-[10px] text-zinc-500">
             Outcome · <span className="text-zinc-300">{item.outcome_label}</span>
           </p>
