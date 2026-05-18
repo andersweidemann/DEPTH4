@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import json
 import os
+import re
 import subprocess
 import sys
 from collections import Counter, defaultdict
@@ -38,17 +40,50 @@ WEB_ROOT = ROOT.parent.parent / "signal" / "apps" / "web"
 
 
 def merge_env(file_env: dict[str, str]) -> dict[str, str]:
-    """File first; os.environ overrides only when non-empty (fixes empty .env.local)."""
-    out = {k: v for k, v in file_env.items() if v is not None}
-    for k, v in os.environ.items():
-        if v:
-            out[k] = v
+    """Shell env base; non-empty values from --env-file win (avoids stale exports overriding .env.production)."""
+    out = {k: v for k, v in os.environ.items() if v}
+    for k, v in file_env.items():
+        if v is not None and str(v).strip():
+            out[k] = str(v).strip()
     return out
 
 
+def _normalize_secret(value: str) -> str:
+    return value.strip().strip('"').strip("'")
+
+
+def project_ref_from_supabase_url(url: str) -> str | None:
+    m = re.search(r"https://([a-z0-9]+)\.supabase\.co", url.strip(), re.I)
+    return m.group(1).lower() if m else None
+
+
+def project_ref_from_jwt_service_role(key: str) -> str | None:
+    k = _normalize_secret(key)
+    if not k.startswith("eyJ") or k.count(".") < 2:
+        return None
+    try:
+        payload_b64 = k.split(".")[1]
+        pad = "=" * (-len(payload_b64) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(payload_b64 + pad))
+        ref = payload.get("ref")
+        return str(ref).lower() if ref else None
+    except (json.JSONDecodeError, ValueError, IndexError):
+        return None
+
+
+def looks_like_supabase_service_role_key(key: str) -> bool:
+    """Legacy JWT (eyJ…) or new opaque secret (sb_secret_…)."""
+    k = _normalize_secret(key)
+    if k.startswith("eyJ") and k.count(".") >= 2:
+        return len(k) > 80
+    if k.startswith("sb_secret_"):
+        return len(k) > 24
+    return False
+
+
 def validate_supabase_env(env: dict[str, str], *, env_file: str) -> None:
-    url = (env.get("NEXT_PUBLIC_SUPABASE_URL") or env.get("SUPABASE_URL") or "").strip()
-    key = (env.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    url = _normalize_secret(env.get("NEXT_PUBLIC_SUPABASE_URL") or env.get("SUPABASE_URL") or "")
+    key = _normalize_secret(env.get("SUPABASE_SERVICE_ROLE_KEY") or "")
     if not url or not key:
         raise RuntimeError(
             "NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required "
@@ -57,18 +92,35 @@ def validate_supabase_env(env: dict[str, str], *, env_file: str) -> None:
     if "paste" in key.lower() or key == "paste_service_role_key_here":
         raise RuntimeError(
             "SUPABASE_SERVICE_ROLE_KEY is still the placeholder in .env.production. "
-            "Paste the service_role secret from Supabase → Project Settings → API "
-            "(labeled service_role secret, not anon public)."
+            "Paste the secret key from Supabase → Project Settings → API "
+            "(service_role / Secret keys → sb_secret_…, or legacy service_role JWT)."
         )
-    if not key.startswith("eyJ") or key.count(".") < 2:
+    if key.startswith("sb_publishable_"):
         raise RuntimeError(
-            "SUPABASE_SERVICE_ROLE_KEY does not look like a Supabase JWT. "
-            "Use the service_role secret (not the anon key) from Project Settings → API."
+            "SUPABASE_SERVICE_ROLE_KEY looks like a publishable (anon) key (sb_publishable_…). "
+            "Use the secret service key (sb_secret_…) or legacy service_role JWT instead."
+        )
+    if not looks_like_supabase_service_role_key(key):
+        raise RuntimeError(
+            "SUPABASE_SERVICE_ROLE_KEY format not recognized "
+            f"(loaded length={len(key)}, prefix={key[:7]!r}…). "
+            "Use sb_secret_… or legacy service_role JWT (eyJ…) in .env.production. "
+            "If the file is correct, run: unset SUPABASE_SERVICE_ROLE_KEY "
+            "(a stale shell export can override --env-file)."
         )
     if "/rest/v1" in url:
         raise RuntimeError(
             "NEXT_PUBLIC_SUPABASE_URL must be the project base only "
             "(e.g. https://xxx.supabase.co), without /rest/v1"
+        )
+
+    url_ref = project_ref_from_supabase_url(url)
+    jwt_ref = project_ref_from_jwt_service_role(key)
+    if url_ref and jwt_ref and url_ref != jwt_ref:
+        raise RuntimeError(
+            "Supabase URL and service_role key are from different projects: "
+            f"URL host ref={url_ref!r} but JWT ref={jwt_ref!r}. "
+            "Copy both from the same project in Supabase → Project Settings → API."
         )
 
 
@@ -94,23 +146,35 @@ def infer_asset_from_thesis_row(row: dict[str, Any]) -> str:
 
 
 async def fetch_evidence_window(env: dict[str, str], *, days: int, limit: int) -> list[dict[str, Any]]:
-    url = env.get("NEXT_PUBLIC_SUPABASE_URL") or env.get("SUPABASE_URL")
-    key = env.get("SUPABASE_SERVICE_ROLE_KEY")
+    url = _normalize_secret(env.get("NEXT_PUBLIC_SUPABASE_URL") or env.get("SUPABASE_URL") or "")
+    key = _normalize_secret(env.get("SUPABASE_SERVICE_ROLE_KEY") or "")
     if not url or not key:
         raise RuntimeError("NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY required")
 
     since = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     async with httpx.AsyncClient(timeout=60.0) as client:
-        return await sb_select(
-            client,
-            url,
-            key,
-            "thesis_evidence_log",
-            select="id,thesis_id,description,probability_before,probability_after,metadata,created_at,event_type,dedupe_key",
-            filters={"created_at": f"gte.{since}", "event_type": "eq.NEWS_DEVELOPMENT"},
-            order="created_at.desc",
-            limit=limit,
-        )
+        try:
+            return await sb_select(
+                client,
+                url,
+                key,
+                "thesis_evidence_log",
+                select="id,thesis_id,description,probability_before,probability_after,metadata,created_at,event_type,dedupe_key",
+                filters={"created_at": f"gte.{since}", "event_type": "eq.NEWS_DEVELOPMENT"},
+                order="created_at.desc",
+                limit=limit,
+            )
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 401:
+                url_ref = project_ref_from_supabase_url(url)
+                jwt_ref = project_ref_from_jwt_service_role(key)
+                hint = (
+                    f" URL project ref={url_ref!r}, JWT ref={jwt_ref!r} — they must match."
+                    if url_ref and jwt_ref and url_ref != jwt_ref
+                    else " Regenerate service_role from the same Supabase project as the URL."
+                )
+                raise RuntimeError(f"Supabase 401 Invalid API key.{hint}") from exc
+            raise
 
 
 async def fetch_theses_by_id(env: dict[str, str], ids: list[str]) -> dict[str, dict[str, Any]]:

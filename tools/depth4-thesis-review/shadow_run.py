@@ -345,10 +345,10 @@ async def main_async() -> int:
     file_env = load_env_file(Path(args.env_file)) if args.env_file else {}
 
     def merge_env() -> dict[str, str]:
-        out = {k: v for k, v in file_env.items() if v}
-        for k, v in os.environ.items():
-            if v:
-                out[k] = v
+        out = {k: v for k, v in os.environ.items() if v}
+        for k, v in file_env.items():
+            if v is not None and str(v).strip():
+                out[k] = str(v).strip()
         return out
 
     env = merge_env()
