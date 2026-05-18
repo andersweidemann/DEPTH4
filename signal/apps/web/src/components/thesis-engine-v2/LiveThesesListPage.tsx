@@ -18,7 +18,7 @@ import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
-import type { ThesisHomeSignalsResponse, ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
+import type { ThesisListItem, ThesisListResponse, ThesisStatus } from "@/types/thesis";
 import { listRowLifecyclePresentation } from "@/lib/theses/thesis-lifecycle";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
@@ -178,7 +178,6 @@ export function LiveThesesListPage() {
   }, [activeFilter, assetClass]);
 
   const { data, error, isLoading, mutate } = useSWR<ThesisListResponse>(listKey, swrJsonFetcher);
-  const { data: homeSignals } = useSWR<ThesisHomeSignalsResponse>("/api/theses/home-signals", swrJsonFetcher);
 
   const warnedStaleListTriple = useRef(false);
   useEffect(() => {
