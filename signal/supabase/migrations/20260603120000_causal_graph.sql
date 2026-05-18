@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS public.causal_affects (
   mispricing_score int GENERATED ALWAYS AS (strength - priced_in_percent) STORED,
   why_it_matters text,
   has_dedicated_thesis boolean NOT NULL DEFAULT false,
-  thesis_slug text REFERENCES public.theses (slug) ON DELETE SET NULL,
+  thesis_slug text,
   UNIQUE (thesis_id, asset_id)
 );
 
