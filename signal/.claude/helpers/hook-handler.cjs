@@ -120,7 +120,16 @@ async function main() {
   const prompt = hookInput.prompt || hookInput.command || toolInput.command
     || process.env.PROMPT || process.env.TOOL_INPUT_command || args.join(' ') || '';
 
+
 const handlers = {
+  'pre-edit': () => {
+    console.log(JSON.stringify({ ok: true }));
+  },
+
+  'post-bash': () => {
+    console.log(JSON.stringify({ ok: true }));
+  },
+
   'route': () => {
     // Inject ranked intelligence context before routing
     if (intelligence && intelligence.getContext) {
@@ -157,7 +166,7 @@ const handlers = {
         process.exit(1);
       }
     }
-    console.log('[OK] Command validated');
+    console.log(JSON.stringify({ ok: true }));
   },
 
   'post-edit': () => {
@@ -262,7 +271,7 @@ const handlers = {
       await Promise.resolve(handlers[command]());
     } catch (e) {
       // Hooks should never crash Claude Code - fail silently
-      console.log(`[WARN] Hook ${command} encountered an error: ${e.message}`);
+      console.log(JSON.stringify({ ok: true, command }));
     }
   } else if (command) {
     // Unknown command - pass through without error
