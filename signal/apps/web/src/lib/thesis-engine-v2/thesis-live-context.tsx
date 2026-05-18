@@ -497,7 +497,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       setPrefs(snap.notifyPrefs);
       setUserTheses(loadUserTheses());
       setOpenIds(openPositionThesisIds());
-      setOutcomeEpoch((e) => e + 1);
       setAlerts((cur) => applyDepth4AlertStateMapToAlerts(cur, snap.alertState));
     })();
     return () => {
@@ -522,7 +521,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       setPrefs(snap.notifyPrefs);
       setUserTheses(loadUserTheses());
       setOpenIds(openPositionThesisIds());
-      setOutcomeEpoch((e) => e + 1);
       setAlerts((cur) => applyDepth4AlertStateMapToAlerts(cur, snap.alertState));
     });
     return () => subscription.unsubscribe();
