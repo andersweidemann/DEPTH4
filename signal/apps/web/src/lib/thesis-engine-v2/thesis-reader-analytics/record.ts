@@ -4,7 +4,6 @@ import {
   classifyReaderUserAgent,
   normalizeReaderSourceBucket,
   referrerHost,
-  type ReaderVisitorKind,
 } from "@/lib/thesis-engine-v2/thesis-reader-analytics/classify";
 import { buildReaderVisitorKey, coarseIpBucket, utcViewDate } from "@/lib/thesis-engine-v2/thesis-reader-analytics/visitor-key";
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
