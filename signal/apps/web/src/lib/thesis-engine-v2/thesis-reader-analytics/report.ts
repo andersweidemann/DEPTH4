@@ -81,7 +81,7 @@ export async function fetchReaderAnalyticsReport(days = 30): Promise<{
   }
 
   const theses: ThesisReaderAnalyticsRow[] = [];
-  for (const [thesisId, list] of byThesis) {
+  for (const [thesisId, list] of Array.from(byThesis.entries())) {
     const meta = metaById.get(thesisId);
     const slug = meta?.slug ?? list[0]?.slug ?? thesisId;
     const human = list.filter((e) => e.visitor_kind === "human");
