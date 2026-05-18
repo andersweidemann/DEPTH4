@@ -26,7 +26,7 @@ const SECTIONS: HelpSection[] = [
     content: [
       "A DEPTH4 thesis is a live object, not a fixed opinion. It includes a thesis statement, conviction and scenario probabilities, relevant events, status, trade plan, and invalidation.",
       "Thesis conviction and scenario paths update as new information arrives. That does not mean DEPTH4 predicts the future with certainty — it tracks whether evidence strengthens or weakens over time.",
-      "DEPTH4 reads a thesis as a chain of future states (canonical four depth levels). On older rows you may still see the legacy four-level cascade prose until each thesis is migrated into the structured thesis_depth_book shape.",
+      "DEPTH4 reads a thesis as a chain of future states (four depth levels from confirmed facts through resolution). Older theses may still show legacy cascade prose until they are fully migrated to the structured four-level format.",
     ],
   },
   {

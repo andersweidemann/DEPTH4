@@ -1,4 +1,9 @@
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
+import {
+  formatEvidenceEventLabel,
+  formatEvidenceSource,
+  formatThesisDisplayTimestamp,
+} from "@/lib/thesis-engine-v2/display-format";
 import { thesisConvictionPctFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
 export type EvidenceLogRowLike = {
@@ -88,21 +93,19 @@ function buildInterpretation(args: {
   const { row, before, after, d, opts } = args;
 
   if (row.probabilityBefore && row.probabilityAfter) {
-    return d === 0
-      ? "Conviction (Clean + Messy) unchanged — scenario mix shifted; compare paths to your invalidation."
-      : `Conviction moved from ${before}% to ${after}% after this headline — check resolution paths against your trigger.`;
+    if (d === 0) return "";
+    return `Conviction moved ${before}% → ${after}% after this headline.`;
   }
 
   if (row.probabilityBefore && !row.probabilityAfter) {
-    let tail = "";
     const cur = opts?.currentConvictionPct;
     if (cur != null && Number.isFinite(cur) && Math.abs(cur - before) >= 8) {
-      tail = ` Thesis conviction is now ${Math.round(cur)}% (this log row predates that update).`;
+      return `Conviction is now ${Math.round(cur)}% (updated after this entry).`;
     }
-    return `Matched development — scenarios were not re-modeled on this row.${tail}`.trim();
+    return "";
   }
 
-  return "Logged development — no scenario triple on this row; check resolution paths manually.";
+  return "";
 }
 
 /**
@@ -120,17 +123,14 @@ export function thesisEvidenceFromLogRow(
     : headlineProbabilityFallback;
   const after = row.probabilityAfter ? thesisConvictionPctFromDbTriple(row.probabilityAfter) : before;
   const d = after - before;
-  const ts = new Date(row.createdAt).toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  const src =
+  const ts = formatThesisDisplayTimestamp(row.createdAt);
+  const rawSource =
     typeof row.metadata?.source === "string" && row.metadata.source.trim()
       ? row.metadata.source.trim()
-      : row.eventType || "Evidence";
-  const headline = (row.description || "").trim() || row.eventType || "Thesis evidence update";
+      : row.eventType || "DEPTH4";
+  const src = formatEvidenceSource(rawSource);
+  const headline =
+    (row.description || "").trim() || formatEvidenceEventLabel(row.eventType) || "Thesis update";
 
   const impact = evidenceImpactFromInformationContent({
     headline,

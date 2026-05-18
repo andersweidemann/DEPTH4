@@ -112,7 +112,7 @@ export function ThesisFourLevelCascade({
       aria-labelledby="thesis-cascade-heading"
     >
       <h2 id="thesis-cascade-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-        Four-level scenario cascade
+        Four-level chain
       </h2>
       <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
         How the causal chain unfolds from verified facts to quarter-scale regime risk — one layer at a time. (Asset-level

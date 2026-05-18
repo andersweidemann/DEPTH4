@@ -7,6 +7,7 @@ import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFour
 import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { ThesisReaderChrome } from "@/components/thesis-engine-v2/ThesisReaderChrome";
+import { CollapsibleThesisSection } from "@/components/thesis-engine-v2/CollapsibleThesisSection";
 import { ThesisReaderShareControls } from "@/components/thesis-engine-v2/ThesisReaderShareControls";
 import { PublicReaderViewBeacon } from "@/components/thesis-engine-v2/PublicReaderViewBeacon";
 import { cn } from "@/lib/utils";
@@ -119,7 +120,15 @@ export function ThesisReaderView({
       </div>
 
       <div className="mt-12">
-        <ThesisAssetEdgeMap thesis={thesis} relatedAssets={relatedAssets} variant="reader" />
+        <CollapsibleThesisSection
+          title="Asset edge map"
+          subtitle="Where mispricing may show up across related instruments."
+          defaultOpen={false}
+          className="border-white/[0.06] bg-transparent open:pb-0"
+          contentClassName="pb-2"
+        >
+          <ThesisAssetEdgeMap thesis={thesis} relatedAssets={relatedAssets} variant="reader" />
+        </CollapsibleThesisSection>
       </div>
 
       <footer className="mt-16 border-t border-white/[0.06] pt-8 text-[11px] leading-relaxed text-zinc-600">

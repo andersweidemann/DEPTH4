@@ -7,6 +7,7 @@ import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton
 import { AdvisoryLog } from "@/components/thesis-engine-v2/AdvisoryLog";
 import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
+import { CollapsibleThesisSection } from "@/components/thesis-engine-v2/CollapsibleThesisSection";
 import { ThesisRecentChangesSummary } from "@/components/thesis-engine-v2/ThesisRecentChangesSummary";
 import { ThesisUpdatesPanel } from "@/components/thesis-engine-v2/ThesisUpdatesPanel";
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
@@ -33,6 +34,7 @@ import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-fr
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
+import { formatEvidenceEventLabel, formatThesisDisplayTimestamp } from "@/lib/thesis-engine-v2/display-format";
 import {
   DEPTH4_POSITIONS_CHANGED,
   latestClosedForThesis,
@@ -46,7 +48,6 @@ import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { evaluateHorizonTimeStopCoherence } from "@/lib/thesis-engine-v2/horizon-time-stop";
-import { dbTripleDeltaSum } from "@/lib/thesis-engine-v2/scenario-triple-zero-sum";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
@@ -682,7 +683,13 @@ export function ThesisDetailClient({
       ) : null}
 
       <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
-        <ThesisAssetEdgeMap thesis={thesis} relatedAssets={relatedAssets} />
+        <CollapsibleThesisSection
+          title="Asset edge map"
+          subtitle="Where mispricing may show up across related instruments."
+          defaultOpen={false}
+        >
+          <ThesisAssetEdgeMap thesis={thesis} relatedAssets={relatedAssets} />
+        </CollapsibleThesisSection>
       </div>
 
       {(entrySetupValid || hasOpen || bookSnap.latest) && (
@@ -911,21 +918,24 @@ export function ThesisDetailClient({
           </p>
         </section>
 
-        <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Qualification breakdown</h2>
+        <CollapsibleThesisSection
+          title="Qualification breakdown"
+          subtitle="Same inputs as the headline mispricing score."
+          defaultOpen={false}
+        >
+          <div className="flex flex-wrap items-baseline justify-end gap-2 pb-1">
             <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
-              <span className="text-[10px] tabular-nums text-zinc-600">Weights for the same composite as hero mispricing</span>
+              <span className="text-[10px] tabular-nums text-zinc-600">How mispricing is scored</span>
             </Tooltip>
           </div>
-          <div className="mt-5 grid gap-3">
+          <div className="grid gap-3">
             {scoreRow("Driver strength", thesis.scores.driverStrength, 20)}
             {scoreRow("Time compression", thesis.scores.timeCompression, 25)}
             {scoreRow("Market hasn't caught up yet", thesis.scores.marketMispricingScore, 25)}
             {scoreRow("Trade clarity", thesis.scores.tradeClarityScore, 15)}
             {scoreRow("Trigger clarity", thesis.scores.triggerClarityScore, 15)}
           </div>
-        </section>
+        </CollapsibleThesisSection>
 
         <TradePlanCard thesis={thesis} />
 
@@ -1043,47 +1053,45 @@ export function ThesisDetailClient({
         ) : null}
 
         {liveEvidence.length > 0 ? (
-          <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Live evidence</h2>
-            <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-              Server-matched news developments for this thesis. Informational only — not investment advice.
-            </p>
-            <ul className="mt-4 space-y-3">
-              {liveEvidence.slice(0, 24).map((r) => (
+          <CollapsibleThesisSection
+            title="Live evidence"
+            subtitle="Recent news matched to this thesis. Informational only — not investment advice."
+            defaultOpen={false}
+          >
+            <ul className="space-y-3">
+              {liveEvidence.slice(0, 12).map((r) => (
                 <li key={r.id} className="border-b border-white/[0.05] pb-3 last:border-0 last:pb-0">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">{r.eventType}</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
+                      {formatEvidenceEventLabel(r.eventType)}
+                    </span>
                     <span className="text-[10px] tabular-nums text-zinc-500">
-                      {new Date(r.createdAt).toLocaleString([], {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatThesisDisplayTimestamp(r.createdAt)}
                     </span>
                   </div>
                   <p className="mt-1 text-[12px] text-zinc-200">{r.description}</p>
                   {r.probabilityBefore && r.probabilityAfter ? (
-                    <div className="mt-1 text-[11px] tabular-nums text-zinc-400">
-                      <p>
-                        Scenarios · Base {r.probabilityBefore.base}%→{r.probabilityAfter.base}% · Bull {r.probabilityBefore.bull}%→
-                        {r.probabilityAfter.bull}% · Bear {r.probabilityBefore.bear}%→{r.probabilityAfter.bear}%
-                      </p>
-                      {dbTripleDeltaSum(r.probabilityBefore, r.probabilityAfter) !== 0 ? (
-                        <p className="mt-1 text-amber-200/85">
-                          Internal review: scenario deltas should zero-sum (Δbase+Δbull+Δbear≠0) — treat as provisional.
-                        </p>
-                      ) : null}
-                    </div>
+                    <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
+                      Resolution paths · Messy {r.probabilityBefore.base}%→{r.probabilityAfter.base}% · Clean{" "}
+                      {r.probabilityBefore.bull}%→{r.probabilityAfter.bull}% · Broken {r.probabilityBefore.bear}%→
+                      {r.probabilityAfter.bear}%
+                    </p>
                   ) : null}
                 </li>
               ))}
             </ul>
-          </section>
+          </CollapsibleThesisSection>
         ) : null}
         <ThesisRecentChangesSummary slug={slug} />
         <ThesisUpdatesPanel slug={slug} />
-        <EvidenceTimeline items={mergedEvidenceTimeline} />
+        <CollapsibleThesisSection
+          title="Evidence timeline"
+          subtitle="Headlines and conviction moves tied to this thesis."
+          defaultOpen={false}
+          contentClassName="pb-5"
+        >
+          <EvidenceTimeline items={mergedEvidenceTimeline} initialVisible={5} showHeading={false} />
+        </CollapsibleThesisSection>
         {/* Insider Flow row (thesis-aware) */}
         {insider?.latest ? (
           <div className="rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-3">

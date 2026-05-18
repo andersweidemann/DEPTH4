@@ -173,7 +173,7 @@ describe("user thesis live evidence + scenarios (integration)", () => {
     const merged = mergeEvidenceTimelineItems([userRow], bundle.evidence, bundle.thesis.probability);
     expect(merged.length).toBeGreaterThanOrEqual(2);
     expect(merged[0]?.headline).toBe("Peace talks advance — GLD offered");
-    expect(merged[0]?.source).toBe("news_events");
+    expect(merged[0]?.source).toBe("News wire");
   });
 
   it("first analysis: template triple before news → non-template display triple after applying log probability_after", () => {

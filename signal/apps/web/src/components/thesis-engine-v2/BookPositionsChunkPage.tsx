@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import useSWR from "swr";
-import { toast } from "sonner";
-import { authFetch } from "@/lib/api";
 import { friendlyApiMessage } from "@/lib/api-error-message";
 import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -420,84 +418,6 @@ export function BookPositionsChunkPage() {
             ))}
           </div>
         )}
-      </div>
-
-      <div className="no-print mt-10 rounded-lg border border-white/[0.06] bg-zinc-900/20 p-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">Book API</p>
-        <p className="mt-1 text-[11px] text-zinc-600">
-          Exercises POST /api/book/open, /api/book/close, and /api/book/resolve against your signed-in account.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-200 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
-            onClick={() =>
-              void (async () => {
-                try {
-                  await authFetch("/api/book/open", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      thesisSlug: "war-peace-gold-short",
-                      direction: "long",
-                      entryPrice: 100,
-                    }),
-                  });
-                  await mutate();
-                  toast.success("Position opened");
-                } catch {
-                  toast.error("Failed to open position");
-                }
-              })()
-            }
-          >
-            Open demo line
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-200 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
-            onClick={() =>
-              void (async () => {
-                try {
-                  const open = positions.find((p) => p.status === "open");
-                  if (!open) return;
-                  await authFetch("/api/book/close", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ positionId: open.id, exitPrice: 101 }),
-                  });
-                  await mutate();
-                  toast.success("Position closed");
-                } catch {
-                  toast.error("Failed to close position");
-                }
-              })()
-            }
-          >
-            Close first open
-          </button>
-          <button
-            type="button"
-            className="rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-200 transition-colors hover:bg-white/[0.04] hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
-            onClick={() =>
-              void (async () => {
-                try {
-                  await authFetch("/api/book/resolve", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ thesisSlug: "war-peace-gold-short", outcome: "resolved" }),
-                  });
-                  await mutate();
-                  toast("Book resolve recorded");
-                } catch {
-                  toast.error("Failed to resolve");
-                }
-              })()
-            }
-          >
-            Mark demo resolved
-          </button>
-        </div>
       </div>
     </div>
   );

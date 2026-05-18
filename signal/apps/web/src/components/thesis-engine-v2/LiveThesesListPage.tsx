@@ -159,7 +159,7 @@ function statusLane(s: ThesisStatus): "ready" | "active" | "watch" {
 
 export function LiveThesesListPage() {
   useEffect(() => {
-    document.title = "DEPTH4 · Thesis map";
+    document.title = "DEPTH4 · Live theses";
   }, []);
 
   const requireFeature = useRequireFeature();
@@ -274,24 +274,12 @@ export function LiveThesesListPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
-          <h1 className="text-xl font-semibold tracking-tight text-zinc-50">Thesis map</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-zinc-50">Live theses</h1>
           <p className="mt-1 text-[13px] text-zinc-400">
             Tradable opportunities, emerging narratives, monitoring, and recent outcomes — ranked, not capped as a
             single list. Buckets follow one blended rank (conviction, mispricing, recency, status) from the server;
             Tradable is the top ready/active slice, not a hard mispricing cliff.
           </p>
-          {homeSignals?.catalogLeader ? (
-            <p className="mt-2 text-[11px] text-zinc-600">
-              System surfacing · top catalog slot{" "}
-              <Link
-                href={`/theses/${homeSignals.catalogLeader.slug}`}
-                className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition-colors hover:text-[#E8473F]"
-              >
-                {homeSignals.catalogLeader.slug}
-              </Link>{" "}
-              (score {homeSignals.catalogLeader.thesisScore})
-            </p>
-          ) : null}
         </div>
         <button
           type="button"

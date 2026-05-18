@@ -5,6 +5,7 @@
  * Explains Thesis conviction vs resolution-path (Clean / Messy / Broken) semantics.
  */
 
+import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -72,6 +73,12 @@ export function ScenarioProbabilitiesExplainer() {
             <li>Thesis broken: the thesis is invalidated and should be retired</li>
           </ul>
           <p className="mt-3 text-[10px] leading-relaxed text-zinc-500">{SCENARIO_PROBABILITIES_POPOVER_DISCLAIMER}</p>
+          <Link
+            href="/help#thesis-conviction-scenarios"
+            className="mt-3 inline-block text-[10px] font-medium text-zinc-500 underline decoration-zinc-700 underline-offset-2 hover:text-zinc-300"
+          >
+            Full guide →
+          </Link>
         </div>
       ) : null}
     </div>

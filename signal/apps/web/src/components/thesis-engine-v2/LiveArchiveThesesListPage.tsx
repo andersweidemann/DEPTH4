@@ -63,7 +63,7 @@ export function LiveArchiveThesesListPage() {
           href="/theses"
           className="rounded-full border border-white/[0.08] px-3 py-1.5 text-[11px] text-zinc-400 transition-colors hover:border-[#E8473F]/35 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
         >
-          Thesis map
+          Live theses
         </Link>
       </div>
 

@@ -30,7 +30,8 @@ describe("thesisEvidenceFromLogRow", () => {
     expect(ev.probabilityBefore).toBe(75);
     expect(ev.probabilityAfter).toBe(75);
     expect(ev.impact).toBe("neutral");
-    expect(ev.interpretation).toContain("were not re-modeled");
+    expect(ev.interpretation).toBe("");
+    expect(ev.source).toBe("News development");
   });
 
   it("grades cliffhanger-style headlines as neutral even when conviction ticks up slightly", () => {
@@ -67,7 +68,7 @@ describe("thesisEvidenceFromLogRow", () => {
     expect(ev.impact).toBe("minor_positive");
   });
 
-  it("uses thesis conviction when both triples exist and surfaces zero delta when conviction is flat", () => {
+  it("uses thesis conviction when both triples exist and omits redundant interpretation when conviction is flat", () => {
     const ev = thesisEvidenceFromLogRow(
       {
         id: "r2",
@@ -83,7 +84,25 @@ describe("thesisEvidenceFromLogRow", () => {
     expect(ev.logScenarioAfterStored).toBe(true);
     expect(ev.probabilityBefore).toBe(75);
     expect(ev.probabilityAfter).toBe(75);
-    expect(ev.interpretation).toContain("unchanged");
+    expect(ev.interpretation).toBe("");
+  });
+
+  it("formats timestamps in en-US and maps news_events source", () => {
+    const ev = thesisEvidenceFromLogRow(
+      {
+        id: "r-src",
+        createdAt: Date.UTC(2026, 4, 11, 0, 5),
+        thesisId: "th-gold",
+        eventType: "NEWS_DEVELOPMENT",
+        description: "Headline",
+        probabilityBefore: { base: 40, bull: 35, bear: 25 },
+        probabilityAfter: { base: 42, bull: 33, bear: 25 },
+        metadata: { source: "news_events" },
+      },
+      50,
+    );
+    expect(ev.timestamp).toMatch(/May/);
+    expect(ev.source).toBe("News wire");
   });
 });
 
