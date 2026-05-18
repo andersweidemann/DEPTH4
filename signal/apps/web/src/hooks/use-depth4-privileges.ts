@@ -43,7 +43,7 @@ export function useDepth4Privileges() {
   return { loading, denied, privileges };
 }
 
-/** Admin-only console gate (replaces NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS client checks). */
+/** Admin-only console gate — uses GET /api/me/depth4-privileges (DB-backed). */
 export function useDepth4AdminGate() {
   const { loading, denied, privileges } = useDepth4Privileges();
   return {

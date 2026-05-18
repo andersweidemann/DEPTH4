@@ -1,7 +1,8 @@
 /**
- * Elevated DEPTH4 access — Phase 4E delegates to DB-backed roles (`depth4-user-roles.ts`).
+ * Elevated DEPTH4 access — Phase 4E / 4E.1 delegates to DB-backed roles (`depth4-user-roles.ts`).
  *
- * Prefer async helpers in server routes. Sync helpers remain for tests / legacy only.
+ * Server routes must use async helpers. Sync `isDepth4ElevatedUser` reads server env only (tests).
+ * Production authority is `depth4_user_roles`; see DEPTH4_INTERNAL_ROLES.md.
  */
 
 import {
@@ -12,6 +13,8 @@ import {
 export type { Depth4Privileges, Depth4Role } from "@/lib/depth4-user-roles";
 
 export {
+  getDepth4RolePolicy,
+  getDepth4RoleOperationalHealth,
   isDepth4AdminUserAsync,
   isDepth4ElevatedUserAsync,
   resolveDepth4Privileges,

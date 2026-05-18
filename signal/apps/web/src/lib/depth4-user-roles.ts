@@ -1,12 +1,15 @@
 /**
- * Phase 4E — DB-backed internal roles for DEPTH4 privileged actions.
+ * Phase 4E / 4E.1 — DB-backed internal roles for DEPTH4 privileged actions.
  *
  * Source of truth: `depth4_user_roles` (admin | operator).
- * Legacy env allowlists are bootstrap-only on first match (see bootstrapFromEnvIfNeeded).
+ *
+ * Production (4E.1): DB-only by default. Env is opt-in only:
+ * - DEPTH4_ROLE_ENV_BOOTSTRAP=1 — write env allowlists into DB (migration / one-time seed)
+ * - DEPTH4_ROLE_ENV_FALLBACK=1 — emergency env-only grants without DB (avoid in prod)
  *
  * Role semantics:
- * - admin: admin-only surfaces (llm-ops, pipeline audit, etc.) + all elevated actions
- * - operator: elevated actions + anatomy debug; not admin-only consoles unless also admin
+ * - admin: admin-only surfaces + all elevated actions
+ * - operator: elevated actions + anatomy debug
  * - elevated = admin OR operator
  */
 
@@ -22,6 +25,13 @@ export type Depth4Privileges = {
   isOperator: boolean;
   isElevated: boolean;
   source: "db" | "env_bootstrap" | "env_fallback" | "none";
+};
+
+export type Depth4RolePolicy = {
+  /** Emergency only: env grants without DB. Default off (DEPTH4_ROLE_ENV_FALLBACK=1 to enable). */
+  envFallbackEnabled: boolean;
+  /** Migration only: persist env matches to DB. Default off (DEPTH4_ROLE_ENV_BOOTSTRAP=1 to enable). */
+  envBootstrapEnabled: boolean;
 };
 
 const ROLE_RANK: Record<Depth4Role, number> = { admin: 2, operator: 1 };
@@ -43,24 +53,28 @@ function privilegesFromRoles(
   };
 }
 
-/** @deprecated Bootstrap only — server-side DEPTH4_ADMIN_EMAILS / NEXT_PUBLIC_* */
+/** Production policy: both flags default off unless explicitly set to "1". */
+export function getDepth4RolePolicy(): Depth4RolePolicy {
+  return {
+    envFallbackEnabled: (process.env.DEPTH4_ROLE_ENV_FALLBACK ?? "0").trim() === "1",
+    envBootstrapEnabled: (process.env.DEPTH4_ROLE_ENV_BOOTSTRAP ?? "0").trim() === "1",
+  };
+}
+
+/** Server-only bootstrap allowlist — never read NEXT_PUBLIC_* (not for client gating). */
 export function legacyDepth4AdminEmailsFromEnv(): string[] {
-  return (process.env.DEPTH4_ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS ?? "")
+  return (process.env.DEPTH4_ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 }
 
-/** @deprecated Bootstrap only — server-side operator user ids */
+/** Server-only bootstrap allowlist — never read NEXT_PUBLIC_* */
 export function legacyDepth4OperatorUserIdsFromEnv(): string[] {
-  return (process.env.DEPTH4_OPERATOR_USER_IDS ?? process.env.NEXT_PUBLIC_DEPTH4_OPERATOR_USER_IDS ?? "")
+  return (process.env.DEPTH4_OPERATOR_USER_IDS ?? "")
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
-}
-
-function envFallbackEnabled(): boolean {
-  return (process.env.DEPTH4_ROLE_ENV_FALLBACK ?? "1").trim() !== "0";
 }
 
 function legacyEnvMatch(userId: string, email: string | null | undefined): Depth4Role[] {
@@ -177,8 +191,10 @@ export async function revokeDepth4Role(
   return { ok: true };
 }
 
-/** One-time bulk seed of operator user ids from env when table is empty. */
+/** One-time bulk seed of operator user ids from env when table is empty (requires BOOTSTRAP=1). */
 export async function seedOperatorRolesFromEnvIfEmpty(svc: SupabaseClient): Promise<number> {
+  if (!getDepth4RolePolicy().envBootstrapEnabled) return 0;
+
   const { count, error: countErr } = await svc
     .from("depth4_user_roles")
     .select("user_id", { count: "exact", head: true });
@@ -235,8 +251,63 @@ export async function listDepth4UserRoles(
   }));
 }
 
+export type Depth4RoleOperationalHealth = {
+  policy: Depth4RolePolicy;
+  dbRoleCount: number;
+  dbUserIds: string[];
+  envConfigured: {
+    adminEmails: string[];
+    operatorUserIds: string[];
+  };
+  /** Operator UUIDs in env but missing any row in depth4_user_roles */
+  operatorUserIdsNotInDb: string[];
+  envOnlyPrivilegePossible: boolean;
+  notes: string[];
+};
+
+/** Admin visibility: who is in DB vs who might only match env allowlists. */
+export async function getDepth4RoleOperationalHealth(
+  svc: SupabaseClient,
+): Promise<Depth4RoleOperationalHealth> {
+  const policy = getDepth4RolePolicy();
+  const roles = await listDepth4UserRoles(svc);
+  const dbUserIds = [...new Set(roles.map((r) => r.userId))];
+  const operatorUserIds = legacyDepth4OperatorUserIdsFromEnv();
+  const operatorUserIdsNotInDb = operatorUserIds.filter((id) => !dbUserIds.includes(id));
+  const adminEmails = legacyDepth4AdminEmailsFromEnv();
+
+  const notes: string[] = [
+    "Source of truth: public.depth4_user_roles. elevated = admin OR operator.",
+  ];
+  if (policy.envFallbackEnabled) {
+    notes.push("WARNING: DEPTH4_ROLE_ENV_FALLBACK=1 — env can grant access without a DB row.");
+  } else {
+    notes.push("Normal mode: DEPTH4_ROLE_ENV_FALLBACK is off — DB rows required for privilege.");
+  }
+  if (policy.envBootstrapEnabled) {
+    notes.push("DEPTH4_ROLE_ENV_BOOTSTRAP=1 — env allowlists may be written to DB on match.");
+  } else {
+    notes.push("DEPTH4_ROLE_ENV_BOOTSTRAP is off — use /admin/depth4-roles or SQL to grant roles.");
+  }
+  if (adminEmails.length) {
+    notes.push(
+      "Admin emails in DEPTH4_ADMIN_EMAILS are not auto-mapped to UUIDs; grant admin by user_id in the UI.",
+    );
+  }
+
+  return {
+    policy,
+    dbRoleCount: roles.length,
+    dbUserIds,
+    envConfigured: { adminEmails, operatorUserIds },
+    operatorUserIdsNotInDb,
+    envOnlyPrivilegePossible: policy.envFallbackEnabled,
+    notes,
+  };
+}
+
 /**
- * Resolve privileges for a user. DB first; optional env bootstrap + fallback.
+ * Resolve privileges for a user. DB is the normal authority (4E.1).
  */
 export async function resolveDepth4Privileges(input: {
   userId: string;
@@ -247,29 +318,37 @@ export async function resolveDepth4Privileges(input: {
     return privilegesFromRoles("", [], "none");
   }
 
+  const policy = getDepth4RolePolicy();
   const svc = createServiceRoleClient();
+
   if (!svc) {
-    if (envFallbackEnabled()) {
+    if (policy.envFallbackEnabled) {
       const legacy = legacyEnvMatch(userId, input.email);
       if (legacy.length) return privilegesFromRoles(userId, legacy, "env_fallback");
     }
     return privilegesFromRoles(userId, [], "none");
   }
 
-  await seedOperatorRolesFromEnvIfEmpty(svc);
+  if (policy.envBootstrapEnabled) {
+    await seedOperatorRolesFromEnvIfEmpty(svc);
+  }
 
   const roles = await fetchDepth4RolesFromDb(svc, userId);
   if (roles.length) return privilegesFromRoles(userId, roles, "db");
 
-  if (envFallbackEnabled()) {
+  if (policy.envBootstrapEnabled) {
     const legacy = legacyEnvMatch(userId, input.email);
     if (legacy.length) {
       const bootstrapped = await bootstrapUserRolesFromEnv(svc, userId, input.email);
       if (bootstrapped.length) {
         return privilegesFromRoles(userId, bootstrapped, "env_bootstrap");
       }
-      return privilegesFromRoles(userId, legacy, "env_fallback");
     }
+  }
+
+  if (policy.envFallbackEnabled) {
+    const legacy = legacyEnvMatch(userId, input.email);
+    if (legacy.length) return privilegesFromRoles(userId, legacy, "env_fallback");
   }
 
   return privilegesFromRoles(userId, [], "none");

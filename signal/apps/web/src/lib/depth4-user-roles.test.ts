@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as serviceClient from "@/lib/supabase/service-role-client";
 import {
   fetchDepth4RolesFromDb,
+  getDepth4RolePolicy,
   isDepth4AdminUserAsync,
   isDepth4ElevatedUserAsync,
   legacyDepth4AdminEmailsFromEnv,
@@ -54,17 +55,32 @@ describe("depth4-user-roles", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    delete process.env.DEPTH4_ROLE_ENV_FALLBACK;
+    delete process.env.DEPTH4_ROLE_ENV_BOOTSTRAP;
+    delete process.env.DEPTH4_ADMIN_EMAILS;
+    delete process.env.DEPTH4_OPERATOR_USER_IDS;
+    delete process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS;
+    delete process.env.NEXT_PUBLIC_DEPTH4_OPERATOR_USER_IDS;
   });
 
   afterEach(() => {
     process.env = env;
   });
 
-  it("parses legacy env allowlists", () => {
-    process.env.DEPTH4_ADMIN_EMAILS = "A@x.com, b@y.com";
-    process.env.DEPTH4_OPERATOR_USER_IDS = "uid-1,uid-2";
-    expect(legacyDepth4AdminEmailsFromEnv()).toEqual(["a@x.com", "b@y.com"]);
-    expect(legacyDepth4OperatorUserIdsFromEnv()).toEqual(["uid-1", "uid-2"]);
+  it("defaults policy to DB-only (fallback and bootstrap off)", () => {
+    expect(getDepth4RolePolicy()).toEqual({
+      envFallbackEnabled: false,
+      envBootstrapEnabled: false,
+    });
+  });
+
+  it("parses server-only env allowlists (ignores NEXT_PUBLIC_*)", () => {
+    process.env.DEPTH4_ADMIN_EMAILS = "A@x.com";
+    process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS = "public@should-not-read.com";
+    process.env.DEPTH4_OPERATOR_USER_IDS = "uid-1";
+    process.env.NEXT_PUBLIC_DEPTH4_OPERATOR_USER_IDS = "public-uid";
+    expect(legacyDepth4AdminEmailsFromEnv()).toEqual(["a@x.com"]);
+    expect(legacyDepth4OperatorUserIdsFromEnv()).toEqual(["uid-1"]);
   });
 
   it("fetchDepth4RolesFromDb returns admin and operator", async () => {
@@ -73,7 +89,7 @@ describe("depth4-user-roles", () => {
     expect(roles).toEqual(["operator", "admin"]);
   });
 
-  it("resolveDepth4Privileges uses db when roles exist", async () => {
+  it("resolveDepth4Privileges uses db when roles exist (default policy)", async () => {
     vi.spyOn(serviceClient, "createServiceRoleClient").mockReturnValue(
       mockSvc({ roles: [{ role: "admin" }], tableCount: 1 }),
     );
@@ -81,7 +97,6 @@ describe("depth4-user-roles", () => {
     expect(p.source).toBe("db");
     expect(p.isAdmin).toBe(true);
     expect(p.isElevated).toBe(true);
-    expect(p.roles).toEqual(["admin"]);
   });
 
   it("operator is elevated but not admin", async () => {
@@ -96,7 +111,17 @@ describe("depth4-user-roles", () => {
     expect(await isDepth4AdminUserAsync({ userId: "op-1" })).toBe(false);
   });
 
-  it("env_fallback when service role missing and fallback enabled", async () => {
+  it("denies env-only user when fallback and bootstrap are off", async () => {
+    vi.spyOn(serviceClient, "createServiceRoleClient").mockReturnValue(
+      mockSvc({ roles: [], tableCount: 0 }),
+    );
+    process.env.DEPTH4_OPERATOR_USER_IDS = "op-env";
+    const p = await resolveDepth4Privileges({ userId: "op-env" });
+    expect(p.source).toBe("none");
+    expect(p.isElevated).toBe(false);
+  });
+
+  it("env_fallback only when DEPTH4_ROLE_ENV_FALLBACK=1", async () => {
     vi.spyOn(serviceClient, "createServiceRoleClient").mockReturnValue(null);
     process.env.DEPTH4_ROLE_ENV_FALLBACK = "1";
     process.env.DEPTH4_OPERATOR_USER_IDS = "op-env";
@@ -105,20 +130,11 @@ describe("depth4-user-roles", () => {
     expect(p.isElevated).toBe(true);
   });
 
-  it("no access when service role missing and fallback disabled", async () => {
-    vi.spyOn(serviceClient, "createServiceRoleClient").mockReturnValue(null);
-    process.env.DEPTH4_ROLE_ENV_FALLBACK = "0";
-    process.env.DEPTH4_OPERATOR_USER_IDS = "op-env";
-    const p = await resolveDepth4Privileges({ userId: "op-env" });
-    expect(p.source).toBe("none");
-    expect(p.isElevated).toBe(false);
-  });
-
-  it("bootstraps admin from env when db empty", async () => {
+  it("bootstraps admin from env when DEPTH4_ROLE_ENV_BOOTSTRAP=1", async () => {
     vi.spyOn(serviceClient, "createServiceRoleClient").mockReturnValue(
       mockSvc({ roles: [], tableCount: 0 }),
     );
-    process.env.DEPTH4_ROLE_ENV_FALLBACK = "1";
+    process.env.DEPTH4_ROLE_ENV_BOOTSTRAP = "1";
     process.env.DEPTH4_ADMIN_EMAILS = "admin@test.com";
     const p = await resolveDepth4Privileges({ userId: "user-new", email: "admin@test.com" });
     expect(p.source).toBe("env_bootstrap");

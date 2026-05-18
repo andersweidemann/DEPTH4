@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  getDepth4RoleOperationalHealth,
   grantDepth4Role,
   listDepth4UserRoles,
   revokeDepth4Role,
@@ -22,7 +23,8 @@ export async function GET() {
   }
 
   const roles = await listDepth4UserRoles(svc);
-  return NextResponse.json({ ok: true, roles });
+  const health = await getDepth4RoleOperationalHealth(svc);
+  return NextResponse.json({ ok: true, roles, health });
 }
 
 /** Grant role to user (admin only). */

@@ -12,9 +12,20 @@ type RoleRow = {
   createdAt: string;
 };
 
+type OperationalHealth = {
+  policy: { envFallbackEnabled: boolean; envBootstrapEnabled: boolean };
+  dbRoleCount: number;
+  dbUserIds: string[];
+  envConfigured: { adminEmails: string[]; operatorUserIds: string[] };
+  operatorUserIdsNotInDb: string[];
+  envOnlyPrivilegePossible: boolean;
+  notes: string[];
+};
+
 export default function Depth4RolesAdminPage() {
   const { denied, loading: gateLoading } = useDepth4AdminGate();
   const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [health, setHealth] = useState<OperationalHealth | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
   const [userId, setUserId] = useState("");
   const [role, setRole] = useState<"admin" | "operator">("operator");
@@ -25,12 +36,18 @@ export default function Depth4RolesAdminPage() {
     setLoadErr(null);
     void authFetch("/api/admin/depth4-user-roles")
       .then(async (res) => {
-        const j = (await res.json()) as { ok: boolean; roles?: RoleRow[]; error?: string };
+        const j = (await res.json()) as {
+          ok: boolean;
+          roles?: RoleRow[];
+          health?: OperationalHealth;
+          error?: string;
+        };
         if (!res.ok || !j.ok) {
           setLoadErr(j.error ?? `HTTP ${res.status}`);
           return;
         }
         setRoles(j.roles ?? []);
+        setHealth(j.health ?? null);
       })
       .catch(() => setLoadErr("Failed to load roles."));
   }, [denied, gateLoading]);
@@ -95,6 +112,9 @@ export default function Depth4RolesAdminPage() {
     );
   }
 
+  const policyOk =
+    health && !health.policy.envFallbackEnabled && !health.policy.envBootstrapEnabled;
+
   return (
     <div className="pb-16">
       <Link href="/admin/thesis-live" className="text-[11px] text-zinc-500 hover:text-zinc-300">
@@ -102,10 +122,43 @@ export default function Depth4RolesAdminPage() {
       </Link>
       <h1 className="mt-4 text-xl font-semibold text-zinc-50">DEPTH4 roles</h1>
       <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-zinc-500">
-        Internal privilege assignments stored in <span className="font-mono text-zinc-400">depth4_user_roles</span>.
-        Changes are audited in <span className="font-mono text-zinc-400">depth4_user_role_audit</span>. Only admins
-        can grant or revoke.
+        Source of truth: <span className="font-mono text-zinc-400">depth4_user_roles</span>. Audited in{" "}
+        <span className="font-mono text-zinc-400">depth4_user_role_audit</span>. See{" "}
+        <span className="font-mono text-zinc-500">apps/web/docs/DEPTH4_INTERNAL_ROLES.md</span>.
       </p>
+
+      {health ? (
+        <div
+          className={cn(
+            "mt-6 border px-4 py-3 text-[12px]",
+            policyOk ? "border-emerald-500/30 bg-emerald-950/20 text-emerald-200/90" : "border-amber-500/35 bg-amber-950/20 text-amber-200/90",
+          )}
+        >
+          <p className="font-semibold">
+            {policyOk ? "DB-only mode (production default)" : "Transitional env policy active"}
+          </p>
+          <p className="mt-1 text-zinc-400">
+            Fallback: {health.policy.envFallbackEnabled ? "ON — env can grant without DB" : "off"} · Bootstrap:{" "}
+            {health.policy.envBootstrapEnabled ? "ON — env writes to DB" : "off"} · DB assignments: {health.dbRoleCount}
+          </p>
+          {health.operatorUserIdsNotInDb.length > 0 ? (
+            <p className="mt-2 font-mono text-[11px] text-zinc-300">
+              Operator UUIDs in DEPTH4_OPERATOR_USER_IDS but not in DB:{" "}
+              {health.operatorUserIdsNotInDb.join(", ")}
+            </p>
+          ) : null}
+          {health.envConfigured.adminEmails.length > 0 ? (
+            <p className="mt-2 text-[11px] text-zinc-500">
+              {health.envConfigured.adminEmails.length} admin email(s) in env — grant admin by user UUID in this UI.
+            </p>
+          ) : null}
+          <ul className="mt-2 list-inside list-disc text-[11px] text-zinc-500">
+            {health.notes.map((n) => (
+              <li key={n}>{n}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="mt-6 flex flex-wrap items-end gap-3 border border-white/[0.06] bg-zinc-900/20 p-4">
         <label className="text-[11px] text-zinc-500">
@@ -157,7 +210,7 @@ export default function Depth4RolesAdminPage() {
             {roles.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-3 py-8 text-center text-zinc-600">
-                  No privileged users in DB yet. Bootstrap may seed from env on first elevated check.
+                  No rows in depth4_user_roles. Grant roles here or enable BOOTSTRAP for one-time env seed.
                 </td>
               </tr>
             ) : (
@@ -184,9 +237,10 @@ export default function Depth4RolesAdminPage() {
       </div>
 
       <p className="mt-6 text-[11px] text-zinc-600">
-        <span className="font-semibold text-zinc-500">admin</span> — admin consoles + elevated actions.{" "}
-        <span className="font-semibold text-zinc-500">operator</span> — elevated actions (reader publish, analytics,
-        anatomy debug). Set <span className="font-mono">DEPTH4_ROLE_ENV_FALLBACK=0</span> to sunset env bootstrap.
+        <span className="font-semibold text-zinc-500">admin</span> — admin consoles + elevated.{" "}
+        <span className="font-semibold text-zinc-500">operator</span> — elevated only. Production: leave{" "}
+        <span className="font-mono">DEPTH4_ROLE_ENV_FALLBACK</span> and{" "}
+        <span className="font-mono">DEPTH4_ROLE_ENV_BOOTSTRAP</span> unset or <span className="font-mono">0</span>.
       </p>
     </div>
   );
