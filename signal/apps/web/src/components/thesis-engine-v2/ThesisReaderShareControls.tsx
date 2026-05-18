@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { authFetch } from "@/lib/api";
 import { thesisReaderShareUrl } from "@/lib/thesis-engine-v2/thesis-reader-mode";
+import { ThesisReaderDiscoveryControls } from "@/components/thesis-engine-v2/ThesisReaderDiscoveryControls";
 import { cn } from "@/lib/utils";
 
 type ShareStatus = "private" | "public";
@@ -177,6 +178,12 @@ export function ThesisReaderShareControls({
       ) : null}
 
       {error ? <p className="mt-2 text-[11px] text-red-400/90">{error}</p> : null}
+
+      {status === "public" ? (
+        <ThesisReaderDiscoveryControls slug={slug} publicEnabled className="mt-4 border-0 bg-transparent px-0 py-0" />
+      ) : canManage ? (
+        <ThesisReaderDiscoveryControls slug={slug} publicEnabled={false} className="mt-4" />
+      ) : null}
     </section>
   );
 }

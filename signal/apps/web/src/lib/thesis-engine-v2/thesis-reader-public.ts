@@ -148,10 +148,17 @@ export async function setThesisReaderPublic(
   const svc = createServiceRoleClient();
   if (!svc) return "forbidden";
 
-  const { error } = await svc
-    .from("theses")
-    .update({ reader_public_enabled: enabled, updated_at: new Date().toISOString() })
-    .eq("id", row.id);
+  const patch: Record<string, unknown> = {
+    reader_public_enabled: enabled,
+    updated_at: new Date().toISOString(),
+  };
+  if (!enabled) {
+    patch.reader_public_discoverable = false;
+    patch.reader_discovery_label = null;
+    patch.reader_discovery_priority = 0;
+  }
+
+  const { error } = await svc.from("theses").update(patch).eq("id", row.id);
 
   if (error) return "forbidden";
 
