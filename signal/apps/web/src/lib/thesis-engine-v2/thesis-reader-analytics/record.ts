@@ -5,14 +5,19 @@ import {
   normalizeReaderSourceBucket,
   referrerHost,
 } from "@/lib/thesis-engine-v2/thesis-reader-analytics/classify";
+import {
+  getReaderAnalyticsOpsState,
+  recordReaderAnalyticsWriteFailure,
+  recordReaderAnalyticsWriteSuccess,
+} from "@/lib/thesis-engine-v2/thesis-reader-analytics/ops-state";
 import { buildReaderVisitorKey, coarseIpBucket, utcViewDate } from "@/lib/thesis-engine-v2/thesis-reader-analytics/visitor-key";
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 
-let readerAnalyticsWriteFailures = 0;
-
 export function getReaderAnalyticsWriteFailureCount(): number {
-  return readerAnalyticsWriteFailures;
+  return getReaderAnalyticsOpsState().writeFailures;
 }
+
+export { getReaderAnalyticsOpsState } from "@/lib/thesis-engine-v2/thesis-reader-analytics/ops-state";
 
 export type RecordReaderViewInput = {
   thesisId: string;
@@ -109,20 +114,23 @@ export async function recordPublicReaderView(
     const row = buildReaderViewRow(input, context);
     const svc = createServiceRoleClient();
     if (!svc) {
-      readerAnalyticsWriteFailures += 1;
+      recordReaderAnalyticsWriteFailure("no service role client");
       console.error("[DEPTH4] reader analytics: no service role client");
       return;
     }
     const { error } = await svc.from("thesis_reader_public_views").insert(row as never);
     if (error) {
-      readerAnalyticsWriteFailures += 1;
+      recordReaderAnalyticsWriteFailure(error.message);
       console.error("[DEPTH4] reader analytics insert failed", {
         slug: input.slug,
         error: error.message,
       });
+      return;
     }
+    recordReaderAnalyticsWriteSuccess();
   } catch (err) {
-    readerAnalyticsWriteFailures += 1;
+    const msg = err instanceof Error ? err.message : String(err);
+    recordReaderAnalyticsWriteFailure(msg);
     console.error("[DEPTH4] reader analytics record failed", { slug: input.slug, err });
   }
 }

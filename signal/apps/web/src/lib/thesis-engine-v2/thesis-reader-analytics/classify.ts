@@ -1,10 +1,10 @@
 /** Bot / preview UA classification for public reader analytics (Phase 4D). */
 
 const PREVIEW_UA =
-  /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|TelegramBot|Embedly|Preview|vkShare|bingpreview/i;
+  /facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|TelegramBot|Embedly|Preview|vkShare|bingpreview|MicrosoftPreview|SkypeUriPreview|Snap URL Preview|Pinterestbot|Redditbot|Mastodon|Iframely|Notion|rogerbot|SignalPreview|iMessageLinkPreview|W3C_Validator/i;
 
 const CRAWLER_UA =
-  /bot|crawl|spider|slurp|mediapartners|Googlebot|Bingbot|DuckDuckBot|YandexBot|Applebot|GPTBot|Claude-Web|anthropic-ai|Bytespider|petalbot/i;
+  /bot|crawl|spider|slurp|mediapartners|Googlebot|Bingbot|DuckDuckBot|YandexBot|Applebot|GPTBot|Claude-Web|anthropic-ai|Bytespider|petalbot|archive\.org|ia_archiver|SemrushBot|AhrefsBot/i;
 
 export type ReaderVisitorKind = "human" | "crawler" | "preview";
 

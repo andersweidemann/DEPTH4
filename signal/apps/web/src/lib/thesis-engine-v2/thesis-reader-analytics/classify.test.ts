@@ -9,6 +9,8 @@ describe("thesis-reader-analytics classify", () => {
   it("detects preview bots", () => {
     expect(classifyReaderUserAgent("facebookexternalhit/1.1")).toBe("preview");
     expect(classifyReaderUserAgent("Slackbot-LinkExpanding 1.0")).toBe("preview");
+    expect(classifyReaderUserAgent("Pinterestbot/1.0")).toBe("preview");
+    expect(classifyReaderUserAgent("redditbot/1.0")).toBe("preview");
   });
 
   it("detects crawlers", () => {
