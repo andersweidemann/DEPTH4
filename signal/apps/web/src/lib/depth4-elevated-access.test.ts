@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { depth4AdminEmails, depth4OperatorUserIds, isDepth4ElevatedUser } from "./depth4-elevated-access";
+import {
+  depth4AdminEmails,
+  depth4OperatorUserIds,
+  isDepth4ElevatedUser,
+} from "./depth4-elevated-access";
 
-describe("depth4-elevated-access", () => {
+/** Sync env-only helpers — deprecated; server paths use DB via resolveDepth4Privileges. */
+describe("depth4-elevated-access (legacy sync env)", () => {
   const env = process.env;
 
   afterEach(() => {

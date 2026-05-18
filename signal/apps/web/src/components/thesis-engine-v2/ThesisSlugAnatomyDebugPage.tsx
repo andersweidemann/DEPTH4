@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailClient";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
-import { useAuth } from "@/contexts/AuthContext";
+import { useDepth4Privileges } from "@/hooks/use-depth4-privileges";
 import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anatomy-debug-access";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 
@@ -15,14 +15,14 @@ import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 export function ThesisSlugAnatomyDebugPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { privileges, loading: privLoading } = useDepth4Privileges();
   const live = useThesisLive();
   const raw = params?.slug;
   const slug = typeof raw === "string" ? raw : Array.isArray(raw) ? (raw[0] ?? "") : "";
 
   const allowed = isThesisAnatomyDebugVisible({
     searchParamsDebug: searchParams?.get("debug"),
-    userId: user?.id ?? null,
+    isOperator: privileges?.isOperator,
   });
 
   const catalogHeader = useMemo(() => {
@@ -48,14 +48,18 @@ export function ThesisSlugAnatomyDebugPage() {
     return <p className="p-6 text-sm text-zinc-400">Missing thesis slug.</p>;
   }
 
+  if (privLoading) {
+    return <p className="p-6 text-sm text-zinc-500">Checking access…</p>;
+  }
+
   if (!allowed) {
     return (
       <div className="p-6">
         <p className="text-sm font-semibold text-zinc-200">Anatomy debug (internal)</p>
         <p className="mt-2 text-[12px] text-zinc-500">
           Add <code className="text-amber-200/90">?debug=1</code>, set{" "}
-          <code className="text-amber-200/90">NEXT_PUBLIC_DEBUG_THESIS_PANEL=1</code>, or sign in as an operator user
-          (<code className="text-amber-200/90">NEXT_PUBLIC_DEPTH4_OPERATOR_USER_IDS</code>).
+          <code className="text-amber-200/90">NEXT_PUBLIC_DEBUG_THESIS_PANEL=1</code>, or sign in with a DEPTH4
+          operator or admin role.
         </p>
         <Link href={`/theses/${slug}`} className="mt-4 inline-block text-[11px] text-amber-500/90 hover:underline">
           ← Back to thesis

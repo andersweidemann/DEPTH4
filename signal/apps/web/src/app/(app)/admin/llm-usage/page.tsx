@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
+import { useDepth4AdminGate } from "@/hooks/use-depth4-privileges";
 import { cn } from "@/lib/utils";
 
 type UsageRow = {
@@ -33,32 +33,6 @@ type UsagePayload = {
   };
 };
 
-function useAdminGate(sb: ReturnType<typeof createClient>) {
-  const [denied, setDenied] = useState(false);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    const run = async () => {
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
-      const allowed = (process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS ?? "")
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean);
-      const em = (user?.email ?? "").toLowerCase();
-      if (!em || (allowed.length && !allowed.includes(em))) {
-        setDenied(true);
-        return;
-      }
-      setReady(true);
-    };
-    void run();
-  }, [sb]);
-
-  return { denied, ready };
-}
-
 function providerStyle(p: string): string {
   if (p === "nvidia") return "text-cyan-400/90";
   if (p === "kimi") return "text-violet-300/90";
@@ -73,8 +47,8 @@ function tierStyle(t: string): string {
 }
 
 export default function LlmUsageAdminPage() {
-  const sb = useMemo(() => createClient(), []);
-  const { denied, ready } = useAdminGate(sb);
+  const { denied, loading: gateLoading } = useDepth4AdminGate();
+  const ready = !gateLoading && !denied;
   const [days, setDays] = useState(7);
   const [data, setData] = useState<UsagePayload | null>(null);
   const [err, setErr] = useState<string | null>(null);

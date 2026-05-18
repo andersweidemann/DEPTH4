@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { authFetch } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
+import { useDepth4AdminGate } from "@/hooks/use-depth4-privileges";
 import { cn } from "@/lib/utils";
 import { CATALOG_THESES, TID } from "@/lib/thesis-engine-v2/catalog-data";
 import { normalizeThesisDisplayTitle } from "@/lib/thesis-engine-v2/thesis-display-title";
@@ -99,37 +99,10 @@ function MutationAuditHealth({ auditHealth }: { auditHealth: AuditHealth }) {
   );
 }
 
-function useAdminGate(sb: ReturnType<typeof createClient>) {
-  const [denied, setDenied] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [email, setEmail] = useState("");
-
-  useEffect(() => {
-    const run = async () => {
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
-      const allowed = (process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS ?? "")
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean);
-      const em = (user?.email ?? "").toLowerCase();
-      setEmail(em);
-      if (!em || (allowed.length && !allowed.includes(em))) {
-        setDenied(true);
-        return;
-      }
-      setReady(true);
-    };
-    void run();
-  }, [sb]);
-
-  return { denied, ready, email };
-}
 
 export default function ThesisLiveAdminPage() {
-  const sb = useMemo(() => createClient(), []);
-  const { denied, ready, email } = useAdminGate(sb);
+  const { denied, loading: gateLoading } = useDepth4AdminGate();
+  const ready = !gateLoading && !denied;
   const [rows, setRows] = useState<(ApiRow & { inUiCatalog: boolean })[]>([]);
   const [totals, setTotals] = useState<{
     evidenceRows: number;
@@ -205,13 +178,18 @@ export default function ThesisLiveAdminPage() {
         <div>
           <p className="text-sm font-semibold text-zinc-100">Thesis live · Admin</p>
           <p className="mt-2 text-[12px] text-zinc-500">
-            Evidence log + stars (all users, service read). Signed in as {email || "…"}. Bell tray alerts are
-            session-only — use Evidence as persisted signal volume.
+            Evidence log + stars (all users, service read). Bell tray alerts are session-only — use Evidence as
+            persisted signal volume.
           </p>
         </div>
-        <Link href="/admin/insider-flow" className="text-[11px] font-medium text-zinc-500 hover:text-amber-200/90">
-          Insider Flow admin →
-        </Link>
+        <div className="flex flex-wrap gap-3 text-[11px] font-medium text-zinc-500">
+          <Link href="/admin/insider-flow" className="hover:text-amber-200/90">
+            Insider Flow →
+          </Link>
+          <Link href="/admin/depth4-roles" className="hover:text-[#E8473F]">
+            DEPTH4 roles →
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

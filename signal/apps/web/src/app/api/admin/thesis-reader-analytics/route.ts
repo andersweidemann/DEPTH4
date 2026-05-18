@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isDepth4ElevatedUser } from "@/lib/depth4-elevated-access";
-import { createClient } from "@/lib/supabase/server";
+import { requireDepth4Elevated } from "@/lib/depth4-admin-auth";
 import {
   fetchReaderAnalyticsDaily,
   fetchReaderAnalyticsReport,
@@ -16,13 +15,8 @@ function parseSort(raw: string | null): ReaderAnalyticsSort {
 }
 
 export async function GET(req: NextRequest) {
-  const sb = await createClient();
-  const {
-    data: { user },
-  } = await sb.auth.getUser();
-  if (!user || !isDepth4ElevatedUser({ userId: user.id, email: user.email })) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 403 });
-  }
+  const auth = await requireDepth4Elevated();
+  if ("response" in auth) return auth.response;
 
   const days = Math.min(90, Math.max(1, Number(req.nextUrl.searchParams.get("days") ?? "30") || 30));
   const slug = req.nextUrl.searchParams.get("slug")?.trim() ?? "";

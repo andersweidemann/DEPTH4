@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { useDepth4AdminGate } from "@/hooks/use-depth4-privileges";
 import { cn } from "@/lib/utils";
 
 type Metric = { label: string; value: string };
@@ -12,20 +13,13 @@ function fmtPct(n: number) {
 
 export default function InsiderFlowAdminPage() {
   const sb = useMemo(() => createClient(), []);
+  const { denied, loading: gateLoading } = useDepth4AdminGate();
   const [ok, setOk] = useState(false);
-  const [denied, setDenied] = useState(false);
   const [metrics, setMetrics] = useState<Metric[]>([]);
 
   useEffect(() => {
+    if (denied || gateLoading) return;
     const run = async () => {
-      const { data: { user } } = await sb.auth.getUser();
-      const allowed = (process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-      const email = (user?.email ?? "").toLowerCase();
-      if (!email || (allowed.length && !allowed.includes(email))) {
-        setDenied(true);
-        return;
-      }
-
       // last 7d anomaly quality
       const sinceIso = new Date(Date.now() - 7 * 24 * 60 * 60_000).toISOString();
       const { data: rows } = await sb
@@ -58,7 +52,7 @@ export default function InsiderFlowAdminPage() {
       setOk(true);
     };
     void run();
-  }, [sb]);
+  }, [sb, denied, gateLoading]);
 
   if (denied) {
     return (

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { authFetch } from "@/lib/api";
-import { createClient } from "@/lib/supabase/client";
+import { useDepth4AdminGate } from "@/hooks/use-depth4-privileges";
 import { cn } from "@/lib/utils";
 
 const BG = "#111110";
@@ -45,34 +45,6 @@ type ApiOk = {
   bottlenecks: Array<{ severity: string; message: string }>;
 };
 
-function useAdminGate(sb: ReturnType<typeof createClient>) {
-  const [denied, setDenied] = useState(false);
-  const [ready, setReady] = useState(false);
-  const [email, setEmail] = useState("");
-
-  useEffect(() => {
-    const run = async () => {
-      const {
-        data: { user },
-      } = await sb.auth.getUser();
-      const allowed = (process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS ?? "")
-        .split(",")
-        .map((s) => s.trim().toLowerCase())
-        .filter(Boolean);
-      const em = (user?.email ?? "").toLowerCase();
-      setEmail(em);
-      if (!em || (allowed.length && !allowed.includes(em))) {
-        setDenied(true);
-        return;
-      }
-      setReady(true);
-    };
-    void run();
-  }, [sb]);
-
-  return { denied, ready, email };
-}
-
 function StageChip({ label, s }: { label: string; s: StageRollup }) {
   const tone = !s.reached ? "border-white/[0.06] text-[#888888]" : s.ok ? "border-emerald-500/35 text-emerald-200/90" : "border-white/[0.08] text-amber-200/85";
   return (
@@ -84,8 +56,8 @@ function StageChip({ label, s }: { label: string; s: StageRollup }) {
 }
 
 export default function ThesisPipelineAuditAdminPage() {
-  const sb = useMemo(() => createClient(), []);
-  const { denied, ready, email } = useAdminGate(sb);
+  const { denied, loading: gateLoading } = useDepth4AdminGate();
+  const ready = !gateLoading && !denied;
   const [data, setData] = useState<ApiOk | null>(null);
   const [loadErr, setLoadErr] = useState<string | null>(null);
 
@@ -128,7 +100,7 @@ export default function ThesisPipelineAuditAdminPage() {
           </p>
           <p className="mt-2 max-w-2xl text-[12px] leading-relaxed" style={{ color: MUTED }}>
             Latest 20 discovery clusters: ingest → cluster → promote → macro reasoning → candidate → validation → thesis
-            row → `/theses` map eligibility. Signed in as {email || "…"}.
+            row → `/theses` map eligibility.
           </p>
         </div>
         <Link href="/admin/thesis-live" className="text-[11px] font-medium hover:underline" style={{ color: ACCENT }}>

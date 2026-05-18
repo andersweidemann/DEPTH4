@@ -1,23 +1,43 @@
 /**
- * Elevated DEPTH4 access (admin / operator) — same source of truth as admin routes and anatomy debug.
- * Server and client may read these env vars; publication gates use server-side checks only.
+ * Elevated DEPTH4 access — Phase 4E delegates to DB-backed roles (`depth4-user-roles.ts`).
+ *
+ * Prefer async helpers in server routes. Sync helpers remain for tests / legacy only.
  */
 
+import {
+  isDepth4AdminUserAsync,
+  isDepth4ElevatedUserAsync,
+  legacyDepth4AdminEmailsFromEnv,
+  legacyDepth4OperatorUserIdsFromEnv,
+  resolveDepth4Privileges,
+  type Depth4Privileges,
+} from "@/lib/depth4-user-roles";
+
+export type { Depth4Privileges, Depth4Role } from "@/lib/depth4-user-roles";
+
+export {
+  isDepth4AdminUserAsync,
+  isDepth4ElevatedUserAsync,
+  resolveDepth4Privileges,
+  grantDepth4Role,
+  revokeDepth4Role,
+  listDepth4UserRoles,
+} from "@/lib/depth4-user-roles";
+
+/** @deprecated Use legacyDepth4AdminEmailsFromEnv — bootstrap only */
 export function depth4AdminEmails(): string[] {
-  return (process.env.DEPTH4_ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
+  return legacyDepth4AdminEmailsFromEnv();
 }
 
+/** @deprecated Use legacyDepth4OperatorUserIdsFromEnv — bootstrap only */
 export function depth4OperatorUserIds(): string[] {
-  return (process.env.DEPTH4_OPERATOR_USER_IDS ?? process.env.NEXT_PUBLIC_DEPTH4_OPERATOR_USER_IDS ?? "")
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  return legacyDepth4OperatorUserIdsFromEnv();
 }
 
-/** Admin email allowlist or operator user-id allowlist. */
+/**
+ * Sync check — env allowlists only. Server code must use `isDepth4ElevatedUserAsync`.
+ * @deprecated Phase 4E — use isDepth4ElevatedUserAsync
+ */
 export function isDepth4ElevatedUser(input: {
   userId?: string | null;
   email?: string | null;

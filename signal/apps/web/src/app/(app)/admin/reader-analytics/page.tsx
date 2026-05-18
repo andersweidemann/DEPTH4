@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authFetch } from "@/lib/api";
+import { useDepth4ElevatedGate } from "@/hooks/use-depth4-privileges";
 
 type ThesisRow = {
   thesisId: string;
@@ -54,6 +55,7 @@ function formatSources(topSources: ThesisRow["topSources"]): string {
 }
 
 export default function ReaderAnalyticsAdminPage() {
+  const { denied: gateDenied, loading: gateLoading } = useDepth4ElevatedGate();
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<ApiOk | null>(null);
@@ -63,6 +65,7 @@ export default function ReaderAnalyticsAdminPage() {
   const [selectedSlug, setSelectedSlug] = useState("");
 
   const load = useCallback(() => {
+    if (gateDenied || gateLoading) return;
     setLoading(true);
     const params = new URLSearchParams({
       days: String(days),
@@ -81,7 +84,7 @@ export default function ReaderAnalyticsAdminPage() {
         if (j.ok) setData(j);
       })
       .finally(() => setLoading(false));
-  }, [days, sort, q, selectedSlug]);
+  }, [days, sort, q, selectedSlug, gateDenied, gateLoading]);
 
   useEffect(() => {
     load();
@@ -94,7 +97,7 @@ export default function ReaderAnalyticsAdminPage() {
     return "text-emerald-500/90";
   }, [data]);
 
-  if (denied) {
+  if (gateDenied || denied) {
     return (
       <div className="py-16 text-center text-sm text-zinc-500">
         Elevated access required.{" "}
@@ -107,9 +110,14 @@ export default function ReaderAnalyticsAdminPage() {
 
   return (
     <div className="pb-16">
-      <Link href="/admin/thesis-live" className="text-[11px] text-zinc-500 hover:text-zinc-300">
-        ← Admin
-      </Link>
+      <div className="flex flex-wrap items-center gap-3 text-[11px] text-zinc-500">
+        <Link href="/admin/thesis-live" className="hover:text-zinc-300">
+          ← Admin
+        </Link>
+        <Link href="/admin/depth4-roles" className="hover:text-[#E8473F]">
+          DEPTH4 roles →
+        </Link>
+      </div>
       <h1 className="mt-4 text-xl font-semibold text-zinc-50">Public reader analytics</h1>
       <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-zinc-500">
         First-party opens on <span className="font-mono text-zinc-400">/theses/&lt;slug&gt;/read</span>. Human

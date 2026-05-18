@@ -17,6 +17,7 @@ import { ThesisAnatomyDebugPanel } from "@/components/thesis-engine-v2/ThesisAna
 import { ThesisReaderView } from "@/components/thesis-engine-v2/ThesisReaderView";
 import { ThesisReaderShareControls } from "@/components/thesis-engine-v2/ThesisReaderShareControls";
 import { useAuth } from "@/contexts/AuthContext";
+import { useDepth4Privileges } from "@/hooks/use-depth4-privileges";
 import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anatomy-debug-access";
 import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
@@ -200,6 +201,7 @@ export function ThesisDetailClient({
 }) {
   const requireFeature = useRequireFeature();
   const { user } = useAuth();
+  const { privileges } = useDepth4Privileges();
   const searchParams = useSearchParams();
   const readerActive =
     readerMode || isThesisReaderViewSearchParam(searchParams?.get("view"));
@@ -209,6 +211,7 @@ export function ThesisDetailClient({
       isThesisAnatomyDebugVisible({
         searchParamsDebug: searchParams?.get("debug"),
         userId: user?.id ?? null,
+        isOperator: privileges?.isOperator,
       }));
   const liveOpt = useThesisLiveOptional();
   const liveScenarioProbModelEnabled = liveScenarioProbabilitiesForThesesEnabled();

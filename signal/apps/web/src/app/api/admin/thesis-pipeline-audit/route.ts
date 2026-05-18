@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
-import { createClient } from "@/lib/supabase/server";
 import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import {
@@ -15,23 +14,11 @@ import { thesisPipelineTraceFromDb, type ThesisPipelineTraceRow } from "@/lib/th
 
 export const runtime = "nodejs";
 
-function adminEmails(): string[] {
-  return (process.env.NEXT_PUBLIC_DEPTH4_ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean);
-}
+import { requireDepth4Admin } from "@/lib/depth4-admin-auth";
 
 export async function GET() {
-  const emails = adminEmails();
-  const sb = await createClient();
-  const {
-    data: { user },
-  } = await sb.auth.getUser();
-  const email = (user?.email ?? "").toLowerCase();
-  if (!email || (emails.length && !emails.includes(email))) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 403 });
-  }
+  const auth = await requireDepth4Admin();
+  if ("response" in auth) return auth.response;
 
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
