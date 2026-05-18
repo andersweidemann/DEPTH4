@@ -4,7 +4,6 @@
  * **Source of truth:** `thesis_stars`, `depth4_user_book`, `depth4_user_alert_state`,
  * `depth4_thesis_star_events` (append-only star/unstar toggle audit), `public.theses` (user rows),
  * `public.users.notification_preferences` keys `depth4ThesisNotifyPrefs` +
- * `depth4ManualThesisOutcomes`.
  * **Session keys** (`depth4-session-keys.ts`) are caches for responsiveness — not authoritative.
  *
  * Ephemeral UI (drawer open, unsaved drafts) intentionally stays client-only.
@@ -16,13 +15,10 @@ import { authFetch } from "@/lib/api";
 import {
   DEPTH4_STARRED_SESSION_KEY,
   DEPTH4_NOTIFY_PREFS_SESSION_KEY,
-  DEPTH4_THESIS_OUTCOMES_SESSION_KEY,
-  DEPTH4_THESIS_OUTCOMES_CHANGED_EVENT,
 } from "@/lib/thesis-engine-v2/depth4-session-keys";
 import { loadPositions, savePositions } from "@/lib/thesis-engine-v2/positions-store";
 import { saveUserTheses, loadUserTheses } from "@/lib/thesis-engine-v2/user-theses";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
-import type { ManualThesisOutcome } from "@/lib/thesis-engine-v2/thesis-outcomes-store";
 import type { Position, Thesis } from "@/lib/thesis-engine-v2/types";
 import { schedulePersistDepth4AccountPrefsDebounced } from "@/lib/thesis-engine-v2/depth4-account-prefs-persist";
 import { schedulePersistBookPositionsDebounced } from "@/lib/thesis-engine-v2/depth4-book-positions-persist";
@@ -72,36 +68,6 @@ function writeNotifyPrefsSession(next: Record<string, NotifyPref>): void {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(DEPTH4_NOTIFY_PREFS_SESSION_KEY, JSON.stringify(next));
-  } catch {
-    // ignore
-  }
-}
-
-function readOutcomesSession(): Record<string, ManualThesisOutcome> {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.sessionStorage.getItem(DEPTH4_THESIS_OUTCOMES_SESSION_KEY);
-    const j = raw ? (JSON.parse(raw) as unknown) : null;
-    if (!j || typeof j !== "object") return {};
-    const out: Record<string, ManualThesisOutcome> = {};
-    for (const [k, v] of Object.entries(j as Record<string, unknown>)) {
-      if (!v || typeof v !== "object") continue;
-      const o = v as Record<string, unknown>;
-      if (o.status !== "resolved" && o.status !== "invalidated") continue;
-      if (typeof o.at !== "string") continue;
-      out[k] = { status: o.status, at: o.at };
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-function writeOutcomesSession(next: Record<string, ManualThesisOutcome>): void {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(DEPTH4_THESIS_OUTCOMES_SESSION_KEY, JSON.stringify(next));
-    window.dispatchEvent(new CustomEvent(DEPTH4_THESIS_OUTCOMES_CHANGED_EVENT));
   } catch {
     // ignore
   }
@@ -206,12 +172,11 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
     saveUserTheses(mergedTheses);
   }
 
-  // --- Notify prefs + manual outcomes (users.notification_preferences) ---
+  // --- Notify prefs (users.notification_preferences) ---
   const { data: urow } = await sb.from("users").select("notification_preferences").eq("id", user.id).maybeSingle();
   const npRaw = (urow as { notification_preferences?: unknown } | null)?.notification_preferences;
   const np = npRaw && typeof npRaw === "object" && !Array.isArray(npRaw) ? (npRaw as Record<string, unknown>) : {};
   const serverNotify = np.depth4ThesisNotifyPrefs;
-  const serverOutcomes = np.depth4ManualThesisOutcomes;
 
   const localNotify = readNotifyPrefsSession();
   const mergedNotify: Record<string, NotifyPref> = { ...localNotify };
@@ -221,19 +186,6 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
     }
   }
   writeNotifyPrefsSession(mergedNotify);
-
-  const localOutcomes = readOutcomesSession();
-  const mergedOutcomes: Record<string, ManualThesisOutcome> = { ...localOutcomes };
-  if (serverOutcomes && typeof serverOutcomes === "object" && !Array.isArray(serverOutcomes)) {
-    for (const [k, v] of Object.entries(serverOutcomes as Record<string, unknown>)) {
-      if (!v || typeof v !== "object") continue;
-      const o = v as Record<string, unknown>;
-      if (o.status !== "resolved" && o.status !== "invalidated") continue;
-      if (typeof o.at !== "string") continue;
-      mergedOutcomes[k] = { status: o.status, at: o.at };
-    }
-  }
-  writeOutcomesSession(mergedOutcomes);
 
   schedulePersistDepth4AccountPrefsDebounced();
   schedulePersistBookPositionsDebounced();

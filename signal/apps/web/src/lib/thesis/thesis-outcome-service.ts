@@ -189,6 +189,43 @@ export async function invalidateThesis(
   );
 }
 
+export type BookResolvedThesisRow = {
+  thesisSlug: string;
+  thesisTitle: string;
+  outcome: "resolved" | "invalidated";
+  resolvedAt: string;
+};
+
+export async function fetchBookResolvedTheses(sb: SupabaseClient): Promise<BookResolvedThesisRow[]> {
+  const { data, error } = await sb
+    .from("thesis_outcomes")
+    .select("thesis_slug, outcome, resolved_at, theses ( title )")
+    .order("resolved_at", { ascending: false })
+    .limit(80);
+
+  if (error || !data?.length) return [];
+
+  return data.map((row) => {
+    const r = row as {
+      thesis_slug: string;
+      outcome: string;
+      resolved_at: string;
+      theses?: { title?: string | null } | Array<{ title?: string | null }> | null;
+    };
+    const th = Array.isArray(r.theses) ? r.theses[0] : r.theses;
+    const title = (th?.title ?? "").trim() || r.thesis_slug;
+    const oc = r.outcome;
+    const bookOutcome: "resolved" | "invalidated" =
+      oc === "failed" ? "invalidated" : "resolved";
+    return {
+      thesisSlug: r.thesis_slug,
+      thesisTitle: title,
+      outcome: bookOutcome,
+      resolvedAt: r.resolved_at,
+    };
+  });
+}
+
 export async function fetchTrackRecord(sb: SupabaseClient) {
   const { data: outcomes, error } = await sb
     .from("thesis_outcomes")

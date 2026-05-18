@@ -5,7 +5,11 @@ import { X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { authFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import type { IncentiveAnalysis } from "@/types/incentive-analysis";
+import type { IncentiveAnalysis } from "@/types/incentive-analysis";
 import { buildAnatomyFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import { InsiderFlowSetupFields, type InsiderFlowFieldKey } from "@/components/thesis-engine-v2/InsiderFlowSetupFields";
 import {
@@ -43,6 +47,7 @@ type FormState = {
   bearInstruments: string;
   confirmTags: string;
   contradictTags: string;
+  incentiveAnalysis?: IncentiveAnalysis | null;
 };
 
 function slugify(s: string) {
@@ -173,7 +178,11 @@ function buildUserThesis(form: FormState): Thesis {
     },
   };
 
-  const withAnatomy = { ...shell, structuredAnatomy: buildAnatomyFromThesis(shell) };
+  const withAnatomy = {
+    ...shell,
+    structuredAnatomy: buildAnatomyFromThesis(shell),
+    ...(form.incentiveAnalysis ? { incentiveAnalysis: form.incentiveAnalysis } : {}),
+  };
   return withAnatomy;
 }
 
@@ -481,6 +490,7 @@ function draftFromApiResponse(d: Record<string, unknown>): AiDraftFormPatch {
     bearInstruments: joinListField(inf.bear_instruments),
     confirmTags: joinListField(inf.confirm_tags),
     contradictTags: joinListField(inf.contradict_tags),
+    incentiveAnalysis: parseIncentiveAnalysis(d.incentive_analysis),
   };
 }
 

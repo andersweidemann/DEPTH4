@@ -11,7 +11,7 @@ import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { computeSessionBookStats } from "@/lib/thesis-engine-v2/book-session-stats";
 import { fetchThesisMetaMap, type ThesisMeta } from "@/lib/feed/thesis-slugs";
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
-import type { ThesisOutcomeEntry } from "@/lib/thesis-engine-v2/thesis-outcome-cookie";
+import type { BookResolvedThesisRow } from "@/lib/thesis/thesis-outcome-service";
 
 function pnlPercentFromPrices(p: BookPosition): number | undefined {
   if (p.tradeStatus !== "closed" && p.tradeStatus !== "stopped") return undefined;
@@ -131,7 +131,7 @@ function convictionFromScenarioProbabilities(raw: unknown): number {
 export async function buildBookApiPayload(
   supabase: SupabaseClient,
   userId: string,
-  outcomes: ThesisOutcomeEntry[],
+  resolvedTheses: BookResolvedThesisRow[],
 ): Promise<{
   positions: ApiPosition[];
   stats: PositionStats;
@@ -203,21 +203,9 @@ export async function buildBookApiPayload(
       }) ?? [];
   }
 
-  const slugSet = outcomes.map((o) => o.slug).filter(Boolean);
-  const titleBySlug = new Map<string, string>();
-  if (slugSet.length) {
-    const { data: slugRows } = await supabase.from("theses").select("slug, title").in("slug", slugSet);
-    for (const r of slugRows ?? []) {
-      const row = r as { slug?: unknown; title?: unknown };
-      const s = typeof row.slug === "string" ? row.slug : "";
-      const t = typeof row.title === "string" ? row.title : "";
-      if (s) titleBySlug.set(s, t || s);
-    }
-  }
-
-  const resolved: ResolvedThesis[] = outcomes.map((o) => ({
-    thesisSlug: o.slug,
-    thesisTitle: titleBySlug.get(o.slug) ?? o.slug,
+  const resolved: ResolvedThesis[] = resolvedTheses.map((o) => ({
+    thesisSlug: o.thesisSlug,
+    thesisTitle: o.thesisTitle,
     outcome: o.outcome,
     resolvedAt: o.resolvedAt,
   }));

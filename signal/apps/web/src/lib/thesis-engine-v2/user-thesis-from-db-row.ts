@@ -3,6 +3,7 @@ import { parseLifecycleState } from "@/lib/theses/thesis-lifecycle";
 import { parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { insiderFlowFromDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
 
 const ALLOWED = new Set<ThesisStatus>(["forming", "watching", "ready", "active", "resolved", "invalidated"]);
@@ -26,6 +27,7 @@ export function userThesisFromSupabaseRow(row: {
   updated_at?: string | null;
   thesis_origin?: string | null;
   lifecycle_state?: unknown;
+  incentive_analysis?: unknown;
 }): Thesis {
   const st = ALLOWED.has(row.status as ThesisStatus) ? (row.status as ThesisStatus) : "watching";
   const shell: Thesis = {
@@ -78,6 +80,9 @@ export function userThesisFromSupabaseRow(row: {
   );
   const thesisOrigin = thesisOriginFromDb(row.thesis_origin);
   const lifecycle_state = parseLifecycleState(row.lifecycle_state);
-  const withOrigin = thesisOrigin ? { ...t, thesisOrigin } : t;
-  return lifecycle_state ? { ...withOrigin, lifecycle_state } : withOrigin;
+  const incentiveAnalysis = parseIncentiveAnalysis(row.incentive_analysis);
+  let withMeta = thesisOrigin ? { ...t, thesisOrigin } : t;
+  if (lifecycle_state) withMeta = { ...withMeta, lifecycle_state };
+  if (incentiveAnalysis) withMeta = { ...withMeta, incentiveAnalysis };
+  return withMeta;
 }

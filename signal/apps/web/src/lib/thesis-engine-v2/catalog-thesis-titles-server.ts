@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import type { IncentiveAnalysis } from "@/types/incentive-analysis";
 import { SYSTEM_THESIS_IDS } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import { mergeDbBodyIntoThesis, normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { dbScenarioTripleEqualsSeed } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
@@ -12,6 +14,7 @@ export type CatalogThesisTitleRow = {
   body?: unknown | null;
   scenario_probabilities?: unknown | null;
   lifecycle_state?: string | null;
+  incentive_analysis?: unknown | null;
 };
 
 const CATALOG_THESIS_IDS = Array.from(new Set<string>(Object.values(SYSTEM_THESIS_IDS)));
@@ -22,7 +25,7 @@ export async function fetchCatalogThesisTitleRows(supabase: SupabaseClient): Pro
 
   const { data, error } = await supabase
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, lifecycle_state")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, lifecycle_state, incentive_analysis")
     .in("id", CATALOG_THESIS_IDS);
   if (error || !data?.length) return [];
 
@@ -51,6 +54,8 @@ export function mergeCatalogThesesWithDbTitles(theses: Thesis[], rows: CatalogTh
       ...(dbMicro ? { microLabel: dbMicro } : {}),
     };
     next = mergeDbBodyIntoThesis(next, row.body ?? null);
+    const incentive = parseIncentiveAnalysis(row.incentive_analysis);
+    if (incentive) next = { ...next, incentiveAnalysis: incentive };
     return next;
   });
 }
@@ -63,6 +68,7 @@ export type CatalogThesisHeader = {
   microLabel: string | null;
   body: unknown | null;
   scenarioProbabilities: CatalogThesisScenarioProbabilities | null;
+  incentiveAnalysis: IncentiveAnalysis | null;
 };
 
 export function parseScenarioProbabilities(raw: unknown): CatalogThesisScenarioProbabilities | null {
@@ -151,14 +157,16 @@ export async function resolveCatalogThesisScenarioProbabilities(
 
 export async function fetchCatalogThesisHeaderBySlug(supabase: SupabaseClient, slug: string): Promise<CatalogThesisHeader> {
   const s = slug.trim();
-  if (!s) return { title: null, microLabel: null, body: null, scenarioProbabilities: null };
+  if (!s) return { title: null, microLabel: null, body: null, scenarioProbabilities: null, incentiveAnalysis: null };
 
   const { data, error } = await supabase
     .from("theses")
-    .select("id, title, micro_label, body, scenario_probabilities")
+    .select("id, title, micro_label, body, scenario_probabilities, incentive_analysis")
     .eq("slug", s)
     .maybeSingle();
-  if (error || !data) return { title: null, microLabel: null, body: null, scenarioProbabilities: null };
+  if (error || !data) {
+    return { title: null, microLabel: null, body: null, scenarioProbabilities: null, incentiveAnalysis: null };
+  }
 
   const row = data as {
     id?: unknown;
@@ -179,6 +187,7 @@ export async function fetchCatalogThesisHeaderBySlug(supabase: SupabaseClient, s
     microLabel: microLabel || null,
     body,
     scenarioProbabilities,
+    incentiveAnalysis: parseIncentiveAnalysis(row.incentive_analysis),
   };
 }
 

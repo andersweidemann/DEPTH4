@@ -1,3 +1,5 @@
+import type { IncentiveAnalysis } from "@/types/incentive-analysis";
+
 /** Causal graph types for /map and GET /api/causal-graph. */
 
 export type EventCategory =
@@ -41,6 +43,7 @@ export interface CausalThesis {
   conviction: number;
   mispricingScore: number;
   affects: CausalAffect[];
+  incentive_analysis?: IncentiveAnalysis;
 }
 
 export interface ClusterImpliedEffect {

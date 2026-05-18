@@ -1,17 +1,15 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { requireSupabaseUser } from "@/lib/auth/supabase-route-client";
-import {
-  setOutcomeInCookieJson,
-  THESIS_OUTCOME_COOKIE,
-} from "@/lib/thesis-engine-v2/thesis-outcome-cookie";
+import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
+import { requireThesisForSlug } from "@/lib/thesis-engine-v2/thesis-api-route-helpers";
+import { invalidateThesis, resolveThesis } from "@/lib/thesis/thesis-outcome-service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+/** Legacy book resolve — persists to `thesis_outcomes` (replaces session cookie). */
 export async function POST(req: Request) {
-  const auth = await requireSupabaseUser(req);
-  if (!auth.ok) return auth.response;
+  const authed = await getAuthedSupabase(req);
+  if (!authed) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
 
   let body: unknown;
   try {
@@ -27,16 +25,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "invalid_outcome" }, { status: 400 });
   }
 
-  const jar = cookies();
-  const prev = jar.get(THESIS_OUTCOME_COOKIE)?.value;
-  const nextJson = setOutcomeInCookieJson(prev, thesisSlug, outcome);
+  const loaded = await requireThesisForSlug(authed.sb, thesisSlug, authed.user.id);
+  if (!loaded) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
-  jar.set(THESIS_OUTCOME_COOKIE, nextJson, {
-    path: "/",
-    maxAge: 60 * 60 * 24 * 90,
-    sameSite: "lax",
-    httpOnly: true,
-  });
-
-  return NextResponse.json({ success: true });
+  try {
+    if (outcome === "invalidated") {
+      await invalidateThesis(authed.sb, loaded.thesis, thesisSlug, "Marked invalidated from book");
+    } else {
+      await resolveThesis(authed.sb, loaded.thesis, thesisSlug, {
+        outcome: "won_messy",
+        catalyst: "Marked resolved from book",
+        resolvedBy: "manual",
+      });
+    }
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "resolve_failed";
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
 }

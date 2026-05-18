@@ -22,11 +22,6 @@ import {
 import { catalogResolvedTriplesLookLikeBulkWriterCollapse } from "@/lib/thesis-engine-v2/catalog-scenario-universal-collapse-guard";
 import { CATALOG_THESES, getThesisDetail, sortThesesForDashboard, thesisSlugById } from "@/lib/thesis-engine-v2/catalog-data";
 import { loadPositions } from "@/lib/thesis-engine-v2/positions-store";
-import {
-  DEPTH4_THESIS_OUTCOMES_CHANGED,
-  getThesisOutcome,
-  setThesisOutcome,
-} from "@/lib/thesis-engine-v2/thesis-outcomes-store";
 import type { LiveSignalTickerItem, Thesis } from "@/lib/thesis-engine-v2/types";
 import type { ThesisLifecycleState } from "@/types/thesis";
 import { parseLifecycleState } from "@/lib/theses/thesis-lifecycle";
@@ -62,7 +57,6 @@ import {
 import {
   buildThesisAlertFromEvidenceRow,
   evidenceLogRowStableAlertId,
-  manualOutcomeStableAlertId,
 } from "@/lib/thesis-engine-v2/thesis-alert-from-evidence";
 import { DEPTH4_NOTIFY_PREFS_SESSION_KEY, DEPTH4_STARRED_SESSION_KEY } from "@/lib/thesis-engine-v2/depth4-session-keys";
 import { appendDepth4ThesisStarEvent } from "@/lib/thesis-engine-v2/depth4-thesis-star-events";
@@ -152,16 +146,6 @@ function openPositionThesisIds(): Set<string> {
     if (p.tradeStatus === "open") ids.add(p.linkedThesisId);
   }
   return ids;
-}
-
-function applyManualOutcome(t: Thesis): Thesis {
-  const o = getThesisOutcome(t.id);
-  if (!o) return t;
-  const when = new Date(o.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-  if (o.status === "resolved") {
-    return { ...t, status: "resolved", advisoryAction: "exit", lastUpdated: `Marked resolved · ${when} (session)` };
-  }
-  return { ...t, status: "invalidated", advisoryAction: "exit", lastUpdated: `Marked invalidated · ${when} (session)` };
 }
 
 function newAlertId(): string {
@@ -271,8 +255,6 @@ type Ctx = {
   isEffectivelyStarred: (thesisId: string) => boolean;
   toggleStar: (thesisId: string) => void;
   starDisabledReason: (thesisId: string) => string | null;
-  /** Session-only: mark thesis resolved or invalidated (or clear). Fires alerts when starred / open book. */
-  setManualThesisOutcome: (thesisId: string, status: "resolved" | "invalidated" | null, thesisTitle: string) => void;
   /** Re-read positions from session storage (call after opening/closing a book position). */
   syncOpenIdsFromBook: () => void;
   tickerItems: LiveSignalTickerItem[];
@@ -348,9 +330,8 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const [openIds, setOpenIds] = useState<Set<string>>(() => new Set());
   const [overrides, setOverrides] = useState<ThesisOverrides>({});
   const [alerts, setAlerts] = useState<ThesisAlertEntry[]>([]);
-  const [pulseMap, setPulseMap] = useState<Record<string, number>>({});
+  const [pulseMap] = useState<Record<string, number>>({});
   const [outToast, setOutToast] = useState<Toast>(null);
-  const [outcomeEpoch, setOutcomeEpoch] = useState(0);
   const [prefs, setPrefs] = useState<Record<string, NotifyPref>>({});
   const [, setUserTheses] = useState<Thesis[]>([]);
   const [insiderFlowAnomalies, setInsiderFlowAnomalies] = useState<InsiderFlowAnomaly[]>([]);
@@ -496,7 +477,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const tickerItems = evidenceTickerItems;
 
   const mergeThesisCb = useCallback(
-    (t: Thesis) => thesisWithSyncedLiveProbability(applyManualOutcome(mergeThesis(t, overrides[t.id]))),
+    (t: Thesis) => thesisWithSyncedLiveProbability(mergeThesis(t, overrides[t.id])),
     [overrides],
   );
 
@@ -944,12 +925,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
     };
   }, [plan, starredKey, openIdsKey, evidencePollPriorityNonce]);
 
-  useEffect(() => {
-    const on = () => setOutcomeEpoch((e) => e + 1);
-    window.addEventListener(DEPTH4_THESIS_OUTCOMES_CHANGED, on);
-    return () => window.removeEventListener(DEPTH4_THESIS_OUTCOMES_CHANGED, on);
-  }, []);
-
   const isManuallyStarred = useCallback((thesisId: string) => starred.has(thesisId), [starred]);
 
   const isEffectivelyStarred = useCallback(
@@ -993,60 +968,12 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
 
   const sortPinnedFirst = useCallback(
     (list: Thesis[]) => {
-      const merged = list.map((t) =>
-        thesisWithSyncedLiveProbability(applyManualOutcome(mergeThesis(t, overrides[t.id]))),
-      );
+      const merged = list.map((t) => thesisWithSyncedLiveProbability(mergeThesis(t, overrides[t.id])));
       const pinned = merged.filter((t) => starred.has(t.id) || openIds.has(t.id));
       const rest = merged.filter((t) => !starred.has(t.id) && !openIds.has(t.id));
       return [...sortThesesForDashboard(pinned), ...sortThesesForDashboard(rest)];
     },
     [overrides, starred, openIds],
-  );
-
-  const setManualThesisOutcome = useCallback(
-    (thesisId: string, status: "resolved" | "invalidated" | null, thesisTitle: string) => {
-      if (status !== null) {
-        // Marking an outcome is an explicit follow action; ensure the thesis is starred so the bell tray captures it.
-        setStarred((prev) => {
-          if (prev.has(thesisId)) return prev;
-          const next = new Set(prev);
-          next.add(thesisId);
-          saveStarred(next);
-          return next;
-        });
-      }
-      let outcomeAtIso: string | null = null;
-      if (status === null) setThesisOutcome(thesisId, null);
-      else {
-        outcomeAtIso = new Date().toISOString();
-        setThesisOutcome(thesisId, { status, at: outcomeAtIso });
-      }
-      setOutcomeEpoch((e) => e + 1);
-      setPulseMap((m) => ({ ...m, [thesisId]: (m[thesisId] ?? 0) + 1 }));
-
-      if (status !== null && outcomeAtIso) {
-        const human = status === "resolved" ? "Resolved" : "Invalidated";
-        const line =
-          status === "resolved"
-            ? "You marked this thesis resolved — optional context only unless you reopen the idea."
-            : "You marked this thesis invalidated — stand down on new risk from this thread until you rebuild the case.";
-        pushAlert({
-          id: manualOutcomeStableAlertId(thesisId, outcomeAtIso),
-          thesisId,
-          thesisTitle,
-          type: status === "invalidated" ? "invalidation" : "system",
-          confirmText: line,
-          consequenceText: "Exit / reduce per advisory.",
-          impact: status === "invalidated" ? "invalidated" : "neutral",
-        });
-        const tid = newAlertId();
-        setOutToast({ id: tid, message: `DEPTH4: ${thesisTitle} — ${human} (manual). Review Book in context.` });
-        window.setTimeout(() => {
-          setOutToast((cur) => (cur?.id === tid ? null : cur));
-        }, 6200);
-      }
-    },
-    [pushAlert],
   );
 
   const dismissAlert = useCallback((id: string) => {
@@ -1113,7 +1040,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<Ctx>(() => {
-    void outcomeEpoch;
     return {
       mergeThesis: mergeThesisCb,
       sortPinnedFirst,
@@ -1121,7 +1047,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       isEffectivelyStarred,
       toggleStar,
       starDisabledReason,
-      setManualThesisOutcome,
       syncOpenIdsFromBook,
       tickerItems,
       alerts,
@@ -1158,7 +1083,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       isEffectivelyStarred,
       toggleStar,
       starDisabledReason,
-      setManualThesisOutcome,
       syncOpenIdsFromBook,
       tickerItems,
       alerts,
@@ -1186,7 +1110,6 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       catalogDbThesisSlugs,
       catalogDbThesisScenarioProbabilities,
       catalogDbThesisLifecycleStates,
-      outcomeEpoch,
     ],
   );
 

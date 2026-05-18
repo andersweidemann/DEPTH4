@@ -22,7 +22,7 @@ import { useDepth4Privileges } from "@/hooks/use-depth4-privileges";
 import { isThesisAnatomyDebugVisible } from "@/lib/thesis-engine-v2/thesis-anatomy-debug-access";
 import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
-import { ThesisOutcomePanel } from "@/components/thesis-engine-v2/ThesisOutcomePanel";
+import { IncentiveAnalysisSection } from "@/components/thesis/IncentiveAnalysisSection";
 import { ThesisResolutionSection } from "@/components/thesis-engine-v2/ThesisResolutionSection";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
@@ -1085,6 +1085,9 @@ export function ThesisDetailClient({
         ) : null}
         <ThesisRecentChangesSummary slug={slug} />
         <ThesisUpdatesPanel slug={slug} />
+        <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
+          <IncentiveAnalysisSection analysis={thesis.incentiveAnalysis ?? null} />
+        </div>
         <CollapsibleThesisSection
           title="Evidence timeline"
           subtitle="Headlines and conviction moves tied to this thesis."
@@ -1144,7 +1147,6 @@ export function ThesisDetailClient({
           lifecycleState={lifecycleState}
           isAuthenticated={!!user}
         />
-        <ThesisOutcomePanel thesis={thesis} layout={layout} lifecycleState={lifecycleState} />
 
         {anatomyDebugVisible ? (
           <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>

@@ -14,6 +14,8 @@ import {
 } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { isSystemThesisId } from "@/lib/thesis-engine-v2/system-thesis-ids";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
+import { resolveIncentiveAnalysisColumn } from "@/lib/thesis/resolve-incentive-analysis-column";
 import { createThesisMutationService, isThesisMutationEnabled } from "@/lib/thesis-mutation";
 
 export const dynamic = "force-dynamic";
@@ -68,9 +70,13 @@ export async function POST(req: NextRequest) {
   if (!thesis.structuredAnatomy) {
     thesis = { ...thesis, structuredAnatomy: buildAnatomyFromThesis(thesis) };
   }
+  const fromBody = parseIncentiveAnalysis(o.incentive_analysis);
+  if (fromBody) thesis = { ...thesis, incentiveAnalysis: fromBody };
   if (thesis.origin === "system" || isSystemThesisId(thesis.id)) {
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
+
+  const incentiveColumn = await resolveIncentiveAnalysisColumn(thesis, null, true);
 
   const nowIso = new Date().toISOString();
   const row = {
@@ -85,6 +91,7 @@ export async function POST(req: NextRequest) {
     updated_at: nowIso,
     body: thesisToDbBodyPayload(thesis),
     created_at: nowIso,
+    ...(incentiveColumn != null ? { incentive_analysis: incentiveColumn } : {}),
   };
 
   try {

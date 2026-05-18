@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { extractReasoningLevelBodies, passesAiThesisRegistryDepth4Pack } from "@/lib/theses/ai-registry-depth4-pack";
 import { isAcceptableAiThesisRegistryHero, pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
+import { generateIncentiveAnalysisForDb } from "@/lib/thesis/incentive-analysis-generator";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import {
   buildAnatomyFromMacroReasoning,
@@ -179,6 +180,8 @@ export async function ensureAiThesisForDiscoveryCluster(
 
   const thesis = { ...thesisShell, structuredAnatomy };
 
+  const incentiveColumn = await generateIncentiveAnalysisForDb(thesis);
+
   const nowIso = new Date().toISOString();
   const row = {
     id: thesis.id,
@@ -192,6 +195,7 @@ export async function ensureAiThesisForDiscoveryCluster(
     updated_at: nowIso,
     body: thesisToDbBodyPayload(thesis),
     created_at: nowIso,
+    ...(incentiveColumn ? { incentive_analysis: incentiveColumn } : {}),
     discovery_cluster_id: clusterId,
     generation_confidence: typeof p.reasoning.confidence === "number" ? p.reasoning.confidence : null,
     generation_reasoning_summary: (p.reasoning.reasoning_summary ?? "").trim().slice(0, 2000) || null,

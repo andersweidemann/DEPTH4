@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import type { IncentiveAnalysis } from "@/types/incentive-analysis";
 import { fetchCatalogThesisHeaderBySlug, parseScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
@@ -15,17 +16,20 @@ function withCatalogHeader(
     microLabel?: string | null;
     body?: unknown | null;
     scenarioProbabilities?: CatalogThesisScenarioProbabilities | null;
+    incentiveAnalysis?: IncentiveAnalysis | null;
   },
 ): ThesisDetailBundle {
   const t = (catalog.title ?? "").trim();
   const m = (catalog.microLabel ?? "").trim();
   const hasBody = catalog.body !== undefined && catalog.body !== null;
   const hasDbP = catalog.scenarioProbabilities != null;
-  if (!t && !m && !hasBody && !hasDbP) return bundle;
+  const hasIncentive = catalog.incentiveAnalysis != null;
+  if (!t && !m && !hasBody && !hasDbP && !hasIncentive) return bundle;
   let thesis = bundle.thesis;
   if (t) thesis = { ...thesis, title: t };
   if (m) thesis = { ...thesis, microLabel: m };
   thesis = mergeDbBodyIntoThesis(thesis, catalog.body ?? null);
+  if (catalog.incentiveAnalysis) thesis = { ...thesis, incentiveAnalysis: catalog.incentiveAnalysis };
 
   let seeded = scenarioOverridesFromRows(bundle.scenarios);
   if (catalog.scenarioProbabilities) {
@@ -55,13 +59,14 @@ export async function loadThesisDetailBundleForApi(
       microLabel: header.microLabel,
       body: header.body,
       scenarioProbabilities: header.scenarioProbabilities ?? null,
+      incentiveAnalysis: header.incentiveAnalysis ?? null,
     });
     return { ...b, thesis: thesisWithSyncedLiveProbability(b.thesis) };
   }
 
   const { data: aiRow, error: aiErr } = await supabase
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin, incentive_analysis")
     .eq("slug", slug)
     .eq("thesis_origin", "ai_generated")
     .maybeSingle();
@@ -78,7 +83,7 @@ export async function loadThesisDetailBundleForApi(
 
   const { data, error } = await supabase
     .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin")
+    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin, incentive_analysis")
     .eq("slug", slug)
     .eq("owner_user_id", userId)
     .eq("thesis_origin", "user")

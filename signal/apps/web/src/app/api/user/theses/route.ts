@@ -12,6 +12,7 @@ import {
   isThesisMutationEnabled,
   normalizeUpdateReason,
 } from "@/lib/thesis-mutation";
+import { resolveIncentiveAnalysisColumn } from "@/lib/thesis/resolve-incentive-analysis-column";
 import { userThesisUpdateMutationMeta } from "@/lib/thesis-mutation/user-thesis-update-mutation-meta";
 
 export const runtime = "nodejs";
@@ -135,6 +136,21 @@ export async function PUT(req: NextRequest) {
   }
 
   const nowIso = new Date().toISOString();
+
+  const { data: existing, error: selErr } = await sb
+    .from("theses")
+    .select("id, owner_user_id, incentive_analysis")
+    .eq("id", thesis.id)
+    .maybeSingle();
+
+  if (selErr) return NextResponse.json({ ok: false, error: selErr.message }, { status: 400 });
+
+  const incentiveColumn = await resolveIncentiveAnalysisColumn(
+    thesis,
+    (existing as { incentive_analysis?: unknown } | null)?.incentive_analysis,
+    !existing,
+  );
+
   const baseRow = {
     id: thesis.id,
     title: thesis.title,
@@ -146,12 +162,9 @@ export async function PUT(req: NextRequest) {
     owner_user_id: user.id,
     updated_at: nowIso,
     body: thesisToDbBodyPayload(thesis),
+    ...(incentiveColumn !== undefined ? { incentive_analysis: incentiveColumn } : {}),
   };
   const insertRow = { ...baseRow, created_at: nowIso };
-
-  const { data: existing, error: selErr } = await sb.from("theses").select("id,owner_user_id").eq("id", thesis.id).maybeSingle();
-
-  if (selErr) return NextResponse.json({ ok: false, error: selErr.message }, { status: 400 });
 
   if (existing) {
     const owner = (existing as { owner_user_id?: string | null }).owner_user_id;

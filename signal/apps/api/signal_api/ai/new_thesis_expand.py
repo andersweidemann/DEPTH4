@@ -102,8 +102,22 @@ SCHEMA (exact keys):
       "level3_mispricing": "why consensus is wrong — use 'market is pricing…' / under- or over-pricing language",
       "level4_resolution": "resolution + trade consequence over time (distinct from L3)"
     }
+  },
+  "incentive_analysis": {
+    "actor": "who has power to influence this outcome",
+    "goal": "what they need to achieve",
+    "constraint": "what blocks them",
+    "required_action": "what they MUST do",
+    "alternative_actions": ["path A", "path B"],
+    "most_likely_action": "probable path",
+    "confidence": 72,
+    "time_window": "when this must happen",
+    "catalyst_events": ["observable 1", "observable 2"],
+    "reasoning": "why this incentive structure exists — specific, not generic"
   }
 }
+
+After the thesis fields above, complete incentive_analysis from the same seed. Name real actors, elections, policy levers, and observables.
 
 scenario probabilities: integers ≥15, sum exactly 100. Avoid lazy equal thirds unless the thesis truly supports it.
 
@@ -397,6 +411,26 @@ def normalize_draft(raw: dict[str, Any]) -> dict[str, Any]:
     },
   }
   out["thesis_structured_anatomy"] = build_anatomy_from_draft(out)
+  inf_raw = raw.get("incentive_analysis")
+  if isinstance(inf_raw, dict):
+    def inf_list(key: str) -> list[str]:
+      v = inf_raw.get(key)
+      if not isinstance(v, list):
+        return []
+      return [_as_str(x) for x in v[:12] if _as_str(x)]
+
+    out["incentive_analysis"] = {
+      "actor": _as_str(inf_raw.get("actor")),
+      "goal": _as_str(inf_raw.get("goal")),
+      "constraint": _as_str(inf_raw.get("constraint")),
+      "required_action": _as_str(inf_raw.get("required_action")),
+      "alternative_actions": inf_list("alternative_actions"),
+      "most_likely_action": _as_str(inf_raw.get("most_likely_action")),
+      "confidence": max(0, min(100, _as_int(inf_raw.get("confidence"), 60))),
+      "time_window": _as_str(inf_raw.get("time_window")),
+      "catalyst_events": inf_list("catalyst_events"),
+      "reasoning": _as_str(inf_raw.get("reasoning")),
+    }
   return out
 
 

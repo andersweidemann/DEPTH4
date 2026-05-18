@@ -1,5 +1,6 @@
 import type { ThesisDepthBook } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
 import type { ThesisStructuredAnatomy } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
+import type { IncentiveAnalysis } from "@/types/incentive-analysis";
 import type { ThesisLifecycleState } from "@/types/thesis";
 
 export type ThesisStatus =
@@ -42,6 +43,8 @@ export type Thesis = {
   microLabel?: string | null;
   /** Optional one-sentence hook for a ~3-second scan (retail clarity). */
   oneLineSummary?: string;
+  /** Political/economic incentive chain (`public.theses.incentive_analysis`). */
+  incentiveAnalysis?: IncentiveAnalysis | null;
   /** Full hero trade sentence (same voice as `title`; may be slightly longer than display title). No literal headline % here — Thesis conviction is UI-only. */
   thesisStatement: string;
   /**
