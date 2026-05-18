@@ -8,6 +8,7 @@ import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdg
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { ThesisReaderChrome } from "@/components/thesis-engine-v2/ThesisReaderChrome";
 import { ThesisReaderShareControls } from "@/components/thesis-engine-v2/ThesisReaderShareControls";
+import { PublicReaderViewBeacon } from "@/components/thesis-engine-v2/PublicReaderViewBeacon";
 import { cn } from "@/lib/utils";
 
 function ReaderSection({
@@ -50,6 +51,7 @@ export function ThesisReaderView({
 }) {
   return (
     <article className="mx-auto max-w-[42rem] pb-20">
+      {publicMode ? <PublicReaderViewBeacon slug={slug} /> : null}
       <ThesisReaderChrome slug={slug} shareTitle={thesis.title} publicMode={publicMode} />
       {!publicMode ? (
         <ThesisReaderShareControls slug={slug} className="mb-10" />

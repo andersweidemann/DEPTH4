@@ -26,6 +26,12 @@ export function isThesisReaderSharePath(pathname: string): boolean {
   return /^\/theses\/[^/]+\/read(?:\/opengraph-image)?\/?$/.test(p);
 }
 
+/** Public analytics beacon — validates thesis is public in the route handler. */
+export function isPublicReaderViewApiPath(pathname: string): boolean {
+  const p = pathname.split("?")[0] ?? pathname;
+  return /^\/api\/theses\/[^/]+\/reader-view\/?$/.test(p);
+}
+
 export async function fetchThesisReaderPublicRow(slug: string): Promise<ThesisReaderPublicRow | null> {
   const s = slug.trim();
   if (!s) return null;
