@@ -1,4 +1,4 @@
-/** Prototype types for the causal graph (/map). Production schema TBD. */
+/** Causal graph types for /map and GET /api/causal-graph. */
 
 export type EventCategory =
   | "geopolitics"
@@ -69,7 +69,9 @@ export interface ThesisCluster {
   conflictWarnings: ConflictWarning[];
 }
 
-export interface GlobalCausalGraphMock {
+export interface GlobalCausalGraph {
   clusters: ThesisCluster[];
+  activeEvents: number;
+  totalTheses: number;
   lastUpdated: string;
 }

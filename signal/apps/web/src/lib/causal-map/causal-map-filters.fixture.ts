@@ -1,0 +1,110 @@
+import type { ThesisCluster } from "@/types/causal-graph";
+
+/** Minimal clusters for unit tests (replaces deleted mock data). */
+export const CAUSAL_FILTER_FIXTURE: ThesisCluster[] = [
+  {
+    event: {
+      id: "evt-war",
+      slug: "war-peace-transition",
+      title: "War de-escalation",
+      description: "Peace talks progress",
+      category: "geopolitics",
+      confidence: 82,
+      firstDetected: "2026-01-01T00:00:00Z",
+    },
+    compositeMispricing: 45,
+    conflictWarnings: [],
+    theses: [
+      {
+        id: "t-gold",
+        slug: "war-peace-gold-short",
+        title: "Gold SHORT",
+        statement: "War premium unwinds",
+        targetAssetSymbol: "XAUUSD",
+        direction: "down",
+        conviction: 72,
+        mispricingScore: 55,
+        affects: [
+          {
+            assetSymbol: "XAUUSD",
+            direction: "down",
+            strength: 95,
+            pricedInPercent: 72,
+            mispricingScore: 23,
+            whyItMatters: "Primary",
+            hasDedicatedThesis: true,
+          },
+          {
+            assetSymbol: "SPX",
+            direction: "up",
+            strength: 40,
+            pricedInPercent: 85,
+            mispricingScore: -45,
+            whyItMatters: "Risk-on",
+            hasDedicatedThesis: false,
+          },
+        ],
+      },
+      {
+        id: "t-defense",
+        slug: "us-defense-repricing",
+        title: "Defense LONG",
+        statement: "Defense repricing",
+        targetAssetSymbol: "RTX",
+        direction: "up",
+        conviction: 68,
+        mispricingScore: 42,
+        affects: [],
+      },
+    ],
+    impliedEffects: [
+      {
+        id: "implied-fert",
+        assetSymbol: "Fertilizer basket",
+        netDirection: "down",
+        netStrength: 50,
+        pricedInPercent: 45,
+        fromTheses: ["Gold SHORT"],
+        hasDedicatedThesis: false,
+        whyItMatters: "Commodity ripple",
+      },
+    ],
+  },
+  {
+    event: {
+      id: "evt-china",
+      slug: "china-demand-copper",
+      title: "China demand",
+      description: "Stimulus",
+      category: "demand_shock",
+      confidence: 65,
+      firstDetected: "2026-01-01T00:00:00Z",
+    },
+    compositeMispricing: 30,
+    conflictWarnings: [],
+    theses: [
+      {
+        id: "t-copper",
+        slug: "china-stimulus-copper",
+        title: "Copper LONG",
+        statement: "Copper demand",
+        targetAssetSymbol: "HG.1",
+        direction: "up",
+        conviction: 60,
+        mispricingScore: 25,
+        affects: [
+          {
+            assetSymbol: "BHP",
+            direction: "up",
+            strength: 70,
+            pricedInPercent: 88,
+            mispricingScore: -18,
+            whyItMatters: "Miner beta",
+            hasDedicatedThesis: false,
+          },
+        ],
+      },
+    ],
+    impliedEffects: [],
+  },
+];
