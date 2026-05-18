@@ -118,6 +118,12 @@ export function discoverySortCompare(a: ThesisReaderDiscoveryRow, b: ThesisReade
 function minimalThesisForDescription(row: ThesisReaderDiscoveryRow): Thesis {
   const title = (row.title ?? "Macro thesis").trim() || "Macro thesis";
   const micro = (row.micro_label ?? "").trim();
+  const origin =
+    row.thesis_origin === "user" ||
+    row.thesis_origin === "seeded_system" ||
+    row.thesis_origin === "ai_generated"
+      ? row.thesis_origin
+      : undefined;
   return {
     id: row.id,
     slug: row.slug ?? "",
@@ -135,8 +141,25 @@ function minimalThesisForDescription(row: ThesisReaderDiscoveryRow): Thesis {
     invalidation: "",
     horizon: "",
     advisoryAction: "hold",
-    microLabel: micro,
-    oneLineSummary: micro,
+    lastUpdated: row.updated_at ?? "",
+    theme: "macro",
+    qualification: "theme",
+    hiddenDriver: "",
+    likelyPath: "",
+    marketMisread: "",
+    tradeExpression: "",
+    scores: {
+      driverStrength: 0,
+      timeCompression: 0,
+      marketMispricingScore: 0,
+      tradeClarityScore: 0,
+      triggerClarityScore: 0,
+      total: 0,
+    },
+    insiderFlow: { bullInstruments: [], bearInstruments: [], confirmTags: [] },
+    thesisOrigin: origin,
+    microLabel: micro || undefined,
+    oneLineSummary: micro || undefined,
   };
 }
 
