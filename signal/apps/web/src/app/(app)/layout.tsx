@@ -22,7 +22,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
           <Depth4V2Shell>
             <AppTopBar />
             <AppSubNav />
-            <main className="mx-auto max-w-4xl px-5 py-8">{children}</main>
+            <main className="mx-auto max-w-4xl px-5 py-8 has-[[data-causal-map]]:max-w-6xl">{children}</main>
             <AppFooter />
           </Depth4V2Shell>
         </div>

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { label: "Theses", path: "/theses" },
+  { label: "Map", path: "/map" },
   { label: "Feed", path: "/feed" },
   { label: "Positions", path: "/book" },
   { label: "Community", path: "/community" },
