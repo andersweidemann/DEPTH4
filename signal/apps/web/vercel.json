@@ -1,12 +1,3 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/reader-analytics-retention",
-      "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/causal-conflict-scan",
-      "schedule": "0 5 * * *"
-    }
-  ]
+  "crons": []
 }
