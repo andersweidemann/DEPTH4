@@ -7,11 +7,26 @@ export type KimiChatResult = {
   raw: unknown;
 };
 
-/** Kimi K2.x models on Moonshot only accept temperature = 1. */
-export function resolveKimiTemperature(model: string, requested?: number): number {
+/**
+ * Kimi K2 temperature varies by endpoint/model (intl often 1; CN kimi-k2.6 may require 0.6).
+ * Override with KIMI_TEMPERATURE in env when needed.
+ */
+export function resolveKimiTemperature(
+  model: string,
+  requested?: number,
+  baseUrl?: string,
+  options?: { disableThinking?: boolean },
+): number {
+  const envOverride = Number((process.env.KIMI_TEMPERATURE ?? "").trim());
+  if (Number.isFinite(envOverride)) return envOverride;
+  if (requested != null && Number.isFinite(requested)) return requested;
   const m = model.toLowerCase();
-  if (m.includes("k2") || m.includes("kimi-k2")) return 1;
-  return requested ?? 0.2;
+  const cn = (baseUrl ?? "").includes("moonshot.cn");
+  if (m.includes("k2") || m.includes("kimi-k2")) {
+    if (cn && options?.disableThinking) return 0.6;
+    return 1;
+  }
+  return 0.2;
 }
 
 export function isKimiK2Model(model: string): boolean {
@@ -53,7 +68,9 @@ export async function kimiChatCompletions(params: {
     body: JSON.stringify({
       model: params.model,
       max_tokens: params.maxTokens,
-      temperature: resolveKimiTemperature(params.model, params.temperature),
+      temperature: resolveKimiTemperature(params.model, params.temperature, params.baseUrl, {
+        disableThinking: params.disableThinking,
+      }),
       ...kimiK2ThinkingBody(params.model, params.disableThinking ? "disabled" : "enabled"),
       messages: [
         { role: "system", content: params.system },
