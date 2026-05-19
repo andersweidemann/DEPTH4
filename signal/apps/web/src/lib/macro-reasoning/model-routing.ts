@@ -27,10 +27,13 @@ export function tierMaxTokens(tier: ModelTaskTierKey): number {
 }
 
 /** Retired aliases that return 404 on the Anthropic Messages API. */
-const RETIRED_CHEAP_MODEL_IDS = new Set(["claude-3-5-haiku-latest"]);
+const RETIRED_ANTHROPIC_MODEL_IDS = new Set([
+  "claude-3-5-haiku-latest",
+  "claude-opus-4-7",
+]);
 
-/** Default cheap model for pipeline steps, chat, and incentive analysis. */
-export const DEFAULT_CHEAP_ANTHROPIC_MODEL = "claude-haiku-4-5";
+/** Default cheap model for pipeline steps, remodel fallback, and incentive analysis. */
+export const DEFAULT_CHEAP_ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022";
 
 /**
  * Cheap-tier Anthropic model — `ANTHROPIC_MODEL_CHEAP`, then `ANTHROPIC_MODEL`, then Haiku 4.5.
@@ -40,7 +43,7 @@ export function resolveCheapAnthropicModel(env: NodeJS.ProcessEnv = process.env)
   const cheap = (env.ANTHROPIC_MODEL_CHEAP ?? "").trim();
   const fallback = (env.ANTHROPIC_MODEL ?? "").trim();
   const pick = cheap || fallback;
-  if (pick && !RETIRED_CHEAP_MODEL_IDS.has(pick)) return pick;
+  if (pick && !RETIRED_ANTHROPIC_MODEL_IDS.has(pick)) return pick;
   return DEFAULT_CHEAP_ANTHROPIC_MODEL;
 }
 
@@ -84,7 +87,9 @@ export function resolveKimiBaseUrl(env: NodeJS.ProcessEnv = process.env): string
 export function resolvePremiumAnthropicModel(env: NodeJS.ProcessEnv = process.env): string {
   const premium = (env.ANTHROPIC_MODEL_PREMIUM ?? "").trim();
   const fallback = (env.ANTHROPIC_MODEL ?? "").trim();
-  return premium || fallback || "claude-opus-4-7";
+  const pick = premium || fallback;
+  if (pick && !RETIRED_ANTHROPIC_MODEL_IDS.has(pick)) return pick;
+  return resolveCheapAnthropicModel(env);
 }
 
 export const DEFAULT_NVIDIA_MODEL = "meta/llama-3.1-8b-instruct";
@@ -127,7 +132,7 @@ export function resolveCronAnthropicModel(env: NodeJS.ProcessEnv, task: CronLlmT
   const premium = (env.ANTHROPIC_MODEL_PREMIUM ?? "").trim();
   const fallback = (env.ANTHROPIC_MODEL ?? "").trim();
   if (tier === "premium") {
-    return premium || fallback || "claude-opus-4-7";
+    return resolvePremiumAnthropicModel(env);
   }
   return resolveCheapAnthropicModel(env);
 }

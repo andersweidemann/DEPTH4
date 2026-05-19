@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createPipelineLlmClient } from "@/lib/ai/thesis-pipeline-llm";
+import { completeCheapAnthropicJson, completeNvidiaJson } from "@/lib/ai/thesis-pipeline-llm";
+import { completeKimiJsonObject, isKimiJsonConfigured } from "@/lib/macro-reasoning/kimi-messages";
+import { resolveCheapAnthropicModel } from "@/lib/macro-reasoning/model-routing";
 import { isPlaceholderTradeLevel } from "@/lib/ai/thesis-pipeline-body";
 import { getDailyBars } from "@/lib/market-data";
 import { maxScenarioDelta } from "@/lib/ai/resolution-probability-update";
@@ -201,35 +203,62 @@ export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null 
   return hasProbs || hasLevels ? payload : null;
 }
 
+const REMODEL_JSON_SYSTEM =
+  "You output strict JSON only. No markdown fences or commentary outside the JSON object.";
+
+const REMODEL_MAX_TOKENS = 1600;
+
 async function completeRemodelJson(prompt: string): Promise<LlmRemodelPayload | null> {
-  const tiers = ["premium", "cheap"] as const;
   const retrySuffix =
     "\n\nPRIOR OUTPUT WAS INVALID. Return ONLY one JSON object matching the schema in TASK — no markdown, no commentary.";
-  for (const tier of tiers) {
-    const llm = createPipelineLlmClient(tier);
-    if (!llm) continue;
+
+  const providers: {
+    label: string;
+    run: (userPrompt: string) => Promise<unknown | null>;
+  }[] = [];
+
+  if (isKimiJsonConfigured()) {
+    providers.push({
+      label: "kimi:json_object",
+      run: (userPrompt) =>
+        completeKimiJsonObject({
+          system: REMODEL_JSON_SYSTEM,
+          user: userPrompt,
+          maxTokens: REMODEL_MAX_TOKENS,
+        }),
+    });
+  }
+
+  providers.push({
+    label: "nvidia",
+    run: (userPrompt) => completeNvidiaJson(userPrompt, REMODEL_MAX_TOKENS),
+  });
+
+  providers.push({
+    label: `anthropic:${resolveCheapAnthropicModel()}`,
+    run: (userPrompt) => completeCheapAnthropicJson(userPrompt, REMODEL_MAX_TOKENS),
+  });
+
+  for (const provider of providers) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const userPrompt = attempt === 0 ? prompt : `${prompt}${retrySuffix}`;
       try {
-        const raw = await llm.completeJson(userPrompt, tier === "premium" ? 2048 : 1536);
+        const raw = await provider.run(userPrompt);
         const normalized = normalizeRemodelPayload(raw);
         if (normalized) {
           console.info("[remodel-scenarios] llm_ok", {
-            tier,
-            provider: llm.providerLabel,
+            provider: provider.label,
             attempt: attempt + 1,
           });
           return normalized;
         }
         console.warn("[remodel-scenarios] llm_invalid_payload", {
-          tier,
-          provider: llm.providerLabel,
+          provider: provider.label,
           attempt: attempt + 1,
         });
       } catch (e) {
         console.warn("[remodel-scenarios] llm_attempt_failed", {
-          tier,
-          provider: llm.providerLabel,
+          provider: provider.label,
           attempt: attempt + 1,
           message: e instanceof Error ? e.message : String(e),
         });

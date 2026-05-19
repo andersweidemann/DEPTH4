@@ -2,6 +2,14 @@
  * Moonshot Kimi — OpenAI-compatible chat/completions (mirrors apps/api llm_client).
  */
 
+import { extractJsonFromLlmText } from "@/lib/ai/parse-llm-json";
+import {
+  isKimiConfigured,
+  normalizeKimiApiKey,
+  resolveKimiBaseUrl,
+  resolveKimiModel,
+} from "@/lib/macro-reasoning/model-routing";
+
 export type KimiChatResult = {
   text: string;
   raw: unknown;
@@ -56,6 +64,8 @@ export async function kimiChatCompletions(params: {
   temperature?: number;
   /** When true, send `thinking: { type: "disabled" }` for K2 models (structured JSON). */
   disableThinking?: boolean;
+  /** When true, request `response_format: json_object` and parse `content` only. */
+  jsonObjectMode?: boolean;
 }): Promise<KimiChatResult> {
   const base = params.baseUrl.replace(/\/$/, "");
   const url = `${base}/chat/completions`;
@@ -72,6 +82,7 @@ export async function kimiChatCompletions(params: {
         disableThinking: params.disableThinking,
       }),
       ...kimiK2ThinkingBody(params.model, params.disableThinking ? "disabled" : "enabled"),
+      ...(params.jsonObjectMode ? { response_format: { type: "json_object" } } : {}),
       messages: [
         { role: "system", content: params.system },
         { role: "user", content: params.user },
@@ -96,13 +107,35 @@ export async function kimiChatCompletions(params: {
     throw new Error("kimi_chat_missing_choices");
   }
   const message = (choices[0] as { message?: Record<string, unknown> }).message;
-  const text = extractKimiMessageText(message);
+  const text = extractKimiMessageText(message, { contentOnly: params.jsonObjectMode === true });
   return { text, raw };
 }
 
 /** Kimi K2 may return string content, part arrays, or reasoning fields — collect all text for JSON parse. */
-export function extractKimiMessageText(message: Record<string, unknown> | undefined): string {
+export function extractKimiMessageText(
+  message: Record<string, unknown> | undefined,
+  options?: { contentOnly?: boolean },
+): string {
   if (!message) return "";
+  if (options?.contentOnly) {
+    const content = message.content;
+    if (typeof content === "string") return content.trim();
+    if (Array.isArray(content)) {
+      return content
+        .map((part) => {
+          if (typeof part === "string") return part;
+          if (part && typeof part === "object") {
+            const p = part as Record<string, unknown>;
+            return typeof p.text === "string" ? p.text : typeof p.content === "string" ? p.content : "";
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+    }
+    return "";
+  }
   const parts: string[] = [];
   const push = (v: unknown) => {
     if (typeof v === "string" && v.trim()) parts.push(v.trim());
@@ -122,4 +155,36 @@ export function extractKimiMessageText(message: Record<string, unknown> | undefi
     }
   }
   return parts.join("\n\n");
+}
+
+const KIMI_JSON_SYSTEM =
+  "You output strict JSON only. No markdown fences or commentary outside the JSON object.";
+
+/**
+ * Kimi path for structured JSON (remodel, pipeline) — matches diagnostic script settings:
+ * thinking disabled, json_object response_format, content-only parse.
+ */
+export async function completeKimiJsonObject(params: {
+  system?: string;
+  user: string;
+  maxTokens: number;
+}): Promise<unknown | null> {
+  const apiKey = normalizeKimiApiKey(process.env.KIMI_API_KEY);
+  if (!apiKey) throw new Error("KIMI_API_KEY not set");
+  const baseUrl = resolveKimiBaseUrl();
+  const { text } = await kimiChatCompletions({
+    apiKey,
+    baseUrl,
+    model: resolveKimiModel(),
+    maxTokens: params.maxTokens,
+    system: params.system ?? KIMI_JSON_SYSTEM,
+    user: params.user,
+    disableThinking: true,
+    jsonObjectMode: true,
+  });
+  return extractJsonFromLlmText(text);
+}
+
+export function isKimiJsonConfigured(): boolean {
+  return isKimiConfigured();
 }

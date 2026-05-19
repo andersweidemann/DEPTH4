@@ -66,6 +66,7 @@ async function completeTextKimi(userPrompt: string, maxTokens: number): Promise<
       system: SYSTEM,
       user: userPrompt,
       disableThinking: true,
+      jsonObjectMode: true,
     });
     return text;
   } catch (e) {
@@ -179,4 +180,29 @@ export function describePipelineLlmSetup(): { cheap: string; premium: string } {
     cheap: describeCheapPipelineProvider(),
     premium: `anthropic:${resolvePremiumAnthropicModel()}`,
   };
+}
+
+/** Anthropic cheap-tier JSON (remodel fallback after Kimi / NVIDIA). */
+export async function completeCheapAnthropicJson(
+  userPrompt: string,
+  maxTokens: number,
+): Promise<unknown | null> {
+  if (!process.env.ANTHROPIC_API_KEY?.trim()) return null;
+  const model = resolveCheapAnthropicModel();
+  const text = await completeTextAnthropic(model, userPrompt, maxTokens);
+  return extractJsonFromLlmText(text);
+}
+
+/** NVIDIA NIM JSON fallback for remodel / pipeline. */
+export async function completeNvidiaJson(
+  userPrompt: string,
+  maxTokens: number,
+): Promise<unknown | null> {
+  if (!isNvidiaConfigured()) return null;
+  try {
+    const text = await completeTextNvidia(userPrompt, maxTokens);
+    return extractJsonFromLlmText(text);
+  } catch {
+    return null;
+  }
 }
