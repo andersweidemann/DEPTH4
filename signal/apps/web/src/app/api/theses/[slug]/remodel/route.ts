@@ -7,6 +7,7 @@ import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 export async function POST(req: Request, context: { params: { slug: string } }) {
   const slug = context.params.slug?.trim() ?? "";
