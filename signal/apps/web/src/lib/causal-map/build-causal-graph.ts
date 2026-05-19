@@ -6,6 +6,7 @@ import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { thesisConvictionPctFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
+import { dedupeOilPeaceShortThesesInCluster } from "@/lib/causal-map/dedupe-oil-peace-shorts";
 import { resolveThesisMapSymbol } from "@/lib/causal-map/resolve-thesis-map-symbol";
 import type {
   AssetDepth,
@@ -388,10 +389,12 @@ export async function buildGlobalCausalGraph(supabase: SupabaseClient): Promise<
 
   const clusters: ThesisCluster[] = events.map((event) => {
     const thesisIds = linksByEvent.get(event.id) ?? [];
-    const clusterTheses = thesisIds
-      .map((id) => thesisById.get(id))
-      .filter((row): row is ThesisRow => !!row && LIVE_STATUSES.has(row.status))
-      .map((row) => buildCausalThesis(row, affectsByThesis.get(row.id) ?? []));
+    const clusterTheses = dedupeOilPeaceShortThesesInCluster(
+      thesisIds
+        .map((id) => thesisById.get(id))
+        .filter((row): row is ThesisRow => !!row && LIVE_STATUSES.has(row.status))
+        .map((row) => buildCausalThesis(row, affectsByThesis.get(row.id) ?? [])),
+    );
 
     const impliedEffects = computeImpliedEffects(clusterTheses);
     const conflictWarnings = computeConflictWarnings(clusterTheses, relations);
