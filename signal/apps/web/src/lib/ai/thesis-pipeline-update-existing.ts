@@ -20,6 +20,7 @@ import type {
 } from "@/lib/ai/thesis-pipeline-types";
 import type { ExistingThesisForSimilarity } from "@/lib/ai/find-similar-thesis";
 import type { SavePipelineThesisResult } from "@/lib/ai/thesis-pipeline-save-result";
+import { insertEvidenceAndRemodelScenarios } from "@/lib/thesis/update-scenarios";
 
 function evidenceKey(excerpt: string): string {
   return excerpt.trim().slice(0, 80).toLowerCase();
@@ -139,15 +140,11 @@ export async function updateExistingPipelineThesis(
   const priorKeys = new Set(readEvidenceFromBody(priorBody).map((e) => evidenceKey(e.excerpt)));
   for (const ev of candidate.evidence) {
     if (priorKeys.has(evidenceKey(ev.excerpt))) continue;
-    const { error: evErr } = await admin.from("thesis_evidence_log").insert({
-      thesis_id: existing.id,
+    await insertEvidenceAndRemodelScenarios(admin, existing.id, {
       event_type: "pipeline_refresh",
       description: `[${ev.source}] ${ev.excerpt}`,
       metadata: { source: ev.source, date: ev.date, pipeline: true, dedup: true },
     });
-    if (evErr) {
-      console.warn("[thesis_pipeline] evidence_refresh_failed", { message: evErr.message });
-    }
   }
 
   const link = await applyThesisEventLink(admin, {
