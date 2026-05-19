@@ -211,7 +211,7 @@ async function completeRemodelJson(prompt: string): Promise<LlmRemodelPayload | 
     for (let attempt = 0; attempt < 2; attempt++) {
       const userPrompt = attempt === 0 ? prompt : `${prompt}${retrySuffix}`;
       try {
-        const raw = await llm.completeJson(userPrompt, tier === "premium" ? 1200 : 720);
+        const raw = await llm.completeJson(userPrompt, tier === "premium" ? 2048 : 1536);
         const normalized = normalizeRemodelPayload(raw);
         if (normalized) {
           console.info("[remodel-scenarios] llm_ok", {
