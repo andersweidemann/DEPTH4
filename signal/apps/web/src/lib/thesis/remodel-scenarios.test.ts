@@ -44,4 +44,18 @@ describe("remodel-scenarios", () => {
     expect(normalizeRemodelPayload(raw)?.scenarios?.clean?.probability).toBe(35);
     expect(normalizeRemodelPayload(raw)?.tradePlan?.entryZone).toBe("79-80");
   });
+
+  it("normalizes Kimi fractional probabilities and entryShort/target1", () => {
+    const n = normalizeRemodelPayload({
+      scenarios: {
+        clean: { probability: 0.35 },
+        messy: { probability: 0.45 },
+        broken: { probability: 0.2 },
+      },
+      tradePlan: { entryShort: 80, stopLoss: 82.5, target1: 77.5 },
+    });
+    expect(n?.scenarios?.clean?.probability).toBe(35);
+    expect(n?.tradePlan?.entryZone).toBe("80");
+    expect(n?.tradePlan?.targetPrice).toBe("77.5");
+  });
 });

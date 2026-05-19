@@ -164,6 +164,18 @@ export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null 
     | Record<string, unknown>
     | undefined;
   const tpIn = (o.tradePlan ?? o.trade_plan ?? o.tradeplan) as Record<string, unknown> | undefined;
+  const tpLevels = tpIn
+    ? [
+        tpIn.entryZone,
+        tpIn.entry_zone,
+        tpIn.entryShort,
+        tpIn.stopLoss,
+        tpIn.stop_loss,
+        tpIn.targetPrice,
+        tpIn.target_price,
+        tpIn.target1,
+      ]
+    : [];
 
   const readPath = (branch: string): { probability?: number; reasoning?: string } | undefined => {
     if (!scenariosIn) return undefined;
@@ -175,7 +187,7 @@ export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null 
         reasoning: typeof n.reasoning === "string" ? n.reasoning : undefined,
       };
     }
-    const flat = num(scenariosIn[branch]);
+    const flat = probPct(scenariosIn[branch]);
     return flat != null ? { probability: flat } : undefined;
   };
 
@@ -187,9 +199,13 @@ export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null 
     scenarios: { clean, messy, broken },
     tradePlan: tpIn
       ? {
-          entryZone: String(tpIn.entryZone ?? tpIn.entry_zone ?? "").trim() || undefined,
+          entryZone: String(
+            tpIn.entryZone ?? tpIn.entry_zone ?? tpIn.entryShort ?? tpIn.entry_short ?? "",
+          ).trim() || undefined,
           stopLoss: String(tpIn.stopLoss ?? tpIn.stop_loss ?? tpIn.stop ?? "").trim() || undefined,
-          targetPrice: String(tpIn.targetPrice ?? tpIn.target_price ?? tpIn.target ?? "").trim() || undefined,
+          targetPrice: String(
+            tpIn.targetPrice ?? tpIn.target_price ?? tpIn.target ?? tpIn.target1 ?? "",
+          ).trim() || undefined,
           rationale: typeof tpIn.rationale === "string" ? tpIn.rationale : undefined,
         }
       : undefined,
@@ -203,11 +219,13 @@ export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null 
     payload.scenarios?.broken?.probability,
   ];
   const hasProbs = probs.some((p) => p != null);
-  const hasLevels = [
-    payload.tradePlan?.entryZone,
-    payload.tradePlan?.stopLoss,
-    payload.tradePlan?.targetPrice,
-  ].some((v) => typeof v === "string" && v.length > 0);
+  const hasLevels =
+    [
+      payload.tradePlan?.entryZone,
+      payload.tradePlan?.stopLoss,
+      payload.tradePlan?.targetPrice,
+    ].some((v) => typeof v === "string" && v.length > 0) ||
+    tpLevels.some((v) => v != null && String(v).trim().length > 0);
   return hasProbs || hasLevels ? payload : null;
 }
 
