@@ -14,9 +14,18 @@ export interface CrossThesisUpdate {
 }
 
 /** Unified feed row for `/feed` — conviction changes, promoted reasoning, and raw headlines. */
+export type ThesisRemodelFeedMeta = {
+  whatChanged: string;
+  oldScenarios: { clean: number; messy: number; broken: number };
+  newScenarios: { clean: number; messy: number; broken: number };
+  oldTradePlan?: { entryZone: string; stopLoss: string; targetPrice: string };
+  newTradePlan?: { entryZone: string; stopLoss: string; targetPrice: string };
+  updateKind?: string;
+};
+
 export interface FeedItem {
   id: string;
-  type: "reasoning" | "headline" | "conviction_change";
+  type: "reasoning" | "headline" | "conviction_change" | "thesis_remodel";
   source: string;
   headline: string;
   /** ISO 8601 for sorting and day grouping; formatted in the client for display. */
@@ -39,6 +48,8 @@ export interface FeedItem {
    * When no catalog/AI thesis link yet: provisional line from macro reasoning (not endorsed, not trade-ready).
    */
   formingNarrative?: string | null;
+  /** Present when `type === "thesis_remodel"`. */
+  remodelMeta?: ThesisRemodelFeedMeta | null;
 }
 
 /** @deprecated Legacy feed card — prefer {@link FeedItem}. */

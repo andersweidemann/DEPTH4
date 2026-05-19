@@ -285,10 +285,123 @@ async function fetchReasoningItems(supabase: SupabaseClient, loadPromoted: boole
     .filter((x): x is FeedItem => x !== null);
 }
 
+function parseRemodelScenarios(raw: unknown): { clean: number; messy: number; broken: number } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const bull = Number(o.bull ?? o.clean);
+  const base = Number(o.base ?? o.messy);
+  const bear = Number(o.bear ?? o.broken);
+  if (![bull, base, bear].every((n) => Number.isFinite(n))) return null;
+  return { clean: Math.round(bull), messy: Math.round(base), broken: Math.round(bear) };
+}
+
+async function fetchThesisRemodelFeedItems(supabase: SupabaseClient, limit: number): Promise<FeedItem[]> {
+  const { data, error } = await supabase
+    .from("thesis_updates")
+    .select("id, thesis_id, created_at, change_type, reason, metadata")
+    .in("change_type", ["scenario_shift", "evidence", "field_update"])
+    .order("created_at", { ascending: false })
+    .limit(limit * 3);
+
+  if (error || !data?.length) return [];
+
+  const rows = data as {
+    id: string;
+    thesis_id: string;
+    created_at: string;
+    change_type: string;
+    reason: string | null;
+    metadata: unknown;
+  }[];
+
+  const thesisIds = Array.from(new Set(rows.map((r) => r.thesis_id.trim()).filter(Boolean)));
+  const metaById = await fetchThesisMetaMap(supabase, thesisIds);
+  const out: FeedItem[] = [];
+
+  for (const row of rows) {
+    const meta =
+      row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
+        ? (row.metadata as Record<string, unknown>)
+        : {};
+    if (meta.source !== "remodel_thesis_scenarios") continue;
+
+    const before = parseRemodelScenarios(meta.scenario_probabilities_before);
+    const after = parseRemodelScenarios(meta.scenario_probabilities_after);
+    if (!before || !after) continue;
+
+    const probShift = Math.max(
+      Math.abs(after.clean - before.clean),
+      Math.abs(after.messy - before.messy),
+      Math.abs(after.broken - before.broken),
+    );
+    const oldTp = meta.old_trade_plan as Record<string, unknown> | undefined;
+    const newTp = meta.new_trade_plan as Record<string, unknown> | undefined;
+    const levelsChanged =
+      oldTp &&
+      newTp &&
+      (String(oldTp.entryZone) !== String(newTp.entryZone) ||
+        String(oldTp.stopLoss) !== String(newTp.stopLoss) ||
+        String(oldTp.targetPrice) !== String(newTp.targetPrice));
+
+    if (probShift < 10 && !levelsChanged) continue;
+
+    const whatChanged =
+      (typeof meta.what_changed === "string" && meta.what_changed.trim()) ||
+      (row.reason ?? "").trim() ||
+      "Thesis scenarios and trade plan were updated.";
+
+    const t = thesisMetaToFeedThesisFields(metaById.get(row.thesis_id.trim()));
+    const headline =
+      t.thesisTitle && whatChanged
+        ? `${t.thesisTitle}: ${whatChanged.split(/[.!?]/)[0]?.slice(0, 100) ?? whatChanged.slice(0, 100)}`
+        : headlineFromDescription(whatChanged);
+
+    out.push({
+      id: `remodel-${row.id}`,
+      type: "thesis_remodel",
+      source: "DEPTH4",
+      headline,
+      timestamp: formatFeedTimestamp(row.created_at),
+      signalLevel: probShift >= 15 ? 3 : 2,
+      ...t,
+      oldConviction: before.clean,
+      newConviction: after.clean,
+      changeDirection: after.clean >= before.clean ? "up" : "down",
+      summary: whatChanged,
+      body: whatChanged,
+      linkedThesisSlug: t.linkedThesisSlug,
+      linkedThesisTitle: t.linkedThesisTitle,
+      remodelMeta: {
+        whatChanged,
+        oldScenarios: before,
+        newScenarios: after,
+        oldTradePlan: oldTp
+          ? {
+              entryZone: String(oldTp.entryZone ?? "—"),
+              stopLoss: String(oldTp.stopLoss ?? "—"),
+              targetPrice: String(oldTp.targetPrice ?? "—"),
+            }
+          : undefined,
+        newTradePlan: newTp
+          ? {
+              entryZone: String(newTp.entryZone ?? "—"),
+              stopLoss: String(newTp.stopLoss ?? "—"),
+              targetPrice: String(newTp.targetPrice ?? "—"),
+            }
+          : undefined,
+        updateKind: typeof meta.update_kind === "string" ? meta.update_kind : row.change_type,
+      },
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 const TYPE_PRIORITY: Record<FeedItem["type"], number> = {
-  conviction_change: 0,
-  reasoning: 1,
-  headline: 2,
+  thesis_remodel: 0,
+  conviction_change: 1,
+  reasoning: 2,
+  headline: 3,
 };
 
 function sortKeyMs(iso: string): number {
@@ -296,8 +409,13 @@ function sortKeyMs(iso: string): number {
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
-export function mergeAndSortFeedItems(parts: { conviction: FeedItem[]; reasoning: FeedItem[]; headlines: FeedItem[] }): FeedItem[] {
-  const merged = [...parts.conviction, ...parts.reasoning, ...parts.headlines];
+export function mergeAndSortFeedItems(parts: {
+  remodel: FeedItem[];
+  conviction: FeedItem[];
+  reasoning: FeedItem[];
+  headlines: FeedItem[];
+}): FeedItem[] {
+  const merged = [...parts.remodel, ...parts.conviction, ...parts.reasoning, ...parts.headlines];
   merged.sort((a, b) => {
     const byTime = sortKeyMs(b.timestamp) - sortKeyMs(a.timestamp);
     if (byTime !== 0) return byTime;
@@ -307,10 +425,11 @@ export function mergeAndSortFeedItems(parts: { conviction: FeedItem[]; reasoning
 }
 
 export async function buildFeedItems(supabase: SupabaseClient, loadPromoted: boolean): Promise<FeedItem[]> {
-  const [conviction, reasoning, headlines] = await Promise.all([
+  const [remodel, conviction, reasoning, headlines] = await Promise.all([
+    fetchThesisRemodelFeedItems(supabase, 24),
     fetchConvictionChangeItems(supabase, 80),
     fetchReasoningItems(supabase, loadPromoted),
     fetchNewsHeadlineItems(supabase, 48),
   ]);
-  return mergeAndSortFeedItems({ conviction, reasoning, headlines });
+  return mergeAndSortFeedItems({ remodel, conviction, reasoning, headlines });
 }

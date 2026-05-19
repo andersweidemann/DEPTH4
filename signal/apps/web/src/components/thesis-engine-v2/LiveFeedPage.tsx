@@ -12,6 +12,7 @@ import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { CrossThesisFeedItem } from "@/components/feed/CrossThesisFeedItem";
+import { ThesisUpdateCard } from "@/components/feed/ThesisUpdateCard";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { FEED_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
@@ -295,7 +296,16 @@ function HeadlineRow({ item }: { item: FeedItem }) {
   );
 }
 
+function RemodelRow({ item }: { item: FeedItem }) {
+  return (
+    <div className="border-b border-white/[0.06] py-4">
+      <ThesisUpdateCard item={item} />
+    </div>
+  );
+}
+
 function FeedRow({ item }: { item: FeedItem }) {
+  if (item.type === "thesis_remodel") return <RemodelRow item={item} />;
   if (item.type === "conviction_change") return <ConvictionChangeRow item={item} />;
   if (item.type === "reasoning") return <ReasoningRow item={item} />;
   return <HeadlineRow item={item} />;

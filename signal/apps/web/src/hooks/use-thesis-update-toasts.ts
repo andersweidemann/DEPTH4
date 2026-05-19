@@ -37,7 +37,15 @@ function shouldToastRow(payload: {
   if (!before || !after) return { show: false, whatChanged: "", slug: null, delta: 0 };
 
   const delta = maxScenarioDelta(before, after);
-  if (delta < TOAST_DELTA_MIN) return { show: false, whatChanged: "", slug: null, delta: 0 };
+  const oldTp = meta.old_trade_plan as Record<string, unknown> | undefined;
+  const newTp = meta.new_trade_plan as Record<string, unknown> | undefined;
+  const levelsChanged =
+    oldTp &&
+    newTp &&
+    (String(oldTp.entryZone) !== String(newTp.entryZone) ||
+      String(oldTp.stopLoss) !== String(newTp.stopLoss) ||
+      String(oldTp.targetPrice) !== String(newTp.targetPrice));
+  if (delta < TOAST_DELTA_MIN && !levelsChanged) return { show: false, whatChanged: "", slug: null, delta: 0 };
 
   const slug =
     typeof meta.thesis_slug === "string" && meta.thesis_slug.trim() ? meta.thesis_slug.trim() : null;

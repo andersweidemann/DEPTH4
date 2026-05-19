@@ -25,6 +25,7 @@ describe("mergeAndSortFeedItems", () => {
   it("orders by timestamp descending, then type priority on ties", () => {
     const t = "2025-06-01T12:00:00.000Z";
     const merged = mergeAndSortFeedItems({
+      remodel: [],
       conviction: [item({ id: "c1", type: "conviction_change", timestamp: t })],
       reasoning: [item({ id: "r1", type: "reasoning", timestamp: t })],
       headlines: [item({ id: "h1", type: "headline", timestamp: t })],
@@ -34,6 +35,7 @@ describe("mergeAndSortFeedItems", () => {
 
   it("puts newer events before older regardless of type", () => {
     const merged = mergeAndSortFeedItems({
+      remodel: [],
       conviction: [item({ id: "cold", type: "conviction_change", timestamp: "2025-01-01T00:00:00.000Z" })],
       reasoning: [],
       headlines: [item({ id: "new-h", type: "headline", timestamp: "2025-06-02T00:00:00.000Z" })],

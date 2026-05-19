@@ -176,19 +176,31 @@ export async function insertEvidenceAndRemodelScenarios(
   const meta = row.metadata ?? {};
   const { headline, source } = parseHeadlineAndSourceFromEvidence(row.description, meta);
 
-  const remodel = await remodelScenariosOnEvidence(admin, {
-    thesisId,
-    evidenceLogId: String(inserted.id),
-    headline,
-    source,
-  }).catch((e) => ({ ok: false as const, reason: e instanceof Error ? e.message : "remodel_failed" }));
-
-  if (!remodel.ok) {
-    console.warn("[pipeline] remodel_scenarios_failed", { thesisId, reason: remodel.reason });
-  } else if (remodel.whatChanged) {
-    console.log("[pipeline] Creating new thesis evidence with scenario refresh", {
-      thesis_id: thesisId,
-      what_changed: remodel.whatChanged.slice(0, 80),
-    });
+  try {
+    const remodel = await import("@/lib/thesis/remodel-scenarios").then((m) =>
+      m.remodelThesisScenarios(admin, thesisId, {
+        evidenceLogId: String(inserted.id),
+        triggerReason: "new_evidence",
+      }),
+    );
+    if (remodel.whatChanged) {
+      console.log("[pipeline] evidence_remodel_complete", {
+        thesis_id: thesisId,
+        what_changed: remodel.whatChanged.slice(0, 80),
+        scenarioDelta: remodel.scenarioDelta,
+      });
+    }
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : "remodel_failed";
+    console.warn("[pipeline] remodel_thesis_failed", { thesisId, reason });
+    const fallback = await remodelScenariosOnEvidence(admin, {
+      thesisId,
+      evidenceLogId: String(inserted.id),
+      headline,
+      source,
+    }).catch((err) => ({ ok: false as const, reason: err instanceof Error ? err.message : "remodel_failed" }));
+    if (!fallback.ok) {
+      console.warn("[pipeline] remodel_scenarios_fallback_failed", { thesisId, reason: fallback.reason });
+    }
   }
 }

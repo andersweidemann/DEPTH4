@@ -1,25 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { maxScenarioDelta } from "@/lib/ai/resolution-probability-update";
 import { assertCronSecret } from "@/lib/cron-auth";
 import { parseHeadlineAndSourceFromEvidence } from "@/lib/thesis/parse-evidence-headline";
-import type { DbScenarioTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
-import { remodelScenariosOnEvidence } from "@/lib/thesis/update-scenarios";
+import { remodelThesisScenarios } from "@/lib/thesis/remodel-scenarios";
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
-const BATCH = 10;
-
-function parseScenarioTriple(raw: unknown): DbScenarioTriple | null {
-  if (!raw || typeof raw !== "object") return null;
-  const o = raw as Record<string, unknown>;
-  const base = Number(o.base);
-  const bull = Number(o.bull);
-  const bear = Number(o.bear);
-  if (![base, bull, bear].every((n) => Number.isFinite(n))) return null;
-  return { base: Math.round(base), bull: Math.round(bull), bear: Math.round(bear) };
-}
+const BATCH = 5;
 
 type EvidenceLogJoin = {
   id: string;
@@ -34,6 +22,9 @@ type QueueRow = {
   id: number;
   thesis_id: string;
   evidence_log_id: string;
+  processed: boolean;
+  status: string | null;
+  trigger_reason: string | null;
   thesis_evidence_log: EvidenceLogJoin | EvidenceLogJoin[] | null;
 };
 
@@ -43,8 +34,15 @@ function evidenceLogFromJoin(raw: QueueRow["thesis_evidence_log"]): EvidenceLogJ
   return raw;
 }
 
+function isPending(row: QueueRow): boolean {
+  if (row.status === "processing") return false;
+  if (row.status === "done" || row.status === "failed") return false;
+  if (row.status === "pending") return true;
+  return !row.processed;
+}
+
 /**
- * Process evidence_cascade_queue: remodel scenarios + thesis_updates + evidence probabilities.
+ * Process evidence_cascade_queue: full scenario + trade-plan re-model.
  * Schedule: Vercel Cron every 5 minutes → GET /api/cron/evidence-cascade
  */
 export async function GET(req: NextRequest) {
@@ -63,6 +61,9 @@ export async function GET(req: NextRequest) {
       id,
       thesis_id,
       evidence_log_id,
+      processed,
+      status,
+      trigger_reason,
       thesis_evidence_log (
         id,
         thesis_id,
@@ -73,113 +74,114 @@ export async function GET(req: NextRequest) {
       )
     `,
     )
-    .eq("processed", false)
+    .in("status", ["pending"])
     .order("created_at", { ascending: true })
     .limit(BATCH);
 
-  if (fetchErr) {
+  let queueRows = (rows ?? []) as unknown as QueueRow[];
+
+  if (fetchErr?.message?.includes("status") || !queueRows.length) {
+    const legacy = await admin
+      .from("evidence_cascade_queue")
+      .select(
+        `
+        id,
+        thesis_id,
+        evidence_log_id,
+        processed,
+        status,
+        trigger_reason,
+        thesis_evidence_log (
+          id,
+          thesis_id,
+          description,
+          metadata,
+          probability_before,
+          probability_after
+        )
+      `,
+      )
+      .eq("processed", false)
+      .order("created_at", { ascending: true })
+      .limit(BATCH);
+    if (!legacy.error) queueRows = (legacy.data ?? []) as unknown as QueueRow[];
+  }
+
+  if (fetchErr && !queueRows.length) {
     console.error("[evidence-cascade] queue_fetch_failed", fetchErr.message);
     return NextResponse.json({ ok: false, error: fetchErr.message }, { status: 500 });
   }
 
-  const summary: {
-    queueId: number;
-    thesisId: string;
-    evidenceLogId: string;
-    status: "skipped_already_remodeled" | "remodeled" | "remodel_failed";
-    delta?: number;
-    error?: string;
-  }[] = [];
+  const results: Record<string, unknown>[] = [];
 
-  for (const raw of (rows ?? []) as unknown as QueueRow[]) {
-    const log = evidenceLogFromJoin(raw.thesis_evidence_log);
-    const markProcessed = async () => {
-      await admin.from("evidence_cascade_queue").update({ processed: true }).eq("id", raw.id);
+  for (const raw of queueRows.filter(isPending)) {
+    const mark = async (patch: {
+      status: string;
+      processed?: boolean;
+      result?: unknown;
+    }) => {
+      await admin
+        .from("evidence_cascade_queue")
+        .update({
+          status: patch.status,
+          processed: patch.processed ?? (patch.status === "done" || patch.status === "failed"),
+          processed_at: new Date().toISOString(),
+          result: patch.result ?? null,
+        } as never)
+        .eq("id", raw.id);
     };
+
+    const log = evidenceLogFromJoin(raw.thesis_evidence_log);
 
     try {
       if (log?.probability_before != null && log?.probability_after != null) {
-        summary.push({
-          queueId: raw.id,
-          thesisId: raw.thesis_id,
-          evidenceLogId: raw.evidence_log_id,
-          status: "skipped_already_remodeled",
-        });
-        await markProcessed();
+        await mark({ status: "done", result: { skipped: "already_remodeled" } });
+        results.push({ thesisId: raw.thesis_id, status: "skipped_already_remodeled" });
         continue;
       }
+
+      await mark({ status: "processing", processed: false });
 
       const description = String(log?.description ?? "").trim();
       const meta =
         log?.metadata && typeof log.metadata === "object" && !Array.isArray(log.metadata)
           ? (log.metadata as Record<string, unknown>)
           : {};
-      const { headline, source } = parseHeadlineAndSourceFromEvidence(description, meta);
+      parseHeadlineAndSourceFromEvidence(description, meta);
 
-      const remodel = await remodelScenariosOnEvidence(admin, {
-        thesisId: raw.thesis_id,
+      const remodel = await remodelThesisScenarios(admin, raw.thesis_id, {
         evidenceLogId: raw.evidence_log_id,
-        headline,
-        source,
+        triggerReason: raw.trigger_reason ?? "new_evidence",
       });
 
-      if (!remodel.ok) {
-        summary.push({
-          queueId: raw.id,
-          thesisId: raw.thesis_id,
-          evidenceLogId: raw.evidence_log_id,
-          status: "remodel_failed",
-          error: remodel.reason,
-        });
-        await markProcessed();
-        continue;
-      }
+      await mark({
+        status: "done",
+        result: {
+          scenarioDelta: remodel.scenarioDelta,
+          levelsChanged: remodel.levelsChanged,
+          currentPrice: remodel.currentPrice,
+        },
+      });
 
-      const { data: thesisRow } = await admin
-        .from("theses")
-        .select("scenario_probabilities")
-        .eq("id", raw.thesis_id)
-        .maybeSingle();
-
-      const after = parseScenarioTriple(thesisRow?.scenario_probabilities);
-      const before = parseScenarioTriple(log?.probability_before) ?? parseScenarioTriple(meta.scenario_before);
-      const delta =
-        before && after
-          ? maxScenarioDelta(before, after)
-          : remodel.scenarios && before
-            ? maxScenarioDelta(before, remodel.scenarios)
-            : undefined;
-
-      summary.push({
-        queueId: raw.id,
+      results.push({
         thesisId: raw.thesis_id,
-        evidenceLogId: raw.evidence_log_id,
         status: "remodeled",
-        delta,
+        scenarioDelta: remodel.scenarioDelta,
+        levelsChanged: remodel.levelsChanged,
+        feedWorthy: remodel.scenarioDelta >= 10 || remodel.levelsChanged,
       });
-      await markProcessed();
     } catch (e) {
       const message = e instanceof Error ? e.message : "unknown_error";
-      console.error("[evidence-cascade] item_failed", {
-        queueId: raw.id,
-        thesisId: raw.thesis_id,
-        message,
-      });
-      summary.push({
-        queueId: raw.id,
-        thesisId: raw.thesis_id,
-        evidenceLogId: raw.evidence_log_id,
-        status: "remodel_failed",
-        error: message,
-      });
-      await markProcessed();
+      console.error("[evidence-cascade] item_failed", { thesisId: raw.thesis_id, message });
+      await mark({ status: "failed", result: { error: message } });
+      results.push({ thesisId: raw.thesis_id, status: "failed", error: message });
     }
   }
 
   return NextResponse.json({
     ok: true,
     processedAt: new Date().toISOString(),
-    batchSize: (rows ?? []).length,
-    results: summary,
+    batchSize: results.length,
+    results,
   });
 }

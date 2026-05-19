@@ -80,6 +80,15 @@ import { ThesisResolutionBanner } from "@/components/thesis/ThesisResolutionBann
 import type { ResolutionCheck } from "@/lib/thesis/check-resolution";
 import { assetSymbolFromThesis } from "@/lib/thesis-engine-v2/stored-trade-plan";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
+function lastRemodeledAtFromBody(body: unknown): string | null {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+  const o = body as Record<string, unknown>;
+  const tp = o.tradePlan ?? o.trade_plan;
+  if (!tp || typeof tp !== "object" || Array.isArray(tp)) return null;
+  const row = tp as Record<string, unknown>;
+  const at = row.lastRemodeledAt ?? row.last_remodeled_at;
+  return typeof at === "string" && at.trim() ? at.trim() : null;
+}
 
 /**
  * Merge server-fed catalog fields into a thesis detail bundle.
@@ -671,6 +680,8 @@ export function ThesisDetailClient({
   const entrySetupValid = thesis.status === "ready" && canonicalConvictionPercentFromEngineThesis(thesis) >= 50;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
+  const lastRemodeledAt = lastRemodeledAtFromBody(catalogBody ?? debugDbBody);
+
   const scenarioAuthenticityNote =
     showAuthoritativeScenarioPercents && isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows)
       ? isUserThesis
@@ -726,7 +737,12 @@ export function ThesisDetailClient({
             }}
           />
         ) : null}
-        <TradePlanCard thesis={thesis} variant="retail" spotPrice={marketSpotPrice} />
+        <TradePlanCard
+          thesis={thesis}
+          variant="retail"
+          spotPrice={marketSpotPrice}
+          lastRemodeledAt={lastRemodeledAt}
+        />
         <ThesisInvalidationBlock thesis={thesis} />
         <ResolutionPathBars
           scenarios={scenarioViewScenarios.rows}
