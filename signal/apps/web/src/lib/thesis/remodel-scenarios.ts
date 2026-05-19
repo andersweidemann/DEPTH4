@@ -141,18 +141,50 @@ function formatEvidenceBlock(
     .join("\n");
 }
 
+function isUsableRemodelPayload(raw: unknown): raw is LlmRemodelPayload {
+  if (!raw || typeof raw !== "object") return false;
+  const o = raw as LlmRemodelPayload;
+  const probs = [
+    o.scenarios?.clean?.probability,
+    o.scenarios?.messy?.probability,
+    o.scenarios?.broken?.probability,
+  ];
+  const hasProbs = probs.some((p) => Number.isFinite(Number(p)));
+  const hasLevels = [o.tradePlan?.entryZone, o.tradePlan?.stopLoss, o.tradePlan?.targetPrice].some(
+    (v) => typeof v === "string" && v.trim().length > 0,
+  );
+  return hasProbs || hasLevels;
+}
+
 async function completeRemodelJson(prompt: string): Promise<LlmRemodelPayload | null> {
-  const llm = createPipelineLlmClient("cheap");
-  if (!llm) return null;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const raw = await llm.completeJson(prompt, 520);
-      if (raw && typeof raw === "object") return raw as LlmRemodelPayload;
-    } catch (e) {
-      console.warn("[remodel-scenarios] llm_attempt_failed", {
-        attempt: attempt + 1,
-        message: e instanceof Error ? e.message : String(e),
-      });
+  const tiers = ["cheap", "premium"] as const;
+  for (const tier of tiers) {
+    const llm = createPipelineLlmClient(tier);
+    if (!llm) continue;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const raw = await llm.completeJson(prompt, tier === "premium" ? 900 : 640);
+        if (isUsableRemodelPayload(raw)) {
+          console.info("[remodel-scenarios] llm_ok", {
+            tier,
+            provider: llm.providerLabel,
+            attempt: attempt + 1,
+          });
+          return raw;
+        }
+        console.warn("[remodel-scenarios] llm_invalid_payload", {
+          tier,
+          provider: llm.providerLabel,
+          attempt: attempt + 1,
+        });
+      } catch (e) {
+        console.warn("[remodel-scenarios] llm_attempt_failed", {
+          tier,
+          provider: llm.providerLabel,
+          attempt: attempt + 1,
+          message: e instanceof Error ? e.message : String(e),
+        });
+      }
       if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
     }
   }

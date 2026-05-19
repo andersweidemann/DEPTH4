@@ -3,8 +3,6 @@ import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 import { requireThesisForSlug } from "@/lib/thesis-engine-v2/thesis-api-route-helpers";
 import { remodelThesisScenarios } from "@/lib/thesis/remodel-scenarios";
-import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
-
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -23,7 +21,7 @@ export async function POST(req: Request, context: { params: { slug: string } }) 
   if (authed) {
     const loaded = await requireThesisForSlug(authed.sb, slug, authed.user.id);
     if (!loaded) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
-  } else if (!isDepth4PublicReadMode()) {
+  } else {
     const cronHeader = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
     const secret = (process.env.CRON_SECRET ?? "").trim();
     if (!secret || cronHeader !== secret) {
