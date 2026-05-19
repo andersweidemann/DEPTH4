@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/thesis-intelligence-pipeline",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/evidence-cascade",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/reader-analytics-retention",
       "schedule": "0 4 * * *"
     },

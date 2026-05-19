@@ -8,6 +8,7 @@ import {
   updateResolutionProbabilities,
 } from "@/lib/ai/resolution-probability-update";
 import type { DbScenarioTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { parseHeadlineAndSourceFromEvidence } from "@/lib/thesis/parse-evidence-headline";
 import { SYSTEM_MUTATION, systemUpdateThesis } from "@/lib/thesis-mutation";
 
 export type RemodelScenariosInput = {
@@ -116,6 +117,7 @@ export async function remodelScenariosOnEvidence(
           scenario_probabilities_before: prior,
           scenario_probabilities_after: next,
           evidence_log_id: input.evidenceLogId ?? null,
+          thesis_slug: typeof row.slug === "string" ? row.slug : null,
         },
       },
     );
@@ -172,11 +174,7 @@ export async function insertEvidenceAndRemodelScenarios(
   }
 
   const meta = row.metadata ?? {};
-  const source =
-    (typeof meta.source === "string" && meta.source.trim()) ||
-    row.description.match(/^\[([^\]]+)\]/)?.[1] ||
-    "DEPTH4";
-  const headline = row.description.replace(/^\[[^\]]+\]\s*/, "").trim() || row.description;
+  const { headline, source } = parseHeadlineAndSourceFromEvidence(row.description, meta);
 
   const remodel = await remodelScenariosOnEvidence(admin, {
     thesisId,

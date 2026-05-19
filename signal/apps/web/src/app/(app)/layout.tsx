@@ -7,6 +7,7 @@ import { AppSubNav } from "@/components/layout/AppSubNav";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { RouteGuard } from "@/components/RouteGuard";
 import { PageHeaderSkeleton } from "@/components/shared/Skeleton";
+import { ThesisUpdateToasts } from "@/components/thesis-engine-v2/ThesisUpdateToasts";
 
 export default function AppShellLayout({ children }: { children: ReactNode }) {
   return (
@@ -18,6 +19,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
       }
     >
       <RouteGuard requireAuth>
+        <ThesisUpdateToasts />
         <div className="te2 min-h-screen bg-[#0c0c0e] text-zinc-100 antialiased selection:bg-amber-500/20 selection:text-amber-100">
           <Depth4V2Shell>
             <AppTopBar />

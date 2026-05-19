@@ -30,6 +30,7 @@ export async function loadThesesPageActivity(
     .from("thesis_updates")
     .select("thesis_id, change_type, created_at, metadata")
     .gte("created_at", since)
+    .in("change_type", ["scenario_shift", "evidence"])
     .order("created_at", { ascending: false })
     .limit(200);
 
