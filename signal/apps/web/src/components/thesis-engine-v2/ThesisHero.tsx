@@ -3,6 +3,8 @@ import { DirectionBadge } from "./DirectionBadge";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { Tooltip } from "./Tooltip";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { ThesisHeadingStack } from "@/components/thesis-engine-v2/ThesisHeadingStack";
@@ -211,7 +213,10 @@ export function ThesisHero({
       </div>
       {!reader ? (
         <p className="mt-4 text-[12px] leading-relaxed text-red-400/85">
-          <span className="font-medium text-zinc-500">Invalidation · </span>
+          <span className="inline-flex items-center gap-1 font-medium text-zinc-500">
+            Invalidation ·
+            <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.invalidation} maxWidth={200} />
+          </span>{" "}
           {thesis.invalidation}
         </p>
       ) : null}

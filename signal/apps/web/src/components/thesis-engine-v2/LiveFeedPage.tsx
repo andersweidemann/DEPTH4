@@ -12,6 +12,8 @@ import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
 import { CrossThesisFeedItem } from "@/components/feed/CrossThesisFeedItem";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { FEED_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -328,11 +330,12 @@ function ConnectionsSection({
         {crossUpdates.length > 0 ? (
           <span
             className={cn(
-              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+              "inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
               hasConflicts ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400",
             )}
           >
             {crossUpdates.length} active
+            <InfoTooltip text={FEED_TOOLTIPS.activeConnections} maxWidth={200} />
           </span>
         ) : null}
       </div>

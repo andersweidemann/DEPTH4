@@ -9,6 +9,8 @@ import {
   assetSymbolFromThesis,
   storedTradePlanFromThesis,
 } from "@/lib/thesis-engine-v2/stored-trade-plan";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -94,8 +96,9 @@ export function TradePlanCard({
         )}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          <h2 className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
             Trade plan · {assetSymbol !== "—" ? assetSymbol : thesis.asset}
+            <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.tradePlan} maxWidth={200} />
           </h2>
           {!reader ? <StatusBadge status={thesis.status} /> : null}
         </div>
@@ -150,7 +153,10 @@ export function TradePlanCard({
           reader ? "border-t border-white/[0.06] pt-8" : "rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4",
         )}
       >
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Trade plan</p>
+        <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Trade plan
+          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.tradePlan} maxWidth={200} />
+        </p>
         <p className="mt-2 text-[12px] text-zinc-400">Trade plan will appear when trigger conditions are met.</p>
       </section>
     );
@@ -159,8 +165,9 @@ export function TradePlanCard({
   return (
     <section className={cn(reader ? "border-t border-white/[0.06] pt-8" : "rounded-none bg-zinc-900/25 p-4")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+        <h2 className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
           Trade plan{assetSymbol !== "—" ? ` · ${assetSymbol}` : ""}
+          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.tradePlan} maxWidth={200} />
         </h2>
         {!reader ? <StatusBadge status={thesis.status} /> : null}
       </div>

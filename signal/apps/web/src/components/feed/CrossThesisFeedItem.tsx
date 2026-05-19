@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { FEED_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { cn } from "@/lib/utils";
 import type { CrossThesisUpdate } from "@/types/feed";
 
@@ -27,13 +29,17 @@ export function CrossThesisFeedItem({
     >
       <p
         className={cn(
-          "text-[12px] font-medium leading-snug",
+          "inline-flex items-start gap-1.5 text-[12px] font-medium leading-snug",
           update.severity === "conflict" && "text-red-400",
           update.severity === "opportunity" && "text-emerald-400",
           update.severity === "info" && "text-amber-400",
         )}
       >
-        {update.message}
+        <span aria-hidden>
+          {update.severity === "conflict" ? "⚠" : update.severity === "opportunity" ? "★" : "·"}
+        </span>
+        <span className="min-w-0 flex-1">{update.message}</span>
+        <InfoTooltip text={FEED_TOOLTIPS.crossThesisSeverity} maxWidth={220} />
       </p>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-3">

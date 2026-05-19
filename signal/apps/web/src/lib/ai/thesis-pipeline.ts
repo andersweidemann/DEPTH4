@@ -549,40 +549,78 @@ function parseDeepReasoningFromLlm(raw: unknown): PipelineDeepReasoning | null {
   return { D3: d3, D4: d4 };
 }
 
-/** Step 3b — dedicated D3/D4 portfolio mechanics and regime reasoning (cheap Kimi tier). */
+const D3_FEW_SHOT =
+  "As calm weeks stack without fresh shocks, portfolios shrink tail hedges before any final treaty — risk premia compress across havens, not only one venue.";
+
+const D4_FEW_SHOT =
+  "Tail risk is lower than the last two years, so portfolios need less permanent insurance in gold — that background makes the peace fade easier across geopolitics and rates theses this year.";
+
+/** Step 3b — D3/D4 with few-shot quality bar, constraint checklist, and self-critique (Kimi cheap tier). */
 export async function step3b_generateDeepReasoning(
   detectedEvent: DetectedEvent,
   incentiveAnalysis: IncentiveAnalysis,
   propagation: CausalPropagationResult,
+  thesis: ThesisCandidate,
   llm: PipelineLlmClient,
 ): Promise<PipelineDeepReasoning | null> {
   const primary = propagation.highestMispricing;
   if (!primary) return null;
 
+  const targetAsset =
+    propagation.highestMispricing?.asset.symbol?.trim() || thesis.targetAssetSymbol?.trim() || "XAUUSD";
+
   const prompt = [
-    "You are DEPTH4's deep reasoning engine. Given this macro thesis, write D3 (month) and D4 (quarter) depth reasoning.",
+    "You are DEPTH4's deep reasoning engine. Write D3 (this month) and D4 (this quarter) depth reasoning for this thesis.",
     "",
-    `Event: ${detectedEvent.title}`,
-    `Incentive: ${incentiveAnalysis.actor} → ${incentiveAnalysis.most_likely_action}`,
-    `Primary thesis: ${primary.reasoning}`,
+    `THESIS: ${thesis.title}`,
+    `STATEMENT: ${thesis.statement}`,
+    `DIRECTION: ${thesis.direction.toUpperCase()} ${targetAsset}`,
+    `EVENT: ${detectedEvent.title}`,
+    `INCENTIVE: ${incentiveAnalysis.actor} → ${incentiveAnalysis.most_likely_action}`,
+    `PRIMARY CAUSAL REASONING: ${primary.reasoning}`,
     "",
-    "D3 (This month — structural shifts):",
-    "Write 2-3 sentences about portfolio rebalancing, hedge unwinds, or intermediate effects over weeks. How do institutional flows shift? What hedges get reduced? How does the market risk model change?",
+    "EXCELLENT EXAMPLE — D3 (copy this SPECIFICITY, not the content):",
+    `"${D3_FEW_SHOT}"`,
     "",
-    "D4 (This quarter — regime change):",
-    "Write 2-3 sentences about the fundamental regime shift. How does this change the macro backdrop next quarter? What tail risks are permanently repriced? How does this affect other asset classes in the background?",
+    "EXCELLENT EXAMPLE — D4 (copy this SPECIFICITY, not the content):",
+    `"${D4_FEW_SHOT}"`,
     "",
-    "Rules:",
-    "- D3 must explain PORTFOLIO MECHANICS (how positions shift)",
-    "- D4 must explain REGIME CHANGE (how the macro backdrop shifts)",
-    "- Both must be specific, not generic",
-    "- Do not repeat D1/D2 reasoning from the propagation step",
+    `RULES FOR D3 (this month — portfolio mechanics on ${targetAsset}):`,
+    "- MUST name a specific institutional actor (e.g., CTA funds, sovereign wealth, pension rebalancing desks, risk-parity allocators)",
+    "- MUST describe a specific mechanical action (e.g., sell VIX calls, reduce gold futures from 12% to 8%, unwind yen longs)",
+    "- MUST give a time trigger (e.g., after 3 calm weeks, once ceasefire holds past 30 days)",
+    `- MUST explain WHY this action affects ${targetAsset} specifically for a ${thesis.direction} thesis`,
+    "- 2-3 sentences max",
+    `- If it could apply to ANY ${targetAsset} thesis, it is too weak — add specifics`,
+    "",
+    "RULES FOR D4 (this quarter — regime change):",
+    "- MUST describe how the macro backdrop shifts (e.g., gold shifts from crisis hedge to inflation hedge)",
+    "- MUST connect to another asset class or thesis (e.g., releases pressure on TLT, drives copper via China reopening)",
+    "- MUST mention a strategic repricing (e.g., allocators cut geopolitical risk premium from 15% to 8% in models)",
+    "- MUST reference the actor's incentive from a quarter-scale view",
+    "- 2-3 sentences max",
+    "",
+    "Do not repeat D1/D2 propagation reasoning verbatim.",
+    "",
+    "Before final output, CRITIQUE yourself:",
+    `- Is D3 specific to ${targetAsset} and this ${thesis.direction} thesis, or generic?`,
+    "- Does D4 connect to other assets or stay isolated?",
+    "- Would a professional trader believe you understand the mechanics?",
+    "If weak, rewrite with more specifics.",
     "",
     'Output JSON only: {"D3":"...","D4":"..."}',
   ].join("\n");
 
-  const raw = await llm.completeJson(prompt, 700);
-  return parseDeepReasoningFromLlm(raw);
+  const raw = await llm.completeJson(prompt, 1400);
+  const parsed = parseDeepReasoningFromLlm(raw);
+  if (parsed) return parsed;
+
+  logPipelineStage("deep_reasoning_parse_retry", { targetAsset });
+  const retry = await llm.completeJson(
+    `${prompt}\n\nPRIOR OUTPUT WAS INVALID. Return only {"D3":"...","D4":"..."} with all checklist items satisfied.`,
+    1400,
+  );
+  return parseDeepReasoningFromLlm(retry);
 }
 
 export async function step4_generateThesis(

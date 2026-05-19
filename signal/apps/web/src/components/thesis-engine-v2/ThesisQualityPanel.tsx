@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { cn } from "@/lib/utils";
 import type { QualityReport } from "@/lib/thesis/quality-gate";
 
@@ -44,7 +46,10 @@ export function ThesisQualityPanel({ slug }: { slug: string }) {
   return (
     <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/30 p-4">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Quality score</p>
+        <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Quality score
+          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.qualityScore} maxWidth={220} />
+        </p>
         <span
           className={cn(
             "text-[14px] font-bold tabular-nums",

@@ -1,37 +1,49 @@
 /**
  * Four-depth geopolitical chain — prefers Phase 3B `structuredAnatomy.four_level` when present.
  */
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { DepthDepthLabel } from "@/components/thesis-engine-v2/DepthDepthLabel";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { DEPTH_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { cn } from "@/lib/utils";
 
 const SEMANTIC_LEVELS = [
   {
+    depth: "D1" as const,
     key: "level1_narrative" as const,
     kicker: "D1 — Confirmed (0–24h)",
     sub: "What Tier 1–2 sources verify now — officials, prints, hard data; no speculation.",
   },
   {
+    depth: "D2" as const,
     key: "level2_mechanism" as const,
     kicker: "D2 — This week (1–7 days)",
     sub: "Transmission path — how the catalyst moves positioning, flows, and the first tape reaction.",
   },
   {
+    depth: "D3" as const,
     key: "level3_mispricing" as const,
     kicker: "D3 — This month (7–30 days)",
     sub: "What consensus is still pricing wrong or too cleanly — the wedge DEPTH4 is trading.",
   },
   {
+    depth: "D4" as const,
     key: "level4_resolution" as const,
     kicker: "D4 — This quarter (30–90+ days)",
     sub: "How the thesis resolves if right — trade consequence and stand-down path.",
   },
 ];
 
-const LEGACY_LEVELS: { key: keyof NonNullable<Thesis["thesisCascade"]>; kicker: string; sub: string }[] = [
-  { key: "l1Confirmed", kicker: "D1 — Confirmed (today)", sub: "What Tier 1–2 sources verify now — officials, prints, hard data; no speculation." },
-  { key: "l2ThisQuarter", kicker: "D2 — This week (1–7 days)", sub: "Near-term tape: first moves, positioning, spillover, immediate catalysts." },
-  { key: "l3ThisYear", kicker: "D3 — This month (7–30 days)", sub: "Second-order story: policy, supply chains, FX, commodities, sector rotation." },
-  { key: "l4Backdrop2026", kicker: "D4 — This quarter (30–90 days)", sub: "Regime-level bias: how this thesis fits the broader DEPTH4 macro backdrop." },
+const LEGACY_LEVELS: {
+  depth: "D1" | "D2" | "D3" | "D4";
+  key: keyof NonNullable<Thesis["thesisCascade"]>;
+  kicker: string;
+  sub: string;
+}[] = [
+  { depth: "D1", key: "l1Confirmed", kicker: "D1 — Confirmed (today)", sub: "What Tier 1–2 sources verify now — officials, prints, hard data; no speculation." },
+  { depth: "D2", key: "l2ThisQuarter", kicker: "D2 — This week (1–7 days)", sub: "Near-term tape: first moves, positioning, spillover, immediate catalysts." },
+  { depth: "D3", key: "l3ThisYear", kicker: "D3 — This month (7–30 days)", sub: "Second-order story: policy, supply chains, FX, commodities, sector rotation." },
+  { depth: "D4", key: "l4Backdrop2026", kicker: "D4 — This quarter (30–90 days)", sub: "Regime-level bias: how this thesis fits the broader DEPTH4 macro backdrop." },
 ];
 
 function readDeepReasoning(thesis: Thesis): { d3?: string; d4?: string } {
@@ -70,11 +82,12 @@ export function ThesisFourLevelCascade({
         <h2
           id="thesis-cascade-heading"
           className={cn(
-            "font-semibold uppercase tracking-[0.14em] text-zinc-500",
+            "inline-flex items-center gap-1 font-semibold uppercase tracking-[0.14em] text-zinc-500",
             reader ? "text-[10px]" : "text-[11px]",
           )}
         >
           Four-depth chain
+          <InfoTooltip text={DEPTH_TOOLTIPS.fourDepthChain} maxWidth={220} />
         </h2>
         {!reader ? (
           <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">
@@ -83,7 +96,7 @@ export function ThesisFourLevelCascade({
           </p>
         ) : null}
         <ol className={cn("space-y-4", reader ? "mt-6" : "mt-4")}>
-          {SEMANTIC_LEVELS.map(({ key, kicker, sub }) => {
+          {SEMANTIC_LEVELS.map(({ depth, key, kicker, sub }) => {
             const body =
               key === "level3_mispricing" && deep.d3
                 ? deep.d3
@@ -98,7 +111,9 @@ export function ThesisFourLevelCascade({
                   reader ? "border-b border-white/[0.05] pb-6 last:border-0 last:pb-0" : "rounded-md border border-white/[0.05] bg-zinc-900/30 px-4 py-3",
                 )}
               >
-                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{kicker}</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                  <DepthDepthLabel depth={depth} kicker={kicker} />
+                </p>
                 {!reader ? <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p> : null}
                 <p className={cn("mt-2 text-zinc-200", reader ? "text-[15px] leading-[1.65]" : "text-[13px] leading-relaxed")}>
                   {body}
@@ -133,7 +148,7 @@ export function ThesisFourLevelCascade({
         mispricing lives in the edge map below.)
       </p>
       <ol className="mt-4 space-y-4">
-        {LEGACY_LEVELS.map(({ key, kicker, sub }) => {
+        {LEGACY_LEVELS.map(({ depth, key, kicker, sub }) => {
           const text =
             key === "l3ThisYear" && deep.d3
               ? deep.d3
@@ -142,9 +157,11 @@ export function ThesisFourLevelCascade({
                 : c[key];
           return (
             <li key={key} className="rounded-md border border-white/[0.05] bg-zinc-900/30 px-4 py-3">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">{kicker}</p>
-              <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p>
-              <p className="mt-2 text-[13px] leading-relaxed text-zinc-200">{text}</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
+              <DepthDepthLabel depth={depth} kicker={kicker} />
+            </p>
+            <p className="mt-0.5 text-[10px] text-zinc-600">{sub}</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-zinc-200">{text}</p>
             </li>
           );
         })}

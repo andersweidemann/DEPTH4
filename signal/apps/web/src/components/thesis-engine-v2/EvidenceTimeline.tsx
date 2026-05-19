@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 import { evidenceConvictionSummary, formatEvidenceSource } from "@/lib/thesis-engine-v2/display-format";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { cn } from "@/lib/utils";
 
 function impactLabel(impact: ThesisEvidence["impact"]): { text: string; className: string } {
@@ -38,7 +40,10 @@ export function EvidenceTimeline({
   return (
     <section data-testid="evidence-timeline">
       {showHeading ? (
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Evidence timeline</h2>
+        <h2 className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Evidence timeline
+          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.evidenceItem} maxWidth={200} />
+        </h2>
       ) : null}
       <ul className={cn("space-y-0 border-l border-white/[0.08] pl-4", showHeading ? "mt-4" : "mt-0")}>
         {visible.map((ev) => {
@@ -98,6 +103,7 @@ function EvidenceRowBody({
         >
           {imp.text}
         </span>
+        <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.evidenceItem} maxWidth={200} />
       </div>
       <p className="mt-1.5 text-[13px] font-medium leading-snug text-zinc-200">{ev.headline}</p>
       {convictionLine ? (

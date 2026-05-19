@@ -10,6 +10,7 @@ import {
   TIME_DEPTH_LABELS,
 } from "@/types/causal-graph";
 import type { AssetDepth, CausalMatrixData, MatrixCell, TimeDepth } from "@/types/causal-graph";
+import { DepthDepthLabel } from "@/components/thesis-engine-v2/DepthDepthLabel";
 import { MatrixCellDetail } from "@/components/causal-matrix/MatrixCellDetail";
 
 interface CausalMatrixProps {
@@ -65,10 +66,15 @@ export function CausalMatrix({ matrix, detailTreeSlot, variant = "full" }: Causa
               <div className="flex items-center pr-2">
                 <div>
                   <p className={cn("font-semibold text-zinc-400", compact ? "text-[9px]" : "text-[10px]")}>
-                    {td === "L1_confirmed" && "D1"}
-                    {td === "L2_this_week" && "D2"}
-                    {td === "L3_this_month" && "D3"}
-                    {td === "L4_this_quarter" && "D4"}
+                    {td === "L1_confirmed" ? (
+                      <DepthDepthLabel depth="D1" kicker="D1" />
+                    ) : td === "L2_this_week" ? (
+                      <DepthDepthLabel depth="D2" kicker="D2" />
+                    ) : td === "L3_this_month" ? (
+                      <DepthDepthLabel depth="D3" kicker="D3" />
+                    ) : (
+                      <DepthDepthLabel depth="D4" kicker="D4" />
+                    )}
                   </p>
                   {!compact ? (
                     <p className="text-[9px] leading-tight text-zinc-600">

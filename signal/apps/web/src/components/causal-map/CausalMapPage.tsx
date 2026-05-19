@@ -10,7 +10,9 @@ import {
 } from "@/lib/causal-map/causal-map-filters";
 import { deriveClusterTitle } from "@/lib/causal-map/derive-cluster-title";
 import { ThesisMapCard } from "@/components/causal-map/ThesisMapCard";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
+import { MAP_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
 import type { CausalEvent, CausalGraphClustersResponse, ThesisCluster } from "@/types/causal-graph";
 import { cn } from "@/lib/utils";
@@ -190,8 +192,8 @@ export function CausalMapPage() {
           </p>
           <p className="mt-0.5 text-[11px] text-zinc-600">Click a thesis to see the full causal chain.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="group relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-0.5">
             <ToggleButton
               label={hidePricedIn ? "✓ Hiding priced-in" : "Hide priced-in"}
               pressed={hidePricedIn}
@@ -202,20 +204,21 @@ export function CausalMapPage() {
                   : "border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
               }
             />
-            <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-48 -translate-x-1/2 rounded-md border border-white/[0.08] bg-zinc-900 p-2 text-[10px] text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100">
-              Hides thesis cards where &gt;70% of the move is already priced in by the market
-            </div>
-          </div>
-          <ToggleButton
-            label={showConflicts ? "⚠ Showing conflicts" : "Show conflicts"}
-            pressed={showConflicts}
-            onChange={setShowConflicts}
-            className={
-              showConflicts
-                ? "border-red-500/30 bg-red-500/10 text-red-400"
-                : "border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
-            }
-          />
+            <InfoTooltip text={MAP_TOOLTIPS.hidePricedIn} maxWidth={200} />
+          </span>
+          <span className="inline-flex items-center gap-0.5">
+            <ToggleButton
+              label={showConflicts ? "⚠ Showing conflicts" : "Show conflicts"}
+              pressed={showConflicts}
+              onChange={setShowConflicts}
+              className={
+                showConflicts
+                  ? "border-red-500/30 bg-red-500/10 text-red-400"
+                  : "border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+              }
+            />
+            <InfoTooltip text={MAP_TOOLTIPS.showConflicts} maxWidth={200} />
+          </span>
         </div>
       </div>
 
@@ -244,11 +247,12 @@ export function CausalMapPage() {
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <span
                     className={cn(
-                      "text-[10px] font-semibold uppercase tracking-[0.14em]",
+                      "inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
                       showConflicts && hasConflicts ? "text-red-400" : "text-[#E8473F]/90",
                     )}
                   >
                     {clusterTitle}
+                    <InfoTooltip text={MAP_TOOLTIPS.clusterEvent} maxWidth={200} />
                   </span>
                   <span className="text-[10px] text-zinc-600">
                     · {cluster.theses.length} thesis{cluster.theses.length === 1 ? "" : "es"}

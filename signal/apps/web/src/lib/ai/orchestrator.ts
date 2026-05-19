@@ -106,21 +106,6 @@ export async function runThesisPipeline(
       score: context.causalPropagation.highestMispricing.mispricingScore,
     });
 
-    context.deepReasoning =
-      (await step3b_generateDeepReasoning(
-        context.detectedEvent,
-        context.incentiveAnalysis!,
-        context.causalPropagation,
-        cheapLlm,
-      )) ?? undefined;
-
-    if (context.deepReasoning) {
-      logPipelineStage("deep_reasoning_ready", {
-        d3_len: context.deepReasoning.D3.length,
-        d4_len: context.deepReasoning.D4.length,
-      });
-    }
-
     context.candidateThesis =
       (await step4_generateThesis(
         context.causalPropagation,
@@ -133,11 +118,24 @@ export async function runThesisPipeline(
       return { success: false, reason: "thesis_generation_failed", context };
     }
 
+    context.deepReasoning =
+      (await step3b_generateDeepReasoning(
+        context.detectedEvent,
+        context.incentiveAnalysis!,
+        context.causalPropagation,
+        context.candidateThesis,
+        cheapLlm,
+      )) ?? undefined;
+
     if (context.deepReasoning) {
       context.candidateThesis = {
         ...context.candidateThesis,
         deepReasoning: context.deepReasoning,
       };
+      logPipelineStage("deep_reasoning_ready", {
+        d3_len: context.deepReasoning.D3.length,
+        d4_len: context.deepReasoning.D4.length,
+      });
     }
 
     const slug = context.candidateThesis.title

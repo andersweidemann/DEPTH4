@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { ThesisTree } from "@/components/causal-map/ThesisTree";
 import { MatrixToggle } from "@/components/causal-map/MatrixToggle";
+import { MAP_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import type { CausalEvent, CausalThesis } from "@/types/causal-graph";
 import { cn } from "@/lib/utils";
 
@@ -58,15 +60,22 @@ export function ThesisMapCard({
       >
         <span
           className={cn(
-            "w-6 text-[14px] font-bold",
+            "flex w-6 items-center justify-center text-[14px] font-bold",
             thesis.direction === "up" ? "text-emerald-400" : "text-red-400",
           )}
           aria-hidden
         >
           {thesis.direction === "up" ? "↑" : "↓"}
+          <InfoTooltip
+            text={thesis.direction === "up" ? MAP_TOOLTIPS.directionUp : MAP_TOOLTIPS.directionDown}
+            maxWidth={160}
+          />
         </span>
 
-        <span className="w-16 text-[13px] font-semibold text-zinc-200">{thesis.targetAssetSymbol}</span>
+        <span className="flex w-16 items-center gap-0.5 text-[13px] font-semibold text-zinc-200">
+          {thesis.targetAssetSymbol}
+          <InfoTooltip text={MAP_TOOLTIPS.assetSymbol} maxWidth={160} />
+        </span>
 
         <span className="flex-1 truncate text-[12px] text-zinc-300">{thesis.title}</span>
 
@@ -74,7 +83,7 @@ export function ThesisMapCard({
           {thesis.qualityScore != null ? (
             <span
               className={cn(
-                "rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+                "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
                 qualityScore >= 70
                   ? "bg-emerald-500/10 text-emerald-400"
                   : qualityScore >= 45
@@ -83,19 +92,18 @@ export function ThesisMapCard({
               )}
             >
               Q{qualityScore}
+              <InfoTooltip text={MAP_TOOLTIPS.qualityScore} maxWidth={220} />
             </span>
           ) : null}
 
-          <div className="group relative">
-            <span className="text-[11px] tabular-nums text-zinc-400">{conviction}%</span>
-            <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 w-28 -translate-x-1/2 rounded-md border border-white/[0.08] bg-zinc-900 p-1.5 text-[9px] leading-snug text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
-              {conviction}% conviction — probability thesis is correct
-            </div>
-          </div>
+          <span className="inline-flex items-center gap-0.5 text-[11px] tabular-nums text-zinc-400">
+            {conviction}%
+            <InfoTooltip text={MAP_TOOLTIPS.conviction} maxWidth={180} />
+          </span>
 
           <span
             className={cn(
-              "text-[11px] font-medium tabular-nums",
+              "inline-flex items-center gap-0.5 text-[11px] font-medium tabular-nums",
               mispricingScore >= 60
                 ? "text-amber-400"
                 : mispricingScore >= 30
@@ -104,6 +112,7 @@ export function ThesisMapCard({
             )}
           >
             Edge {mispricingScore}/100
+            <InfoTooltip text={MAP_TOOLTIPS.edge} maxWidth={200} />
           </span>
         </div>
 

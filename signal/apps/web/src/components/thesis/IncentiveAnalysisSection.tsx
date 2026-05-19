@@ -1,18 +1,25 @@
 import type { IncentiveAnalysis } from "@/types/incentive-analysis";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { cn } from "@/lib/utils";
 
 function IncentiveRow({
   label,
   value,
   highlight,
+  tooltip,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
+  tooltip?: string;
 }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="w-20 shrink-0 pt-0.5 text-[10px] uppercase tracking-[0.14em] text-zinc-500">{label}</span>
+      <span className="inline-flex w-20 shrink-0 items-center gap-0.5 pt-0.5 text-[10px] uppercase tracking-[0.14em] text-zinc-500">
+        {label}
+        {tooltip ? <InfoTooltip text={tooltip} maxWidth={180} /> : null}
+      </span>
       <span
         className={cn(
           "text-[12px] leading-snug",
@@ -42,8 +49,9 @@ export function IncentiveAnalysisSection({
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-400">
           Incentive analysis
+          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.incentiveHeader} maxWidth={220} />
         </span>
         <span className="text-[10px] text-zinc-500">
           {analysis.confidence}% confidence · {analysis.time_window}
@@ -51,9 +59,9 @@ export function IncentiveAnalysisSection({
       </div>
 
       <div className="mt-3 space-y-2">
-        <IncentiveRow label="Actor" value={analysis.actor} />
-        <IncentiveRow label="Goal" value={analysis.goal} />
-        <IncentiveRow label="Constraint" value={analysis.constraint} />
+        <IncentiveRow label="Actor" value={analysis.actor} tooltip={THESIS_DETAIL_TOOLTIPS.actor} />
+        <IncentiveRow label="Goal" value={analysis.goal} tooltip={THESIS_DETAIL_TOOLTIPS.goal} />
+        <IncentiveRow label="Constraint" value={analysis.constraint} tooltip={THESIS_DETAIL_TOOLTIPS.constraint} />
         <IncentiveRow label="Required" value={analysis.required_action} highlight />
         <IncentiveRow label="Most likely" value={analysis.most_likely_action} highlight />
       </div>
