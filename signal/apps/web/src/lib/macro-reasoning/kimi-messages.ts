@@ -25,15 +25,15 @@ export function resolveKimiTemperature(
   baseUrl?: string,
   options?: { disableThinking?: boolean },
 ): number {
+  const cn = (baseUrl ?? "").includes("moonshot.cn");
+  /** CN kimi-k2.6 + thinking disabled requires exactly 0.6 — overrides env and caller. */
+  if (cn && options?.disableThinking) return 0.6;
+
   const envOverride = Number((process.env.KIMI_TEMPERATURE ?? "").trim());
   if (Number.isFinite(envOverride)) return envOverride;
   if (requested != null && Number.isFinite(requested)) return requested;
   const m = model.toLowerCase();
-  const cn = (baseUrl ?? "").includes("moonshot.cn");
-  if (m.includes("k2") || m.includes("kimi-k2")) {
-    if (cn && options?.disableThinking) return 0.6;
-    return 1;
-  }
+  if (m.includes("k2") || m.includes("kimi-k2")) return 1;
   return 0.2;
 }
 
