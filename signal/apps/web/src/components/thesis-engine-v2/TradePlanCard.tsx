@@ -66,10 +66,13 @@ export function TradePlanCard({
   thesis,
   variant = "default",
   publicMode = false,
+  spotPrice = null,
 }: {
   thesis: Thesis;
   variant?: "default" | "reader" | "retail";
   publicMode?: boolean;
+  /** Latest daily close from resolution-check (Twelve Data). */
+  spotPrice?: number | null;
 }) {
   const reader = variant === "reader";
   const retail = variant === "retail";
@@ -123,7 +126,15 @@ export function TradePlanCard({
           <h2 className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
             Trade plan · {assetSymbol !== "—" ? assetSymbol : thesis.asset}
           </h2>
-          {!reader ? <StatusBadge status={thesis.status} /> : null}
+          <div className="flex items-center gap-2">
+            {spotPrice != null && Number.isFinite(spotPrice) ? (
+              <span className="text-[11px] font-medium text-zinc-300">
+                {assetSymbol !== "—" ? assetSymbol : thesis.asset}{" "}
+                {formatTradePlanPrice(spotPrice)}
+              </span>
+            ) : null}
+            {!reader ? <StatusBadge status={thesis.status} /> : null}
+          </div>
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
@@ -191,7 +202,14 @@ export function TradePlanCard({
         <h2 className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
           Trade plan{assetSymbol !== "—" ? ` · ${assetSymbol}` : ""}
         </h2>
-        {!reader ? <StatusBadge status={thesis.status} /> : null}
+        <div className="flex items-center gap-2">
+          {spotPrice != null && Number.isFinite(spotPrice) ? (
+            <span className="text-[11px] font-medium text-zinc-300">
+              {assetSymbol !== "—" ? assetSymbol : thesis.asset} {formatTradePlanPrice(spotPrice)}
+            </span>
+          ) : null}
+          {!reader ? <StatusBadge status={thesis.status} /> : null}
+        </div>
       </div>
       {!reader ? <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">{helperText}</p> : null}
       {!reader && showLive ? (

@@ -73,6 +73,13 @@ import {
 import { applyProvisionalTripleToScenarios, runScenarioEvidenceModelPipeline } from "@/lib/thesis-engine-v2/scenario-evidence-model";
 import { liveScenarioProbabilitiesForThesesEnabled } from "@/lib/thesis-engine-v2/scenario-evidence-flags";
 import { logScenarioProbabilitySnapshot } from "@/lib/thesis-engine-v2/scenario-probability-log";
+import { toast } from "sonner";
+import { authFetch } from "@/lib/api";
+import { friendlyApiMessage } from "@/lib/api-error-message";
+import { ThesisResolutionBanner } from "@/components/thesis/ThesisResolutionBanner";
+import type { ResolutionCheck } from "@/lib/thesis/check-resolution";
+import { assetSymbolFromThesis } from "@/lib/thesis-engine-v2/stored-trade-plan";
+import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
 
 /**
  * Merge server-fed catalog fields into a thesis detail bundle.
@@ -154,6 +161,8 @@ const USER_THESIS_DB_SYNC_STATUSES = new Set<ThesisStatus>([
   "invalidated",
 ]);
 
+const RESOLUTION_CHECK_STATUSES = new Set<ThesisStatus>(["forming", "watching", "ready", "active"]);
+
 function notifyLabel(p: "any" | "major" | "consequence" | "mute") {
   switch (p) {
     case "any":
@@ -225,6 +234,9 @@ export function ThesisDetailClient({
   const [editInsiderOpen, setEditInsiderOpen] = useState(false);
   const [debugDbBody, setDebugDbBody] = useState<unknown | null>(catalogBody ?? null);
   const [persistedQualityScore, setPersistedQualityScore] = useState<number | undefined>(undefined);
+  const [resolutionCheck, setResolutionCheck] = useState<ResolutionCheck | null>(null);
+  const [marketSpotPrice, setMarketSpotPrice] = useState<number | null>(null);
+  const [resolutionResolving, setResolutionResolving] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -249,6 +261,39 @@ export function ThesisDetailClient({
   useEffect(() => {
     if (catalogBody != null) setDebugDbBody(catalogBody);
   }, [catalogBody]);
+
+  useEffect(() => {
+    const t = bundle?.thesis;
+    if (!t || !RESOLUTION_CHECK_STATUSES.has(t.status)) {
+      setResolutionCheck(null);
+      setMarketSpotPrice(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/theses/${encodeURIComponent(slug)}/resolution-check`, {
+          credentials: "include",
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as { ok?: boolean; check?: ResolutionCheck | null };
+        if (!data.ok || cancelled) return;
+        if (data.check?.currentPrice != null && Number.isFinite(data.check.currentPrice)) {
+          setMarketSpotPrice(data.check.currentPrice);
+        }
+        if (data.check && data.check.status !== "active") {
+          setResolutionCheck(data.check);
+        } else {
+          setResolutionCheck(null);
+        }
+      } catch {
+        /* Twelve Data optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, bundle?.thesis?.id, bundle?.thesis?.status]);
 
   useEffect(() => {
     if (!alertsMenuOpen) return;
@@ -640,7 +685,48 @@ export function ThesisDetailClient({
       </div>
 
       <div className={cn("mt-6 space-y-4", layout === "drawer" && "px-4 sm:px-5")}>
-        <TradePlanCard thesis={thesis} variant="retail" />
+        {resolutionCheck ? (
+          <ThesisResolutionBanner
+            check={resolutionCheck}
+            assetSymbol={assetSymbolFromThesis(thesis)}
+            resolving={resolutionResolving}
+            onDismiss={() => setResolutionCheck(null)}
+            onResolve={(outcome: ThesisOutcomeKind) => {
+              if (!user) {
+                toast.error("Sign in to mark outcomes");
+                return;
+              }
+              setResolutionResolving(true);
+              void (async () => {
+                try {
+                  const res = await authFetch(`/api/theses/${encodeURIComponent(slug)}/resolve`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                      outcome,
+                      resolvedPrice: resolutionCheck.currentPrice,
+                      catalyst:
+                        resolutionCheck.levelsCrossed.length > 0
+                          ? resolutionCheck.levelsCrossed.join("; ")
+                          : undefined,
+                    }),
+                  });
+                  const data = (await res.json()) as { ok?: boolean; error?: string };
+                  if (!res.ok || !data.ok) {
+                    toast.error(friendlyApiMessage(data.error ?? "resolve_failed"));
+                    return;
+                  }
+                  setResolutionCheck(null);
+                  toast.success("Thesis outcome recorded");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Resolve failed");
+                } finally {
+                  setResolutionResolving(false);
+                }
+              })();
+            }}
+          />
+        ) : null}
+        <TradePlanCard thesis={thesis} variant="retail" spotPrice={marketSpotPrice} />
         <ThesisInvalidationBlock thesis={thesis} />
         <ResolutionPathBars
           scenarios={scenarioViewScenarios.rows}
