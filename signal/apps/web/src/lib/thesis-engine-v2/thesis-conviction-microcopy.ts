@@ -13,7 +13,7 @@ export const THESIS_CONVICTION_EXPLAINER_PREFERRED =
 
 /** Compact variant for narrow layouts. */
 export const THESIS_CONVICTION_EXPLAINER_SHORT =
-  "Conviction = chance this thesis is broadly right. Clean + Messy make up conviction; Broken is the risk the thesis fails.";
+  "Conviction = Clean + Messy. Broken is the fail case.";
 
 export const SCENARIO_SECTION_SUBTITLE = "How this can play out";
 

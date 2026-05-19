@@ -39,16 +39,44 @@ function levelsComplete(plan: LiveTradePlan): boolean {
   return !!(ez && plan.stop != null && plan.target1 != null && plan.target2 != null);
 }
 
+function RetailTradePlanExtras({
+  thesis,
+  rrLabel,
+}: {
+  thesis: Thesis;
+  rrLabel?: string | null;
+}) {
+  return (
+    <dl className="mt-3 grid gap-3 border-t border-white/[0.06] pt-3 sm:grid-cols-2">
+      <div>
+        <dt className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-zinc-600">
+          Risk / reward
+          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.riskReward} maxWidth={220} />
+        </dt>
+        <dd className="mt-1 text-sm text-zinc-200">{rrLabel?.trim() || "See entry, stop, and targets above."}</dd>
+      </div>
+      <div>
+        <dt className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-zinc-600">
+          Recommendation
+          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.recommendation} maxWidth={220} />
+        </dt>
+        <dd className="mt-1 text-sm capitalize text-zinc-200">{thesis.advisoryAction}</dd>
+      </div>
+    </dl>
+  );
+}
+
 export function TradePlanCard({
   thesis,
   variant = "default",
   publicMode = false,
 }: {
   thesis: Thesis;
-  variant?: "default" | "reader";
+  variant?: "default" | "reader" | "retail";
   publicMode?: boolean;
 }) {
   const reader = variant === "reader";
+  const retail = variant === "retail";
   const stored = storedTradePlanFromThesis(thesis);
   const assetSymbol = assetSymbolFromThesis(thesis);
   const [plan, setPlan] = useState<LiveTradePlan | null>(null);
@@ -125,6 +153,7 @@ export function TradePlanCard({
         <p className="mt-3 text-[9px] text-zinc-600">
           Updated as thesis evolves. Stop may tighten on confirming news.
         </p>
+        {retail ? <RetailTradePlanExtras thesis={thesis} /> : null}
       </section>
     );
   }
@@ -201,15 +230,20 @@ export function TradePlanCard({
           <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Target 2</dt>
           <dd className="mt-1 font-mono text-sm text-zinc-200">{t2Display}</dd>
         </div>
-        <div className="sm:col-span-2">
-          <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Time horizon</dt>
-          <dd className="mt-1 text-sm text-zinc-300">{thesis.horizon}</dd>
-        </div>
-        <div className="sm:col-span-2">
-          <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Recommendation</dt>
-          <dd className="mt-1 text-sm capitalize text-zinc-200">{thesis.advisoryAction}</dd>
-        </div>
+        {!retail ? (
+          <div className="sm:col-span-2">
+            <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Time horizon</dt>
+            <dd className="mt-1 text-sm text-zinc-300">{thesis.horizon}</dd>
+          </div>
+        ) : null}
+        {!retail ? (
+          <div className="sm:col-span-2">
+            <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Recommendation</dt>
+            <dd className="mt-1 text-sm capitalize text-zinc-200">{thesis.advisoryAction}</dd>
+          </div>
+        ) : null}
       </dl>
+      {retail ? <RetailTradePlanExtras thesis={thesis} rrLabel={plan?.rr_check_label} /> : null}
     </section>
   );
 }

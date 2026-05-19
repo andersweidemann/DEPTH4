@@ -4,14 +4,15 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
-import { AdvisoryLog } from "@/components/thesis-engine-v2/AdvisoryLog";
-import { AnswerBlock } from "@/components/thesis-engine-v2/AnswerBlock";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
 import { CollapsibleThesisSection } from "@/components/thesis-engine-v2/CollapsibleThesisSection";
-import { ThesisRecentChangesSummary } from "@/components/thesis-engine-v2/ThesisRecentChangesSummary";
-import { ThesisUpdatesPanel } from "@/components/thesis-engine-v2/ThesisUpdatesPanel";
 import { ScenarioPanel } from "@/components/thesis-engine-v2/ScenarioPanel";
-import { ThesisHero } from "@/components/thesis-engine-v2/ThesisHero";
+import { ThesisActionHeader } from "@/components/thesis-engine-v2/ThesisActionHeader";
+import { ThesisInvalidationBlock } from "@/components/thesis-engine-v2/ThesisInvalidationBlock";
+import { ThesisTriggerBlock, ThesisWhyNowBlock } from "@/components/thesis-engine-v2/ThesisDetailFoldBlocks";
+import { ThesisStatementCollapsible } from "@/components/thesis-engine-v2/ThesisStatementCollapsible";
+import { ThesisWhatChangedCollapsible } from "@/components/thesis-engine-v2/ThesisWhatChangedCollapsible";
+import { ResolutionPathBars } from "@/components/thesis-engine-v2/ResolutionPathBars";
 import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFourLevelCascade";
 import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
 import { ThesisAnatomyDebugPanel } from "@/components/thesis-engine-v2/ThesisAnatomyDebugPanel";
@@ -28,15 +29,12 @@ import { ThesisQualityPanel } from "@/components/thesis-engine-v2/ThesisQualityP
 import { ThesisResolutionSection } from "@/components/thesis-engine-v2/ThesisResolutionSection";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
-import { Tooltip } from "@/components/thesis-engine-v2/Tooltip";
-import { MispricingTooltipContent } from "@/components/thesis-engine-v2/MispricingTooltipContent";
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { bundleForUserThesis, getUserThesisBySlug, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
-import { formatEvidenceEventLabel, formatThesisDisplayTimestamp } from "@/lib/thesis-engine-v2/display-format";
 import {
   DEPTH4_POSITIONS_CHANGED,
   latestClosedForThesis,
@@ -48,13 +46,11 @@ import type { ThesisDetailBundle, ThesisStatus } from "@/lib/thesis-engine-v2/ty
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
-import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
-import { evaluateHorizonTimeStopCoherence } from "@/lib/thesis-engine-v2/horizon-time-stop";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
 import type { CatalogThesisScenarioProbabilities } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
-import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
+import { effectiveLifecycleState } from "@/lib/theses/thesis-lifecycle";
 import {
   buildDisplayScenariosFromThesis,
   currentThesisProbabilityFromThesis,
@@ -227,7 +223,27 @@ export function ThesisDetailClient({
   const alertsMenuRef = useRef<HTMLDivElement>(null);
   const [editInsiderOpen, setEditInsiderOpen] = useState(false);
   const [debugDbBody, setDebugDbBody] = useState<unknown | null>(catalogBody ?? null);
+  const [persistedQualityScore, setPersistedQualityScore] = useState<number | undefined>(undefined);
   const pathname = usePathname();
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`/api/theses/${encodeURIComponent(slug)}/quality`, { credentials: "include" });
+        if (!res.ok || cancelled) return;
+        const j = (await res.json()) as { score?: number };
+        if (typeof j.score === "number" && Number.isFinite(j.score)) {
+          setPersistedQualityScore(Math.round(j.score));
+        }
+      } catch {
+        /* optional */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug]);
 
   useEffect(() => {
     if (catalogBody != null) setDebugDbBody(catalogBody);
@@ -404,6 +420,14 @@ export function ThesisDetailClient({
     return thesisWithSyncedLiveProbability(m);
   }, [bundle, liveOpt]);
 
+  const thesisForDisplay = useMemo(() => {
+    if (!thesisLive) return null;
+    if (persistedQualityScore != null) {
+      return { ...thesisLive, qualityScore: persistedQualityScore };
+    }
+    return thesisLive;
+  }, [thesisLive, persistedQualityScore]);
+
   const lifecycleState = useMemo(() => {
     if (!thesisLive) return "live" as const;
     return effectiveLifecycleState({
@@ -526,24 +550,6 @@ export function ThesisDetailClient({
 
   const liveLine = useMemo(() => thesesLiveHeaderNeutral(), []);
 
-  const scoreRow = (label: string, value: number, max: number) => {
-    const pct = Math.min(100, Math.max(0, Math.round((value / max) * 100)));
-    return (
-      <div className="grid gap-2 sm:grid-cols-[160px_1fr_42px] sm:items-center">
-        <div className="text-[11px] font-medium text-zinc-500">{label}</div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-800/80">
-          <div
-            className={cn("h-full rounded-full", pct >= 70 ? "bg-amber-500/90" : "bg-zinc-600")}
-            style={{ width: `${pct}%` }}
-            aria-hidden
-          />
-        </div>
-        <div className="text-right text-[11px] tabular-nums text-zinc-400">
-          {value}/{max}
-        </div>
-      </div>
-    );
-  };
 
   if (!bundle) {
     if (layout === "drawer") {
@@ -588,7 +594,7 @@ export function ThesisDetailClient({
     );
   }
 
-  const { advisoryLog, relatedAssets } = bundle;
+  const { relatedAssets } = bundle;
   const thesis = thesisLive!;
 
   if (anatomyDebugOnly && anatomyDebugVisible) {
@@ -619,13 +625,6 @@ export function ThesisDetailClient({
   const entrySetupValid = thesis.status === "ready" && canonicalConvictionPercentFromEngineThesis(thesis) >= 50;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
   const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
-  const mispricing = getThesisMispricing(thesis, { liveEvidenceCount: liveEvidence.length });
-  const horizonTimeStopReview = evaluateHorizonTimeStopCoherence(thesis.horizon, thesis.timeStop);
-  const thesisTerminal =
-    isTerminalThesis({ lifecycle_state: lifecycleState ?? thesis.lifecycle_state, status: thesis.status }) ||
-    thesis.status === "resolved" ||
-    thesis.status === "invalidated";
-
   const scenarioAuthenticityNote =
     showAuthoritativeScenarioPercents && isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows)
       ? isUserThesis
@@ -636,50 +635,18 @@ export function ThesisDetailClient({
   const inner = (
     <>
       <div className={cn(layout === "drawer" ? "px-4 pb-6 pt-1 sm:px-5" : "mt-6")}>
-        <ThesisHero thesis={thesis} displaySourceOpts={{ liveEvidenceApplied }} />
+        <ThesisActionHeader thesis={thesisForDisplay ?? thesis} displaySourceOpts={{ liveEvidenceApplied }} />
       </div>
 
-      <div className={cn("mt-6 space-y-8", layout === "drawer" && "px-4 sm:px-5")}>
-        <CollapsibleThesisSection
-          title="Resolution paths"
-          subtitle="How this thesis could resolve — clean, messy, or broken."
-          defaultOpen={false}
-        >
-          <ScenarioPanel
-            scenarios={scenarioViewScenarios.rows}
-            showPercentages={showAuthoritativeScenarioPercents}
-            probabilitySource={scenarioViewScenarios.probabilitySource}
-            templateAuthenticityNote={scenarioAuthenticityNote}
-            hideHeader
-          />
-        </CollapsibleThesisSection>
-        <AdvisoryLog
-          updates={(() => {
-            if (!insider?.latest || (!insider.applied && !insider.suggested)) return advisoryLog;
-            const eff = insider.applied ?? insider.suggested;
-            const line = `[${new Date(insider.latest.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}] Insider flow detected (${insider.latest.patternType === "BULL_LEAK" ? "bull" : "bear"}): suggested scenario update → Messy win ${eff!.base}%, Clean win ${eff!.bull}%, Thesis broken ${eff!.bear}%.`;
-            return [
-              { id: `${thesis.id}-if-${insider.latest.id}`, thesisId: thesis.id, timestamp: "Now", text: line },
-              ...advisoryLog,
-            ];
-          })()}
+      <div className={cn("mt-6 space-y-4", layout === "drawer" && "px-4 sm:px-5")}>
+        <TradePlanCard thesis={thesis} variant="retail" />
+        <ThesisInvalidationBlock thesis={thesis} />
+        <ResolutionPathBars
+          scenarios={scenarioViewScenarios.rows}
+          showPercentages={showAuthoritativeScenarioPercents}
         />
-      </div>
-
-      {thesis.structuredAnatomy?.four_level || thesis.thesisCascade ? (
-        <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
-          <ThesisFourLevelCascade thesis={thesis} />
-        </div>
-      ) : null}
-
-      <div className={cn("mt-6", layout === "drawer" && "px-4 sm:px-5")}>
-        <CollapsibleThesisSection
-          title="Asset edge map"
-          subtitle="Where mispricing may show up across related instruments."
-          defaultOpen={false}
-        >
-          <ThesisAssetEdgeMap thesis={thesis} relatedAssets={relatedAssets} />
-        </CollapsibleThesisSection>
+        <ThesisWhyNowBlock thesis={thesis} />
+        <ThesisTriggerBlock thesis={thesis} />
       </div>
 
       {(entrySetupValid || hasOpen || bookSnap.latest) && (
@@ -838,29 +805,6 @@ export function ThesisDetailClient({
         </div>
       </div>
 
-      <div className={cn("mt-6 grid gap-3 sm:grid-cols-2", layout === "drawer" && "px-4 sm:px-5")}>
-        <div className="sm:col-span-2">
-          <AnswerBlock kicker="Why now">{thesis.whyNow}</AnswerBlock>
-        </div>
-        <AnswerBlock kicker="Trigger">{thesis.trigger}</AnswerBlock>
-        <AnswerBlock kicker="Trade">{thesis.trade}</AnswerBlock>
-        {thesis.timeStop ? (
-          <AnswerBlock kicker="Time stop">
-            {thesis.timeStop}
-            {horizonTimeStopReview.reviewNote ? (
-              <span className="mt-2 block text-[11px] font-normal leading-relaxed text-amber-200/80">
-                {horizonTimeStopReview.reviewNote}
-              </span>
-            ) : null}
-          </AnswerBlock>
-        ) : null}
-      </div>
-
-      <div className={cn("mt-3", layout === "drawer" && "px-4 sm:px-5")}>
-        <Link href="/help#read-a-thesis" className="text-[11px] font-medium text-zinc-600 hover:text-amber-200/90">
-          How to read a thesis →
-        </Link>
-      </div>
 
       <div className={cn("mt-9 space-y-10", layout === "drawer" && "px-4 sm:px-5")}>
         {assistBundle ? (
@@ -872,65 +816,97 @@ export function ThesisDetailClient({
           />
         ) : null}
 
-        <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Why this thesis exists</h2>
-          {thesis.whyThesisExists?.trim() ? (
-            <div className="mt-4 max-w-prose space-y-3">
-              {thesis.whyThesisExists
-                .split(/\n\n+/)
-                .map((p) => p.trim())
-                .filter(Boolean)
-                .map((para, i) => (
-                  <p key={i} className="text-[12px] leading-relaxed text-zinc-300">
-                    {para}
-                  </p>
-                ))}
-            </div>
-          ) : (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">What&apos;s really driving this</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.hiddenDriver}</p>
-              </div>
-              <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">What happens next</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.likelyPath}</p>
-              </div>
-              <div className="rounded-md border border-white/[0.05] bg-zinc-900/30 p-4 sm:col-span-2">
-                <p className="text-[10px] font-medium uppercase tracking-wider text-zinc-600">Best way to trade it</p>
-                <p className="mt-2 text-[12px] leading-relaxed text-zinc-300">{thesis.tradeExpression}</p>
-              </div>
-            </div>
-          )}
-          <p className="mt-4 text-[11px] leading-relaxed text-zinc-500">
-            <span className="text-zinc-600">Conviction rationale · </span>
-            {thesis.probabilityRationale}
-          </p>
-        </section>
+        <ThesisStatementCollapsible thesis={thesis} />
 
         <CollapsibleThesisSection
-          title="Qualification breakdown"
-          subtitle="Same inputs as the headline mispricing score."
+          title="Resolution paths"
+          subtitle="How this thesis could resolve — clean, messy, or broken."
           defaultOpen={false}
         >
-          <div className="flex flex-wrap items-baseline justify-end gap-2 pb-1">
-            <Tooltip label={<MispricingTooltipContent m={mispricing} />}>
-              <span className="text-[10px] tabular-nums text-zinc-600">How mispricing is scored</span>
-            </Tooltip>
-          </div>
-          <div className="grid gap-3">
-            {scoreRow("Driver strength", thesis.scores.driverStrength, 20)}
-            {scoreRow("Time compression", thesis.scores.timeCompression, 25)}
-            {scoreRow("Market hasn't caught up yet", thesis.scores.marketMispricingScore, 25)}
-            {scoreRow("Trade clarity", thesis.scores.tradeClarityScore, 15)}
-            {scoreRow("Trigger clarity", thesis.scores.triggerClarityScore, 15)}
-          </div>
+          <ScenarioPanel
+            scenarios={scenarioViewScenarios.rows}
+            showPercentages={showAuthoritativeScenarioPercents}
+            probabilitySource={scenarioViewScenarios.probabilitySource}
+            templateAuthenticityNote={scenarioAuthenticityNote}
+            hideHeader
+          />
         </CollapsibleThesisSection>
 
-        <CollapsibleThesisSection title="Trade plan" subtitle="Actionable levels when the setup is live." defaultOpen>
-          <TradePlanCard thesis={thesis} />
+        {thesis.structuredAnatomy?.four_level || thesis.thesisCascade ? (
+          <CollapsibleThesisSection
+            title="Four-depth chain"
+            subtitle="Confirmed facts → mechanism → portfolio mechanics → regime shift."
+            defaultOpen={false}
+          >
+            <ThesisFourLevelCascade thesis={thesis} />
+          </CollapsibleThesisSection>
+        ) : null}
+
+        <CollapsibleThesisSection
+          title="Causal matrix"
+          subtitle="Where mispricing may show up across related instruments."
+          defaultOpen={false}
+        >
+          <ThesisAssetEdgeMap thesis={thesis} relatedAssets={relatedAssets} />
         </CollapsibleThesisSection>
 
+        <CollapsibleThesisSection
+          title="Causal tree"
+          subtitle="How this thesis links to macro events and related assets."
+          defaultOpen={false}
+        >
+          <CausalChainGraph thesisSlug={slug} embedded />
+        </CollapsibleThesisSection>
+
+        <ThesisWhatChangedCollapsible slug={slug} />
+
+        <CollapsibleThesisSection
+          title="Evidence timeline"
+          subtitle="Headlines and conviction moves tied to this thesis."
+          defaultOpen={false}
+          contentClassName="pb-5"
+        >
+          <EvidenceTimeline items={mergedEvidenceTimeline} initialVisible={5} showHeading={false} />
+        </CollapsibleThesisSection>
+
+        {!readerActive ? (
+          <CollapsibleThesisSection
+            title="Quality breakdown"
+            subtitle="Gate checks behind the Q score."
+            defaultOpen={false}
+          >
+            <ThesisQualityPanel slug={slug} />
+          </CollapsibleThesisSection>
+        ) : null}
+
+        <CollapsibleThesisSection
+          title="Incentive analysis"
+          subtitle="Who benefits, who loses, and what that means for price."
+          defaultOpen={false}
+        >
+          <IncentiveAnalysisSection analysis={thesis.incentiveAnalysis ?? null} embedded />
+        </CollapsibleThesisSection>
+
+        <CollapsibleThesisSection
+          title="Thesis resolution"
+          subtitle="Mark how this thesis resolved when the trade is done."
+          defaultOpen={false}
+        >
+          <ThesisResolutionSection
+            thesis={thesis}
+            slug={slug}
+            layout={layout}
+            lifecycleState={lifecycleState}
+            isAuthenticated={!!user}
+            embedded
+          />
+        </CollapsibleThesisSection>
+
+        <CollapsibleThesisSection
+          title="Insider Flow"
+          subtitle="Unusual flow monitoring and scenario suggestions."
+          defaultOpen={false}
+        >
         {isUserThesis && !insiderMonitoring ? (
           <section
             className={cn(
@@ -1044,126 +1020,15 @@ export function ThesisDetailClient({
           </section>
         ) : null}
 
-        {liveEvidence.length > 0 ? (
-          <CollapsibleThesisSection
-            title="Live evidence"
-            subtitle="Recent news matched to this thesis. Informational only — not investment advice."
-            defaultOpen={false}
-          >
-            <ul className="space-y-3">
-              {liveEvidence.slice(0, 12).map((r) => (
-                <li key={r.id} className="border-b border-white/[0.05] pb-3 last:border-0 last:pb-0">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-600">
-                      {formatEvidenceEventLabel(r.eventType)}
-                    </span>
-                    <span className="text-[10px] tabular-nums text-zinc-500">
-                      {formatThesisDisplayTimestamp(r.createdAt)}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-[12px] text-zinc-200">{r.description}</p>
-                  {r.probabilityBefore && r.probabilityAfter ? (
-                    <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
-                      Resolution paths · Messy {r.probabilityBefore.base}%→{r.probabilityAfter.base}% · Clean{" "}
-                      {r.probabilityBefore.bull}%→{r.probabilityAfter.bull}% · Broken {r.probabilityBefore.bear}%→
-                      {r.probabilityAfter.bear}%
-                    </p>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </CollapsibleThesisSection>
-        ) : null}
-        <ThesisRecentChangesSummary slug={slug} />
-        <ThesisUpdatesPanel slug={slug} />
-        {!readerActive ? (
-          <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
-            <ThesisQualityPanel slug={slug} />
-          </div>
-        ) : null}
-        <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
-          <CollapsibleThesisSection
-            title="Incentive analysis"
-            subtitle="Who benefits, who loses, and what that means for price."
-            defaultOpen
-          >
-            <IncentiveAnalysisSection analysis={thesis.incentiveAnalysis ?? null} embedded />
-          </CollapsibleThesisSection>
-        </div>
-        <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
-          <CollapsibleThesisSection
-            title="Causal chain"
-            subtitle="How this thesis links to macro events and related assets."
-            defaultOpen
-          >
-            <CausalChainGraph thesisSlug={slug} embedded />
-          </CollapsibleThesisSection>
-        </div>
-        <CollapsibleThesisSection
-          title="Evidence timeline"
-          subtitle="Headlines and conviction moves tied to this thesis."
-          defaultOpen={mergedEvidenceTimeline.length <= 3}
-          contentClassName="pb-5"
-        >
-          <EvidenceTimeline items={mergedEvidenceTimeline} initialVisible={5} showHeading={false} />
-        </CollapsibleThesisSection>
-        {/* Insider Flow row (thesis-aware) */}
         {insider?.latest ? (
-          <div className="rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Insider Flow</p>
-                <p className="mt-1 text-[12px] font-semibold text-zinc-200">
-                  {insider.latest.patternType === "BULL_LEAK" ? "Bull leak detected" : "Bear leak detected"} ·{" "}
-                  {insider.latest.status === "UNCONFIRMED_LEAK"
-                    ? "Unconfirmed"
-                    : insider.latest.status === "CONFIRMED_MOVE"
-                      ? "Confirmed move"
-                      : "Invalidated"}
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{insider.latest.notes}</p>
-              </div>
-              {liveOpt && insider.suggested && !insider.applied ? (
-                <div className="flex shrink-0 items-center gap-2">
-                  <button
-                    type="button"
-                    className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
-                    onClick={() => liveOpt.applyInsiderFlowSuggestion(thesis.id)}
-                  >
-                    Apply suggestion
-                  </button>
-                  <button
-                    type="button"
-                    className="rounded-md border border-white/[0.08] bg-zinc-900/30 px-3 py-2 text-[11px] font-semibold text-zinc-300 hover:bg-zinc-900/50"
-                    onClick={() => liveOpt.dismissInsiderFlowSuggestion(thesis.id)}
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              ) : null}
-            </div>
-            {insider.applied || insider.suggested ? (
-              <p className="mt-2 text-[11px] text-zinc-500">
-                {insider.applied ? "Applied" : "Suggested"}: Messy win {((insider.applied ?? insider.suggested)!.base)}% · Clean win{" "}
-                {((insider.applied ?? insider.suggested)!.bull)}% · Thesis broken {((insider.applied ?? insider.suggested)!.bear)}%
-              </p>
-            ) : null}
+          <div className="mt-4 rounded-lg border border-white/[0.06] bg-zinc-900/20 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">Live signal</p>
+            <p className="mt-1 text-[12px] font-semibold text-zinc-200">
+              {insider.latest.patternType === "BULL_LEAK" ? "Bull leak detected" : "Bear leak detected"}
+            </p>
+            <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">{insider.latest.notes}</p>
           </div>
         ) : null}
-
-        <CollapsibleThesisSection
-          title="Thesis resolution"
-          subtitle="Mark how this thesis resolved when the trade is done."
-          defaultOpen={!thesisTerminal}
-        >
-          <ThesisResolutionSection
-            thesis={thesis}
-            slug={slug}
-            layout={layout}
-            lifecycleState={lifecycleState}
-            isAuthenticated={!!user}
-            embedded
-          />
         </CollapsibleThesisSection>
 
         {anatomyDebugVisible ? (

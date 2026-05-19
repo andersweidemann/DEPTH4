@@ -2,6 +2,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPipelineLlmClient } from "@/lib/ai/thesis-pipeline-llm";
 import { fetchMarketDataForPipeline, fetchPipelineAssets } from "@/lib/ai/thesis-pipeline-context";
 import { logPipelineStage, step2_incentiveAnalysis, step3_causalPropagation } from "@/lib/ai/thesis-pipeline";
+import {
+  formatScenarioShiftSummary,
+  maxScenarioDelta,
+  updateResolutionProbabilities,
+} from "@/lib/ai/resolution-probability-update";
 import { updateTradeLevelsFromNews } from "@/lib/ai/thesis-pipeline-trade-update";
 import type { DetectedEvent, PipelineNewsItem } from "@/lib/ai/thesis-pipeline-types";
 import { detectAutoResolution } from "@/lib/thesis/resolution-detector";
@@ -12,10 +17,6 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import type { EventCategory } from "@/types/causal-graph";
 
 export type ContinuousNewsItem = PipelineNewsItem & { id?: string };
-
-function clamp(n: number, lo: number, hi: number): number {
-  return Math.max(lo, Math.min(hi, n));
-}
 
 function checkInvalidation(
   newsItem: ContinuousNewsItem,
@@ -29,22 +30,6 @@ function checkInvalidation(
     return { invalidated: true, reason: suggestion.catalyst ?? newsItem.headline };
   }
   return { invalidated: false };
-}
-
-export function adjustConviction(
-  prior: number,
-  newsItem: ContinuousNewsItem,
-  targetAffect: { mispricingScore: number; pricedInPercent: number } | undefined,
-): number {
-  let next = prior;
-  const headline = newsItem.headline.toLowerCase();
-  if (/\b(ceasefire|deal|cut|surprise|breakthrough)\b/.test(headline)) next += 4;
-  if (/\b(escalat|attack|default|crash|ban)\b/.test(headline)) next -= 5;
-  if (targetAffect) {
-    if (targetAffect.mispricingScore > 30) next += 2;
-    if (targetAffect.pricedInPercent > 75) next -= 3;
-  }
-  return clamp(Math.round(next), 5, 95);
 }
 
 export async function generateWhatChanged(
@@ -211,20 +196,29 @@ export async function onNewNewsItem(
     (a) => a.asset.symbol.toUpperCase() === targetSymbol,
   );
 
-  const priorConviction = Math.round(scenario.bull);
-  const newConviction = adjustConviction(priorConviction, newsItem, targetAffect);
-  const whatChanged = await generateWhatChanged(thesis, newsItem, targetAffect, llm);
+  const priorScenario = { ...scenario };
+  const newScenario = await updateResolutionProbabilities(
+    { title: thesis.title, direction: thesis.direction, body: thesisBody },
+    priorScenario,
+    newsItem,
+    llm,
+  );
+  const pathDelta = maxScenarioDelta(priorScenario, newScenario);
+  const pathShiftSummary =
+    pathDelta >= 5 ? formatScenarioShiftSummary(priorScenario, newScenario) : null;
 
-  const bull = Math.max(5, Math.min(90, newConviction));
-  const bear = Math.max(5, Math.min(40, 100 - bull - 30));
-  const base = Math.max(5, 100 - bull - bear);
+  const priorConviction = Math.round(priorScenario.bull + priorScenario.base);
+  const newConviction = Math.round(newScenario.bull + newScenario.base);
+  const whatChanged =
+    pathShiftSummary ??
+    (await generateWhatChanged(thesis, newsItem, targetAffect, llm));
 
   const upd = await systemUpdateThesis(
     admin,
     thesis.id,
     {
       updated_at: new Date().toISOString(),
-      scenario_probabilities: { base, bull, bear },
+      scenario_probabilities: newScenario,
       incentive_analysis: incentiveAnalysisToDbJson(updatedIncentive),
       priced_in_estimate: targetAffect?.pricedInPercent ?? null,
       generation_confidence: updatedIncentive.confidence / 100,
@@ -233,16 +227,19 @@ export async function onNewNewsItem(
     {
       actorType: "news",
       reason: whatChanged,
-      changeType: "evidence",
+      changeType: pathShiftSummary ? "scenario_shift" : "evidence",
       metadata: {
         source: "intelligence_pipeline_continuous",
         headline: newsItem.headline,
         news_source: newsItem.source,
         new_conviction: newConviction,
+        prior_conviction: priorConviction,
         new_priced_in: targetAffect?.pricedInPercent,
         new_mispricing: targetAffect?.mispricingScore,
         what_changed: whatChanged,
         news_event_id: newsItem.id ?? null,
+        scenario_probabilities_before: priorScenario,
+        scenario_probabilities_after: newScenario,
       },
     },
   );
@@ -264,6 +261,7 @@ export async function onNewNewsItem(
   logPipelineStage("continuous_update", {
     thesis_id: thesis.id,
     conviction: newConviction,
+    path_delta: pathDelta,
     what_changed: whatChanged.slice(0, 120),
   });
 

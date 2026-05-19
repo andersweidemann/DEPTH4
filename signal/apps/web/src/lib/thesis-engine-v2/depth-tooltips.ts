@@ -23,11 +23,30 @@ export const MAP_TOOLTIPS = {
 } as const;
 
 export const THESIS_DETAIL_TOOLTIPS = {
+  conviction:
+    "Chance this thesis is broadly right over the horizon. DEPTH4 sets it to Clean win + Messy win from the resolution paths.",
+  edge: "How much of the expected move is still not in the price. Higher edge means more room before the crowd catches up.",
+  qualityBadge:
+    "Quality score (Q): checks incentive depth, causal chain, trade plan, evidence, and resolution paths. Higher = more complete setup.",
+  status:
+    "Where this thesis sits in the playbook — forming, watching, ready to trade, active in your book, or closed out.",
+  horizon: "How long DEPTH4 expects this idea to matter — use it to size patience and time stops.",
+  riskReward:
+    "Reward vs risk from entry to stop and first target. DEPTH4 flags when the math is thin — size down or wait for a better entry.",
+  recommendation:
+    "What to do right now: watch, enter, hold, reduce, or exit. This follows conviction, edge, and whether the trigger has fired.",
+  invalidation:
+    "If this happens, the thesis is wrong — stand down, cut size, or exit. Watch this level or headline as closely as the entry.",
+  whyNow:
+    "Why the trade matters this week — what shifted in news, policy, or price that opens the window now.",
+  trigger:
+    "The specific signal that tells you to act — a headline, level break, or flow print. Until it fires, patience usually wins.",
+  statement: "Full thesis in plain English — cause, path, timing, and what you are trading.",
+  whatChanged: "Latest evidence or model refresh that moved conviction, edge, or the trade plan.",
   incentiveHeader: "Who must act, under what constraint, and the most likely path — before price moves.",
   actor: "The institution or leader whose incentives drive the trade.",
   goal: "What they must achieve politically or economically.",
   constraint: "What blocks the easy path — forces a specific action.",
-  invalidation: "What observable fact or price level proves the thesis wrong — stand down here.",
   resolutionPaths: "Three futures: clean win, messy win, or thesis broken — with path probabilities.",
   resolutionClean: "Clean win: thesis plays out as written with limited noise.",
   resolutionMessy: "Messy win: direction right but path noisy — size and timing matter.",
