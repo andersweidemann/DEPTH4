@@ -93,9 +93,9 @@ export function LiveThesesListPage() {
   }, [data]);
 
   /** Preserve `/api/theses` bucket order — do not re-sort by recency/conviction/mispricing here (that broke ranked slots). */
-  const homeTradable = data?.home?.tradable ?? [];
-  const homeEmerging = data?.home?.emerging ?? [];
-  const homeMonitoring = data?.home?.monitoring ?? [];
+  const homeTradable = useMemo(() => data?.home?.tradable ?? [], [data?.home?.tradable]);
+  const homeEmerging = useMemo(() => data?.home?.emerging ?? [], [data?.home?.emerging]);
+  const homeMonitoring = useMemo(() => data?.home?.monitoring ?? [], [data?.home?.monitoring]);
 
   const allowedSlugs = useMemo(() => {
     if (listTab === "archive") return null;

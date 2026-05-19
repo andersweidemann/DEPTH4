@@ -128,10 +128,7 @@ export function describeCheapPipelineProvider(env: NodeJS.ProcessEnv = process.e
  * - else: ANTHROPIC_MODEL_CHEAP, then ANTHROPIC_MODEL
  */
 export function resolveCronAnthropicModel(env: NodeJS.ProcessEnv, task: CronLlmTaskType): string {
-  const tier = defaultTierForCronTask(task);
-  const premium = (env.ANTHROPIC_MODEL_PREMIUM ?? "").trim();
-  const fallback = (env.ANTHROPIC_MODEL ?? "").trim();
-  if (tier === "premium") {
+  if (defaultTierForCronTask(task) === "premium") {
     return resolvePremiumAnthropicModel(env);
   }
   return resolveCheapAnthropicModel(env);

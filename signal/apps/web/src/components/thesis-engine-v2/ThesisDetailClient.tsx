@@ -302,7 +302,7 @@ export function ThesisDetailClient({
     return () => {
       cancelled = true;
     };
-  }, [slug, bundle?.thesis?.id, bundle?.thesis?.status]);
+  }, [slug, bundle?.thesis]);
 
   useEffect(() => {
     if (!alertsMenuOpen) return;
