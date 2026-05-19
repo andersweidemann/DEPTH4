@@ -54,11 +54,16 @@ export function extractJsonFromLlmText(text: string): unknown | null {
   }
 
   const body = trimmed;
+  if (body.startsWith("{")) {
+    const root = tryParseJsonSlice(body, 0);
+    if (root) return root;
+  }
+
   const starts: number[] = [];
   for (let i = 0; i < body.length; i++) {
     if (body[i] === "{") starts.push(i);
   }
-  for (let k = starts.length - 1; k >= 0; k--) {
+  for (let k = 0; k < starts.length; k++) {
     const parsed = tryParseJsonSlice(body, starts[k]);
     if (parsed) return parsed;
   }

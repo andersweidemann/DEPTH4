@@ -148,6 +148,14 @@ function num(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
+/** Kimi often returns 0.35 meaning 35%. */
+function probPct(v: unknown): number | undefined {
+  const n = num(v);
+  if (n == null) return undefined;
+  if (n > 0 && n <= 1) return Math.round(n * 100);
+  return Math.round(n);
+}
+
 /** Accept Kimi/Haiku variants (snake_case, flat probs, clean/messy/broken at top level). */
 export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null {
   if (!raw || typeof raw !== "object") return null;
@@ -163,7 +171,7 @@ export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null 
     if (node && typeof node === "object") {
       const n = node as Record<string, unknown>;
       return {
-        probability: num(n.probability ?? n.prob ?? n.pct),
+        probability: probPct(n.probability ?? n.prob ?? n.pct),
         reasoning: typeof n.reasoning === "string" ? n.reasoning : undefined,
       };
     }

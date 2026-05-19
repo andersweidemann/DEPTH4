@@ -30,10 +30,11 @@ export function tierMaxTokens(tier: ModelTaskTierKey): number {
 const RETIRED_ANTHROPIC_MODEL_IDS = new Set([
   "claude-3-5-haiku-latest",
   "claude-opus-4-7",
+  "claude-3-5-sonnet-20241022",
 ]);
 
 /** Default cheap model for pipeline steps, remodel fallback, and incentive analysis. */
-export const DEFAULT_CHEAP_ANTHROPIC_MODEL = "claude-3-5-sonnet-20241022";
+export const DEFAULT_CHEAP_ANTHROPIC_MODEL = "claude-haiku-4-5";
 
 /**
  * Cheap-tier Anthropic model — `ANTHROPIC_MODEL_CHEAP`, then `ANTHROPIC_MODEL`, then Haiku 4.5.

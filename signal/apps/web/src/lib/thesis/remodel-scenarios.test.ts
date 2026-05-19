@@ -36,4 +36,12 @@ describe("remodel-scenarios", () => {
     );
     expect(raw).toEqual({ scenarios: { clean: { probability: 50 } } });
   });
+
+  it("parses root remodel JSON instead of nested tradePlan only", () => {
+    const kimi =
+      '{"scenarios":{"clean":35,"messy":45,"broken":20},"tradePlan":{"entryZone":"79-80","stopLoss":82.3,"targetPrice":74},"confidenceDelta":-12,"whatChanged":"updated"}';
+    const raw = extractJsonFromLlmText(kimi);
+    expect(normalizeRemodelPayload(raw)?.scenarios?.clean?.probability).toBe(35);
+    expect(normalizeRemodelPayload(raw)?.tradePlan?.entryZone).toBe("79-80");
+  });
 });
