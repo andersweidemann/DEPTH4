@@ -16,6 +16,7 @@ import {
   step3b_generateDeepReasoning,
   step4_generateThesis,
 } from "@/lib/ai/thesis-pipeline";
+import { buildDedupCorpusFromClusters } from "@/lib/ai/find-similar-thesis";
 import { step6_savePipelineThesis } from "@/lib/ai/thesis-pipeline-save";
 import type { PipelineContext, PipelineNewsItem, PipelineResult } from "@/lib/ai/thesis-pipeline-types";
 import { runQualityGate } from "@/lib/thesis/quality-gate";
@@ -184,6 +185,7 @@ export async function runThesisPipeline(
         context.causalPropagation,
         qualityReport,
         admin,
+        { dedupCorpus: buildDedupCorpusFromClusters(context.existingClusters) },
       );
 
       if (!saved.ok) {
@@ -205,6 +207,7 @@ export async function runThesisPipeline(
         thesis_id: context.finalThesis.id,
         slug: context.finalThesis.slug,
         quality_score: qualityReport.score,
+        action: saved.action,
       });
 
       return {

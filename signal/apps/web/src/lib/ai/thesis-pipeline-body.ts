@@ -130,7 +130,7 @@ function readResolutionFromBody(o: Record<string, unknown>): PipelineBodyResolut
   return { clean, messy, broken };
 }
 
-function readEvidenceFromBody(o: Record<string, unknown>): PipelineBodyEvidence[] {
+export function readEvidenceFromBody(o: Record<string, unknown>): PipelineBodyEvidence[] {
   const ev = o.evidence;
   if (!Array.isArray(ev)) return [];
   return ev
