@@ -14,6 +14,23 @@ export function resolveKimiTemperature(model: string, requested?: number): numbe
   return requested ?? 0.2;
 }
 
+export function isKimiK2Model(model: string): boolean {
+  const m = model.toLowerCase();
+  return m.includes("k2") || m.includes("kimi-k2");
+}
+
+/**
+ * kimi-k2.6 defaults to thinking enabled — JSON pipelines should disable it so
+ * the answer lands in `message.content` (see Kimi API `thinking.type`).
+ */
+export function kimiK2ThinkingBody(
+  model: string,
+  mode: "enabled" | "disabled",
+): Record<string, unknown> {
+  if (!isKimiK2Model(model)) return {};
+  return { thinking: { type: mode } };
+}
+
 export async function kimiChatCompletions(params: {
   apiKey: string;
   baseUrl: string;
@@ -22,6 +39,8 @@ export async function kimiChatCompletions(params: {
   system: string;
   user: string;
   temperature?: number;
+  /** When true, send `thinking: { type: "disabled" }` for K2 models (structured JSON). */
+  disableThinking?: boolean;
 }): Promise<KimiChatResult> {
   const base = params.baseUrl.replace(/\/$/, "");
   const url = `${base}/chat/completions`;
@@ -35,6 +54,7 @@ export async function kimiChatCompletions(params: {
       model: params.model,
       max_tokens: params.maxTokens,
       temperature: resolveKimiTemperature(params.model, params.temperature),
+      ...kimiK2ThinkingBody(params.model, params.disableThinking ? "disabled" : "enabled"),
       messages: [
         { role: "system", content: params.system },
         { role: "user", content: params.user },

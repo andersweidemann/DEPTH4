@@ -65,6 +65,7 @@ async function completeTextKimi(userPrompt: string, maxTokens: number): Promise<
       maxTokens,
       system: SYSTEM,
       user: userPrompt,
+      disableThinking: true,
     });
     return text;
   } catch (e) {
