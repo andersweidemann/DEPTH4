@@ -33,7 +33,6 @@ import { MispricingTooltipContent } from "@/components/thesis-engine-v2/Misprici
 import { thesesLiveHeaderNeutral } from "@/lib/thesis-engine-v2/live-header-copy";
 import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { bundleForUserThesis, getUserThesisBySlug, upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
-import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { closeReasonLabel } from "@/lib/thesis-engine-v2/close-reason";
@@ -256,62 +255,39 @@ export function ThesisDetailClient({
   }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities]);
 
   /**
-   * Direct navigation to `/theses/[user-slug]` without a prior session row: `initialBundleForSlug` is null.
-   * Hydrate from `GET /api/user/theses?slug=` so `bundle.thesis.id` exists for evidence polling + overrides.
+   * Direct navigation to `/theses/[slug]` without a prior session row: hydrate from the server
+   * (catalog + `ai_generated` + user-owned) so evidence polling and scenario overrides work.
    */
   useEffect(() => {
     if (getThesisDetail(slug)) return;
     if (getUserThesisBySlug(slug)) return;
     let cancelled = false;
     void (async () => {
-      const sb = createBrowserSupabaseClient();
-      const { data: sess } = await sb.auth.getSession();
-      const tok = sess.session?.access_token;
-      if (!tok || cancelled) return;
-      const r = await fetch(`/api/user/theses?slug=${encodeURIComponent(slug)}`, {
+      const r = await fetch(`/api/theses/${encodeURIComponent(slug)}/bundle`, {
         credentials: "include",
-        headers: { authorization: `Bearer ${tok}` },
       });
+      if (!r.ok || cancelled) return;
       const j = (await r.json().catch(() => null)) as {
         ok?: boolean;
-        thesis?: {
-          id?: string | null;
-          slug?: string | null;
-          title?: string | null;
-          micro_label?: string | null;
-          body?: unknown;
-          scenario_probabilities?: unknown;
-          insider_flow?: unknown;
-          updated_at?: string | null;
-          status?: string | null;
-          lifecycle_state?: string | null;
-        } | null;
+        bundle?: ThesisDetailBundle | null;
       } | null;
-      if (cancelled || !j?.ok || !j.thesis?.id || !j.thesis.slug) return;
-      const row = j.thesis;
-      const id = row.id as string;
-      const slugRow = row.slug as string;
-      const engine = userThesisFromSupabaseRow({
-        id,
-        slug: slugRow,
-        title: (row.title ?? "").trim() || "Thesis",
-        micro_label: row.micro_label,
-        body: row.body ?? null,
-        scenario_probabilities: row.scenario_probabilities,
-        status: typeof row.status === "string" ? row.status : "forming",
-        lifecycle_state: typeof row.lifecycle_state === "string" ? row.lifecycle_state : null,
-        insider_flow: row.insider_flow,
-        updated_at: row.updated_at ?? null,
-      });
-      upsertUserThesis(engine);
-      if (cancelled) return;
-      if (row.body != null) setDebugDbBody(row.body);
-      setBundle(bundleForUserThesis(engine));
+      if (cancelled || !j?.ok || !j.bundle?.thesis?.id) return;
+      const hydrated = j.bundle;
+      upsertUserThesis(hydrated.thesis);
+      if (catalogBody != null) setDebugDbBody(catalogBody);
+      setBundle(
+        withCatalogHeader(hydrated, {
+          title: catalogDisplayTitle,
+          microLabel: catalogMicroLabel,
+          body: catalogBody,
+          scenarioProbabilities: catalogScenarioProbabilities ?? null,
+        }),
+      );
     })();
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, catalogDisplayTitle, catalogMicroLabel, catalogBody, catalogScenarioProbabilities]);
 
   /** Ensure this thesis_id is polled first for `thesis_evidence_log` (system + user); avoids empty timeline under global row caps. */
   const registerEvidencePollPriority = liveOpt?.registerEvidenceLogPollPriorityThesisId;
@@ -575,7 +551,7 @@ export function ThesisDetailClient({
         <div className="px-4 py-10 sm:px-6">
           <p className="text-sm font-semibold text-zinc-100">Thesis not found</p>
           <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
-            This slug doesn&apos;t match a system thesis or a stored user thesis in this browser session.
+            This slug doesn&apos;t match a catalog thesis, an AI-generated thesis, or a stored user thesis in this session.
           </p>
           {onClose ? (
             <button
@@ -604,7 +580,7 @@ export function ThesisDetailClient({
           <div className="mt-8 rounded-lg border border-white/[0.06] bg-zinc-900/25 p-5">
             <p className="text-sm font-semibold text-zinc-100">Thesis not found</p>
             <p className="mt-2 text-[12px] leading-relaxed text-zinc-500">
-              This slug doesn&apos;t match a system thesis or a stored user thesis in this browser session.
+              This slug doesn&apos;t match a catalog thesis, an AI-generated thesis, or a stored user thesis in this session.
             </p>
           </div>
         </div>

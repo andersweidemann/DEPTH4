@@ -6,6 +6,7 @@ import { getThesisDetail } from "@/lib/thesis-engine-v2/catalog-data";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { overlayDbScenarioProbabilities, scenarioOverridesFromRows, thesisWithSyncedLiveProbability } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
+import { fetchThesisRowBySlug } from "@/lib/thesis-engine-v2/fetch-thesis-row-by-slug";
 import { bundleForUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
@@ -64,37 +65,12 @@ export async function loadThesisDetailBundleForApi(
     return { ...b, thesis: thesisWithSyncedLiveProbability(b.thesis) };
   }
 
-  const { data: aiRow, error: aiErr } = await supabase
-    .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin, incentive_analysis")
-    .eq("slug", slug)
-    .eq("thesis_origin", "ai_generated")
-    .maybeSingle();
+  const dbRow = await fetchThesisRowBySlug(supabase, slug, userId);
+  if (!dbRow) return null;
 
-  if (!aiErr && aiRow) {
-    const thesis = userThesisFromSupabaseRow(aiRow as Parameters<typeof userThesisFromSupabaseRow>[0]);
-    const parsed = parseScenarioProbabilities(
-      (aiRow as { scenario_probabilities?: unknown }).scenario_probabilities,
-    );
-    return bundleForUserThesis(thesis, { scenarioProbabilitiesFromDb: parsed != null });
-  }
-
-  if (!userId) return null;
-
-  const { data, error } = await supabase
-    .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, status, insider_flow, updated_at, thesis_origin, incentive_analysis")
-    .eq("slug", slug)
-    .eq("owner_user_id", userId)
-    .eq("thesis_origin", "user")
-    .maybeSingle();
-
-  if (error || !data) return null;
   const thesis = userThesisFromSupabaseRow(
-    data as Parameters<typeof userThesisFromSupabaseRow>[0],
+    dbRow as Parameters<typeof userThesisFromSupabaseRow>[0],
   );
-  const parsed = parseScenarioProbabilities(
-    (data as { scenario_probabilities?: unknown }).scenario_probabilities,
-  );
+  const parsed = parseScenarioProbabilities(dbRow.scenario_probabilities);
   return bundleForUserThesis(thesis, { scenarioProbabilitiesFromDb: parsed != null });
 }

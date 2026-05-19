@@ -13,6 +13,8 @@ import {
   normalizeUpdateReason,
 } from "@/lib/thesis-mutation";
 import { resolveIncentiveAnalysisColumn } from "@/lib/thesis/resolve-incentive-analysis-column";
+import { fetchThesisRowBySlug } from "@/lib/thesis-engine-v2/fetch-thesis-row-by-slug";
+import { THESIS_ORIGIN_USER } from "@/lib/thesis-engine-v2/thesis-db-origins";
 import { userThesisUpdateMutationMeta } from "@/lib/thesis-mutation/user-thesis-update-mutation-meta";
 import { enforceThesisQualityGate } from "@/lib/thesis/enforce-thesis-quality-gate";
 import {
@@ -64,7 +66,7 @@ export async function GET(req: NextRequest) {
       .from("theses")
       .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow")
       .eq("owner_user_id", user.id)
-      .eq("thesis_origin", "user")
+      .eq("thesis_origin", THESIS_ORIGIN_USER)
       .order("updated_at", { ascending: false })
       .limit(200);
     if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
@@ -76,45 +78,23 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_slug" }, { status: 400 });
   }
 
-  const { data, error } = await sb
-    .from("theses")
-    .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow, lifecycle_state")
-    .eq("slug", slug)
-    .eq("owner_user_id", user.id)
-    .eq("thesis_origin", "user")
-    .maybeSingle();
-
-  if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 400 });
-  if (!data) return NextResponse.json({ ok: true, thesis: null });
-
-  const row = data as {
-    id?: unknown;
-    slug?: unknown;
-    title?: unknown;
-    micro_label?: unknown;
-    body?: unknown;
-    scenario_probabilities?: unknown;
-    updated_at?: unknown;
-    status?: unknown;
-    thesis_origin?: unknown;
-    insider_flow?: unknown;
-    lifecycle_state?: unknown;
-  };
+  const row = await fetchThesisRowBySlug(sb, slug, user.id);
+  if (!row) return NextResponse.json({ ok: true, thesis: null });
 
   return NextResponse.json({
     ok: true,
     thesis: {
-      id: typeof row.id === "string" ? row.id : null,
-      slug: typeof row.slug === "string" ? row.slug : null,
-      title: typeof row.title === "string" ? row.title : null,
-      micro_label: typeof row.micro_label === "string" ? row.micro_label : null,
+      id: row.id,
+      slug: row.slug,
+      title: row.title,
+      micro_label: row.micro_label ?? null,
       body: row.body !== undefined && row.body !== null ? row.body : null,
       scenario_probabilities: parseScenarioProbabilities(row.scenario_probabilities),
       insider_flow: row.insider_flow !== undefined && row.insider_flow !== null ? row.insider_flow : null,
-      updated_at: typeof row.updated_at === "string" ? row.updated_at : null,
-      status: typeof row.status === "string" ? row.status : null,
-      thesis_origin: typeof row.thesis_origin === "string" ? row.thesis_origin : null,
-      lifecycle_state: typeof row.lifecycle_state === "string" ? row.lifecycle_state : null,
+      updated_at: row.updated_at ?? null,
+      status: row.status,
+      thesis_origin: row.thesis_origin,
+      lifecycle_state: row.lifecycle_state ?? null,
     },
   });
 }
