@@ -1,7 +1,6 @@
 "use client";
 
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { retailDetailSnippet } from "@/lib/thesis-engine-v2/thesis-text-utils";
 
@@ -25,10 +24,15 @@ function FoldBlock({
   if (!body.trim()) return null;
   return (
     <section className="rounded-lg border border-white/[0.06] bg-zinc-900/25 p-4">
-      <h2 className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-        {title}
-        <InfoTooltip text={tooltip} maxWidth={220} />
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{title}</h2>
+        <details>
+          <summary className="cursor-pointer list-none text-[9px] text-zinc-600 hover:text-zinc-400 [&::-webkit-details-marker]:hidden">
+            What this means
+          </summary>
+          <p className="mt-1 max-w-prose text-[10px] leading-relaxed text-zinc-600">{tooltip}</p>
+        </details>
+      </div>
       <p className="mt-3 text-[13px] leading-relaxed text-zinc-300">{body}</p>
     </section>
   );

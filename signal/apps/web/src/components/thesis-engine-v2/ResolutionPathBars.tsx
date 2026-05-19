@@ -1,7 +1,5 @@
 "use client";
 
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import type { ThesisScenarioLike } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { cn } from "@/lib/utils";
@@ -11,20 +9,15 @@ function PathBar({
   probability,
   colorClass,
   description,
-  tooltip,
 }: {
   label: string;
   probability: number;
   colorClass: string;
   description: string;
-  tooltip: string;
 }) {
   return (
     <div className="group relative flex items-center gap-2">
-      <span className="inline-flex w-20 shrink-0 items-center gap-0.5 text-[10px] text-zinc-500">
-        {label}
-        <InfoTooltip text={tooltip} maxWidth={200} />
-      </span>
+      <span className="w-20 shrink-0 text-[10px] text-zinc-500">{label}</span>
       <div className="h-4 flex-1 overflow-hidden rounded-full bg-zinc-800">
         <div
           className={cn("h-full rounded-full transition-all duration-500", colorClass)}
@@ -67,7 +60,6 @@ export function ResolutionPathBars({
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
           Resolution paths
         </span>
-        <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.resolutionPaths} maxWidth={220} />
       </div>
 
       <div className="space-y-1.5">
@@ -76,21 +68,18 @@ export function ResolutionPathBars({
           probability={clean.probability}
           colorClass="bg-emerald-500"
           description={clean.confirmation}
-          tooltip={THESIS_DETAIL_TOOLTIPS.resolutionClean}
         />
         <PathBar
           label="Messy win"
           probability={messy.probability}
           colorClass="bg-amber-500"
           description={messy.confirmation}
-          tooltip={THESIS_DETAIL_TOOLTIPS.resolutionMessy}
         />
         <PathBar
           label="Broken"
           probability={broken.probability}
           colorClass="bg-red-500"
           description={broken.confirmation}
-          tooltip={THESIS_DETAIL_TOOLTIPS.resolutionBroken}
         />
       </div>
 

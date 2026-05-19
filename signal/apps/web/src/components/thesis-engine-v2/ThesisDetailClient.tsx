@@ -12,6 +12,7 @@ import { ThesisInvalidationBlock } from "@/components/thesis-engine-v2/ThesisInv
 import { ThesisTriggerBlock, ThesisWhyNowBlock } from "@/components/thesis-engine-v2/ThesisDetailFoldBlocks";
 import { ThesisStatementCollapsible } from "@/components/thesis-engine-v2/ThesisStatementCollapsible";
 import { ThesisWhatChangedCollapsible } from "@/components/thesis-engine-v2/ThesisWhatChangedCollapsible";
+import { ThesisWhatChangedHighlight } from "@/components/thesis-engine-v2/ThesisWhatChangedHighlight";
 import { ResolutionPathBars } from "@/components/thesis-engine-v2/ResolutionPathBars";
 import { ThesisFourLevelCascade } from "@/components/thesis-engine-v2/ThesisFourLevelCascade";
 import { ThesisAssetEdgeMap } from "@/components/thesis-engine-v2/ThesisAssetEdgeMap";
@@ -866,6 +867,7 @@ export function ThesisDetailClient({
           defaultOpen={false}
           contentClassName="pb-5"
         >
+          <ThesisWhatChangedHighlight slug={slug} />
           <EvidenceTimeline items={mergedEvidenceTimeline} initialVisible={5} showHeading={false} />
         </CollapsibleThesisSection>
 

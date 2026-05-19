@@ -4,8 +4,6 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { DirectionBadge } from "./DirectionBadge";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { ThesisHeadingStack } from "@/components/thesis-engine-v2/ThesisHeadingStack";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
@@ -13,38 +11,40 @@ import { primaryTradeSymbolFromThesis } from "@/lib/thesis-engine-v2/thesis-stru
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 import { displayScenarioTripleCleanMessyBroken } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 
+function MetricPill({
+  value,
+  label,
+  valueClassName,
+}: {
+  value: string;
+  label: string;
+  valueClassName?: string;
+}) {
+  return (
+    <span className="inline-flex flex-col items-center rounded bg-zinc-900/50 px-2 py-1">
+      <span className={cn("text-[11px] font-medium tabular-nums", valueClassName ?? "text-zinc-200")}>{value}</span>
+      <span className="text-[9px] text-zinc-600">{label}</span>
+    </span>
+  );
+}
+
 function QualificationBadge({ q, qualityScore }: { q: Thesis["qualification"]; qualityScore?: number }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
-  const qDisplay = qualityScore != null && Number.isFinite(qualityScore) ? `Q${Math.round(qualityScore)}` : label;
+  const scoreLabel =
+    qualityScore != null && Number.isFinite(qualityScore) ? `${Math.round(qualityScore)}/100` : label;
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide",
+        "inline-flex flex-col items-center rounded px-2 py-0.5 font-mono",
         q === "tradeable" && "text-[#E8473F]/90",
         q === "emerging" && "text-zinc-400",
         q === "theme" && "text-zinc-500",
       )}
     >
-      {qDisplay}
-      <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.qualityBadge} maxWidth={220} />
+      <span className="text-[11px] font-semibold tabular-nums">{scoreLabel}</span>
+      <span className="text-[9px] normal-case tracking-normal text-zinc-600">quality</span>
     </span>
   );
-}
-
-function statusTooltip(status: Thesis["status"], advisory: string): string {
-  const base =
-    status === "ready"
-      ? "Ready — entry conditions met."
-      : status === "active"
-        ? "Active — position open or thesis live in book."
-        : status === "watching"
-          ? "Watching — wait for trigger or better edge."
-          : status === "forming"
-            ? "Forming — thesis still building."
-            : status === "resolved"
-              ? "Resolved — outcome recorded."
-              : "Invalidated — stand down.";
-  return `${base} ${advisory ? `Now: ${advisory}` : ""}`.trim();
 }
 
 export function ThesisActionHeader({
@@ -82,29 +82,17 @@ export function ThesisActionHeader({
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <DirectionBadge direction={thesis.direction} />
         <span className="font-mono text-[11px] text-zinc-400">{primarySym}</span>
-        <span className="inline-flex items-center gap-1 rounded bg-zinc-900/50 px-2 py-1 text-[11px] tabular-nums text-amber-200/90">
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500">Conviction</span>
-          {pathConviction}%
-          <InfoTooltip
-            text={`${THESIS_DETAIL_TOOLTIPS.conviction}${thesis.probabilityRationale ? ` ${thesis.probabilityRationale.slice(0, 160)}` : ""}`}
-            maxWidth={240}
-          />
-        </span>
-        <span className="inline-flex items-center gap-1 rounded bg-zinc-900/50 px-2 py-1 text-[11px] tabular-nums text-zinc-200">
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500">Edge</span>
-          {edge}
-          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.edge} maxWidth={220} />
-        </span>
+        <MetricPill value={`${pathConviction}%`} label="conviction" valueClassName="text-amber-200/90" />
+        <MetricPill value={`${edge}/100`} label="edge" />
         <QualificationBadge q={thesis.qualification} qualityScore={thesis.qualityScore} />
-        <span className="inline-flex items-center gap-1">
+        <span className="inline-flex flex-col items-center gap-0.5">
           <StatusBadge status={thesis.status} />
-          <InfoTooltip text={statusTooltip(thesis.status, advisoryCopy)} maxWidth={240} />
+          <span className="text-[9px] text-zinc-600">status</span>
+          {advisoryCopy ? (
+            <span className="max-w-[12rem] text-center text-[9px] leading-snug text-zinc-500">{advisoryCopy}</span>
+          ) : null}
         </span>
-        <span className="inline-flex items-center gap-1 text-[11px] text-zinc-300">
-          <span className="text-[10px] uppercase tracking-wider text-zinc-500">Horizon</span>
-          {thesis.horizon}
-          <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.horizon} maxWidth={200} />
-        </span>
+        <MetricPill value={thesis.horizon} label="horizon" valueClassName="text-zinc-300" />
       </div>
     </header>
   );

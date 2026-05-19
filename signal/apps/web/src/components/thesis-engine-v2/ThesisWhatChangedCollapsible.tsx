@@ -2,8 +2,6 @@
 
 import useSWR from "swr";
 import { CollapsibleThesisSection } from "@/components/thesis-engine-v2/CollapsibleThesisSection";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
 import { cn } from "@/lib/utils";
 import type { ThesisUpdatesResponse } from "@/types/thesis";
@@ -60,9 +58,6 @@ export function ThesisWhatChangedCollapsible({ slug }: { slug: string }) {
       subtitle="Evidence and conviction moves from the last few updates."
       defaultOpen={false}
     >
-      <div className="mb-2 flex items-center gap-1">
-        <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.whatChanged} maxWidth={220} />
-      </div>
       <ul className="space-y-3">
         {items.slice(0, 8).map((u) => {
           const src = sourceLabel(u);

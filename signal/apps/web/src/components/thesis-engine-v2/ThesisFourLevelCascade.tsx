@@ -1,10 +1,8 @@
 /**
  * Four-depth geopolitical chain — prefers Phase 3B `structuredAnatomy.four_level` when present.
  */
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { DepthDepthLabel } from "@/components/thesis-engine-v2/DepthDepthLabel";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
-import { DEPTH_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { cn } from "@/lib/utils";
 
 const SEMANTIC_LEVELS = [
@@ -87,7 +85,6 @@ export function ThesisFourLevelCascade({
           )}
         >
           Four-depth chain
-          <InfoTooltip text={DEPTH_TOOLTIPS.fourDepthChain} maxWidth={220} />
         </h2>
         {!reader ? (
           <p className="mt-1 text-[11px] leading-relaxed text-zinc-600">

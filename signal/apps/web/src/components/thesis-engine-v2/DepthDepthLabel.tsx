@@ -1,4 +1,3 @@
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { DEPTH_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 
 const DEPTH_KEYS = {
@@ -16,9 +15,14 @@ export function DepthDepthLabel({
   kicker: string;
 }) {
   return (
-    <span className="inline-flex items-center gap-1">
+    <span className="inline-flex items-baseline gap-1.5">
       <span>{kicker}</span>
-      <InfoTooltip text={DEPTH_KEYS[depth]} maxWidth={200} />
+      <details className="inline-block">
+        <summary className="cursor-pointer list-none text-[9px] text-zinc-600 hover:text-zinc-400 [&::-webkit-details-marker]:hidden">
+          help
+        </summary>
+        <p className="mt-1 max-w-sm text-[10px] leading-relaxed text-zinc-600">{DEPTH_KEYS[depth]}</p>
+      </details>
     </span>
   );
 }

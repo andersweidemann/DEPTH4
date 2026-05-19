@@ -2,8 +2,6 @@
 
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { CollapsibleThesisSection } from "@/components/thesis-engine-v2/CollapsibleThesisSection";
-import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { retailDetailSnippet, thesisProseEquals } from "@/lib/thesis-engine-v2/thesis-text-utils";
 
 export function ThesisStatementCollapsible({ thesis }: { thesis: Thesis }) {
@@ -21,7 +19,6 @@ export function ThesisStatementCollapsible({ thesis }: { thesis: Thesis }) {
     >
       <div className="flex items-center gap-1 pb-2">
         <span className="text-[10px] uppercase tracking-wider text-zinc-600">Thesis</span>
-        <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.statement} maxWidth={220} />
       </div>
       <p className="text-[13px] leading-relaxed text-zinc-200">{thesis.thesisStatement}</p>
 

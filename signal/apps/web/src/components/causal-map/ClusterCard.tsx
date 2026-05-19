@@ -157,19 +157,13 @@ function ThesisRowBlock({
         </span>
         <span className="w-14 text-[12px] font-medium text-zinc-200">{thesis.targetAssetSymbol}</span>
         <span className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">{thesis.statement}</span>
-        <div className="flex w-20 items-center gap-1.5">
-          <div className="h-1 flex-1 overflow-hidden rounded-full bg-zinc-800">
-            <ConvictionBar conviction={thesis.conviction} />
-          </div>
-          <span className="text-[10px] tabular-nums text-zinc-400">{thesis.conviction}%</span>
-        </div>
         <span
           className={cn(
-            "w-12 text-right text-[10px] font-medium tabular-nums",
+            "w-20 text-right text-[10px] font-medium tabular-nums",
             thesis.mispricingScore >= 70 ? "text-amber-400" : "text-zinc-500",
           )}
         >
-          {thesis.mispricingScore}
+          Edge {thesis.mispricingScore}/100
         </span>
       </Link>
       {thesis.affects.length > 0 ? (
@@ -197,14 +191,6 @@ function ThesisRowBlock({
       ) : null}
     </div>
   );
-}
-
-function ConvictionBar({ conviction }: { conviction: number }) {
-  return <ConvictionBarInner conviction={conviction} />;
-}
-
-function ConvictionBarInner({ conviction }: { conviction: number }) {
-  return <div className="h-full rounded-full bg-amber-500/60" style={{ width: `${conviction}%` }} />;
 }
 
 function ImpliedEffectRow({ effect }: { effect: ThesisCluster["impliedEffects"][0] }) {

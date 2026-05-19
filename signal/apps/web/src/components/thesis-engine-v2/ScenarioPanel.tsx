@@ -1,9 +1,6 @@
 import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import type { ThesisScenarioLike } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { ScenarioProbabilitiesExplainer } from "@/components/thesis-engine-v2/ScenarioProbabilitiesExplainer";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { THESIS_DETAIL_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
-import type { ThesisScenarioPathKey } from "@/lib/thesis-engine-v2/types";
 import { cn } from "@/lib/utils";
 import { SCENARIO_PATHS_DEFINITION, SCENARIO_SECTION_SUBTITLE } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 
@@ -37,12 +34,6 @@ import { SCENARIO_PATHS_DEFINITION, SCENARIO_SECTION_SUBTITLE } from "@/lib/thes
  */
 export type ScenarioPanelProbabilitySource = "insider_override" | "evidence_model" | null;
 
-function resolutionPathTooltip(pathKey: ThesisScenarioPathKey): string {
-  if (pathKey === "clean_win") return THESIS_DETAIL_TOOLTIPS.resolutionClean;
-  if (pathKey === "thesis_broken") return THESIS_DETAIL_TOOLTIPS.resolutionBroken;
-  return THESIS_DETAIL_TOOLTIPS.resolutionMessy;
-}
-
 export function ScenarioPanel({
   scenarios,
   showPercentages = true,
@@ -67,10 +58,7 @@ export function ScenarioPanel({
         <div className="min-w-0 flex-1">
           {!hideHeader ? (
             <>
-              <h2 className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                Resolution paths
-                <InfoTooltip text={THESIS_DETAIL_TOOLTIPS.resolutionPaths} maxWidth={220} />
-              </h2>
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Resolution paths</h2>
               <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-zinc-600">
                 {SCENARIO_SECTION_SUBTITLE}
               </p>
@@ -99,9 +87,8 @@ export function ScenarioPanel({
         {ordered.map((s) => (
           <div key={s.id} className="rounded-none bg-zinc-900/30 p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-              <h3 className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-200">
+              <h3 className="text-xs font-semibold text-zinc-200">
                 {s.label}
-                <InfoTooltip text={resolutionPathTooltip(s.pathKey)} maxWidth={200} />
                 {showPercentages ? (
                   <>
                     <span className="font-normal text-zinc-600"> · </span>

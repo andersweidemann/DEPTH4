@@ -25,6 +25,7 @@ import {
   type ExistingThesisForSimilarity,
 } from "@/lib/ai/find-similar-thesis";
 import { updateExistingPipelineThesis } from "@/lib/ai/thesis-pipeline-update-existing";
+import { insertEvidenceAndRemodelScenarios } from "@/lib/thesis/update-scenarios";
 import type {
   CausalPropagationResult,
   DetectedEvent,
@@ -119,15 +120,11 @@ export async function step6_savePipelineThesis(
   }
 
   for (const ev of candidate.evidence) {
-    const { error: evErr } = await admin.from("thesis_evidence_log").insert({
-      thesis_id: id,
+    await insertEvidenceAndRemodelScenarios(admin, id, {
       event_type: "pipeline_seed",
       description: `[${ev.source}] ${ev.excerpt}`,
       metadata: { source: ev.source, date: ev.date, pipeline: true },
     });
-    if (evErr) {
-      console.warn("[thesis_pipeline] evidence_seed_failed", { message: evErr.message });
-    }
   }
 
   const renderCheck = await step7_verifyPipelineRender(admin, slug);

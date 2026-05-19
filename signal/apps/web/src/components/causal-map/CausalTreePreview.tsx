@@ -75,7 +75,7 @@ function HubThesisCard({ hub }: { hub: ThesisCluster["theses"][0] }) {
     <div className="rounded-lg border-2 border-[#E8473F]/60 bg-[#E8473F]/[0.06] px-5 py-3 text-center shadow-[0_0_24px_rgba(232,71,63,0.12)]">
       <p className="text-[12px] font-bold uppercase tracking-wide text-zinc-100">{hub.title}</p>
       <p className="mt-1 text-[11px] tabular-nums text-zinc-400">
-        Conviction {hub.conviction}% · Mispricing {hub.mispricingScore}/100
+        Edge {hub.mispricingScore}/100
       </p>
       <p className="mt-1 text-[10px] text-zinc-500">Primary thesis edge · {hub.targetAssetSymbol}</p>
     </div>

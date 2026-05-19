@@ -43,7 +43,7 @@ function answerFor(
   const statusLine = `Lifecycle: ${lifecycleState} · thesis status: ${t.status} · conviction ${canonicalConvictionPercentFromEngineThesis(t)}%.`;
   const lastUpdateLine = ev
     ? ev.logScenarioAfterStored === false
-      ? `Latest evidence: “${ev.headline}” (${ev.source}) — scenarios were not re-modeled on this log row; compare the headline to your trigger.`
+      ? `Latest evidence: “${ev.headline}” (${ev.source}) — path odds on this row are still syncing; compare the headline to your trigger and check resolution paths above.`
       : ev.probabilityBefore === ev.probabilityAfter
         ? `Latest evidence: “${ev.headline}” (${ev.source}) · headline odds ${ev.probabilityBefore}% (no change).`
         : `Latest evidence: “${ev.headline}” (${ev.source}) · headline odds ${ev.probabilityBefore}% → ${ev.probabilityAfter}%.`
