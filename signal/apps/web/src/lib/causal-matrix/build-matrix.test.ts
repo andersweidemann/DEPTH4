@@ -65,6 +65,9 @@ describe("buildMatrixFromCluster", () => {
     const row = matrix.cells.L2_this_week;
     expect(row?.root?.assetSymbol).toBe("GLD");
     expect(row?.root?.hasThesis).toBe(true);
+    expect(row?.root?.conviction).toBe(65);
+    expect(row?.root?.timeHorizon).toBe("2–8 weeks");
+    expect(row?.root?.whyItMatters).toBeTruthy();
   });
 
   it("reports missing cells for empty grid slots", () => {

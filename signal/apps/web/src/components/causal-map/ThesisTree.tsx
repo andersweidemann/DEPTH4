@@ -5,12 +5,15 @@ import { filterAffect } from "@/lib/causal-map/causal-map-filters";
 export function ThesisTree({
   thesis,
   rootEvent,
+  clusterTitle,
   hidePricedIn = false,
 }: {
   thesis: CausalThesis;
   rootEvent: CausalEvent;
+  clusterTitle?: string;
   hidePricedIn?: boolean;
 }) {
+  const eventLabel = clusterTitle ?? rootEvent.title;
   const affects = [...thesis.affects]
     .filter((a) => filterAffect(a, hidePricedIn))
     .sort((a, b) => b.strength - a.strength)
@@ -21,7 +24,7 @@ export function ThesisTree({
       <div className="flex flex-wrap items-center gap-2">
         <span className="h-2 w-2 shrink-0 rounded-full bg-[#E8473F]" aria-hidden />
         <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E8473F]">
-          {rootEvent.title}
+          {eventLabel}
         </span>
         {rootEvent.confidence > 0 ? (
           <span className="text-[9px] text-zinc-600">Confidence {rootEvent.confidence}%</span>
@@ -84,8 +87,8 @@ function AffectChip({ affect }: { affect: CausalAffect }) {
         {affect.direction === "up" ? "↑" : affect.direction === "down" ? "↓" : "→"}
       </span>
       <span className="text-[10px] font-medium text-zinc-300">{affect.assetSymbol}</span>
-      <span className="text-[9px] text-zinc-500">{affect.pricedInPercent}%PI</span>
-      {edge ? <span className="text-[9px] text-[#E8473F]">{affect.mispricingScore}M</span> : null}
+      <span className="text-[9px] text-zinc-500">{affect.pricedInPercent}% in</span>
+      {edge ? <span className="text-[9px] text-[#E8473F]">Edge {affect.mispricingScore}</span> : null}
     </div>
   );
 }

@@ -14,6 +14,13 @@ import {
 } from "@/lib/thesis-mutation";
 import { resolveIncentiveAnalysisColumn } from "@/lib/thesis/resolve-incentive-analysis-column";
 import { userThesisUpdateMutationMeta } from "@/lib/thesis-mutation/user-thesis-update-mutation-meta";
+import { enforceThesisQualityGate } from "@/lib/thesis/enforce-thesis-quality-gate";
+import {
+  initialStatusFromQualityReport,
+  qualityGateInputFromEngineThesis,
+  qualityChecksToJson,
+  runQualityGate,
+} from "@/lib/thesis/quality-gate";
 
 export const runtime = "nodejs";
 
@@ -139,7 +146,7 @@ export async function PUT(req: NextRequest) {
 
   const { data: existing, error: selErr } = await sb
     .from("theses")
-    .select("id, owner_user_id, incentive_analysis")
+    .select("id, owner_user_id, incentive_analysis, status")
     .eq("id", thesis.id)
     .maybeSingle();
 
@@ -151,10 +158,43 @@ export async function PUT(req: NextRequest) {
     !existing,
   );
 
+  const qualityReport = runQualityGate(qualityGateInputFromEngineThesis(thesis), null, []);
+  let resolvedStatus = thesis.status;
+  if (!existing) {
+    resolvedStatus = initialStatusFromQualityReport(qualityReport);
+  } else {
+    const prevStatus =
+      typeof (existing as { status?: unknown }).status === "string"
+        ? (existing as { status: string }).status
+        : "forming";
+    if (prevStatus !== thesis.status) {
+      const gate = await enforceThesisQualityGate(sb, thesis.id, prevStatus, thesis.status);
+      if (!gate.ok) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: gate.code,
+            score: gate.report.score,
+            blockers: gate.report.blockers,
+            checks: gate.report.checks,
+            message: gate.message,
+            ...(gate.downgradeTo ? { downgradeTo: gate.downgradeTo } : {}),
+            ...(gate.required != null ? { required: gate.required } : {}),
+          },
+          { status: 400 },
+        );
+      }
+    }
+  }
+
   const baseRow = {
     id: thesis.id,
     title: thesis.title,
-    status: thesis.status,
+    status: resolvedStatus,
+    quality_score: qualityReport.score,
+    quality_checks: qualityChecksToJson(qualityReport.checks),
+    promotion_blocked_reason:
+      qualityReport.blockers.length > 0 ? qualityReport.blockers.join(", ") : null,
     thesis_origin: "user" as const,
     scenario_probabilities: scenarioProbabilitiesForDb(thesis),
     insider_flow: normalizeInsiderFlowForDb(thesis.insiderFlow),

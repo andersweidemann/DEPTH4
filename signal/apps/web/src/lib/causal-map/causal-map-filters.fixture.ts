@@ -6,7 +6,7 @@ export const CAUSAL_FILTER_FIXTURE: ThesisCluster[] = [
     event: {
       id: "evt-war",
       slug: "war-peace-transition",
-      title: "War de-escalation",
+      title: "War risk",
       description: "Peace talks progress",
       category: "geopolitics",
       status: "active",

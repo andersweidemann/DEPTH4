@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { filterCluster, filterThesis } from "@/lib/causal-map/causal-map-filters";
+import { deriveClusterTitle } from "@/lib/causal-map/derive-cluster-title";
 import { ThesisMapCard } from "@/components/causal-map/ThesisMapCard";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
@@ -177,6 +178,7 @@ export function CausalMapPage() {
         <div className="space-y-8">
           {visibleClusters.map((cluster) => {
             const hasConflicts = cluster.conflictWarnings.length > 0;
+            const clusterTitle = deriveClusterTitle(cluster);
             return (
               <section key={cluster.event.id}>
                 <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -186,7 +188,7 @@ export function CausalMapPage() {
                       showConflicts && hasConflicts ? "text-red-400" : "text-[#E8473F]/90",
                     )}
                   >
-                    {cluster.event.title}
+                    {clusterTitle}
                   </span>
                   <span className="text-[10px] text-zinc-600">
                     · {cluster.theses.length} thesis{cluster.theses.length === 1 ? "" : "es"}
@@ -200,6 +202,7 @@ export function CausalMapPage() {
                       key={thesis.slug}
                       thesis={thesis}
                       rootEvent={cluster.event}
+                      clusterTitle={clusterTitle}
                       isExpanded={expandedThesis === thesis.slug}
                       onToggle={() =>
                         setExpandedThesis((cur) => (cur === thesis.slug ? null : thesis.slug))

@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ThesisMutationAuditError } from "@/lib/thesis-mutation/errors";
 import { createThesisMutationService, isThesisMutationEnabled } from "@/lib/thesis-mutation";
 import type { MutationMeta, ThesisInsertInput, ThesisRowPatch } from "@/lib/thesis-mutation/types";
+import { enforceThesisQualityGate } from "@/lib/thesis/enforce-thesis-quality-gate";
 
 export type SystemThesisMutationResult =
   | { ok: true; audited: boolean }
@@ -96,10 +97,23 @@ export async function systemTransitionThesisStatus(
 ): Promise<SystemThesisMutationResult> {
   const actorType = meta.actorType ?? "system";
 
+  const { data: existing } = await sb.from("theses").select("status").eq("id", thesisId).maybeSingle();
+  const currentStatus =
+    existing && typeof (existing as { status?: unknown }).status === "string"
+      ? (existing as { status: string }).status
+      : "forming";
+
+  const gate = await enforceThesisQualityGate(sb, thesisId, currentStatus, newStatus);
+  if (!gate.ok) {
+    return { ok: false, error: gate.message };
+  }
+
+  const qualityPatch = gate.patch;
+
   if (!isThesisMutationEnabled()) {
     const { error } = await sb
       .from("theses")
-      .update({ status: newStatus, updated_at: new Date().toISOString() } as never)
+      .update({ status: newStatus, updated_at: new Date().toISOString(), ...qualityPatch } as never)
       .eq("id", thesisId);
     if (error) return { ok: false, error: error.message };
     bumpCounter(actorType, false);
@@ -108,7 +122,7 @@ export async function systemTransitionThesisStatus(
 
   try {
     const mutation = createThesisMutationService(sb);
-    await mutation.transitionStatus(thesisId, newStatus, meta);
+    await mutation.updateThesis(thesisId, { status: newStatus, ...qualityPatch }, meta);
     bumpCounter(actorType, true);
     return { ok: true, audited: true };
   } catch (e) {

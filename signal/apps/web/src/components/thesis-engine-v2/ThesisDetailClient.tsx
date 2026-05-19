@@ -24,6 +24,7 @@ import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-en
 import { ThesisAssistantPanel } from "@/components/thesis-engine-v2/ThesisAssistantPanel";
 import { CausalChainGraph } from "@/components/causal-graph/CausalChainGraph";
 import { IncentiveAnalysisSection } from "@/components/thesis/IncentiveAnalysisSection";
+import { ThesisQualityPanel } from "@/components/thesis-engine-v2/ThesisQualityPanel";
 import { ThesisResolutionSection } from "@/components/thesis-engine-v2/ThesisResolutionSection";
 import { TradePlanCard } from "@/components/thesis-engine-v2/TradePlanCard";
 import { OpenPositionModal } from "@/components/thesis-engine-v2/OpenPositionModal";
@@ -1099,6 +1100,11 @@ export function ThesisDetailClient({
         ) : null}
         <ThesisRecentChangesSummary slug={slug} />
         <ThesisUpdatesPanel slug={slug} />
+        {!readerActive ? (
+          <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
+            <ThesisQualityPanel slug={slug} />
+          </div>
+        ) : null}
         <div className={cn(layout === "drawer" && "px-4 sm:px-5")}>
           <CollapsibleThesisSection
             title="Incentive analysis"

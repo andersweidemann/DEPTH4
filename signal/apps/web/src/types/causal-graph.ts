@@ -98,6 +98,8 @@ export interface CausalThesis {
   timeHorizon: string;
   affects: CausalAffect[];
   incentive_analysis?: IncentiveAnalysis;
+  /** 0–100 from `public.theses.quality_score` (promotion gate). */
+  qualityScore?: number;
 }
 
 export interface MatrixCell {
@@ -113,6 +115,7 @@ export interface MatrixCell {
   thesisTitle?: string;
   conviction?: number;
   whyItMatters: string;
+  timeHorizon?: string;
 }
 
 export interface CausalMatrixData {

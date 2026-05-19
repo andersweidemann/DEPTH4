@@ -33,6 +33,12 @@ function affectToCell(
   affect: CausalAffect,
   overrides: Partial<MatrixCell> = {},
 ): MatrixCell {
+  const why =
+    overrides.whyItMatters?.trim() ||
+    affect.whyItMatters?.trim() ||
+    overrides.thesisTitle ||
+    "Market effect from linked thesis";
+
   return {
     assetId: affect.assetId ?? affect.assetSymbol,
     assetSymbol: affect.assetSymbol,
@@ -43,7 +49,7 @@ function affectToCell(
     mispricingScore: affect.mispricingScore,
     hasThesis: affect.hasDedicatedThesis,
     thesisSlug: affect.thesisSlug,
-    whyItMatters: affect.whyItMatters,
+    whyItMatters: why,
     ...overrides,
   };
 }
@@ -94,7 +100,8 @@ export function buildMatrixFromCluster(cluster: ThesisCluster): CausalMatrixData
           thesisSlug: thesis.slug,
           thesisTitle: thesis.title,
           conviction: thesis.conviction,
-          whyItMatters: rootAffect.whyItMatters || "Primary thesis target",
+          timeHorizon: thesis.timeHorizon,
+          whyItMatters: rootAffect.whyItMatters || thesis.statement || thesis.title,
         }),
       });
     }
@@ -120,6 +127,8 @@ export function buildMatrixFromCluster(cluster: ThesisCluster): CausalMatrixData
           thesisTitle:
             affect.assetSymbol.toUpperCase() === targetSym ? thesis.title : undefined,
           conviction: affect.assetSymbol.toUpperCase() === targetSym ? thesis.conviction : undefined,
+          timeHorizon: thesis.timeHorizon,
+          whyItMatters: affect.whyItMatters || (affect.assetSymbol.toUpperCase() === targetSym ? thesis.statement : undefined),
         }),
       );
     }
@@ -140,6 +149,7 @@ export function buildMatrixFromCluster(cluster: ThesisCluster): CausalMatrixData
         mispricingScore: Math.max(0, implied.netStrength - implied.pricedInPercent),
         hasThesis: implied.hasDedicatedThesis,
         thesisSlug: implied.thesisSlug,
+        timeHorizon: TIME_DEPTH_LABELS[timeDepth],
         whyItMatters: implied.whyItMatters || `Implied from ${cluster.event.title}`,
       });
     }
@@ -191,8 +201,9 @@ export function buildMatrixFromThesis(thesis: CausalThesis, rootEvent: CausalEve
         hasThesis: true,
         thesisSlug: thesis.slug,
         thesisTitle: isTarget ? thesis.title : undefined,
-        conviction: isTarget ? thesis.conviction : undefined,
-        whyItMatters: affect.whyItMatters || (isTarget ? "Primary thesis target" : affect.whyItMatters),
+        conviction: thesis.conviction,
+        timeHorizon: thesis.timeHorizon,
+        whyItMatters: affect.whyItMatters || (isTarget ? thesis.statement : affect.whyItMatters),
       }),
     );
   }
@@ -210,7 +221,8 @@ export function buildMatrixFromThesis(thesis: CausalThesis, rootEvent: CausalEve
       thesisSlug: thesis.slug,
       thesisTitle: thesis.title,
       conviction: thesis.conviction,
-      whyItMatters: "Primary thesis target",
+      timeHorizon: thesis.timeHorizon,
+      whyItMatters: thesis.statement || thesis.title,
     });
   }
 

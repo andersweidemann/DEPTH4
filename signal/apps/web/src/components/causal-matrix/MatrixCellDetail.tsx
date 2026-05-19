@@ -49,11 +49,12 @@ export function MatrixCellDetail({
         </button>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-3">
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {cell.conviction != null ? <Metric label="Conviction" value={`${cell.conviction}%`} /> : null}
         <Metric label="Strength" value={`${cell.strength}%`} />
         <Metric label="Priced in" value={`${cell.pricedInPercent}%`} />
         <Metric
-          label="Mispricing"
+          label="Edge"
           value={`${cell.mispricingScore}/100`}
           valueClassName={cell.mispricingScore >= 50 ? "text-[#E8473F]" : "text-zinc-400"}
         />

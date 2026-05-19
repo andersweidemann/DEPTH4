@@ -28,6 +28,7 @@ export function userThesisFromSupabaseRow(row: {
   thesis_origin?: string | null;
   lifecycle_state?: unknown;
   incentive_analysis?: unknown;
+  quality_score?: number | null;
 }): Thesis {
   const st = ALLOWED.has(row.status as ThesisStatus) ? (row.status as ThesisStatus) : "watching";
   const shell: Thesis = {
@@ -84,5 +85,8 @@ export function userThesisFromSupabaseRow(row: {
   let withMeta = thesisOrigin ? { ...t, thesisOrigin } : t;
   if (lifecycle_state) withMeta = { ...withMeta, lifecycle_state };
   if (incentiveAnalysis) withMeta = { ...withMeta, incentiveAnalysis };
+  if (row.quality_score != null && Number.isFinite(row.quality_score)) {
+    withMeta = { ...withMeta, qualityScore: Math.min(100, Math.max(0, Math.round(row.quality_score))) };
+  }
   return withMeta;
 }

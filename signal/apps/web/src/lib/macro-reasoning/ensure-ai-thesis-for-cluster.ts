@@ -4,6 +4,7 @@ import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { extractReasoningLevelBodies, passesAiThesisRegistryDepth4Pack } from "@/lib/theses/ai-registry-depth4-pack";
 import { isAcceptableAiThesisRegistryHero, pickAiThesisStatementFromReasoning } from "@/lib/theses/thesis-surfacing-quality";
 import { generateIncentiveAnalysisForDb } from "@/lib/thesis/incentive-analysis-generator";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
 import {
   buildAnatomyFromMacroReasoning,
@@ -12,6 +13,12 @@ import {
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { SYSTEM_MUTATION, systemCreateThesis } from "@/lib/thesis-mutation";
+import {
+  initialStatusFromQualityReport,
+  qualityGateInputFromEngineThesis,
+  qualityChecksToJson,
+  runQualityGate,
+} from "@/lib/thesis/quality-gate";
 
 const MIN_REASONING_CHAIN_LEVEL_CHARS = 24;
 
@@ -178,15 +185,27 @@ export async function ensureAiThesisForDiscoveryCluster(
     return { ok: false, reason: `anatomy_${anatomyCheck.reasons.join("_")}` };
   }
 
-  const thesis = { ...thesisShell, structuredAnatomy };
+  let thesis = { ...thesisShell, structuredAnatomy };
 
   const incentiveColumn = await generateIncentiveAnalysisForDb(thesis);
+  const parsedIncentive = parseIncentiveAnalysis(incentiveColumn);
+  if (parsedIncentive) {
+    thesis = { ...thesis, incentiveAnalysis: parsedIncentive };
+  }
+
+  const qualityInput = qualityGateInputFromEngineThesis(thesis);
+  const qualityReport = runQualityGate(qualityInput, null, []);
+  const gatedStatus = initialStatusFromQualityReport(qualityReport);
 
   const nowIso = new Date().toISOString();
   const row = {
     id: thesis.id,
     title: thesis.title,
-    status: thesis.status,
+    status: gatedStatus,
+    quality_score: qualityReport.score,
+    quality_checks: qualityChecksToJson(qualityReport.checks),
+    promotion_blocked_reason:
+      qualityReport.blockers.length > 0 ? qualityReport.blockers.join(", ") : null,
     thesis_origin: "ai_generated" as const,
     scenario_probabilities: scenarioProbabilitiesForDb(thesis),
     insider_flow: thesis.insiderFlow,

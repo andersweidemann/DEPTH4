@@ -125,12 +125,14 @@ function MatrixGridCell({
   onLeave: () => void;
   onClick: () => void;
 }) {
+  const cellHeight = compact ? "h-24" : "h-32";
+
   if (!cell) {
     return (
       <div
         className={cn(
           "flex items-center justify-center rounded-md border border-dashed border-white/[0.04] bg-zinc-900/20",
-          compact ? "h-14" : "aspect-square",
+          cellHeight,
         )}
         aria-hidden
       >
@@ -140,7 +142,13 @@ function MatrixGridCell({
   }
 
   const isEdge = cell.mispricingScore >= 50;
-  const isPricedIn = cell.pricedInPercent >= 70;
+  const directionClass =
+    cell.direction === "up"
+      ? "text-emerald-400"
+      : cell.direction === "down"
+        ? "text-red-400"
+        : "text-zinc-500";
+  const arrow = cell.direction === "up" ? "↑" : cell.direction === "down" ? "↓" : "→";
 
   return (
     <button
@@ -149,64 +157,63 @@ function MatrixGridCell({
       onMouseLeave={onLeave}
       onClick={onClick}
       className={cn(
-        "relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-md border text-left transition-all",
-        compact ? "h-14 p-1.5" : "aspect-square p-2",
-        isEdge && !isPricedIn && "border-[#E8473F]/30 bg-[#E8473F]/[0.06]",
-        isEdge && isPricedIn && "border-[#E8473F]/15 bg-[#E8473F]/[0.03]",
-        !isEdge && "border-white/[0.06] bg-zinc-900/40",
+        "flex cursor-pointer flex-col justify-between overflow-hidden rounded-md border text-left transition-all",
+        cellHeight,
+        compact ? "p-1.5" : "p-2",
+        isEdge ? "border-[#E8473F]/30 bg-[#E8473F]/[0.06]" : "border-white/[0.06] bg-zinc-900/40",
         isHovered && "border-[#E8473F]/40 ring-1 ring-[#E8473F]/40",
       )}
     >
-      <div className="flex items-center justify-between">
-        <span
-          className={cn(
-            "font-bold",
-            compact ? "text-[9px]" : "text-[10px]",
-            cell.direction === "up" && "text-emerald-400",
-            cell.direction === "down" && "text-red-400",
-            cell.direction === "neutral" && "text-zinc-500",
-          )}
-        >
-          {cell.direction === "up" ? "↑" : cell.direction === "down" ? "↓" : "→"}
-        </span>
-        {cell.hasThesis ? <span className="text-[7px] text-[#E8473F]">★</span> : null}
-      </div>
-
-      <div className="text-center">
-        <span className={cn("font-semibold text-zinc-200", compact ? "text-[10px]" : "text-[11px]")}>
-          {cell.assetSymbol}
-        </span>
-      </div>
-
-      {!compact ? (
-        <div>
-          <div className="h-1 overflow-hidden rounded-full bg-zinc-800">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all",
-                cell.pricedInPercent >= 70
-                  ? "bg-red-500/50"
-                  : cell.pricedInPercent >= 40
-                    ? "bg-amber-500/50"
-                    : "bg-emerald-500/50",
-              )}
-              style={{ width: `${Math.min(100, Math.max(0, cell.pricedInPercent))}%` }}
-            />
-          </div>
-          <div className="mt-0.5 flex justify-between">
-            <span className="text-[7px] text-zinc-600">{cell.pricedInPercent}%PI</span>
-            <span
-              className={cn("text-[7px]", cell.mispricingScore >= 50 ? "text-[#E8473F]" : "text-zinc-600")}
-            >
-              {cell.mispricingScore}M
-            </span>
-          </div>
+      <div className="flex items-start justify-between gap-1">
+        <div className="flex min-w-0 items-center gap-1">
+          <span className={cn("shrink-0 font-bold", compact ? "text-[9px]" : "text-[11px]", directionClass)}>
+            {arrow} {cell.assetSymbol}
+          </span>
+          {cell.hasThesis ? <span className="shrink-0 text-[8px] text-[#E8473F]">★</span> : null}
         </div>
-      ) : (
-        <span className={cn("text-center text-[7px]", cell.mispricingScore >= 50 ? "text-[#E8473F]" : "text-zinc-600")}>
-          {cell.mispricingScore}M
-        </span>
-      )}
+        {cell.conviction != null ? (
+          <span className={cn("shrink-0 tabular-nums text-zinc-400", compact ? "text-[8px]" : "text-[9px]")}>
+            {cell.conviction}%
+          </span>
+        ) : null}
+      </div>
+
+      <p
+        className={cn(
+          "leading-snug text-zinc-400",
+          compact ? "line-clamp-1 text-[8px]" : "line-clamp-2 text-[9px]",
+        )}
+      >
+        {cell.whyItMatters}
+      </p>
+
+      <div>
+        <div className="flex items-center justify-between gap-1 text-[8px]">
+          <span className="text-zinc-500">{cell.pricedInPercent}% priced in</span>
+          <span className={cn(isEdge ? "text-[#E8473F]" : "text-zinc-600")}>
+            Edge {cell.mispricingScore}/100
+          </span>
+        </div>
+        <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-zinc-800">
+          <div
+            className={cn(
+              "h-full rounded-full transition-all",
+              cell.pricedInPercent >= 70
+                ? "bg-red-500/50"
+                : cell.pricedInPercent >= 40
+                  ? "bg-amber-500/50"
+                  : "bg-emerald-500/50",
+            )}
+            style={{ width: `${Math.min(100, Math.max(0, cell.pricedInPercent))}%` }}
+          />
+        </div>
+        {cell.timeHorizon && !compact ? (
+          <p className="mt-0.5 truncate text-[7px] text-zinc-600">{cell.timeHorizon}</p>
+        ) : null}
+        {cell.hasThesis && cell.thesisSlug ? (
+          <p className="mt-0.5 truncate text-[7px] text-zinc-600">{cell.thesisSlug}</p>
+        ) : null}
+      </div>
     </button>
   );
 }

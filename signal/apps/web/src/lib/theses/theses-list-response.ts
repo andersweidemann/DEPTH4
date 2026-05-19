@@ -202,7 +202,7 @@ export async function buildThesesListResponse(
   const { data: userRows } = await sb
     .from("theses")
     .select(
-      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin",
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin, quality_score",
     )
     .eq("owner_user_id", userId)
     .eq("thesis_origin", "user")
@@ -216,7 +216,7 @@ export async function buildThesesListResponse(
   const { data: aiRows } = await sb
     .from("theses")
     .select(
-      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin",
+      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin, quality_score",
     )
     .eq("thesis_origin", "ai_generated")
     .order("updated_at", { ascending: false })

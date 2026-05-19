@@ -5,6 +5,7 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { thesisConvictionPctFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type {
   AssetDepth,
   CausalAffect,
@@ -76,6 +77,8 @@ export type ThesisRow = {
   thesis_score: number | null;
   priced_in_estimate: number | null;
   micro_label: string | null;
+  quality_score?: number | null;
+  incentive_analysis?: unknown;
 };
 
 export type LinkRow = { event_id: string; thesis_id: string; is_primary: boolean };
@@ -148,6 +151,11 @@ export function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): Caus
   const asset = thesis?.asset?.trim() || "—";
   const conviction = triple ? thesisConvictionPctFromDbTriple(triple) : thesis?.probability ?? 50;
 
+  const qualityScore =
+    row.quality_score != null && Number.isFinite(row.quality_score)
+      ? Math.min(100, Math.max(0, Math.round(row.quality_score)))
+      : undefined;
+
   return {
     id: row.id,
     slug,
@@ -159,6 +167,8 @@ export function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): Caus
     mispricingScore: thesisMispricingScore(row, slug),
     timeHorizon: thesis?.horizon?.trim() || "2–8 weeks",
     affects,
+    incentive_analysis: parseIncentiveAnalysis(row.incentive_analysis) ?? thesis?.incentiveAnalysis ?? undefined,
+    ...(qualityScore !== undefined ? { qualityScore } : {}),
   };
 }
 
@@ -316,7 +326,9 @@ export async function buildGlobalCausalGraph(supabase: SupabaseClient): Promise<
       ),
     supabase
       .from("theses")
-      .select("id, slug, title, status, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label")
+      .select(
+        "id, slug, title, status, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label, quality_score, incentive_analysis",
+      )
       .in("status", Array.from(LIVE_STATUSES)),
   ]);
 
@@ -403,7 +415,9 @@ export async function buildCausalGraphClusters(
 
   const thesesRes = await supabase
     .from("theses")
-    .select("id, slug, title, status, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label")
+    .select(
+      "id, slug, title, status, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label, quality_score, incentive_analysis",
+    )
     .in("status", Array.from(LIVE_STATUSES));
 
   if (thesesRes.error) throw thesesRes.error;

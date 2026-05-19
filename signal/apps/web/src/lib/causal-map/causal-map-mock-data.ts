@@ -10,7 +10,7 @@ export const CAUSAL_MAP_MOCK: GlobalCausalGraph = {
       event: {
         id: "evt-war-deesc",
         slug: "war-de-escalation",
-        title: "War de-escalation",
+        title: "War risk",
         description: "Peace talks progress, oil risk fades, safe-haven bid unwinds",
         category: "geopolitics",
         confidence: 82,

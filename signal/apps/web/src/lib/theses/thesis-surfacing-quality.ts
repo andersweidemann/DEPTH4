@@ -11,6 +11,7 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { isCatalogThesisId } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
+import { isQualityHiddenFromList } from "@/lib/thesis/quality-gate";
 
 const AI_SHELL_PLACEHOLDER = "This thesis was formed from analyzed news";
 
@@ -124,6 +125,7 @@ export function passesDepth4ThesisSurfacingQualityBar(t: Thesis): boolean {
  */
 export function isThesisMapListableThesis(t: Thesis): boolean {
   if (isCatalogThesisId(t.id)) return true;
+  if (isQualityHiddenFromList(t.qualityScore, t.status)) return false;
   if (!passesDepth4ThesisSurfacingQualityBar(t)) return false;
 
   const title = (t.title || "").trim();

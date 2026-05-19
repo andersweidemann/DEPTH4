@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 export interface ThesisMapCardProps {
   thesis: CausalThesis;
   rootEvent: CausalEvent;
+  clusterTitle?: string;
   isExpanded: boolean;
   onToggle: () => void;
   hidePricedIn?: boolean;
@@ -24,6 +25,7 @@ function formatHorizon(horizon: string): string {
 export function ThesisMapCard({
   thesis,
   rootEvent,
+  clusterTitle,
   isExpanded,
   onToggle,
   hidePricedIn = false,
@@ -57,9 +59,28 @@ export function ThesisMapCard({
 
         <span className="flex-1 truncate text-[12px] text-zinc-300">{thesis.title}</span>
 
-        <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums", mispricingTone)}>
-          {thesis.mispricingScore}/100
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {thesis.qualityScore != null ? (
+            <span
+              className={cn(
+                "rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
+                thesis.qualityScore >= 65
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : thesis.qualityScore >= 45
+                    ? "bg-[#E8473F]/10 text-[#E8473F]"
+                    : thesis.qualityScore >= 25
+                      ? "bg-zinc-500/10 text-zinc-400"
+                      : "bg-red-500/10 text-red-400",
+              )}
+            >
+              Q{thesis.qualityScore}
+            </span>
+          ) : null}
+          <span className="text-[10px] tabular-nums text-zinc-400">{thesis.conviction}% conv</span>
+          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums", mispricingTone)}>
+            Edge {thesis.mispricingScore}/100
+          </span>
+        </div>
 
         <span className="hidden w-20 shrink-0 text-right text-[10px] text-zinc-500 sm:block">
           {formatHorizon(thesis.timeHorizon)}
@@ -77,7 +98,12 @@ export function ThesisMapCard({
 
           <p className="mt-1 text-[10px] text-zinc-600 sm:hidden">{thesis.timeHorizon}</p>
 
-          <ThesisTree thesis={thesis} rootEvent={rootEvent} hidePricedIn={hidePricedIn} />
+          <ThesisTree
+            thesis={thesis}
+            rootEvent={rootEvent}
+            clusterTitle={clusterTitle}
+            hidePricedIn={hidePricedIn}
+          />
 
           <MatrixToggle thesis={thesis} rootEvent={rootEvent} />
 
