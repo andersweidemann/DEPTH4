@@ -106,4 +106,20 @@ describe("runQualityGate", () => {
     const report = runQualityGate(baseThesis({ timeHorizon: "2-8 weeks" }), cluster, []);
     expect(report.checks.find((c) => c.name === "time_horizon_specific")?.passed).toBe(false);
   });
+
+  it("scores below 75 when trade plan is TBD", () => {
+    const report = runQualityGate(
+      baseThesis({
+        bodyTradePlan: { entry_zone: "TBD", stop: "TBD", target1: "TBD" },
+        entryZone: "TBD",
+        stop: "TBD",
+        target1: "TBD",
+      }),
+      cluster,
+      [],
+    );
+    expect(report.checks.find((c) => c.name === "trade_plan_complete")?.passed).toBe(false);
+    expect(report.score).toBeLessThan(75);
+    expect(report.blockers).toContain("trade_plan_complete");
+  });
 });

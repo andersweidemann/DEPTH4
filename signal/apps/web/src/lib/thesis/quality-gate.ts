@@ -37,17 +37,32 @@ export interface QualityGateInput {
   entryZone?: string | null;
   stop?: string | null;
   target1?: string | null;
+  /** Pipeline / DB body blocks (preferred for trade-plan gate when present). */
+  bodyTradePlan?: { entry_zone: string; stop: string; target1?: string } | null;
+  bodyEvidence?: Array<{ date: string; source: string; excerpt: string }> | null;
+  bodyResolutionPaths?: { clean: string; messy: string; broken: string } | null;
 }
 
 const QUALITY_CHECKS: QualityCheck[] = [
-  { name: "incentive_analysis", required: true, weight: 0.2 },
-  { name: "causal_chain_depth", required: true, weight: 0.15 },
-  { name: "conviction_calibrated", required: true, weight: 0.15 },
-  { name: "no_contradiction", required: true, weight: 0.15 },
-  { name: "time_horizon_specific", required: false, weight: 0.1 },
-  { name: "trade_plan", required: false, weight: 0.1 },
-  { name: "title_matches_direction", required: true, weight: 0.15 },
+  { name: "incentive_analysis", required: true, weight: 0.15 },
+  { name: "causal_chain_depth", required: true, weight: 0.1 },
+  { name: "conviction_calibrated", required: true, weight: 0.1 },
+  { name: "no_contradiction", required: true, weight: 0.1 },
+  { name: "trade_plan_complete", required: true, weight: 0.15 },
+  { name: "evidence_present", required: false, weight: 0.1 },
+  { name: "resolution_paths", required: false, weight: 0.1 },
+  { name: "title_matches_direction", required: true, weight: 0.1 },
+  { name: "time_horizon_specific", required: false, weight: 0.05 },
 ];
+
+function isPlaceholderTradeLevel(value: string | null | undefined): boolean {
+  const t = (value ?? "").trim();
+  if (!t) return true;
+  const u = t.toUpperCase();
+  if (u === "TBD" || u === "—" || u === "-" || u === "N/A") return true;
+  if (/^PENDING\b/i.test(t) || /^AWAITING\b/i.test(t)) return true;
+  return false;
+}
 
 const UP_WORDS = ["rise", "climb", "surge", "rally", "recover", "lift", "ramp", "higher", "rebound", "moon", "bid"];
 const DOWN_WORDS = [
@@ -129,15 +144,44 @@ export function runQualityGate(
     detail: `time_horizon: ${horizon}`,
   });
 
+  const tp = thesis.bodyTradePlan;
+  const entryZone = tp?.entry_zone ?? thesis.entryZone ?? "";
+  const stop = tp?.stop ?? thesis.stop ?? "";
+  const target1 = tp?.target1 ?? thesis.target1 ?? "";
   const hasTradePlan =
-    !!thesis.entryZone?.trim() && !!thesis.stop?.trim() && !!thesis.target1?.trim();
+    !isPlaceholderTradeLevel(entryZone) &&
+    !isPlaceholderTradeLevel(stop) &&
+    !isPlaceholderTradeLevel(target1);
   checks.push({
-    name: "trade_plan",
+    name: "trade_plan_complete",
     passed: hasTradePlan,
     message: hasTradePlan
-      ? "Trade plan with entry, stop, and targets"
-      : "Missing trade plan — no actionable levels",
+      ? `Entry: ${entryZone}, Stop: ${stop}`
+      : "Trade plan missing or incomplete (entry/stop/target1 required, not TBD)",
     detail: hasTradePlan ? "complete" : "missing",
+  });
+
+  const evidenceCount = thesis.bodyEvidence?.length ?? 0;
+  const hasEvidence = evidenceCount >= 3;
+  checks.push({
+    name: "evidence_present",
+    passed: hasEvidence,
+    message: hasEvidence
+      ? `${evidenceCount} evidence items`
+      : `Only ${evidenceCount} evidence items — need 3+`,
+    detail: `evidence: ${evidenceCount}`,
+  });
+
+  const rp = thesis.bodyResolutionPaths;
+  const hasResolution =
+    !!rp?.clean?.trim() && !isPlaceholderTradeLevel(rp.clean);
+  checks.push({
+    name: "resolution_paths",
+    passed: hasResolution,
+    message: hasResolution
+      ? "Resolution paths defined"
+      : "Missing resolution paths (clean/messy/broken)",
+    detail: hasResolution ? "complete" : "missing",
   });
 
   const titleMatches = checkTitleMatchesDirection(thesis);

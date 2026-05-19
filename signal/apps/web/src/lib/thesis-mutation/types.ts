@@ -13,6 +13,9 @@ export type ThesisRow = {
   lifecycle_state?: string | null;
   surfaced_bucket?: string | null;
   thesis_score?: number | null;
+  quality_score?: number | null;
+  quality_checks?: unknown;
+  promotion_blocked_reason?: string | null;
   last_meaningful_update_at?: string | null;
   surfacing_computed_at?: string | null;
   supersedes_thesis_id: string | null;

@@ -12,6 +12,11 @@ import type {
   ThesisCandidate,
 } from "@/lib/ai/thesis-pipeline-types";
 import { INCENTIVE_CONFIDENCE_MIN, MISPRICING_SCORE_MIN } from "@/lib/ai/thesis-pipeline-types";
+import {
+  candidateNeedsDetailEnrichment,
+  isResolutionPathsComplete,
+  isTradePlanComplete,
+} from "@/lib/ai/thesis-pipeline-body";
 import type { QualityGateInput } from "@/lib/thesis/quality-gate";
 
 const EVENT_CATEGORIES = new Set<EventCategory>([
@@ -167,6 +172,123 @@ export function qualityGateInputFromPipelineCandidate(
     entryZone: candidate.tradePlan.entryZone,
     stop: candidate.tradePlan.stop,
     target1: candidate.tradePlan.target1,
+    bodyTradePlan: {
+      entry_zone: candidate.tradePlan.entryZone,
+      stop: candidate.tradePlan.stop,
+      target1: candidate.tradePlan.target1,
+    },
+    bodyEvidence: candidate.evidence,
+    bodyResolutionPaths: candidate.resolutionPaths,
+  };
+}
+
+function parseTradePlanFromLlm(raw: unknown): ThesisCandidate["tradePlan"] | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const tp = (o.trade_plan ?? o.tradePlan) as Record<string, unknown> | undefined;
+  if (!tp) return null;
+  return {
+    entryZone: str(tp.entry_zone ?? tp.entryZone) || "—",
+    stop: str(tp.stop) || "—",
+    target1: str(tp.target1) || "—",
+    target2: str(tp.target2) || "—",
+  };
+}
+
+function parseResolutionFromLlm(raw: unknown): ThesisCandidate["resolutionPaths"] | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const rp = (o.resolution_paths ?? o.resolutionPaths) as Record<string, unknown> | undefined;
+  if (!rp) return null;
+  return {
+    clean: str(rp.clean) || "",
+    messy: str(rp.messy) || "",
+    broken: str(rp.broken) || "",
+  };
+}
+
+function parseEvidenceFromLlm(raw: unknown): ThesisCandidate["evidence"] {
+  if (!raw || typeof raw !== "object") return [];
+  const o = raw as Record<string, unknown>;
+  const evidenceRaw = o.evidence;
+  if (!Array.isArray(evidenceRaw)) return [];
+  return evidenceRaw
+    .map((e) => {
+      if (!e || typeof e !== "object") return null;
+      const ex = e as Record<string, unknown>;
+      const excerpt = str(ex.excerpt);
+      if (!excerpt) return null;
+      return {
+        date: str(ex.date) || new Date().toISOString().slice(0, 10),
+        source: str(ex.source) || "news",
+        excerpt,
+        url: str(ex.url) || null,
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .slice(0, 6);
+}
+
+export function mergeThesisCandidateDetails(
+  base: ThesisCandidate,
+  patch: {
+    tradePlan?: ThesisCandidate["tradePlan"];
+    resolutionPaths?: ThesisCandidate["resolutionPaths"];
+    evidence?: ThesisCandidate["evidence"];
+  },
+): ThesisCandidate {
+  const tradePlan = patch.tradePlan && isTradePlanComplete(patch.tradePlan) ? patch.tradePlan : base.tradePlan;
+  const resolutionPaths =
+    patch.resolutionPaths && isResolutionPathsComplete(patch.resolutionPaths)
+      ? patch.resolutionPaths
+      : base.resolutionPaths;
+  const evidence =
+    patch.evidence && patch.evidence.length >= 3
+      ? patch.evidence
+      : patch.evidence && patch.evidence.length > base.evidence.length
+        ? patch.evidence
+        : base.evidence;
+
+  return { ...base, tradePlan, resolutionPaths, evidence };
+}
+
+/** Step 4b — fill trade plan, evidence, and resolution paths when step 4 JSON is thin. */
+export async function step4b_generateThesisDetails(
+  candidate: ThesisCandidate,
+  detectedEvent: DetectedEvent,
+  llm: PipelineLlmClient,
+): Promise<{
+  tradePlan?: ThesisCandidate["tradePlan"];
+  resolutionPaths?: ThesisCandidate["resolutionPaths"];
+  evidence?: ThesisCandidate["evidence"];
+} | null> {
+  const prompt = [
+    "You are DEPTH4's trade-plan writer. Given this macro thesis, output actionable detail JSON only.",
+    "",
+    `Title: ${candidate.title}`,
+    `Statement: ${candidate.statement}`,
+    `Direction: ${candidate.direction} (down = short, up = long)`,
+    `Asset: ${candidate.targetAssetSymbol}`,
+    `Conviction: ${candidate.conviction}%`,
+    `Time horizon: ${candidate.timeHorizon}`,
+    `Event: ${detectedEvent.title}`,
+    "",
+    "Generate:",
+    "1. TRADE PLAN with specific price levels (not TBD): entry_zone, stop, target1, target2",
+    "2. EVIDENCE: 3-5 items with date (YYYY-MM-DD), source, excerpt",
+    "3. RESOLUTION PATHS: clean (confirms thesis), messy (partial), broken (invalidates)",
+    "",
+    'Output JSON: {"trade_plan":{"entry_zone":"...","stop":"...","target1":"...","target2":"..."},',
+    '"evidence":[{"date":"...","source":"...","excerpt":"..."}],',
+    '"resolution_paths":{"clean":"...","messy":"...","broken":"..."}}',
+  ].join("\n");
+
+  const raw = await llm.completeJson(prompt, 900);
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    tradePlan: parseTradePlanFromLlm(raw) ?? undefined,
+    resolutionPaths: parseResolutionFromLlm(raw) ?? undefined,
+    evidence: parseEvidenceFromLlm(raw),
   };
 }
 
@@ -414,28 +536,7 @@ export async function step4_generateThesis(
   const conviction = clamp(Math.round(num(o.conviction, 72)), 1, 99);
   const finalConviction = conviction === 50 ? 68 : conviction;
 
-  const tp = (o.trade_plan ?? o.tradePlan) as Record<string, unknown> | undefined;
-  const rp = (o.resolution_paths ?? o.resolutionPaths) as Record<string, unknown> | undefined;
-  const evidenceRaw = o.evidence;
-
-  const evidence = Array.isArray(evidenceRaw)
-    ? evidenceRaw
-        .map((e) => {
-          if (!e || typeof e !== "object") return null;
-          const ex = e as Record<string, unknown>;
-          const excerpt = str(ex.excerpt);
-          if (!excerpt) return null;
-          return {
-            date: str(ex.date) || new Date().toISOString().slice(0, 10),
-            source: str(ex.source) || "news",
-            excerpt,
-          };
-        })
-        .filter((x): x is { date: string; source: string; excerpt: string } => x !== null)
-        .slice(0, 6)
-    : [];
-
-  return {
+  let candidate: ThesisCandidate = {
     title,
     statement,
     direction,
@@ -444,17 +545,44 @@ export async function step4_generateThesis(
     conviction: finalConviction,
     mispricingScore: target.mispricingScore,
     timeHorizon: str(o.time_horizon ?? o.timeHorizon) || "This quarter",
-    tradePlan: {
-      entryZone: str(tp?.entry_zone ?? tp?.entryZone) || "—",
-      stop: str(tp?.stop) || "—",
-      target1: str(tp?.target1) || "—",
-      target2: str(tp?.target2) || "—",
-    },
-    resolutionPaths: {
-      clean: str(rp?.clean) || "Catalyst confirms path; price reaches target 1.",
-      messy: str(rp?.messy) || "Direction holds with noisy headlines; trim into strength.",
-      broken: str(rp?.broken) || "Invalidation headline or stop level breached.",
-    },
-    evidence,
+    tradePlan:
+      parseTradePlanFromLlm(o) ?? {
+        entryZone: "—",
+        stop: "—",
+        target1: "—",
+        target2: "—",
+      },
+    resolutionPaths:
+      parseResolutionFromLlm(o) ?? {
+        clean: "Catalyst confirms path; price reaches target 1.",
+        messy: "Direction holds with noisy headlines; trim into strength.",
+        broken: "Invalidation headline or stop level breached.",
+      },
+    evidence: parseEvidenceFromLlm(o),
   };
+
+  if (candidateNeedsDetailEnrichment(candidate)) {
+    const details = await step4b_generateThesisDetails(candidate, detectedEvent, llm);
+    if (details) {
+      candidate = mergeThesisCandidateDetails(candidate, details);
+    }
+  }
+
+  if (candidate.evidence.length < 3) {
+    const fromHeadlines = detectedEvent.sourceHeadlines
+      .map((headline) => ({
+        date: detectedEvent.firstDetected.slice(0, 10),
+        source: "pipeline",
+        excerpt: headline,
+      }))
+      .filter((e) => e.excerpt.length > 0);
+    const merged = [...candidate.evidence];
+    for (const item of fromHeadlines) {
+      if (merged.length >= 3) break;
+      if (!merged.some((m) => m.excerpt === item.excerpt)) merged.push(item);
+    }
+    candidate = { ...candidate, evidence: merged.slice(0, 6) };
+  }
+
+  return candidate;
 }

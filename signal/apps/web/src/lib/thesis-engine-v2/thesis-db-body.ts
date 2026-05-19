@@ -99,6 +99,19 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
       })
     : null;
 
+  const tpRaw = o.tradePlan ?? o.trade_plan;
+  let entryFromTradePlan: string | undefined;
+  let stopFromTradePlan: string | undefined;
+  let target1FromTradePlan: string | undefined;
+  let target2FromTradePlan: string | undefined;
+  if (tpRaw && typeof tpRaw === "object" && !Array.isArray(tpRaw)) {
+    const tp = tpRaw as Record<string, unknown>;
+    entryFromTradePlan = str(tp.entry_zone ?? tp.entryZone);
+    stopFromTradePlan = str(tp.stop);
+    target1FromTradePlan = str(tp.target1);
+    target2FromTradePlan = str(tp.target2);
+  }
+
   const next: Thesis = {
     ...thesis,
     ...(depthBook ? { thesisDepthBook: depthBook } : {}),
@@ -120,10 +133,16 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
     ...(str(o.horizon) !== undefined ? { horizon: str(o.horizon)! } : {}),
     ...(str(o.probability_rationale) !== undefined ? { probabilityRationale: str(o.probability_rationale)! } : {}),
     ...(str(o.risk_factors) !== undefined ? { riskFactors: str(o.risk_factors) } : {}),
-    ...(str(o.entry_zone) !== undefined ? { entryZone: str(o.entry_zone) } : {}),
-    ...(str(o.stop) !== undefined ? { stop: str(o.stop) } : {}),
-    ...(str(o.target1) !== undefined ? { target1: str(o.target1) } : {}),
-    ...(str(o.target2) !== undefined ? { target2: str(o.target2) } : {}),
+    ...(str(o.entry_zone) !== undefined || entryFromTradePlan
+      ? { entryZone: str(o.entry_zone) ?? entryFromTradePlan }
+      : {}),
+    ...(str(o.stop) !== undefined || stopFromTradePlan ? { stop: str(o.stop) ?? stopFromTradePlan } : {}),
+    ...(str(o.target1) !== undefined || target1FromTradePlan
+      ? { target1: str(o.target1) ?? target1FromTradePlan }
+      : {}),
+    ...(str(o.target2) !== undefined || target2FromTradePlan
+      ? { target2: str(o.target2) ?? target2FromTradePlan }
+      : {}),
   };
 
   return normalizeThesisNarrativeFields(next);

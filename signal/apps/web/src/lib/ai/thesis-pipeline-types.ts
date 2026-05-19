@@ -73,7 +73,7 @@ export interface ThesisCandidate {
   mispricingScore: number;
   timeHorizon: string;
   tradePlan: TradePlan;
-  evidence: Array<{ date: string; source: string; excerpt: string }>;
+  evidence: Array<{ date: string; source: string; excerpt: string; url?: string | null }>;
   resolutionPaths: ResolutionPaths;
 }
 
@@ -87,6 +87,7 @@ export type PipelineFailureReason =
   | "thesis_generation_failed"
   | "quality_gate_failed"
   | "save_failed"
+  | "render_verification_failed"
   | "pipeline_error";
 
 export type PipelineResult =

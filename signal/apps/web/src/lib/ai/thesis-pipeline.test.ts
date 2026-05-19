@@ -95,7 +95,11 @@ describe("thesis intelligence pipeline", () => {
         messy: "Range-bound inflation; TLT grinds to 96",
         broken: "Hot CPI forces hawkish repricing below 88.5",
       },
-      evidence: [{ date: "2026-05-10", source: "Reuters", excerpt: "Powell cites tariff risk to disinflation path." }],
+      evidence: [
+        { date: "2026-05-10", source: "Reuters", excerpt: "Powell cites tariff risk to disinflation path." },
+        { date: "2026-05-09", source: "Bloomberg", excerpt: "FOMC dots shift hawkish." },
+        { date: "2026-05-08", source: "FT", excerpt: "Services CPI sticky above target." },
+      ],
     };
 
     const propagation: CausalPropagationResult = {
@@ -148,5 +152,68 @@ describe("thesis intelligence pipeline", () => {
     const report = runQualityGate(input, null, []);
     expect(report.score).toBeGreaterThanOrEqual(60);
     expect(report.canPromote).toBe(true);
+    expect(report.checks.find((c) => c.name === "trade_plan_complete")?.passed).toBe(true);
+    expect(report.checks.find((c) => c.name === "evidence_present")?.passed).toBe(true);
+  });
+
+  it("quality gate fails incomplete pipeline body trade plan below 75", () => {
+    const input = qualityGateInputFromPipelineCandidate(
+      {
+        ...({
+          title: "Gold short",
+          statement: "Test",
+          direction: "down" as const,
+          targetAssetSymbol: "GC.1",
+          targetAssetName: "Gold",
+          conviction: 72,
+          mispricingScore: 40,
+          timeHorizon: "4 weeks",
+          tradePlan: { entryZone: "TBD", stop: "TBD", target1: "TBD", target2: "" },
+          resolutionPaths: { clean: "x", messy: "y", broken: "z" },
+          evidence: [],
+        } satisfies import("@/lib/ai/thesis-pipeline-types").ThesisCandidate),
+      },
+      {
+        rootAsset: { id: "1", symbol: "GC.1", name: "Gold" },
+        highestMispricing: null,
+        affectedAssets: [
+          {
+            asset: { id: "1", symbol: "GC.1", name: "Gold" },
+            direction: "down",
+            strength: 80,
+            pricedInPercent: 20,
+            mispricingScore: 60,
+            timeDepth: "L2_this_week",
+            assetDepth: "direct",
+            reasoning: "test",
+          },
+          {
+            asset: { id: "2", symbol: "CL.1", name: "Oil" },
+            direction: "down",
+            strength: 60,
+            pricedInPercent: 40,
+            mispricingScore: 20,
+            timeDepth: "L2_this_week",
+            assetDepth: "indirect",
+            reasoning: "test",
+          },
+          {
+            asset: { id: "3", symbol: "SPX", name: "S&P" },
+            direction: "up",
+            strength: 50,
+            pricedInPercent: 30,
+            mispricingScore: 20,
+            timeDepth: "L2_this_week",
+            assetDepth: "indirect",
+            reasoning: "test",
+          },
+        ],
+      },
+      incentive,
+      "gold-short",
+    );
+    const report = runQualityGate(input, null, []);
+    expect(report.score).toBeLessThan(75);
+    expect(report.blockers).toContain("trade_plan_complete");
   });
 });

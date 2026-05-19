@@ -156,7 +156,7 @@ export async function runThesisPipeline(
     }
 
     if (persist) {
-      context.finalThesis = await step6_savePipelineThesis(
+      const saved = await step6_savePipelineThesis(
         context.candidateThesis,
         context.detectedEvent,
         context.incentiveAnalysis!,
@@ -164,6 +164,21 @@ export async function runThesisPipeline(
         qualityReport,
         admin,
       );
+
+      if (!saved.ok) {
+        logPipelineStage("render_verification_failed", {
+          slug: saved.slug,
+          missing: saved.missing,
+        });
+        return {
+          success: false,
+          reason: "render_verification_failed",
+          context,
+          error: `Missing body fields: ${saved.missing.join(", ")}`,
+        };
+      }
+
+      context.finalThesis = saved.thesis;
 
       logPipelineStage("thesis_saved", {
         thesis_id: context.finalThesis.id,

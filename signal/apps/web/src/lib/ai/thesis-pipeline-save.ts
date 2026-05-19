@@ -4,10 +4,14 @@ import { applyThesisEventLink } from "@/lib/causal-graph/apply-thesis-event-link
 import type { CausalThesis } from "@/types/causal-graph";
 import type { IncentiveAnalysis } from "@/types/incentive-analysis";
 import { incentiveAnalysisToDbJson } from "@/lib/thesis/incentive-analysis";
-import { normalizeThesisNarrativeFields, thesisToDbBodyPayload } from "@/lib/thesis-engine-v2/thesis-db-body";
+import {
+  buildPipelineBodyPayload,
+  verifyPipelineBodyForRender,
+} from "@/lib/ai/thesis-pipeline-body";
+import { normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { SYSTEM_MUTATION, systemCreateThesis, systemUpdateThesis } from "@/lib/thesis-mutation";
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { scenarioProbabilitiesForDb } from "@/lib/thesis-engine-v2/insider-flow-config";
-import { SYSTEM_MUTATION, systemCreateThesis } from "@/lib/thesis-mutation";
 import {
   initialStatusFromQualityReport,
   qualityChecksToJson,
@@ -104,6 +108,23 @@ function buildEngineThesisFromCandidate(input: {
     },
     theme: "macro",
     incentiveAnalysis: incentive,
+    scenarioOverrides: {
+      bull: {
+        probability: 35,
+        confirmation: candidate.resolutionPaths.clean,
+        marketConsequence: candidate.tradePlan.target1,
+      },
+      base: {
+        probability: 40,
+        confirmation: candidate.resolutionPaths.messy,
+        marketConsequence: candidate.statement.slice(0, 200),
+      },
+      bear: {
+        probability: 25,
+        confirmation: candidate.resolutionPaths.broken,
+        marketConsequence: candidate.resolutionPaths.broken,
+      },
+    },
     entryZone: candidate.tradePlan.entryZone,
     stop: candidate.tradePlan.stop,
     target1: candidate.tradePlan.target1,
@@ -120,6 +141,16 @@ function buildEngineThesisFromCandidate(input: {
   return normalizeThesisNarrativeFields(shell);
 }
 
+export type SavePipelineThesisResult =
+  | { ok: true; thesis: CausalThesis }
+  | {
+      ok: false;
+      reason: "render_verification_failed";
+      missing: string[];
+      thesisId: string;
+      slug: string;
+    };
+
 export async function step6_savePipelineThesis(
   candidate: ThesisCandidate,
   detectedEvent: DetectedEvent,
@@ -127,7 +158,7 @@ export async function step6_savePipelineThesis(
   propagation: CausalPropagationResult,
   qualityReport: QualityReport,
   admin: SupabaseClient,
-): Promise<CausalThesis> {
+): Promise<SavePipelineThesisResult> {
   const event = await upsertCausalEvent(detectedEvent, admin);
   const id = randomUUID();
   const slug = slugify(candidate.title, id.replace(/-/g, "").slice(0, 8));
@@ -155,7 +186,7 @@ export async function step6_savePipelineThesis(
     slug: thesis.slug,
     owner_user_id: null,
     updated_at: nowIso,
-    body: thesisToDbBodyPayload(thesis),
+    body: buildPipelineBodyPayload(thesis, candidate),
     created_at: nowIso,
     incentive_analysis: incentiveAnalysisToDbJson(incentiveAnalysis),
     event_id: event.id,
@@ -176,6 +207,43 @@ export async function step6_savePipelineThesis(
 
   if (!ins.ok) {
     throw new Error(ins.error);
+  }
+
+  for (const ev of candidate.evidence) {
+    const { error: evErr } = await admin.from("thesis_evidence_log").insert({
+      thesis_id: id,
+      event_type: "pipeline_seed",
+      description: `[${ev.source}] ${ev.excerpt}`,
+      metadata: { source: ev.source, date: ev.date, pipeline: true },
+    });
+    if (evErr) {
+      console.warn("[thesis_pipeline] evidence_seed_failed", { message: evErr.message });
+    }
+  }
+
+  const renderCheck = await step7_verifyPipelineRender(admin, slug);
+  if (!renderCheck.ok) {
+    await systemUpdateThesis(
+      admin,
+      id,
+      {
+        status: "forming",
+        promotion_blocked_reason: `Missing body fields: ${renderCheck.missing.join(", ")}`,
+      },
+      {
+        actorType: SYSTEM_MUTATION.macro.actorType,
+        reason: "render_verification_failed",
+        changeType: "field_update",
+        metadata: { missing: renderCheck.missing },
+      },
+    );
+    return {
+      ok: false,
+      reason: "render_verification_failed",
+      missing: renderCheck.missing,
+      thesisId: id,
+      slug,
+    };
   }
 
   const link = await applyThesisEventLink(admin, {
@@ -221,30 +289,49 @@ export async function step6_savePipelineThesis(
   }
 
   return {
-    id,
-    slug,
-    title: thesis.title,
-    statement: thesis.thesisStatement,
-    targetAssetSymbol: candidate.targetAssetSymbol,
-    direction: candidate.direction,
-    conviction: candidate.conviction,
-    mispricingScore: candidate.mispricingScore,
-    timeHorizon: candidate.timeHorizon,
-    affects: propagation.affectedAssets.map((a) => ({
-      assetId: a.asset.id,
-      assetSymbol: a.asset.symbol,
-      assetName: a.asset.name,
-      direction: a.direction,
-      strength: a.strength,
-      pricedInPercent: a.pricedInPercent,
-      mispricingScore: a.mispricingScore,
-      whyItMatters: a.reasoning,
-      hasDedicatedThesis: a.asset.symbol === candidate.targetAssetSymbol,
-      thesisSlug: a.asset.symbol === candidate.targetAssetSymbol ? slug : undefined,
-      timeDepth: a.timeDepth,
-      assetDepth: a.assetDepth,
-    })),
-    incentive_analysis: incentiveAnalysis,
-    qualityScore: qualityReport.score,
+    ok: true,
+    thesis: {
+      id,
+      slug,
+      title: thesis.title,
+      statement: thesis.thesisStatement,
+      targetAssetSymbol: candidate.targetAssetSymbol,
+      direction: candidate.direction,
+      conviction: candidate.conviction,
+      mispricingScore: candidate.mispricingScore,
+      timeHorizon: candidate.timeHorizon,
+      affects: propagation.affectedAssets.map((a) => ({
+        assetId: a.asset.id,
+        assetSymbol: a.asset.symbol,
+        assetName: a.asset.name,
+        direction: a.direction,
+        strength: a.strength,
+        pricedInPercent: a.pricedInPercent,
+        mispricingScore: a.mispricingScore,
+        whyItMatters: a.reasoning,
+        hasDedicatedThesis: a.asset.symbol === candidate.targetAssetSymbol,
+        thesisSlug: a.asset.symbol === candidate.targetAssetSymbol ? slug : undefined,
+        timeDepth: a.timeDepth,
+        assetDepth: a.assetDepth,
+      })),
+      incentive_analysis: incentiveAnalysis,
+      qualityScore: qualityReport.score,
+    },
   };
+}
+
+/** Step 7 — confirm saved row has nested body blocks the detail API expects. */
+export async function step7_verifyPipelineRender(
+  admin: SupabaseClient,
+  slug: string,
+): Promise<{ ok: boolean; missing: string[] }> {
+  const { data, error } = await admin.from("theses").select("body").eq("slug", slug).maybeSingle();
+  if (error || !data) {
+    return { ok: false, missing: ["tradePlan", "evidence", "resolutionPaths"] };
+  }
+  const result = verifyPipelineBodyForRender((data as { body?: unknown }).body);
+  if (!result.ok) {
+    console.error(`[thesis_pipeline] render_verification_failed missing=body.${result.missing.join(", ")}`);
+  }
+  return result;
 }
