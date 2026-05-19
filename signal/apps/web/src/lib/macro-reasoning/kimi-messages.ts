@@ -172,17 +172,28 @@ export async function completeKimiJsonObject(params: {
   const apiKey = normalizeKimiApiKey(process.env.KIMI_API_KEY);
   if (!apiKey) throw new Error("KIMI_API_KEY not set");
   const baseUrl = resolveKimiBaseUrl();
+  const model = resolveKimiModel();
   const { text } = await kimiChatCompletions({
     apiKey,
     baseUrl,
-    model: resolveKimiModel(),
+    model,
     maxTokens: params.maxTokens,
     system: params.system ?? KIMI_JSON_SYSTEM,
     user: params.user,
     disableThinking: true,
     jsonObjectMode: true,
   });
-  return extractJsonFromLlmText(text);
+  console.log("[kimi-debug] request", {
+    baseUrl,
+    model,
+    textLength: text.length,
+  });
+  console.log(`[kimi-debug] raw text: ${text.substring(0, 800)}`);
+  const parsed = extractJsonFromLlmText(text);
+  console.log(
+    `[kimi-debug] parsed: ${parsed != null ? JSON.stringify(parsed).substring(0, 800) : "null"}`,
+  );
+  return parsed;
 }
 
 export function isKimiJsonConfigured(): boolean {
