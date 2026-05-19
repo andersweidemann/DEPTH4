@@ -6,6 +6,7 @@ import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { thesisConvictionPctFromDbTriple } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
+import { resolveThesisMapSymbol } from "@/lib/causal-map/resolve-thesis-map-symbol";
 import type {
   AssetDepth,
   CausalAffect,
@@ -148,13 +149,15 @@ export function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): Caus
   }
   const triple = parseScenarioProbabilities(row.scenario_probabilities);
   const direction = thesis ? directionFromThesis(thesis.direction) : "down";
-  let asset = thesis?.asset?.trim() || "";
-  if ((!asset || asset === "—") && row.body && typeof row.body === "object" && !Array.isArray(row.body)) {
-    const body = row.body as Record<string, unknown>;
-    const fromBody = String(body.target_asset ?? body.targetAsset ?? "").trim();
-    if (fromBody) asset = fromBody;
-  }
-  if (!asset) asset = "—";
+  const asset = thesis?.asset?.trim() || "—";
+  const targetAssetSymbol = resolveThesisMapSymbol({
+    assetLabel: asset,
+    body: row.body,
+    affects,
+    title: row.micro_label?.trim() || thesis?.title || row.title,
+    statement: thesis?.thesisStatement || thesis?.oneLineSummary || row.title,
+    slug: slug,
+  });
   const conviction = triple ? thesisConvictionPctFromDbTriple(triple) : thesis?.probability ?? 50;
   let pricedInEstimate: number | undefined =
     row.priced_in_estimate != null && Number.isFinite(row.priced_in_estimate)
@@ -178,8 +181,7 @@ export function buildCausalThesis(row: ThesisRow, affects: CausalAffect[]): Caus
     slug,
     title: row.micro_label?.trim() || thesis?.title || row.title,
     statement: thesis?.thesisStatement || thesis?.oneLineSummary || row.title,
-    targetAssetSymbol:
-      asset === "—" ? "—" : asset.length > 12 ? asset.split(/[\s—–-]/)[0]! : asset,
+    targetAssetSymbol,
     direction,
     conviction,
     mispricingScore: thesisMispricingScore(row, slug),

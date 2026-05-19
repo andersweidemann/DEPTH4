@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createPipelineLlmClient } from "@/lib/ai/thesis-pipeline-llm";
 import { fetchMarketDataForPipeline, fetchPipelineAssets } from "@/lib/ai/thesis-pipeline-context";
 import { logPipelineStage, step2_incentiveAnalysis, step3_causalPropagation } from "@/lib/ai/thesis-pipeline";
+import { updateTradeLevelsFromNews } from "@/lib/ai/thesis-pipeline-trade-update";
 import type { DetectedEvent, PipelineNewsItem } from "@/lib/ai/thesis-pipeline-types";
 import { detectAutoResolution } from "@/lib/thesis/resolution-detector";
 import { incentiveAnalysisToDbJson } from "@/lib/thesis/incentive-analysis";
@@ -82,6 +83,7 @@ async function loadThesisForContinuousUpdate(
   event: DetectedEvent | null;
   targetSymbol: string;
   scenario: { base: number; bull: number; bear: number };
+  body: Record<string, unknown>;
 } | null> {
   const { data, error } = await admin
     .from("theses")
@@ -155,7 +157,12 @@ async function loadThesisForContinuousUpdate(
     bear: Math.round(Number(sp?.bear ?? 25)),
   };
 
-  return { thesis, event, targetSymbol, scenario };
+  const bodyRecord =
+    row.body && typeof row.body === "object" && !Array.isArray(row.body)
+      ? ({ ...(row.body as Record<string, unknown>) } as Record<string, unknown>)
+      : {};
+
+  return { thesis, event, targetSymbol, scenario, body: bodyRecord };
 }
 
 /**
@@ -168,7 +175,7 @@ export async function onNewNewsItem(
 ): Promise<{ ok: boolean; reason?: string }> {
   const loaded = await loadThesisForContinuousUpdate(admin, thesisSlug);
   if (!loaded) return { ok: false, reason: "thesis_not_found" };
-  const { thesis, event, targetSymbol, scenario } = loaded;
+  const { thesis, event, targetSymbol, scenario, body: thesisBody } = loaded;
 
   if (!event) return { ok: false, reason: "no_linked_event" };
 
@@ -241,6 +248,18 @@ export async function onNewNewsItem(
   );
 
   if (!upd.ok) return { ok: false, reason: upd.error };
+
+  await updateTradeLevelsFromNews(
+    admin,
+    thesis.id,
+    thesis.slug,
+    thesis.title,
+    targetSymbol,
+    thesis.direction,
+    thesisBody,
+    newsItem,
+    llm,
+  ).catch(() => ({ updated: false }));
 
   logPipelineStage("continuous_update", {
     thesis_id: thesis.id,

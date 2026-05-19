@@ -5,6 +5,10 @@ import {
   formatEntryZoneLabel,
   formatTradePlanPrice,
 } from "@/lib/thesis-engine-v2/live-trade-plan";
+import {
+  assetSymbolFromThesis,
+  storedTradePlanFromThesis,
+} from "@/lib/thesis-engine-v2/stored-trade-plan";
 import { StatusBadge } from "./StatusBadge";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -18,7 +22,7 @@ const PENDING_TGT = "Pending live plan";
 const HELPER_LIVE =
   "Live levels from DEPTH4 — see Trade above for how to execute when your setup fires.";
 const HELPER_PENDING =
-  "Estimated levels appear when the thesis is Ready or Active with a directional setup and live quotes load — see Trade above for context.";
+  "Trade plan will appear when trigger conditions are met — see Trade above for context.";
 
 type TradePlanApiOk = {
   ok: true;
@@ -43,11 +47,13 @@ export function TradePlanCard({
   publicMode?: boolean;
 }) {
   const reader = variant === "reader";
+  const stored = storedTradePlanFromThesis(thesis);
+  const assetSymbol = assetSymbolFromThesis(thesis);
   const [plan, setPlan] = useState<LiveTradePlan | null>(null);
   const pathConviction = canonicalConvictionPercentFromEngineThesis(thesis);
 
   useEffect(() => {
-    if (publicMode) return;
+    if (publicMode || stored) return;
     let cancelled = false;
     const run = async () => {
       try {
@@ -78,7 +84,47 @@ export function TradePlanCard({
       cancelled = true;
       window.clearInterval(t);
     };
-  }, [publicMode, thesis.asset, thesis.direction, thesis.status, pathConviction]);
+  }, [publicMode, stored, thesis.asset, thesis.direction, thesis.status, pathConviction]);
+
+  if (stored) {
+    return (
+      <section
+        className={cn(
+          reader ? "border-t border-white/[0.06] pt-8" : "rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4",
+        )}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            Trade plan · {assetSymbol !== "—" ? assetSymbol : thesis.asset}
+          </h2>
+          {!reader ? <StatusBadge status={thesis.status} /> : null}
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Entry</p>
+            <p className="text-[13px] font-medium text-zinc-200">{stored.entry_zone}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Stop</p>
+            <p className="text-[13px] font-medium text-red-400">{stored.stop}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Target 1</p>
+            <p className="text-[13px] font-medium text-emerald-400">{stored.target1}</p>
+          </div>
+          {stored.target2 ? (
+            <div>
+              <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Target 2</p>
+              <p className="text-[13px] font-medium text-emerald-300">{stored.target2}</p>
+            </div>
+          ) : null}
+        </div>
+        <p className="mt-3 text-[9px] text-zinc-600">
+          Updated as thesis evolves. Stop may tighten on confirming news.
+        </p>
+      </section>
+    );
+  }
 
   const blocked = plan?.conviction_blocked === true;
   const showLive = plan != null && levelsComplete(plan) && !blocked;
@@ -97,10 +143,25 @@ export function TradePlanCard({
   const t2Display =
     showLive && plan && plan.target2 != null ? formatTradePlanPrice(plan.target2) : blocked ? "—" : PENDING_TGT;
 
+  if (!showLive && (entryDisplay === PENDING_ENTRY || entryDisplay === "Awaiting live setup")) {
+    return (
+      <section
+        className={cn(
+          reader ? "border-t border-white/[0.06] pt-8" : "rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4",
+        )}
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Trade plan</p>
+        <p className="mt-2 text-[12px] text-zinc-400">Trade plan will appear when trigger conditions are met.</p>
+      </section>
+    );
+  }
+
   return (
     <section className={cn(reader ? "border-t border-white/[0.06] pt-8" : "rounded-none bg-zinc-900/25 p-4")}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Trade plan</h2>
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+          Trade plan{assetSymbol !== "—" ? ` · ${assetSymbol}` : ""}
+        </h2>
         {!reader ? <StatusBadge status={thesis.status} /> : null}
       </div>
       {!reader ? <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">{helperText}</p> : null}

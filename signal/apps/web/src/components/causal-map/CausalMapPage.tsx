@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  countVisibleConflicts,
   filterCluster,
-  filterThesis,
+  filterIsolatedTheses,
+  isolatedConflictWarningsFor,
   thesisInConflictWarnings,
 } from "@/lib/causal-map/causal-map-filters";
 import { deriveClusterTitle } from "@/lib/causal-map/derive-cluster-title";
@@ -51,6 +53,27 @@ function ToggleButton({
       {label}
     </button>
   );
+}
+
+function minutesSince(iso: string): number {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
+  return (Date.now() - t) / 60_000;
+}
+
+function formatTimeAgo(iso: string): string {
+  const mins = minutesSince(iso);
+  if (!Number.isFinite(mins)) return "unknown";
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${Math.round(mins)}m ago`;
+  const hrs = mins / 60;
+  if (hrs < 24) return `${Math.round(hrs)}h ago`;
+  return new Date(iso).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function sortThesesByEdge(cluster: ThesisCluster): ThesisCluster {
@@ -122,10 +145,20 @@ export function CausalMapPage() {
 
   const visibleIsolated = useMemo(() => {
     const isolated = graph?.isolated ?? [];
-    return isolated
-      .filter((t) => filterThesis(t, hidePricedIn))
-      .sort((a, b) => b.mispricingScore - a.mispricingScore);
-  }, [graph?.isolated, hidePricedIn]);
+    return filterIsolatedTheses(isolated, hidePricedIn, showConflicts).sort(
+      (a, b) => b.mispricingScore - a.mispricingScore,
+    );
+  }, [graph?.isolated, hidePricedIn, showConflicts]);
+
+  const isolatedConflicts = useMemo(
+    () => isolatedConflictWarningsFor(graph?.isolated ?? []),
+    [graph?.isolated],
+  );
+
+  const visibleConflictCount = useMemo(() => {
+    if (!showConflicts || !graph) return 0;
+    return countVisibleConflicts(graph.clusters, graph.isolated, hidePricedIn, true);
+  }, [graph, hidePricedIn, showConflicts]);
 
   if (loading) {
     return (
@@ -186,6 +219,16 @@ export function CausalMapPage() {
         </div>
       </div>
 
+      {showConflicts && visibleConflictCount === 0 ? (
+        <div className="mb-6 rounded-md border border-amber-500/20 bg-amber-500/5 p-3 text-center">
+          <p className="text-[11px] text-amber-400">No conflicts detected among visible theses</p>
+          <p className="mt-1 text-[10px] text-zinc-500">
+            Conflicts appear when theses in the same event cluster (or isolated group on the same asset) pull in opposite
+            directions
+          </p>
+        </div>
+      ) : null}
+
       {nothingVisible ? (
         <p className="mt-10 text-[13px] text-zinc-500">
           No theses match the current filters. Try turning off &quot;Hide priced-in&quot; or link theses to events in
@@ -225,6 +268,7 @@ export function CausalMapPage() {
                         setExpandedThesis((cur) => (cur === thesis.slug ? null : thesis.slug))
                       }
                       hidePricedIn={hidePricedIn}
+                      showConflicts={showConflicts}
                       hasConflict={thesisInConflictWarnings(thesis, cluster.conflictWarnings)}
                     />
                   ))}
@@ -249,16 +293,32 @@ export function CausalMapPage() {
                 Isolated theses
               </p>
               <div className="space-y-2">
-                {visibleIsolated.map((thesis) => (
-                  <ThesisMapCard
-                    key={thesis.slug}
-                    thesis={thesis}
-                    rootEvent={ISOLATED_EVENT}
-                    isExpanded={expandedThesis === thesis.slug}
-                    onToggle={() => setExpandedThesis((cur) => (cur === thesis.slug ? null : thesis.slug))}
-                    hidePricedIn={hidePricedIn}
-                  />
-                ))}
+                {isolatedConflicts.length > 0 ? (
+                  <div className="mb-2 space-y-1 rounded-md border border-red-500/20 bg-red-500/5 p-2">
+                    {isolatedConflicts.map((w, i) => (
+                      <p key={`iso-${w.thesisA}-${i}`} className="text-[11px] text-red-400/80">
+                        ⚠ {w.conflict}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                {visibleIsolated.map((thesis) => {
+                  const isoConflict = isolatedConflicts.some(
+                    (w) => w.thesisA === thesis.title || w.thesisB === thesis.title,
+                  );
+                  return (
+                    <ThesisMapCard
+                      key={thesis.slug}
+                      thesis={thesis}
+                      rootEvent={ISOLATED_EVENT}
+                      isExpanded={expandedThesis === thesis.slug}
+                      onToggle={() => setExpandedThesis((cur) => (cur === thesis.slug ? null : thesis.slug))}
+                      hidePricedIn={hidePricedIn}
+                      showConflicts={showConflicts}
+                      hasConflict={isoConflict}
+                    />
+                  );
+                })}
               </div>
             </section>
           ) : null}
@@ -266,16 +326,24 @@ export function CausalMapPage() {
       )}
 
       {graph?.lastUpdated ? (
-        <p className="mt-10 border-t border-white/[0.06] pt-6 text-[11px] leading-relaxed text-zinc-600">
-          Live causal graph from Supabase. Last updated{" "}
-          {new Date(graph.lastUpdated).toLocaleString("en-US", {
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-          .
-        </p>
+        <div className="mt-10 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-6 text-[10px] text-zinc-600">
+          <span>Live causal graph from Supabase</span>
+          <span className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                minutesSince(graph.lastUpdated) < 5
+                  ? "bg-emerald-500"
+                  : minutesSince(graph.lastUpdated) < 60
+                    ? "bg-amber-500"
+                    : "bg-red-500",
+              )}
+              aria-hidden
+            />
+            Last updated {formatTimeAgo(graph.lastUpdated)}
+            {minutesSince(graph.lastUpdated) < 5 ? " · Live" : null}
+          </span>
+        </div>
       ) : null}
     </div>
   );

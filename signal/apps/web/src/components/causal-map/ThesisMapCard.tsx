@@ -15,6 +15,7 @@ export interface ThesisMapCardProps {
   onToggle: () => void;
   hidePricedIn?: boolean;
   hasConflict?: boolean;
+  showConflicts?: boolean;
 }
 
 function formatHorizon(horizon: string): string {
@@ -31,19 +32,22 @@ export function ThesisMapCard({
   onToggle,
   hidePricedIn = false,
   hasConflict = false,
+  showConflicts = false,
 }: ThesisMapCardProps) {
-  const mispricingTone =
-    thesis.mispricingScore >= 70
-      ? "bg-[#E8473F]/10 text-[#E8473F]"
-      : thesis.mispricingScore >= 40
-        ? "bg-zinc-500/10 text-zinc-400"
-        : "bg-zinc-800 text-zinc-600";
+  const qualityScore = thesis.qualityScore ?? 0;
+  const conviction = thesis.conviction;
+  const mispricingScore = thesis.mispricingScore;
+  const conflictActive = showConflicts && hasConflict;
 
   return (
     <article
       className={cn(
         "overflow-hidden rounded-lg border bg-zinc-900/30",
-        hasConflict ? "border-amber-500/40 ring-1 ring-red-500/20" : "border-white/[0.08]",
+        conflictActive
+          ? "border-red-500/30 bg-red-500/[0.04] ring-1 ring-red-500/20"
+          : hasConflict
+            ? "border-amber-500/40"
+            : "border-white/[0.08]",
       )}
     >
       <button
@@ -66,26 +70,40 @@ export function ThesisMapCard({
 
         <span className="flex-1 truncate text-[12px] text-zinc-300">{thesis.title}</span>
 
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-2">
           {thesis.qualityScore != null ? (
             <span
               className={cn(
                 "rounded-full px-1.5 py-0.5 text-[10px] font-medium tabular-nums",
-                thesis.qualityScore >= 65
+                qualityScore >= 70
                   ? "bg-emerald-500/10 text-emerald-400"
-                  : thesis.qualityScore >= 45
-                    ? "bg-[#E8473F]/10 text-[#E8473F]"
-                    : thesis.qualityScore >= 25
-                      ? "bg-zinc-500/10 text-zinc-400"
-                      : "bg-red-500/10 text-red-400",
+                  : qualityScore >= 45
+                    ? "bg-amber-500/10 text-amber-400"
+                    : "bg-zinc-800 text-zinc-500",
               )}
             >
-              Q{thesis.qualityScore}
+              Q{qualityScore}
             </span>
           ) : null}
-          <span className="text-[10px] tabular-nums text-zinc-400">{thesis.conviction}% conv</span>
-          <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums", mispricingTone)}>
-            Edge {thesis.mispricingScore}/100
+
+          <div className="group relative">
+            <span className="text-[11px] tabular-nums text-zinc-400">{conviction}%</span>
+            <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 w-28 -translate-x-1/2 rounded-md border border-white/[0.08] bg-zinc-900 p-1.5 text-[9px] leading-snug text-zinc-500 opacity-0 transition-opacity group-hover:opacity-100">
+              {conviction}% conviction — probability thesis is correct
+            </div>
+          </div>
+
+          <span
+            className={cn(
+              "text-[11px] font-medium tabular-nums",
+              mispricingScore >= 60
+                ? "text-amber-400"
+                : mispricingScore >= 30
+                  ? "text-zinc-400"
+                  : "text-zinc-600",
+            )}
+          >
+            Edge {mispricingScore}/100
           </span>
         </div>
 
@@ -98,6 +116,12 @@ export function ThesisMapCard({
           aria-hidden
         />
       </button>
+
+      {conflictActive ? (
+        <p className="border-t border-red-500/20 px-3 py-1.5 text-[9px] text-red-400">
+          ⚠ Conflicts with another thesis in this cluster
+        </p>
+      ) : null}
 
       {isExpanded ? (
         <div className="border-t border-white/[0.06] p-3">

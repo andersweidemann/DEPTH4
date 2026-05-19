@@ -1,3 +1,7 @@
+import {
+  computeIsolatedConflictWarnings,
+  thesisIdsInIsolatedConflicts,
+} from "@/lib/causal-map/resolve-thesis-map-symbol";
 import type {
   CausalAffect,
   CausalThesis,
@@ -64,6 +68,38 @@ export function filterCluster(
     theses,
     impliedEffects: cluster.impliedEffects.filter((e) => filterImpliedEffect(e, hidePricedIn)),
   };
+}
+
+export function filterIsolatedTheses(
+  theses: CausalThesis[],
+  hidePricedIn: boolean,
+  showConflictsOnly = false,
+): CausalThesis[] {
+  const filtered = theses.filter((t) => filterThesis(t, hidePricedIn));
+  if (!showConflictsOnly) return filtered;
+
+  const conflictIds = thesisIdsInIsolatedConflicts(filtered);
+  return filtered.filter((t) => conflictIds.has(t.id));
+}
+
+export function countVisibleConflicts(
+  clusters: ThesisCluster[],
+  isolated: CausalThesis[],
+  hidePricedIn: boolean,
+  showConflictsOnly: boolean,
+): number {
+  if (!showConflictsOnly) return 0;
+  let n = 0;
+  for (const c of clusters) {
+    const fc = filterCluster(c, hidePricedIn, true);
+    n += fc.theses.length;
+  }
+  n += filterIsolatedTheses(isolated, hidePricedIn, true).length;
+  return n;
+}
+
+export function isolatedConflictWarningsFor(theses: CausalThesis[]): ConflictWarning[] {
+  return computeIsolatedConflictWarnings(theses);
 }
 
 export function clusterHasVisibleContent(

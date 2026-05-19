@@ -121,8 +121,17 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
     target2FromTradePlan = str(tp.target2);
   }
 
+  const targetAsset = str(o.target_asset ?? o.targetAsset);
+  const assetFromBody =
+    targetAsset && (thesis.asset === "—" || !thesis.asset?.trim())
+      ? targetAsset.includes("—")
+        ? targetAsset
+        : `${targetAsset} — ${targetAsset}`
+      : undefined;
+
   const next: Thesis = {
     ...thesis,
+    ...(assetFromBody ? { asset: assetFromBody } : {}),
     ...(depthBook ? { thesisDepthBook: depthBook } : {}),
     ...(structuredAnatomy ? { structuredAnatomy } : {}),
     ...(str(o.one_line_summary) !== undefined ? { oneLineSummary: str(o.one_line_summary) } : {}),
