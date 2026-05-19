@@ -8,6 +8,7 @@ import type {
   AffectedAssetPropagation,
   CausalPropagationResult,
   DetectedEvent,
+  PipelineDeepReasoning,
   PipelineNewsItem,
   ThesisCandidate,
 } from "@/lib/ai/thesis-pipeline-types";
@@ -103,6 +104,11 @@ const GOLD_SAFE_HAVEN_SYMBOLS = new Set([
 const DE_ESCALATION_EVENT_RE =
   /\b(ceasefire|de-escalat|tensions?\s+ease|easing tensions|peace talk|diplomatic progress|military activity drop|conflict resolution|war to continue)\b/i;
 
+const OIL_ENERGY_SYMBOLS = new Set(["CL.1", "CL", "XLE", "USO", "BRENT", "BZ", "UCO", "OIL"]);
+
+const PEACE_DE_ESCALATION_EVENT_RE =
+  /\b(peace|ceasefire|de-escalat|tensions?\s+ease|easing tensions|diplomatic)\b/i;
+
 /** Small models often tag gold UP on “reduced tensions” — safe-haven premium fades on de-escalation. */
 export function reconcileSafeHavenForDeescalation(
   eventTitle: string,
@@ -131,6 +137,36 @@ export function reconcileSafeHavenForDeescalation(
     );
   if (explicitHavenBid) return direction;
   return "down";
+}
+
+/** Peace / de-escalation unwinds supply-disruption premium — oil and energy should fall, not rise. */
+export function reconcileOilForPeaceDeescalation(
+  eventTitle: string,
+  eventDescription: string,
+  eventCategory: EventCategory,
+  symbol: string,
+  reasoning: string,
+  direction: "up" | "down" | "neutral",
+): { direction: "up" | "down" | "neutral"; reasoning: string } {
+  const sym = symbol.toUpperCase();
+  if (!OIL_ENERGY_SYMBOLS.has(sym) && !sym.includes("OIL") && sym !== "XLE") {
+    return { direction, reasoning };
+  }
+  const eventText = `${eventTitle} ${eventDescription}`.toLowerCase();
+  const isPeace =
+    eventCategory === "geopolitics" &&
+    (PEACE_DE_ESCALATION_EVENT_RE.test(eventText) || DE_ESCALATION_EVENT_RE.test(eventText));
+  if (!isPeace || direction !== "up") return { direction, reasoning };
+
+  logPipelineStage("oil_direction_corrected", { symbol: sym, event: eventTitle });
+  const patched = reasoning.replace(
+    /\b(moves? up|typically moves? up|strengthens?|rises?|rally|rallies)\b/gi,
+    "falls as supply-disruption risk premium unwinds",
+  );
+  return {
+    direction: "down",
+    reasoning: patched !== reasoning ? patched : `${reasoning} Supply-disruption relief reprices energy lower.`,
+  };
 }
 
 export function selectThesisMispricingTarget(
@@ -431,7 +467,8 @@ export async function step3_causalPropagation(
     "",
     "For EACH asset: direction, strength 0-100, priced_in_percent 0-100, time_depth, asset_depth, reasoning.",
     "direction MUST match reasoning: if the asset price falls use down; if it rises use up (never tag up when reasoning says fall/decrease).",
-    "On geopolitical de-escalation / ceasefire: safe-haven assets (GC.1, XAUUSD, GLD) typically move DOWN as risk premium fades; oil (CL) often moves DOWN on supply-disruption relief.",
+    "On geopolitical de-escalation / ceasefire: safe-haven assets (GC.1, XAUUSD, GLD) typically move DOWN as risk premium fades.",
+    "For energy/oil (CL.1, XLE, USO, Brent): peace or Middle East de-escalation REDUCES oil prices — supply-disruption risk premium UNWINDS. Direction must be DOWN, not UP.",
     "mispricing_score = strength - priced_in_percent.",
     "",
     'Output JSON: {"root_asset":{"symbol":"..."},"affected_assets":[{"symbol":"...","direction":"up|down|neutral",',
@@ -461,14 +498,24 @@ export async function step3_causalPropagation(
       100,
     );
     const declared = (str(row.direction) as "up" | "down" | "neutral") || "neutral";
-    const reasoning = str(row.reasoning) || "Causal link from macro propagation scan.";
-    const direction = reconcileSafeHavenForDeescalation(
+    let reasoning = str(row.reasoning) || "Causal link from macro propagation scan.";
+    let direction = reconcileSafeHavenForDeescalation(
       detectedEvent.title,
       detectedEvent.description,
       symbol,
       reasoning,
       reconcileAffectDirection(reasoning, declared),
     );
+    const oilFix = reconcileOilForPeaceDeescalation(
+      detectedEvent.title,
+      detectedEvent.description,
+      detectedEvent.category,
+      symbol,
+      reasoning,
+      direction,
+    );
+    direction = oilFix.direction;
+    reasoning = oilFix.reasoning;
 
     affectedAssets.push({
       asset,
@@ -491,6 +538,51 @@ export async function step3_causalPropagation(
   const highest = selectThesisMispricingTarget(affectedAssets);
 
   return { rootAsset, affectedAssets, highestMispricing: highest };
+}
+
+function parseDeepReasoningFromLlm(raw: unknown): PipelineDeepReasoning | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const d3 = str(o.D3 ?? o.L3 ?? o.d3 ?? o.l3);
+  const d4 = str(o.D4 ?? o.L4 ?? o.d4 ?? o.l4);
+  if (!d3 || !d4) return null;
+  return { D3: d3, D4: d4 };
+}
+
+/** Step 3b — dedicated D3/D4 portfolio mechanics and regime reasoning (cheap Kimi tier). */
+export async function step3b_generateDeepReasoning(
+  detectedEvent: DetectedEvent,
+  incentiveAnalysis: IncentiveAnalysis,
+  propagation: CausalPropagationResult,
+  llm: PipelineLlmClient,
+): Promise<PipelineDeepReasoning | null> {
+  const primary = propagation.highestMispricing;
+  if (!primary) return null;
+
+  const prompt = [
+    "You are DEPTH4's deep reasoning engine. Given this macro thesis, write D3 (month) and D4 (quarter) depth reasoning.",
+    "",
+    `Event: ${detectedEvent.title}`,
+    `Incentive: ${incentiveAnalysis.actor} → ${incentiveAnalysis.most_likely_action}`,
+    `Primary thesis: ${primary.reasoning}`,
+    "",
+    "D3 (This month — structural shifts):",
+    "Write 2-3 sentences about portfolio rebalancing, hedge unwinds, or intermediate effects over weeks. How do institutional flows shift? What hedges get reduced? How does the market risk model change?",
+    "",
+    "D4 (This quarter — regime change):",
+    "Write 2-3 sentences about the fundamental regime shift. How does this change the macro backdrop next quarter? What tail risks are permanently repriced? How does this affect other asset classes in the background?",
+    "",
+    "Rules:",
+    "- D3 must explain PORTFOLIO MECHANICS (how positions shift)",
+    "- D4 must explain REGIME CHANGE (how the macro backdrop shifts)",
+    "- Both must be specific, not generic",
+    "- Do not repeat D1/D2 reasoning from the propagation step",
+    "",
+    'Output JSON only: {"D3":"...","D4":"..."}',
+  ].join("\n");
+
+  const raw = await llm.completeJson(prompt, 700);
+  return parseDeepReasoningFromLlm(raw);
 }
 
 export async function step4_generateThesis(
@@ -536,11 +628,14 @@ export async function step4_generateThesis(
   const conviction = clamp(Math.round(num(o.conviction, 72)), 1, 99);
   const finalConviction = conviction === 50 ? 68 : conviction;
 
+  const targetAssetSymbol =
+    target.asset.symbol?.trim() || propagation.highestMispricing?.asset.symbol?.trim() || "XAUUSD";
+
   let candidate: ThesisCandidate = {
     title,
     statement,
     direction,
-    targetAssetSymbol: target.asset.symbol,
+    targetAssetSymbol,
     targetAssetName: target.asset.name,
     conviction: finalConviction,
     mispricingScore: target.mispricingScore,

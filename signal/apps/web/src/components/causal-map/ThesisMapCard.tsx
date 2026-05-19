@@ -14,6 +14,7 @@ export interface ThesisMapCardProps {
   isExpanded: boolean;
   onToggle: () => void;
   hidePricedIn?: boolean;
+  hasConflict?: boolean;
 }
 
 function formatHorizon(horizon: string): string {
@@ -29,6 +30,7 @@ export function ThesisMapCard({
   isExpanded,
   onToggle,
   hidePricedIn = false,
+  hasConflict = false,
 }: ThesisMapCardProps) {
   const mispricingTone =
     thesis.mispricingScore >= 70
@@ -38,7 +40,12 @@ export function ThesisMapCard({
         : "bg-zinc-800 text-zinc-600";
 
   return (
-    <article className="overflow-hidden rounded-lg border border-white/[0.08] bg-zinc-900/30">
+    <article
+      className={cn(
+        "overflow-hidden rounded-lg border bg-zinc-900/30",
+        hasConflict ? "border-amber-500/40 ring-1 ring-red-500/20" : "border-white/[0.08]",
+      )}
+    >
       <button
         type="button"
         onClick={onToggle}

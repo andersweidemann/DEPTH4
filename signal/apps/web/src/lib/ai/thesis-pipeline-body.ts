@@ -60,7 +60,10 @@ export type PipelineBodyResolutionPaths = {
 export function buildPipelineBodyPayload(
   thesis: Thesis,
   candidate: ThesisCandidate,
+  options?: { pricedInPercent?: number | null },
 ): Record<string, unknown> {
+  const targetSymbol =
+    candidate.targetAssetSymbol?.trim() || thesis.asset?.split(/[\s—–-]/)[0]?.trim() || "XAUUSD";
   const base = thesisToDbBodyPayload(thesis);
   return {
     ...base,
@@ -69,6 +72,10 @@ export function buildPipelineBodyPayload(
       stop: candidate.tradePlan.stop,
       target1: candidate.tradePlan.target1,
       target2: candidate.tradePlan.target2 || null,
+      pricedInEstimate:
+        options?.pricedInPercent != null && Number.isFinite(options.pricedInPercent)
+          ? options.pricedInPercent
+          : null,
     },
     evidence: candidate.evidence.map((e) => ({
       date: e.date,
@@ -84,7 +91,15 @@ export function buildPipelineBodyPayload(
     direction: candidate.direction,
     time_horizon: candidate.timeHorizon,
     conviction: candidate.conviction,
-    target_asset: candidate.targetAssetSymbol,
+    target_asset: targetSymbol,
+    ...(candidate.deepReasoning
+      ? {
+          deepReasoning: {
+            D3: candidate.deepReasoning.D3,
+            D4: candidate.deepReasoning.D4,
+          },
+        }
+      : {}),
   };
 }
 

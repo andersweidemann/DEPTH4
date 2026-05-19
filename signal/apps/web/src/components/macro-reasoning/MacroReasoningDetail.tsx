@@ -224,7 +224,7 @@ export function MacroReasoningDetail({
 
       <section aria-labelledby="reasoning-chain-heading">
         <h2 id="reasoning-chain-heading" className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-          Four-level causal chain
+          Four-depth causal chain
         </h2>
         {levelBlocks ? (
           <ol className="mt-4 space-y-4">

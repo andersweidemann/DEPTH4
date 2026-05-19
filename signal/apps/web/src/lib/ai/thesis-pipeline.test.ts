@@ -3,6 +3,7 @@ import {
   pickHighestMispricing,
   qualityGateInputFromPipelineCandidate,
   reconcileAffectDirection,
+  reconcileOilForPeaceDeescalation,
   reconcileSafeHavenForDeescalation,
   selectThesisMispricingTarget,
   shouldStopForIncentiveConfidence,
@@ -26,6 +27,19 @@ const incentive: IncentiveAnalysis = {
 };
 
 describe("thesis intelligence pipeline", () => {
+  it("forces oil down on Middle East peace (supply-disruption relief)", () => {
+    const fixed = reconcileOilForPeaceDeescalation(
+      "Iran peace talks advance",
+      "Ceasefire framework discussed",
+      "geopolitics",
+      "CL.1",
+      "Supply-disruption relief typically moves CL.1 up on easing risk premium",
+      "up",
+    );
+    expect(fixed.direction).toBe("down");
+    expect(fixed.reasoning.toLowerCase()).toMatch(/fall|unwind|lower/);
+  });
+
   it("forces gold down on de-escalation when reasoning cites easing tensions", () => {
     expect(
       reconcileSafeHavenForDeescalation(

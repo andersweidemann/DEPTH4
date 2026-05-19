@@ -18,6 +18,7 @@ export interface PipelineContext {
   detectedEvent?: DetectedEvent;
   incentiveAnalysis?: IncentiveAnalysis;
   causalPropagation?: CausalPropagationResult;
+  deepReasoning?: PipelineDeepReasoning;
   candidateThesis?: ThesisCandidate;
 
   finalThesis?: CausalThesis;
@@ -63,6 +64,11 @@ export interface ResolutionPaths {
   broken: string;
 }
 
+export type PipelineDeepReasoning = {
+  D3: string;
+  D4: string;
+};
+
 export interface ThesisCandidate {
   title: string;
   statement: string;
@@ -75,6 +81,7 @@ export interface ThesisCandidate {
   tradePlan: TradePlan;
   evidence: Array<{ date: string; source: string; excerpt: string; url?: string | null }>;
   resolutionPaths: ResolutionPaths;
+  deepReasoning?: PipelineDeepReasoning;
 }
 
 export type PipelineFailureReason =

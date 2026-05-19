@@ -99,6 +99,15 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
       })
     : null;
 
+  const drRaw = o.deepReasoning ?? o.deep_reasoning;
+  let deepReasoning: Thesis["deepReasoning"] | undefined = thesis.deepReasoning;
+  if (drRaw && typeof drRaw === "object" && !Array.isArray(drRaw)) {
+    const dr = drRaw as Record<string, unknown>;
+    const D3 = str(dr.D3 ?? dr.d3 ?? dr.L3 ?? dr.l3);
+    const D4 = str(dr.D4 ?? dr.d4 ?? dr.L4 ?? dr.l4);
+    if (D3 && D4) deepReasoning = { D3, D4 };
+  }
+
   const tpRaw = o.tradePlan ?? o.trade_plan;
   let entryFromTradePlan: string | undefined;
   let stopFromTradePlan: string | undefined;
@@ -120,6 +129,7 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
     ...(str(o.thesis_statement) !== undefined ? { thesisStatement: str(o.thesis_statement)! } : {}),
     ...(str(o.why_thesis_exists) !== undefined ? { whyThesisExists: str(o.why_thesis_exists) } : {}),
     ...(thesisCascade !== undefined ? { thesisCascade } : {}),
+    ...(deepReasoning ? { deepReasoning } : {}),
     ...(str(o.hidden_driver) !== undefined ? { hiddenDriver: str(o.hidden_driver)! } : {}),
     ...(str(o.likely_path) !== undefined ? { likelyPath: str(o.likely_path)! } : {}),
     ...(str(o.market_misread) !== undefined ? { marketMisread: str(o.market_misread) ?? "" } : {}),

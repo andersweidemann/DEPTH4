@@ -15,7 +15,7 @@ const DEFAULT_SNAPSHOT: Omit<ThesisShareSnapshot, "slug"> = {
   description:
     "DEPTH4 maps macro headlines across four future states and surfaces where the market is still mispriced — tradable theses, not headline rewrites.",
   imageHeadline: "Macro intelligence thesis",
-  imageSubline: "Four-level chain · mispricing · trade expression",
+  imageSubline: "Four-depth chain · mispricing · trade expression",
 };
 
 function mergeHeaderIntoThesis(thesis: Thesis, header: {

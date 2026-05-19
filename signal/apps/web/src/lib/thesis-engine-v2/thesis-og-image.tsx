@@ -13,7 +13,7 @@ const DEFAULT_SNAPSHOT: ThesisShareSnapshot = {
   ogTitle: "DEPTH4 macro thesis",
   description: "Tradable macro theses with cause, path, timing, and mispricing.",
   imageHeadline: "DEPTH4",
-  imageSubline: "Macro intelligence · four-level chain · mispricing",
+  imageSubline: "Macro intelligence · four-depth chain · mispricing",
 };
 
 export function renderThesisOgImage(snap: ThesisShareSnapshot = DEFAULT_SNAPSHOT) {

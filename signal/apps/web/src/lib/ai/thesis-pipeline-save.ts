@@ -68,6 +68,8 @@ function buildEngineThesisFromCandidate(input: {
   incentive: IncentiveAnalysis;
 }): Thesis {
   const { candidate, detected, incentive } = input;
+  const targetSymbol =
+    candidate.targetAssetSymbol?.trim() || candidate.targetAssetName?.split(/\s/)[0] || "XAUUSD";
   const direction: Thesis["direction"] = candidate.direction === "up" ? "long" : "short";
   const now = new Date().toISOString();
   const catalysts = incentive.catalyst_events.slice(0, 3).join("; ");
@@ -78,7 +80,7 @@ function buildEngineThesisFromCandidate(input: {
     title: candidate.title.slice(0, 160),
     thesisStatement: candidate.statement,
     microLabel: "AI · pipeline",
-    asset: `${candidate.targetAssetSymbol} — ${candidate.targetAssetName}`,
+    asset: `${targetSymbol} — ${candidate.targetAssetName || targetSymbol}`,
     direction,
     probability: candidate.conviction,
     status: "forming" as ThesisStatus,
@@ -88,7 +90,7 @@ function buildEngineThesisFromCandidate(input: {
     hiddenDriver: `${incentive.actor} must ${incentive.required_action} because ${incentive.constraint}.`,
     likelyPath: incentive.most_likely_action,
     marketMisread: candidate.statement,
-    tradeExpression: `${direction === "long" ? "Long" : "Short"} ${candidate.targetAssetSymbol} — ${candidate.tradePlan.entryZone}`,
+    tradeExpression: `${direction === "long" ? "Long" : "Short"} ${targetSymbol} — ${candidate.tradePlan.entryZone}`,
     whyNow: detected.description,
     whatsUnpriced: `Edge ${candidate.mispricingScore}/100 after ${candidate.mispricingScore}% strength vs ${100 - candidate.mispricingScore}% priced-in estimate.`,
     trigger: catalysts || "Watch catalyst headlines that confirm the incentive path.",
@@ -133,9 +135,10 @@ function buildEngineThesisFromCandidate(input: {
     thesisCascade: {
       l1Confirmed: detected.description.slice(0, 400),
       l2ThisQuarter: incentive.most_likely_action.slice(0, 400),
-      l3ThisYear: candidate.resolutionPaths.clean.slice(0, 400),
-      l4Backdrop2026: incentive.reasoning.slice(0, 400),
+      l3ThisYear: (candidate.deepReasoning?.D3 ?? candidate.resolutionPaths.clean).slice(0, 600),
+      l4Backdrop2026: (candidate.deepReasoning?.D4 ?? incentive.reasoning).slice(0, 600),
     },
+    ...(candidate.deepReasoning ? { deepReasoning: candidate.deepReasoning } : {}),
   };
 
   return normalizeThesisNarrativeFields(shell);
@@ -186,7 +189,9 @@ export async function step6_savePipelineThesis(
     slug: thesis.slug,
     owner_user_id: null,
     updated_at: nowIso,
-    body: buildPipelineBodyPayload(thesis, candidate),
+    body: buildPipelineBodyPayload(thesis, candidate, {
+      pricedInPercent: propagation.highestMispricing?.pricedInPercent ?? null,
+    }),
     created_at: nowIso,
     incentive_analysis: incentiveAnalysisToDbJson(incentiveAnalysis),
     event_id: event.id,

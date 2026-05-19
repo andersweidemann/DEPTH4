@@ -1,7 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { filterCluster, filterThesis } from "@/lib/causal-map/causal-map-filters";
+import {
+  filterCluster,
+  filterThesis,
+  thesisInConflictWarnings,
+} from "@/lib/causal-map/causal-map-filters";
 import { deriveClusterTitle } from "@/lib/causal-map/derive-cluster-title";
 import { ThesisMapCard } from "@/components/causal-map/ThesisMapCard";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
@@ -24,22 +28,22 @@ function ToggleButton({
   label,
   pressed,
   onChange,
-  title,
+  className,
 }: {
   label: string;
   pressed: boolean;
   onChange: (v: boolean) => void;
-  title?: string;
+  className?: string;
 }) {
   return (
     <button
       type="button"
-      title={title}
       className={cn(
         "rounded-md border px-3 py-1.5 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]",
-        pressed
-          ? "border-[#E8473F]/40 bg-[#E8473F]/10 text-[#E8473F]"
-          : "border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200",
+        className ??
+          (pressed
+            ? "border-[#E8473F]/40 bg-[#E8473F]/10 text-[#E8473F]"
+            : "border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"),
       )}
       aria-pressed={pressed}
       onClick={() => onChange(!pressed)}
@@ -111,10 +115,10 @@ export function CausalMapPage() {
   const visibleClusters = useMemo(() => {
     const clusters = graph?.clusters ?? [];
     return clusters
-      .map((c) => filterCluster(c, hidePricedIn))
+      .map((c) => filterCluster(c, hidePricedIn, showConflicts))
       .filter((c) => c.theses.length > 0)
       .map(sortThesesByEdge);
-  }, [graph?.clusters, hidePricedIn]);
+  }, [graph?.clusters, hidePricedIn, showConflicts]);
 
   const visibleIsolated = useMemo(() => {
     const isolated = graph?.isolated ?? [];
@@ -154,17 +158,30 @@ export function CausalMapPage() {
           <p className="mt-0.5 text-[11px] text-zinc-600">Click a thesis to see the full causal chain.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <div className="group relative">
+            <ToggleButton
+              label={hidePricedIn ? "✓ Hiding priced-in" : "Hide priced-in"}
+              pressed={hidePricedIn}
+              onChange={setHidePricedIn}
+              className={
+                hidePricedIn
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-400"
+                  : "border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+              }
+            />
+            <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 w-48 -translate-x-1/2 rounded-md border border-white/[0.08] bg-zinc-900 p-2 text-[10px] text-zinc-400 opacity-0 transition-opacity group-hover:opacity-100">
+              Hides thesis cards where &gt;70% of the move is already priced in by the market
+            </div>
+          </div>
           <ToggleButton
-            label="Hide priced-in"
-            pressed={hidePricedIn}
-            onChange={setHidePricedIn}
-            title="Hide theses with mispricing below 30 and affects above 80% priced in"
-          />
-          <ToggleButton
-            label="Show conflicts"
+            label={showConflicts ? "⚠ Showing conflicts" : "Show conflicts"}
             pressed={showConflicts}
             onChange={setShowConflicts}
-            title="Highlight clusters with contradictory theses"
+            className={
+              showConflicts
+                ? "border-red-500/30 bg-red-500/10 text-red-400"
+                : "border-white/[0.08] text-zinc-400 hover:bg-white/[0.04] hover:text-zinc-200"
+            }
           />
         </div>
       </div>
@@ -208,6 +225,7 @@ export function CausalMapPage() {
                         setExpandedThesis((cur) => (cur === thesis.slug ? null : thesis.slug))
                       }
                       hidePricedIn={hidePricedIn}
+                      hasConflict={thesisInConflictWarnings(thesis, cluster.conflictWarnings)}
                     />
                   ))}
                 </div>

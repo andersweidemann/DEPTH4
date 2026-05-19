@@ -94,6 +94,12 @@ export type Thesis = {
     l4Backdrop2026: string;
   };
 
+  /** Pipeline step 3b — portfolio mechanics (D3) and regime shift (D4). */
+  deepReasoning?: {
+    D3: string;
+    D4: string;
+  };
+
   /**
    * Canonical four-depth book (0–24h → 1–7d → 7–30d → 30–90d+). When set, mispricing/trade selection should
    * derive from these nodes — see `thesis-depth-canonical.ts`. Legacy `thesisCascade` prose remains until migrated.

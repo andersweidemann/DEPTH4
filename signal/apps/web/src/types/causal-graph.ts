@@ -49,10 +49,10 @@ export type TimeDepth = "L1_confirmed" | "L2_this_week" | "L3_this_month" | "L4_
 export type AssetDepth = "root" | "direct" | "indirect" | "speculative";
 
 export const TIME_DEPTH_LABELS: Record<TimeDepth, string> = {
-  L1_confirmed: "Confirmed now",
-  L2_this_week: "This week",
-  L3_this_month: "This month",
-  L4_this_quarter: "This quarter",
+  L1_confirmed: "D1 — Confirmed now",
+  L2_this_week: "D2 — This week",
+  L3_this_month: "D3 — This month",
+  L4_this_quarter: "D4 — This quarter",
 };
 
 export const ASSET_DEPTH_LABELS: Record<AssetDepth, string> = {
@@ -100,6 +100,8 @@ export interface CausalThesis {
   incentive_analysis?: IncentiveAnalysis;
   /** 0–100 from `public.theses.quality_score` (promotion gate). */
   qualityScore?: number;
+  /** 0–100 market priced-in estimate (`priced_in_estimate` or body trade plan). */
+  pricedInEstimate?: number;
 }
 
 export interface MatrixCell {

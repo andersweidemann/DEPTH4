@@ -65,10 +65,10 @@ export function CausalMatrix({ matrix, detailTreeSlot, variant = "full" }: Causa
               <div className="flex items-center pr-2">
                 <div>
                   <p className={cn("font-semibold text-zinc-400", compact ? "text-[9px]" : "text-[10px]")}>
-                    {td === "L1_confirmed" && "L1"}
-                    {td === "L2_this_week" && "L2"}
-                    {td === "L3_this_month" && "L3"}
-                    {td === "L4_this_quarter" && "L4"}
+                    {td === "L1_confirmed" && "D1"}
+                    {td === "L2_this_week" && "D2"}
+                    {td === "L3_this_month" && "D3"}
+                    {td === "L4_this_quarter" && "D4"}
                   </p>
                   {!compact ? (
                     <p className="text-[9px] leading-tight text-zinc-600">
