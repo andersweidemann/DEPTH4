@@ -37,7 +37,6 @@ export function ThesisMapCard({
   showConflicts = false,
 }: ThesisMapCardProps) {
   const qualityScore = thesis.qualityScore ?? 0;
-  const conviction = thesis.conviction;
   const mispricingScore = thesis.mispricingScore;
   const conflictActive = showConflicts && hasConflict;
 
@@ -95,11 +94,6 @@ export function ThesisMapCard({
               <InfoTooltip text={MAP_TOOLTIPS.qualityScore} maxWidth={220} />
             </span>
           ) : null}
-
-          <span className="inline-flex items-center gap-0.5 text-[11px] tabular-nums text-zinc-400">
-            {conviction}%
-            <InfoTooltip text={MAP_TOOLTIPS.conviction} maxWidth={180} />
-          </span>
 
           <span
             className={cn(
