@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { buildCausalGraphClusters } from "@/lib/causal-map/build-causal-graph";
+import {
+  filterHiddenFromGraph,
+  loadThesesPageActivity,
+} from "@/lib/causal-map/theses-page-activity";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 import { createClient } from "@/lib/supabase/server";
 
@@ -18,7 +22,26 @@ export async function GET() {
   }
 
   try {
-    const payload = await buildCausalGraphClusters(supabase);
+    let payload = await buildCausalGraphClusters(supabase);
+
+    if (user) {
+      const { data: hiddenRows, error: hiddenErr } = await supabase
+        .from("user_hidden_theses")
+        .select("thesis_id")
+        .eq("user_id", user.id);
+      if (!hiddenErr && hiddenRows) {
+        const hiddenIds = new Set(hiddenRows.map((r) => String(r.thesis_id)));
+        payload = filterHiddenFromGraph(payload, hiddenIds);
+      }
+    }
+
+    const activity = await loadThesesPageActivity(supabase, payload);
+    payload = {
+      ...payload,
+      dailyUpdates: activity.dailyUpdates,
+      recentlyUpdatedThesisIds: activity.recentlyUpdatedThesisIds,
+    };
+
     return NextResponse.json(payload, {
       headers: {
         "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",

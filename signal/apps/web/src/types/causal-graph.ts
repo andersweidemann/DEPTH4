@@ -160,6 +160,12 @@ export interface GlobalCausalGraph {
   lastUpdated: string;
 }
 
+export type ThesisDailyUpdate = {
+  thesisId: string;
+  thesisSlug: string;
+  thesisTitle: string;
+};
+
 /** GET /api/causal-graph/clusters — thesis list clustering surface. */
 export interface CausalGraphClustersResponse {
   clusters: ThesisCluster[];
@@ -168,4 +174,8 @@ export interface CausalGraphClustersResponse {
   activeEvents: number;
   totalTheses: number;
   lastUpdated: string;
+  /** Theses with audit activity in the last 24h (for digest banner). */
+  dailyUpdates?: ThesisDailyUpdate[];
+  /** Thesis ids with updates in the last 24h (pulse on cards). */
+  recentlyUpdatedThesisIds?: string[];
 }

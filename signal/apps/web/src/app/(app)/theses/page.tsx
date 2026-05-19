@@ -1,11 +1,23 @@
 import type { Metadata } from "next";
-import { LiveThesesListPage } from "@/components/thesis-engine-v2/LiveThesesListPage";
+import { Suspense } from "react";
+import { ThesesRoutePage } from "@/components/thesis-engine-v2/ThesesRoutePage";
+import { PageHeaderSkeleton } from "@/components/shared/Skeleton";
 
 export const metadata: Metadata = {
   title: "DEPTH4 · Theses",
-  description: "Tracks macro events the market hasn't priced in yet.",
+  description: "Macro theses clustered by event — conviction, edge, and causal chain.",
 };
 
 export default function ThesesDashboardPage() {
-  return <LiveThesesListPage />;
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl">
+          <PageHeaderSkeleton />
+        </div>
+      }
+    >
+      <ThesesRoutePage />
+    </Suspense>
+  );
 }

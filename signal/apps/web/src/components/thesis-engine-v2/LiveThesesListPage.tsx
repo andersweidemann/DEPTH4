@@ -42,7 +42,7 @@ function formatListTime(isoOrText: string): string {
 
 export function LiveThesesListPage() {
   useEffect(() => {
-    document.title = "DEPTH4 · Thesis map";
+    document.title = "DEPTH4 · Theses · List view";
   }, []);
 
   const requireFeature = useRequireFeature();
@@ -219,8 +219,8 @@ export function LiveThesesListPage() {
         </div>
         <div className="flex flex-col items-end gap-2">
           {listTab !== "archive" ? (
-            <Link href="/map" className="text-[11px] text-zinc-400 transition-colors hover:text-amber-400">
-              View global causal graph →
+            <Link href="/theses" className="text-[11px] text-zinc-400 transition-colors hover:text-amber-400">
+              Card view →
             </Link>
           ) : null}
           <button

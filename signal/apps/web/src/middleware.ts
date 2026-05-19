@@ -66,6 +66,12 @@ export async function middleware(req: NextRequest) {
   }
 
   const lower = pathname.toLowerCase();
+  if (lower === "/map" || lower.startsWith("/map/")) {
+    const u = req.nextUrl.clone();
+    u.pathname = "/theses";
+    return NextResponse.redirect(u, 308);
+  }
+
   for (const prefix of LEGACY_REDIRECTS) {
     if (lower === prefix || lower.startsWith(`${prefix}/`)) {
       const u = req.nextUrl.clone();

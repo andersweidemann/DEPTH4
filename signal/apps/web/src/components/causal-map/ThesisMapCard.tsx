@@ -16,6 +16,10 @@ export interface ThesisMapCardProps {
   hidePricedIn?: boolean;
   hasConflict?: boolean;
   showConflicts?: boolean;
+  /** Unclustered thesis — show subtle tag instead of a section header. */
+  noCluster?: boolean;
+  hasRecentUpdate?: boolean;
+  onHide?: () => void;
 }
 
 function formatHorizon(horizon: string): string {
@@ -33,6 +37,9 @@ export function ThesisMapCard({
   hidePricedIn = false,
   hasConflict = false,
   showConflicts = false,
+  noCluster = false,
+  hasRecentUpdate = false,
+  onHide,
 }: ThesisMapCardProps) {
   const mispricingScore = thesis.mispricingScore;
   const conflictActive = showConflicts && hasConflict;
@@ -64,9 +71,14 @@ export function ThesisMapCard({
           {thesis.direction === "up" ? "↑" : "↓"}
         </span>
 
-        <span className="w-16 text-[13px] font-semibold text-zinc-200">{thesis.targetAssetSymbol}</span>
+        <span className="w-16 shrink-0 text-[13px] font-semibold text-zinc-200">{thesis.targetAssetSymbol}</span>
 
-        <span className="flex-1 truncate text-[12px] text-zinc-300">{thesis.title}</span>
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 truncate text-[12px] text-zinc-300">
+          <span className="truncate">{thesis.title}</span>
+          {noCluster ? (
+            <span className="shrink-0 text-[10px] text-zinc-600">· No cluster</span>
+          ) : null}
+        </span>
 
         <div className="flex shrink-0 items-center gap-2">
           {thesis.qualityScore != null ? (
@@ -92,6 +104,13 @@ export function ThesisMapCard({
         <span className="hidden w-20 shrink-0 text-right text-[10px] text-zinc-500 sm:block">
           {formatHorizon(thesis.timeHorizon)}
         </span>
+
+        {hasRecentUpdate ? (
+          <span className="relative flex h-2 w-2 shrink-0" title="Updated in the last 24h">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+          </span>
+        ) : null}
 
         <ChevronDown
           className={cn("ml-2 h-4 w-4 shrink-0 text-zinc-600 transition-transform", isExpanded && "rotate-180")}
@@ -120,12 +139,26 @@ export function ThesisMapCard({
 
           <MatrixToggle thesis={thesis} rootEvent={rootEvent} />
 
-          <Link
-            href={`/theses/${thesis.slug}`}
-            className="mt-3 inline-block text-[11px] font-medium text-[#E8473F] hover:underline"
-          >
-            Open full thesis →
-          </Link>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Link
+              href={`/theses/${thesis.slug}`}
+              className="text-[11px] font-medium text-[#E8473F] hover:underline"
+            >
+              Open full thesis →
+            </Link>
+            {onHide ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onHide();
+                }}
+                className="text-[10px] text-zinc-500 hover:text-zinc-300"
+              >
+                Hide from my map
+              </button>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </article>

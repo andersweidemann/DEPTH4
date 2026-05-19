@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   countVisibleConflicts,
   filterCluster,
@@ -11,10 +12,17 @@ import {
 } from "@/lib/causal-map/causal-map-filters";
 import { deriveClusterTitle } from "@/lib/causal-map/derive-cluster-title";
 import { ThesisMapCard } from "@/components/causal-map/ThesisMapCard";
+import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
+import { ThesisToast, type ThesisToastType } from "@/components/toast/ThesisToast";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
-import type { CausalEvent, CausalGraphClustersResponse, ThesisCluster } from "@/types/causal-graph";
+import { authFetch } from "@/lib/api";
+import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
+import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import type { CausalEvent, CausalGraphClustersResponse, CausalThesis, ThesisCluster } from "@/types/causal-graph";
 import { cn } from "@/lib/utils";
+
+const SEEN_THESIS_SLUGS_KEY = "depth4_theses_seen_slugs_v1";
 
 const ISOLATED_EVENT: CausalEvent = {
   id: "isolated",
@@ -101,39 +109,83 @@ export function CausalMapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedThesis, setExpandedThesis] = useState<string | null>(null);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [toast, setToast] = useState<{ thesis: CausalThesis; type: ThesisToastType } | null>(null);
 
-  useEffect(() => {
-    document.title = "DEPTH4 · Causal map";
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/causal-graph/clusters", { credentials: "include" });
-        if (!res.ok) {
-          const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
-          throw new Error(body.message || body.error || `HTTP ${res.status}`);
-        }
-        const data = (await res.json()) as CausalGraphClustersResponse;
-        if (!cancelled) setGraph(data);
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : "Failed to load causal map");
-          setGraph(null);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+  const loadGraph = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/causal-graph/clusters", { credentials: "include" });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { message?: string; error?: string };
+        throw new Error(body.message || body.error || `HTTP ${res.status}`);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      const data = (await res.json()) as CausalGraphClustersResponse;
+      setGraph(data);
+
+      const allTheses = [
+        ...data.clusters.flatMap((c) => c.theses),
+        ...data.isolated,
+      ];
+      const slugs = allTheses.map((t) => t.slug);
+      let prev: string[] = [];
+      try {
+        prev = JSON.parse(sessionStorage.getItem(SEEN_THESIS_SLUGS_KEY) ?? "[]") as string[];
+      } catch {
+        prev = [];
+      }
+      if (prev.length > 0) {
+        const newcomer = allTheses.find((t) => !prev.includes(t.slug));
+        if (newcomer) setToast({ thesis: newcomer, type: "new" });
+      }
+      sessionStorage.setItem(SEEN_THESIS_SLUGS_KEY, JSON.stringify(slugs));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load theses");
+      setGraph(null);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const activeEvents = graph?.activeEvents ?? 0;
+  useEffect(() => {
+    document.title = "DEPTH4 · Theses";
+  }, []);
+
+  useEffect(() => {
+    void loadGraph();
+  }, [loadGraph]);
+
+  const recentUpdateIds = useMemo(
+    () => new Set(graph?.recentlyUpdatedThesisIds ?? []),
+    [graph?.recentlyUpdatedThesisIds],
+  );
+
+  const hideThesis = useCallback(
+    async (thesisId: string) => {
+      const res = await authFetch("/api/user/hidden-theses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ thesisId }),
+      });
+      if (!res.ok) return;
+      setGraph((g) => {
+        if (!g) return g;
+        const clusters = g.clusters
+          .map((c) => ({ ...c, theses: c.theses.filter((t) => t.id !== thesisId) }))
+          .filter((c) => c.theses.length > 0);
+        const isolated = g.isolated.filter((t) => t.id !== thesisId);
+        return {
+          ...g,
+          clusters,
+          isolated,
+          totalTheses: clusters.reduce((n, c) => n + c.theses.length, 0) + isolated.length,
+        };
+      });
+    },
+    [],
+  );
+
   const totalTheses = graph?.totalTheses ?? 0;
 
   const visibleClusters = useMemo(() => {
@@ -185,13 +237,31 @@ export function CausalMapPage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Causal map</h1>
+          <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Theses</h1>
           <p className="mt-1 text-[13px] text-zinc-400">
-            {activeEvents} active events · {totalTheses} theses · live data
+            {visibleClusters.length} clusters · {totalTheses} active · Last updated{" "}
+            {graph?.lastUpdated ? formatTimeAgo(graph.lastUpdated) : "—"}
           </p>
-          <p className="mt-0.5 text-[11px] text-zinc-600">Click a thesis to see the full causal chain.</p>
+          <p className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+            <Link href="/theses?list=1" className="text-zinc-500 hover:text-zinc-300">
+              List view
+            </Link>
+            <Link href="/theses/archive" className="text-zinc-500 hover:text-zinc-300">
+              Archive
+            </Link>
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setCreateModalOpen(true)}
+            className="flex items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20"
+          >
+            <span className="text-[14px]" aria-hidden>
+              +
+            </span>
+            Create thesis
+          </button>
           <ToggleButton
             label={
               hidePricedIn
@@ -225,6 +295,18 @@ export function CausalMapPage() {
           <p className="mt-1 text-[10px] text-zinc-500">
             Conflicts appear when theses in the same event cluster (or isolated group on the same asset) pull in opposite
             directions
+          </p>
+        </div>
+      ) : null}
+
+      {(graph?.dailyUpdates?.length ?? 0) > 0 ? (
+        <div
+          id="updates"
+          className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3"
+        >
+          <p className="text-[11px] text-blue-400">
+            ↻ {graph!.dailyUpdates!.length} thesis{graph!.dailyUpdates!.length > 1 ? "es" : ""} updated today:{" "}
+            {graph!.dailyUpdates!.map((u) => u.thesisTitle).join(", ")}
           </p>
         </div>
       ) : null}
@@ -270,6 +352,8 @@ export function CausalMapPage() {
                       hidePricedIn={hidePricedIn}
                       showConflicts={showConflicts}
                       hasConflict={thesisInConflictWarnings(thesis, cluster.conflictWarnings)}
+                      hasRecentUpdate={recentUpdateIds.has(thesis.id)}
+                      onHide={() => void hideThesis(thesis.id)}
                     />
                   ))}
                 </div>
@@ -289,9 +373,6 @@ export function CausalMapPage() {
 
           {visibleIsolated.length > 0 ? (
             <section>
-              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
-                Isolated theses
-              </p>
               <div className="space-y-2">
                 {isolatedConflicts.length > 0 ? (
                   <div className="mb-2 space-y-1 rounded-md border border-red-500/20 bg-red-500/5 p-2">
@@ -316,6 +397,9 @@ export function CausalMapPage() {
                       hidePricedIn={hidePricedIn}
                       showConflicts={showConflicts}
                       hasConflict={isoConflict}
+                      noCluster
+                      hasRecentUpdate={recentUpdateIds.has(thesis.id)}
+                      onHide={() => void hideThesis(thesis.id)}
                     />
                   );
                 })}
@@ -345,6 +429,20 @@ export function CausalMapPage() {
           </span>
         </div>
       ) : null}
+
+      {toast ? (
+        <ThesisToast thesis={toast.thesis} type={toast.type} onDismiss={() => setToast(null)} />
+      ) : null}
+
+      <CreateThesisModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onCreate={(t) => {
+          upsertUserThesis(t);
+          setCreateModalOpen(false);
+          void putUserThesisToSupabase(t).then(() => loadGraph());
+        }}
+      />
     </div>
   );
 }
