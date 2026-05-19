@@ -58,7 +58,31 @@ export async function kimiChatCompletions(params: {
   if (!Array.isArray(choices) || !choices[0]) {
     throw new Error("kimi_chat_missing_choices");
   }
-  const message = (choices[0] as { message?: { content?: unknown } }).message;
-  const text = typeof message?.content === "string" ? message.content : "";
+  const message = (choices[0] as { message?: Record<string, unknown> }).message;
+  const text = extractKimiMessageText(message);
   return { text, raw };
+}
+
+/** Kimi K2 may return string content, part arrays, or reasoning fields — collect all text for JSON parse. */
+export function extractKimiMessageText(message: Record<string, unknown> | undefined): string {
+  if (!message) return "";
+  const parts: string[] = [];
+  const push = (v: unknown) => {
+    if (typeof v === "string" && v.trim()) parts.push(v.trim());
+  };
+  push(message.content);
+  push(message.reasoning_content);
+  push(message.reasoning);
+  const content = message.content;
+  if (Array.isArray(content)) {
+    for (const part of content) {
+      if (typeof part === "string") push(part);
+      else if (part && typeof part === "object") {
+        const p = part as Record<string, unknown>;
+        push(p.text);
+        push(p.content);
+      }
+    }
+  }
+  return parts.join("\n\n");
 }

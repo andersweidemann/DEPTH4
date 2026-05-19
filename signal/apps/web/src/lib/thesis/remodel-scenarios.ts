@@ -141,36 +141,85 @@ function formatEvidenceBlock(
     .join("\n");
 }
 
-function isUsableRemodelPayload(raw: unknown): raw is LlmRemodelPayload {
-  if (!raw || typeof raw !== "object") return false;
-  const o = raw as LlmRemodelPayload;
+function num(v: unknown): number | undefined {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+/** Accept Kimi/Haiku variants (snake_case, flat probs, clean/messy/broken at top level). */
+export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const scenariosIn = (o.scenarios ?? o.scenario_probabilities ?? o.scenarioProbabilities) as
+    | Record<string, unknown>
+    | undefined;
+  const tpIn = (o.tradePlan ?? o.trade_plan ?? o.tradeplan) as Record<string, unknown> | undefined;
+
+  const readPath = (branch: string): { probability?: number; reasoning?: string } | undefined => {
+    if (!scenariosIn) return undefined;
+    const node = scenariosIn[branch];
+    if (node && typeof node === "object") {
+      const n = node as Record<string, unknown>;
+      return {
+        probability: num(n.probability ?? n.prob ?? n.pct),
+        reasoning: typeof n.reasoning === "string" ? n.reasoning : undefined,
+      };
+    }
+    const flat = num(scenariosIn[branch]);
+    return flat != null ? { probability: flat } : undefined;
+  };
+
+  const clean = readPath("clean") ?? readPath("bull");
+  const messy = readPath("messy") ?? readPath("base");
+  const broken = readPath("broken") ?? readPath("bear");
+
+  const payload: LlmRemodelPayload = {
+    scenarios: { clean, messy, broken },
+    tradePlan: tpIn
+      ? {
+          entryZone: String(tpIn.entryZone ?? tpIn.entry_zone ?? "").trim() || undefined,
+          stopLoss: String(tpIn.stopLoss ?? tpIn.stop_loss ?? tpIn.stop ?? "").trim() || undefined,
+          targetPrice: String(tpIn.targetPrice ?? tpIn.target_price ?? tpIn.target ?? "").trim() || undefined,
+          rationale: typeof tpIn.rationale === "string" ? tpIn.rationale : undefined,
+        }
+      : undefined,
+    confidenceDelta: num(o.confidenceDelta ?? o.confidence_delta),
+    whatChanged: typeof o.whatChanged === "string" ? o.whatChanged : typeof o.what_changed === "string" ? o.what_changed : undefined,
+  };
+
   const probs = [
-    o.scenarios?.clean?.probability,
-    o.scenarios?.messy?.probability,
-    o.scenarios?.broken?.probability,
+    payload.scenarios?.clean?.probability,
+    payload.scenarios?.messy?.probability,
+    payload.scenarios?.broken?.probability,
   ];
-  const hasProbs = probs.some((p) => Number.isFinite(Number(p)));
-  const hasLevels = [o.tradePlan?.entryZone, o.tradePlan?.stopLoss, o.tradePlan?.targetPrice].some(
-    (v) => typeof v === "string" && v.trim().length > 0,
-  );
-  return hasProbs || hasLevels;
+  const hasProbs = probs.some((p) => p != null);
+  const hasLevels = [
+    payload.tradePlan?.entryZone,
+    payload.tradePlan?.stopLoss,
+    payload.tradePlan?.targetPrice,
+  ].some((v) => typeof v === "string" && v.length > 0);
+  return hasProbs || hasLevels ? payload : null;
 }
 
 async function completeRemodelJson(prompt: string): Promise<LlmRemodelPayload | null> {
-  const tiers = ["cheap", "premium"] as const;
+  const tiers = ["premium", "cheap"] as const;
+  const retrySuffix =
+    "\n\nPRIOR OUTPUT WAS INVALID. Return ONLY one JSON object matching the schema in TASK — no markdown, no commentary.";
   for (const tier of tiers) {
     const llm = createPipelineLlmClient(tier);
     if (!llm) continue;
     for (let attempt = 0; attempt < 2; attempt++) {
+      const userPrompt = attempt === 0 ? prompt : `${prompt}${retrySuffix}`;
       try {
-        const raw = await llm.completeJson(prompt, tier === "premium" ? 900 : 640);
-        if (isUsableRemodelPayload(raw)) {
+        const raw = await llm.completeJson(userPrompt, tier === "premium" ? 1200 : 720);
+        const normalized = normalizeRemodelPayload(raw);
+        if (normalized) {
           console.info("[remodel-scenarios] llm_ok", {
             tier,
             provider: llm.providerLabel,
             attempt: attempt + 1,
           });
-          return raw;
+          return normalized;
         }
         console.warn("[remodel-scenarios] llm_invalid_payload", {
           tier,
