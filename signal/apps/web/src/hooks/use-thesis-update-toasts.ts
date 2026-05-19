@@ -24,7 +24,7 @@ function shouldToastRow(payload: {
   metadata?: Record<string, unknown>;
 }): { show: boolean; whatChanged: string; slug: string | null; delta: number } {
   const changeType = String(payload.change_type ?? "");
-  if (changeType !== "scenario_shift" && changeType !== "evidence") {
+  if (changeType !== "thesis_remodel" && changeType !== "scenario_shift" && changeType !== "evidence") {
     return { show: false, whatChanged: "", slug: null, delta: 0 };
   }
 

@@ -299,7 +299,7 @@ async function fetchThesisRemodelFeedItems(supabase: SupabaseClient, limit: numb
   const { data, error } = await supabase
     .from("thesis_updates")
     .select("id, thesis_id, created_at, change_type, reason, metadata")
-    .in("change_type", ["scenario_shift", "evidence", "field_update"])
+    .in("change_type", ["thesis_remodel", "scenario_shift", "evidence", "field_update"])
     .order("created_at", { ascending: false })
     .limit(limit * 3);
 
@@ -323,7 +323,9 @@ async function fetchThesisRemodelFeedItems(supabase: SupabaseClient, limit: numb
       row.metadata && typeof row.metadata === "object" && !Array.isArray(row.metadata)
         ? (row.metadata as Record<string, unknown>)
         : {};
-    if (meta.source !== "remodel_thesis_scenarios") continue;
+    const isRemodel =
+      row.change_type === "thesis_remodel" || meta.source === "remodel_thesis_scenarios";
+    if (!isRemodel) continue;
 
     const before = parseRemodelScenarios(meta.scenario_probabilities_before);
     const after = parseRemodelScenarios(meta.scenario_probabilities_after);

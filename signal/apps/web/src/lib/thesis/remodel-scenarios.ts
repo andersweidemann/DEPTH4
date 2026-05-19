@@ -9,6 +9,10 @@ import type { DbScenarioTriple } from "@/lib/thesis-engine-v2/thesis-display-sce
 import { resolveQuoteSymbol, parsePriceLevel } from "@/lib/thesis/check-resolution";
 import { pickWhatChangedSummary } from "@/lib/thesis/generate-what-changed";
 import { SYSTEM_MUTATION, systemUpdateThesis } from "@/lib/thesis-mutation";
+import {
+  buildRemodelNotificationMetadata,
+  insertRemodelNotifications,
+} from "@/lib/thesis/remodel-notifications";
 
 export type RemodelTradePlan = {
   entryZone: string;
@@ -455,8 +459,14 @@ RULES:
     target1: newTradePlan.targetPrice,
   };
 
-  const changeType =
-    scenarioDelta >= 10 || levelsChanged ? "scenario_shift" : scenarioDelta >= 3 ? "evidence" : "field_update";
+  const updateKind =
+    scenarioDelta >= 15
+      ? "significant_shift"
+      : scenarioDelta >= 10
+        ? "probability_shift"
+        : levelsChanged
+          ? "trade_plan_update"
+          : "scenario_refresh";
 
   const upd = await systemUpdateThesis(
     admin,
@@ -470,7 +480,7 @@ RULES:
     {
       actorType: SYSTEM_MUTATION.news.actorType,
       reason: whatChanged.slice(0, 500),
-      changeType,
+      changeType: "thesis_remodel",
       metadata: {
         source: "remodel_thesis_scenarios",
         trigger_reason: options.triggerReason ?? "new_evidence",
@@ -483,19 +493,40 @@ RULES:
         current_price: currentPrice,
         evidence_log_id: options.evidenceLogId ?? null,
         thesis_slug: typeof row.slug === "string" ? row.slug : null,
-        update_kind:
-          scenarioDelta >= 15
-            ? "significant_shift"
-            : scenarioDelta >= 10
-              ? "probability_shift"
-              : levelsChanged
-                ? "trade_plan_update"
-                : "scenario_refresh",
+        update_kind: updateKind,
       },
     },
   );
 
   if (!upd.ok) throw new Error(upd.error ?? "thesis_update_failed");
+
+  const { data: auditRow } = await admin
+    .from("thesis_updates")
+    .select("id")
+    .eq("thesis_id", thesisId)
+    .eq("change_type", "thesis_remodel")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const thesisUpdateId = auditRow ? String((auditRow as { id?: unknown }).id ?? "").trim() : "";
+  if (thesisUpdateId) {
+    await insertRemodelNotifications(admin, {
+      thesisId,
+      thesisTitle: String(row.title ?? ""),
+      thesisUpdateId,
+      whatChanged,
+      metadata: buildRemodelNotificationMetadata({
+        oldTriple,
+        newTriple: nextTriple,
+        oldScenarios,
+        newScenarios,
+        thesisSlug: typeof row.slug === "string" ? row.slug : null,
+        updateKind,
+      }),
+      ownerUserId: typeof row.owner_user_id === "string" ? row.owner_user_id : null,
+    });
+  }
 
   if (options.evidenceLogId) {
     await admin

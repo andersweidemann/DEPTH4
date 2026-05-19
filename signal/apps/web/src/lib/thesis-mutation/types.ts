@@ -39,6 +39,7 @@ export type ThesisUpdateChangeType =
   | "field_update"
   | "status_transition"
   | "evidence"
+  | "thesis_remodel"
   | "successor_created"
   | (string & {});
 

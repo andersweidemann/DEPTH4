@@ -60,6 +60,10 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-alert-from-evidence";
 import { DEPTH4_NOTIFY_PREFS_SESSION_KEY, DEPTH4_STARRED_SESSION_KEY } from "@/lib/thesis-engine-v2/depth4-session-keys";
 import { appendDepth4ThesisStarEvent } from "@/lib/thesis-engine-v2/depth4-thesis-star-events";
+import {
+  fetchBellNotificationsForUser,
+  mergeBellNotificationsIntoAlerts,
+} from "@/lib/thesis-engine-v2/fetch-bell-notifications";
 
 const MAX_TICKER = 14;
 const MAX_ALERTS = 20;
@@ -497,7 +501,14 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       setPrefs(snap.notifyPrefs);
       setUserTheses(loadUserTheses());
       setOpenIds(openPositionThesisIds());
-      setAlerts((cur) => applyDepth4AlertStateMapToAlerts(cur, snap.alertState));
+      const {
+        data: { user },
+      } = await sb.auth.getUser();
+      const bell = user && !cancelled ? await fetchBellNotificationsForUser(sb, user.id) : [];
+      if (cancelled) return;
+      setAlerts((cur) =>
+        applyDepth4AlertStateMapToAlerts(mergeBellNotificationsIntoAlerts(cur, bell), snap.alertState),
+      );
     })();
     return () => {
       cancelled = true;
@@ -521,7 +532,10 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
       setPrefs(snap.notifyPrefs);
       setUserTheses(loadUserTheses());
       setOpenIds(openPositionThesisIds());
-      setAlerts((cur) => applyDepth4AlertStateMapToAlerts(cur, snap.alertState));
+      const bell = await fetchBellNotificationsForUser(sb, session.user.id);
+      setAlerts((cur) =>
+        applyDepth4AlertStateMapToAlerts(mergeBellNotificationsIntoAlerts(cur, bell), snap.alertState),
+      );
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -694,7 +708,19 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
             });
             if (nextAlerts.length >= MAX_ALERTS) break;
           }
-          setAlerts(nextAlerts);
+          const {
+            data: { user: bootUser },
+          } = await sb.auth.getUser();
+          const bellBoot =
+            bootUser && !cancelled ? await fetchBellNotificationsForUser(sb, bootUser.id) : [];
+          if (!cancelled) {
+            setAlerts(
+              applyDepth4AlertStateMapToAlerts(
+                mergeBellNotificationsIntoAlerts(nextAlerts, bellBoot, MAX_ALERTS),
+                alertAccountStateRef.current,
+              ),
+            );
+          }
         }
         return;
       }
@@ -840,6 +866,19 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
             consequenceText: r.eventType ? `Type: ${r.eventType}` : "",
             impact: "neutral",
           });
+        }
+      }
+
+      const { data: { user: pollUser } } = await sb.auth.getUser();
+      if (pollUser && !cancelled) {
+        const bell = await fetchBellNotificationsForUser(sb, pollUser.id);
+        if (!cancelled) {
+          setAlerts((cur) =>
+            applyDepth4AlertStateMapToAlerts(
+              mergeBellNotificationsIntoAlerts(cur, bell, MAX_ALERTS),
+              alertAccountStateRef.current,
+            ),
+          );
         }
       }
 
