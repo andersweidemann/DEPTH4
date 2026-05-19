@@ -1,4 +1,5 @@
 import { anthropicMessages } from "@/lib/macro-reasoning/anthropic-messages";
+import { resolveCheapAnthropicModel } from "@/lib/macro-reasoning/model-routing";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { parseIncentiveAnalysis, incentiveAnalysisToDbJson } from "@/lib/thesis/incentive-analysis";
 import type { IncentiveAnalysis } from "@/types/incentive-analysis";
@@ -7,7 +8,7 @@ export async function generateIncentiveAnalysis(thesis: Thesis): Promise<Incenti
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
   if (!apiKey) return null;
 
-  const model = process.env.ANTHROPIC_MODEL_CHEAP?.trim() || "claude-3-5-haiku-latest";
+  const model = resolveCheapAnthropicModel();
   const prompt = [
     "You are DEPTH4's incentive analysis engine. A tradable thesis was written. Analyze the political/economic incentives behind it.",
     "",

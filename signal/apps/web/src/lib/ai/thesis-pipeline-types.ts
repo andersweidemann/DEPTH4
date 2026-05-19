@@ -80,6 +80,7 @@ export interface ThesisCandidate {
 export type PipelineFailureReason =
   | "missing_llm"
   | "event_detection_failed"
+  | "incentive_analysis_failed"
   | "incentive_confidence_too_low"
   | "causal_propagation_failed"
   | "no_mispricing_found"

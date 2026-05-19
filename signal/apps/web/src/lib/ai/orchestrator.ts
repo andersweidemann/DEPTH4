@@ -5,7 +5,7 @@ import {
   fetchMarketDataForPipeline,
   fetchPipelineAssets,
 } from "@/lib/ai/thesis-pipeline-context";
-import { createPipelineLlmClient } from "@/lib/ai/thesis-pipeline-llm";
+import { createPipelineLlmClient, describePipelineLlmSetup } from "@/lib/ai/thesis-pipeline-llm";
 import {
   logPipelineStage,
   qualityGateInputFromPipelineCandidate,
@@ -34,10 +34,17 @@ function findClusterForDetectedEvent(
   return null;
 }
 
+export type RunThesisPipelineOptions = {
+  /** When false, runs through quality gate but does not insert thesis / affects (for local tests). */
+  persist?: boolean;
+};
+
 export async function runThesisPipeline(
   newsItems: PipelineNewsItem[],
   admin: SupabaseClient,
+  options?: RunThesisPipelineOptions,
 ): Promise<PipelineResult> {
+  const persist = options?.persist !== false;
   const context: PipelineContext = {
     newsItems,
     existingTheses: await fetchActiveThesesForPipeline(admin),
@@ -45,15 +52,18 @@ export async function runThesisPipeline(
     marketData: {},
   };
 
-  const llm = createPipelineLlmClient();
-  if (!llm) {
+  const cheapLlm = createPipelineLlmClient("cheap");
+  const premiumLlm = createPipelineLlmClient("premium");
+  if (!cheapLlm || !premiumLlm) {
     return { success: false, reason: "missing_llm", context };
   }
 
-  try {
-    logPipelineStage("start", { news_count: newsItems.length });
+  const models = describePipelineLlmSetup();
 
-    context.detectedEvent = (await step1_detectEvent(newsItems, llm)) ?? undefined;
+  try {
+    logPipelineStage("start", { news_count: newsItems.length, models });
+
+    context.detectedEvent = (await step1_detectEvent(newsItems, cheapLlm)) ?? undefined;
     if (!context.detectedEvent) {
       return { success: false, reason: "event_detection_failed", context };
     }
@@ -62,7 +72,11 @@ export async function runThesisPipeline(
       confidence: context.detectedEvent.confidence,
     });
 
-    context.incentiveAnalysis = (await step2_incentiveAnalysis(context.detectedEvent, llm)) ?? undefined;
+    context.incentiveAnalysis =
+      (await step2_incentiveAnalysis(context.detectedEvent, cheapLlm)) ?? undefined;
+    if (!context.incentiveAnalysis) {
+      return { success: false, reason: "incentive_analysis_failed", context };
+    }
     if (shouldStopForIncentiveConfidence(context.incentiveAnalysis)) {
       return { success: false, reason: "incentive_confidence_too_low", context };
     }
@@ -80,7 +94,7 @@ export async function runThesisPipeline(
         context.incentiveAnalysis!,
         assets,
         context.marketData,
-        llm,
+        cheapLlm,
       )) ?? undefined;
 
     if (!context.causalPropagation?.highestMispricing) {
@@ -96,7 +110,7 @@ export async function runThesisPipeline(
         context.causalPropagation,
         context.detectedEvent,
         context.incentiveAnalysis!,
-        llm,
+        premiumLlm,
       )) ?? undefined;
 
     if (!context.candidateThesis) {
@@ -141,25 +155,35 @@ export async function runThesisPipeline(
       return { success: false, reason: "quality_gate_failed", report: qualityReport, context };
     }
 
-    context.finalThesis = await step6_savePipelineThesis(
-      context.candidateThesis,
-      context.detectedEvent,
-      context.incentiveAnalysis!,
-      context.causalPropagation,
-      qualityReport,
-      admin,
-    );
+    if (persist) {
+      context.finalThesis = await step6_savePipelineThesis(
+        context.candidateThesis,
+        context.detectedEvent,
+        context.incentiveAnalysis!,
+        context.causalPropagation,
+        qualityReport,
+        admin,
+      );
 
-    logPipelineStage("thesis_saved", {
-      thesis_id: context.finalThesis.id,
-      slug: context.finalThesis.slug,
-      quality_score: qualityReport.score,
-    });
+      logPipelineStage("thesis_saved", {
+        thesis_id: context.finalThesis.id,
+        slug: context.finalThesis.slug,
+        quality_score: qualityReport.score,
+      });
 
+      return {
+        success: true,
+        thesisId: context.finalThesis.id,
+        slug: context.finalThesis.slug,
+        context,
+      };
+    }
+
+    logPipelineStage("thesis_dry_run", { quality_score: qualityReport.score });
     return {
       success: true,
-      thesisId: context.finalThesis.id,
-      slug: context.finalThesis.slug,
+      thesisId: "dry-run",
+      slug: slug,
       context,
     };
   } catch (e) {

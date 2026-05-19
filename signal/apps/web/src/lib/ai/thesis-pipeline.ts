@@ -62,6 +62,82 @@ function parseAssetDepth(raw: unknown, strength: number): AssetDepth {
   return inferAssetDepth(strength);
 }
 
+/** Fix LLM mismatch where reasoning says prices fall but direction is tagged up (common on small models). */
+export function reconcileAffectDirection(
+  reasoning: string,
+  declared: "up" | "down" | "neutral",
+): "up" | "down" | "neutral" {
+  if (declared === "neutral") return declared;
+  const lower = reasoning.toLowerCase();
+  const downHits = (
+    lower.match(
+      /\b(decrease|decreases|decreasing|lower|fall|falls|falling|drop|drops|decline|declines|weaken|deflate|contract|unwind|erod|downside|short|fade|sink|tumble|bearish|downward)\b/g,
+    ) ?? []
+  ).length;
+  const upHits = (
+    lower.match(
+      /\b(increase|increases|rise|rises|rising|rally|rallies|surge|strengthen|lift|climb|bid|higher|bullish|rebound|recover|upside|long)\b/g,
+    ) ?? []
+  ).length;
+  if (downHits > upHits && declared === "up") return "down";
+  if (upHits > downHits && declared === "down") return "up";
+  return declared;
+}
+
+const GOLD_SAFE_HAVEN_SYMBOLS = new Set([
+  "XAUUSD",
+  "GC.1",
+  "GC",
+  "GLD",
+  "IAU",
+  "GDX",
+  "XAU",
+  "SLV",
+]);
+
+const DE_ESCALATION_EVENT_RE =
+  /\b(ceasefire|de-escalat|tensions?\s+ease|easing tensions|peace talk|diplomatic progress|military activity drop|conflict resolution|war to continue)\b/i;
+
+/** Small models often tag gold UP on “reduced tensions” — safe-haven premium fades on de-escalation. */
+export function reconcileSafeHavenForDeescalation(
+  eventTitle: string,
+  eventDescription: string,
+  symbol: string,
+  reasoning: string,
+  direction: "up" | "down" | "neutral",
+): "up" | "down" | "neutral" {
+  const sym = symbol.toUpperCase();
+  if (!GOLD_SAFE_HAVEN_SYMBOLS.has(sym) && !sym.includes("XAU") && !sym.includes("GOLD")) {
+    return direction;
+  }
+  const eventText = `${eventTitle} ${eventDescription}`;
+  if (!DE_ESCALATION_EVENT_RE.test(eventText)) return direction;
+
+  const r = reasoning.toLowerCase();
+  const deEscalationCue =
+    /\b(reduced tensions?|tensions ease|de-escalat|ceasefire|peace|less geopolitical|risk premium fade|safe-haven unw|war premium|military activity drop)\b/.test(
+      r,
+    );
+  if (!deEscalationCue) return direction;
+
+  const explicitHavenBid =
+    /\b(safe-haven bid|flight to quality|war risk rise|escalat|geopolitical risk rise|haven demand increase|risk-off bid)\b/.test(
+      r,
+    );
+  if (explicitHavenBid) return direction;
+  return "down";
+}
+
+export function selectThesisMispricingTarget(
+  affectedAssets: AffectedAssetPropagation[],
+  minScore = MISPRICING_SCORE_MIN,
+): AffectedAssetPropagation | null {
+  const eligible = affectedAssets
+    .filter((a) => a.mispricingScore >= minScore)
+    .sort((a, b) => b.mispricingScore - a.mispricingScore);
+  return eligible[0] ?? null;
+}
+
 function parseIncentiveFromLlm(raw: unknown): IncentiveAnalysis | null {
   if (!raw || typeof raw !== "object") return null;
   const o = raw as Record<string, unknown>;
@@ -112,7 +188,7 @@ export async function step1_detectEvent(
   llm: PipelineLlmClient,
 ): Promise<DetectedEvent | null> {
   const prompt = [
-    "You are DEPTH4's event detection engine. Read these news items and identify the SINGLE most important causal event.",
+    "You are DEPTH4's event detection engine. Read these news items together and identify the SINGLE underlying causal event (not one headline in isolation).",
     "",
     "News items:",
     ...newsItems.map((n) => `- [${n.source}] ${n.headline}`),
@@ -158,16 +234,37 @@ export async function step2_incentiveAnalysis(
     "",
     "Apply: ACTOR → GOAL → CONSTRAINT → REQUIRED ACTION → alternatives → most likely action → confidence → time window → catalysts.",
     "",
-    'Output JSON: {"incentive_analysis":{"actor":"...","goal":"...","constraint":"...","required_action":"...",',
-    '"alternative_actions":["..."],"most_likely_action":"...","confidence":0-100,"time_window":"...",',
-    '"catalyst_events":["..."],"reasoning":"..."}}',
+    "Return ONLY valid JSON with this exact shape (snake_case keys, confidence as integer 0-100):",
+    '{"incentive_analysis":{"actor":"Specific leader or institution","goal":"What they must achieve",',
+    '"constraint":"What blocks them","required_action":"What they must do","alternative_actions":["..."],',
+    '"most_likely_action":"Probable path","confidence":72,"time_window":"When","catalyst_events":["..."],',
+    '"reasoning":"2-3 sentences"}}',
     "",
-    "If you cannot identify a clear actor/goal/constraint, return confidence: 0.",
+    "For geopolitical de-escalation: name a specific administration or negotiator, election timing, and peace/de-escalation lever.",
+    "If truly no actor, set confidence to 0 — otherwise confidence should be 55-90 when actor and path are clear.",
   ].join("\n");
 
-  const raw = await llm.completeJson(prompt, 800);
-  const parsed = parseIncentiveFromLlm(raw);
-  if (!parsed) return null;
+  const maxTokens = 1200;
+  let raw = await llm.completeJson(prompt, maxTokens);
+  let parsed = parseIncentiveFromLlm(raw);
+  if (!parsed) {
+    logPipelineStage("incentive_parse_retry", {
+      raw_type: raw === null ? "null" : typeof raw,
+      top_keys:
+        raw && typeof raw === "object" && !Array.isArray(raw)
+          ? Object.keys(raw as object).slice(0, 12)
+          : [],
+    });
+    raw = await llm.completeJson(
+      `${prompt}\n\nPRIOR OUTPUT WAS INVALID OR INCOMPLETE. Return ONLY the incentive_analysis JSON object with all required keys.`,
+      maxTokens,
+    );
+    parsed = parseIncentiveFromLlm(raw);
+  }
+  if (!parsed) {
+    logPipelineStage("incentive_parse_failed", {});
+    return null;
+  }
   if (parsed.confidence < INCENTIVE_CONFIDENCE_MIN) {
     logPipelineStage("incentive_stopped", {
       confidence: parsed.confidence,
@@ -211,6 +308,8 @@ export async function step3_causalPropagation(
     marketLines,
     "",
     "For EACH asset: direction, strength 0-100, priced_in_percent 0-100, time_depth, asset_depth, reasoning.",
+    "direction MUST match reasoning: if the asset price falls use down; if it rises use up (never tag up when reasoning says fall/decrease).",
+    "On geopolitical de-escalation / ceasefire: safe-haven assets (GC.1, XAUUSD, GLD) typically move DOWN as risk premium fades; oil (CL) often moves DOWN on supply-disruption relief.",
     "mispricing_score = strength - priced_in_percent.",
     "",
     'Output JSON: {"root_asset":{"symbol":"..."},"affected_assets":[{"symbol":"...","direction":"up|down|neutral",',
@@ -239,15 +338,25 @@ export async function step3_causalPropagation(
       -100,
       100,
     );
+    const declared = (str(row.direction) as "up" | "down" | "neutral") || "neutral";
+    const reasoning = str(row.reasoning) || "Causal link from macro propagation scan.";
+    const direction = reconcileSafeHavenForDeescalation(
+      detectedEvent.title,
+      detectedEvent.description,
+      symbol,
+      reasoning,
+      reconcileAffectDirection(reasoning, declared),
+    );
+
     affectedAssets.push({
       asset,
-      direction: (str(row.direction) as "up" | "down" | "neutral") || "neutral",
+      direction,
       strength,
       pricedInPercent: pricedIn,
       mispricingScore: mispricing,
       timeDepth: parseTimeDepth(row.time_depth ?? row.timeDepth, detectedEvent.title),
       assetDepth: parseAssetDepth(row.asset_depth ?? row.assetDepth, strength),
-      reasoning: str(row.reasoning) || "Causal link from macro propagation scan.",
+      reasoning,
     });
   }
 
@@ -257,10 +366,7 @@ export async function step3_causalPropagation(
     bySymbol.get(rootSymbol.toUpperCase()) ??
     affectedAssets.sort((a, b) => b.mispricingScore - a.mispricingScore)[0]!.asset;
 
-  const highest =
-    affectedAssets
-      .filter((a) => a.mispricingScore >= MISPRICING_SCORE_MIN)
-      .sort((a, b) => b.mispricingScore - a.mispricingScore)[0] ?? null;
+  const highest = selectThesisMispricingTarget(affectedAssets);
 
   return { rootAsset, affectedAssets, highestMispricing: highest };
 }
@@ -278,7 +384,7 @@ export async function step4_generateThesis(
     "You are DEPTH4's thesis writer. Write a professional macro thesis from this analysis.",
     "",
     `TARGET ASSET: ${target.asset.symbol}`,
-    `DIRECTION: ${target.direction.toUpperCase()}`,
+    `DIRECTION: ${target.direction.toUpperCase()} (down = short / price falls, up = long / price rises)`,
     `MISPRICING: ${target.mispricingScore}/100 (${target.strength}% strength - ${target.pricedInPercent}% priced in)`,
     "",
     `Event: ${detectedEvent.title}`,
@@ -294,6 +400,7 @@ export async function step4_generateThesis(
     '"evidence":[{"date":"YYYY-MM-DD","source":"...","excerpt":"..."}]}',
     "",
     "Conviction must NOT be 50. Trade plan needs specific numbers.",
+    "Title and statement must match DIRECTION (down → short/fall language, up → rally/rise language).",
   ].join("\n");
 
   const raw = await llm.completeJson(prompt, 1500);
@@ -303,7 +410,7 @@ export async function step4_generateThesis(
   const statement = str(o.statement);
   if (!title || !statement) return null;
 
-  const direction = str(o.direction).toLowerCase() === "down" || target.direction === "down" ? "down" : "up";
+  const direction: "up" | "down" = target.direction === "down" ? "down" : "up";
   const conviction = clamp(Math.round(num(o.conviction, 72)), 1, 99);
   const finalConviction = conviction === 50 ? 68 : conviction;
 

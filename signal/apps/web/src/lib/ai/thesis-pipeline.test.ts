@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   pickHighestMispricing,
   qualityGateInputFromPipelineCandidate,
+  reconcileAffectDirection,
+  reconcileSafeHavenForDeescalation,
+  selectThesisMispricingTarget,
   shouldStopForIncentiveConfidence,
 } from "@/lib/ai/thesis-pipeline";
+import type { AffectedAssetPropagation } from "@/lib/ai/thesis-pipeline-types";
 import { runQualityGate } from "@/lib/thesis/quality-gate";
 import type { CausalPropagationResult, ThesisCandidate } from "@/lib/ai/thesis-pipeline-types";
 import type { IncentiveAnalysis } from "@/types/incentive-analysis";
@@ -22,6 +26,44 @@ const incentive: IncentiveAnalysis = {
 };
 
 describe("thesis intelligence pipeline", () => {
+  it("forces gold down on de-escalation when reasoning cites easing tensions", () => {
+    expect(
+      reconcileSafeHavenForDeescalation(
+        "Middle East Tensions Ease",
+        "Ceasefire talks advance",
+        "GC.1",
+        "Increased demand for gold due to reduced tensions in the Middle East",
+        "up",
+      ),
+    ).toBe("down");
+  });
+
+  it("selects highest mispricing asset regardless of symbol", () => {
+    const mk = (symbol: string, mispricingScore: number): AffectedAssetPropagation => ({
+      asset: { symbol, name: symbol, asset_class: "commodity" },
+      direction: "down",
+      strength: 60,
+      pricedInPercent: 40,
+      mispricingScore,
+      timeDepth: "L2_this_week",
+      assetDepth: "direct",
+      reasoning: "test",
+    });
+    const pick = selectThesisMispricingTarget([mk("GC.1", 10), mk("CL.1", 20)]);
+    expect(pick?.asset.symbol).toBe("CL.1");
+  });
+
+  it("reconciles direction when reasoning contradicts declared tag", () => {
+    expect(
+      reconcileAffectDirection(
+        "Decreased military activity may lead to reduced demand for safe-haven assets, causing a decrease in gold prices.",
+        "up",
+      ),
+    ).toBe("down");
+    expect(reconcileAffectDirection("Gold rallies on safe-haven bid.", "down")).toBe("up");
+    expect(reconcileAffectDirection("Range-bound with no clear bias.", "up")).toBe("up");
+  });
+
   it("stops when incentive confidence is below threshold", () => {
     expect(shouldStopForIncentiveConfidence({ ...incentive, confidence: 30 })).toBe(true);
     expect(shouldStopForIncentiveConfidence({ ...incentive, confidence: 55 })).toBe(false);

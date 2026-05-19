@@ -9,16 +9,46 @@ function strList(v: unknown): string[] {
   return v.map((x) => str(x)).filter(Boolean).slice(0, 12);
 }
 
+function firstStringField(o: Record<string, unknown>, keys: string[]): string {
+  for (const k of keys) {
+    const v = o[k];
+    if (typeof v === "string" && v.trim()) return v.trim();
+    if (Array.isArray(v) && v[0] != null) {
+      const s = str(v[0]);
+      if (s) return s;
+    }
+  }
+  return "";
+}
+
 /** Parse DB JSONB or API draft `incentive_analysis` object. */
 export function parseIncentiveAnalysis(raw: unknown): IncentiveAnalysis | null {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
   const o = raw as Record<string, unknown>;
-  const actor = str(o.actor);
-  const goal = str(o.goal);
-  const constraint = str(o.constraint);
-  const required_action = str(o.required_action ?? o.requiredAction);
-  const most_likely_action = str(o.most_likely_action ?? o.mostLikelyAction);
-  if (!actor || !goal || !required_action || !most_likely_action) return null;
+  const actor = firstStringField(o, ["actor", "primary_actor", "key_actor", "who"]);
+  const goal = firstStringField(o, ["goal", "objective", "political_goal", "economic_goal"]);
+  const constraint = firstStringField(o, ["constraint", "constraints", "binding_constraint", "blocker"]);
+  const required_action = firstStringField(o, [
+    "required_action",
+    "requiredAction",
+    "required_actions",
+    "must_do",
+    "necessary_action",
+  ]);
+  const most_likely_action = firstStringField(o, [
+    "most_likely_action",
+    "mostLikelyAction",
+    "likely_action",
+    "most_likely_path",
+    "base_case_action",
+  ]);
+  const reasoning = firstStringField(o, ["reasoning", "rationale", "analysis", "summary"]);
+
+  if (!actor || !most_likely_action) return null;
+
+  const goalOut = goal || reasoning.slice(0, 200) || "Achieve political and market stability on this path.";
+  const requiredOut =
+    required_action || most_likely_action;
 
   const confidenceRaw = o.confidence;
   const confidence =
@@ -28,15 +58,17 @@ export function parseIncentiveAnalysis(raw: unknown): IncentiveAnalysis | null {
 
   return {
     actor,
-    goal,
+    goal: goalOut,
     constraint: constraint || "—",
-    required_action,
-    alternative_actions: strList(o.alternative_actions ?? o.alternativeActions),
+    required_action: requiredOut,
+    alternative_actions: strList(
+      o.alternative_actions ?? o.alternativeActions ?? o.alternative_paths ?? o.alternatives,
+    ),
     most_likely_action,
     confidence: Number.isFinite(confidence) ? confidence : 0,
-    time_window: str(o.time_window ?? o.timeWindow) || "—",
-    catalyst_events: strList(o.catalyst_events ?? o.catalystEvents),
-    reasoning: str(o.reasoning),
+    time_window: firstStringField(o, ["time_window", "timeWindow", "time_horizon", "horizon"]) || "—",
+    catalyst_events: strList(o.catalyst_events ?? o.catalystEvents ?? o.catalysts ?? o.watch_items),
+    reasoning: reasoning || goalOut,
   };
 }
 
