@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
+import { loadUserAccountRow } from "@/lib/auth/user-account-row";
+import { isProFromDb } from "@/lib/billing/subscription-access";
 import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
 import { populateUserThesisBody, shouldAutoPopulateUserThesisBody } from "@/lib/thesis/populate-user-thesis-body";
 import { fetchThesisRowBySlug } from "@/lib/thesis-engine-v2/fetch-thesis-row-by-slug";
@@ -59,6 +61,14 @@ export async function POST(req: Request, context: { params: { slug: string } }) 
 
   const auth = await getAuthedSupabase(req);
   if (!auth) return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+
+  const accountRow = await loadUserAccountRow(auth.user);
+  if (!isProFromDb(accountRow?.tier, accountRow?.subscription_tier)) {
+    return NextResponse.json(
+      { ok: false, error: "pro_required", message: "AI thesis body population requires DEPTH4 Pro." },
+      { status: 403 },
+    );
+  }
 
   const row = await fetchThesisRowBySlug(auth.sb, slug, auth.user.id);
   if (!row || row.thesis_origin !== "user" || row.owner_user_id !== auth.user.id) {

@@ -1,6 +1,13 @@
 export type UserTier = "Free" | "Analyst" | "Pro";
 export type BillingCycle = "monthly" | "annual";
-export type SubscriptionStatus = "active" | "cancelled";
+export type SubscriptionStatus =
+  | "active"
+  | "trialing"
+  | "past_due"
+  | "canceled"
+  | "cancelled"
+  | "inactive"
+  | "unpaid";
 
 export interface User {
   id: string;
@@ -8,7 +15,8 @@ export interface User {
   tier: UserTier;
   subscription?: {
     billingCycle: BillingCycle;
-    status: SubscriptionStatus;
+    status: SubscriptionStatus | string;
+    periodEnd?: string | null;
   };
   starredTheses: string[];
   preferences: {

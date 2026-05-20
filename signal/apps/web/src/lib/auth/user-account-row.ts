@@ -5,6 +5,9 @@ export type UserAccountRow = {
   notification_preferences: unknown;
   stripe_subscription_id: string | null;
   stripe_customer_id: string | null;
+  subscription_tier: string | null;
+  subscription_status: string | null;
+  subscription_period_end: string | null;
 };
 
 /**
@@ -22,7 +25,9 @@ export async function loadUserAccountRow(authUser: {
 
   const { data: initialRow, error } = await admin
     .from("users")
-    .select("tier, notification_preferences, stripe_subscription_id, stripe_customer_id")
+    .select(
+      "tier, notification_preferences, stripe_subscription_id, stripe_customer_id, subscription_tier, subscription_status, subscription_period_end",
+    )
     .eq("id", authUser.id)
     .maybeSingle();
 
@@ -38,7 +43,9 @@ export async function loadUserAccountRow(authUser: {
     const { data: inserted, error: insErr } = await admin
       .from("users")
       .upsert({ id: authUser.id, email: email || null, tier: "free" }, { onConflict: "id" })
-      .select("tier, notification_preferences, stripe_subscription_id, stripe_customer_id")
+      .select(
+      "tier, notification_preferences, stripe_subscription_id, stripe_customer_id, subscription_tier, subscription_status, subscription_period_end",
+    )
       .maybeSingle();
     if (insErr) {
       // eslint-disable-next-line no-console
@@ -60,6 +67,9 @@ export async function loadUserAccountRow(authUser: {
     notification_preferences?: unknown;
     stripe_subscription_id?: string | null;
     stripe_customer_id?: string | null;
+    subscription_tier?: string | null;
+    subscription_status?: string | null;
+    subscription_period_end?: string | null;
   };
 
   return {
@@ -67,5 +77,8 @@ export async function loadUserAccountRow(authUser: {
     notification_preferences: r.notification_preferences ?? {},
     stripe_subscription_id: r.stripe_subscription_id?.trim() || null,
     stripe_customer_id: r.stripe_customer_id?.trim() || null,
+    subscription_tier: r.subscription_tier?.trim() || null,
+    subscription_status: r.subscription_status?.trim() || null,
+    subscription_period_end: r.subscription_period_end?.trim() || null,
   };
 }

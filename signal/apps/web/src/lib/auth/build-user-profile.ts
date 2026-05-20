@@ -1,12 +1,23 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { User, UserTier } from "@/types/auth";
 import { loadUserAccountRow } from "@/lib/auth/user-account-row";
+import { isProFromDb } from "@/lib/billing/subscription-access";
 
 export function mapDbTierToUserTier(raw: string | undefined | null): UserTier {
   const t = (raw ?? "free").trim().toLowerCase();
   if (t === "pro" || t === "creator") return "Pro";
   if (t === "analyst" || t === "institutional") return "Analyst";
   return "Free";
+}
+
+function profileTierFromAccount(
+  tier: UserTier,
+  accountRow: Awaited<ReturnType<typeof loadUserAccountRow>>,
+): UserTier {
+  if (!accountRow) return tier;
+  if (!isProFromDb(accountRow.tier, accountRow.subscription_tier)) return tier;
+  if (tier === "Analyst") return "Analyst";
+  return "Pro";
 }
 
 export async function buildUserProfile(
@@ -16,15 +27,8 @@ export async function buildUserProfile(
   const email = authUser.email ?? "";
 
   const accountRow = await loadUserAccountRow(authUser);
-  const row = accountRow
-    ? {
-        tier: accountRow.tier,
-        notification_preferences: accountRow.notification_preferences,
-        stripe_subscription_id: accountRow.stripe_subscription_id,
-      }
-    : null;
-
-  const tier = mapDbTierToUserTier(row?.tier);
+  const tier = profileTierFromAccount(mapDbTierToUserTier(accountRow?.tier), accountRow);
+  const isPro = isProFromDb(accountRow?.tier, accountRow?.subscription_tier);
 
   const { data: stars } = await sb
     .from("thesis_stars")
@@ -36,7 +40,7 @@ export async function buildUserProfile(
     .map((r) => String((r as { thesis_id?: unknown }).thesis_id ?? "").trim())
     .filter(Boolean);
 
-  const npRaw = row?.notification_preferences;
+  const npRaw = accountRow?.notification_preferences;
   const npObj =
     npRaw && typeof npRaw === "object" && !Array.isArray(npRaw) ? (npRaw as Record<string, unknown>) : {};
   const prefs = npObj.depth4ThesisNotifyPrefs;
@@ -46,10 +50,15 @@ export async function buildUserProfile(
     if (vals.length > 0 && vals.every((v) => v === "mute")) alertsEnabled = false;
   }
 
-  const subId = row?.stripe_subscription_id?.trim();
-  const subscription = subId
-    ? { billingCycle: "monthly" as const, status: "active" as const }
-    : undefined;
+  const subStatus = (accountRow?.subscription_status ?? "").trim().toLowerCase();
+  const subscription =
+    accountRow?.stripe_subscription_id?.trim() || subStatus
+      ? {
+          billingCycle: "monthly" as const,
+          status: subStatus || (isPro ? "active" : "inactive"),
+          periodEnd: accountRow?.subscription_period_end ?? null,
+        }
+      : undefined;
 
   return {
     id: authUser.id,

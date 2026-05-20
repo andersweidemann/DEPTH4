@@ -75,6 +75,8 @@ export async function POST(req: NextRequest) {
   await applyTierToUserById(admin, userId, tier, {
     customerId: parsed.customerId,
     subscriptionId: parsed.subscriptionId,
+    status: event.type === "customer.subscription.deleted" ? "canceled" : parsed.status,
+    periodEndIso: parsed.periodEndIso,
   });
 
   return NextResponse.json({ received: true, userId, tier });

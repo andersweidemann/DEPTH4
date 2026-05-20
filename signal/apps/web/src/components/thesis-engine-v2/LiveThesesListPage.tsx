@@ -100,22 +100,6 @@ export function LiveThesesListPage() {
   const homeEmerging = useMemo(() => data?.home?.emerging ?? [], [data?.home?.emerging]);
   const homeMonitoring = useMemo(() => data?.home?.monitoring ?? [], [data?.home?.monitoring]);
 
-  const allowedSlugs = useMemo(() => {
-    if (listTab === "archive") return null;
-    const rows =
-      listTab === "focus"
-        ? homeTradable
-        : listTab === "emerging"
-          ? homeEmerging
-          : listTab === "monitor"
-            ? homeMonitoring
-            : null;
-    if (!rows || rows.length === 0) {
-      return listBySlug.size > 0 ? new Set(listBySlug.keys()) : null;
-    }
-    return new Set(rows.map((r) => r.slug));
-  }, [listTab, homeTradable, homeEmerging, homeMonitoring, listBySlug]);
-
   const listBySlug = useMemo(() => {
     const map = new Map<string, ThesisListItem>();
     if (!data) return map;
@@ -133,6 +117,22 @@ export function LiveThesesListPage() {
     }
     return map;
   }, [data, homeTradable, homeEmerging, homeMonitoring, assetClass]);
+
+  const allowedSlugs = useMemo(() => {
+    if (listTab === "archive") return null;
+    const rows =
+      listTab === "focus"
+        ? homeTradable
+        : listTab === "emerging"
+          ? homeEmerging
+          : listTab === "monitor"
+            ? homeMonitoring
+            : null;
+    if (!rows || rows.length === 0) {
+      return listBySlug.size > 0 ? new Set(listBySlug.keys()) : null;
+    }
+    return new Set(rows.map((r) => r.slug));
+  }, [listTab, homeTradable, homeEmerging, homeMonitoring, listBySlug]);
 
   const clusterFilter: ClusterListFilter =
     activeFilter === "by_cluster" ? "all" : activeFilter;

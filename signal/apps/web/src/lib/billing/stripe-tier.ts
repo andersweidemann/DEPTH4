@@ -14,8 +14,10 @@ function priceIds(): { analyst: string[]; pro: string[] } {
     .map((s) => (s ?? "").trim())
     .filter(Boolean);
   const pro = [
+    process.env.STRIPE_PRO_PRICE_ID,
     process.env.STRIPE_PRICE_PRO_MONTHLY,
     process.env.STRIPE_PRICE_PRO_YEARLY,
+    process.env.NEXT_PUBLIC_STRIPE_PRO_PRICE_ID,
     process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_MONTHLY,
     process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_YEARLY,
   ]
@@ -45,13 +47,43 @@ export function dbTierFromSubscriptionStatus(
   return "free";
 }
 
+export function subscriptionFieldsForTier(
+  tier: DbBillingTier,
+  stripeStatus: string | null | undefined,
+  periodEndIso: string | null | undefined,
+): {
+  subscription_tier: "free" | "pro";
+  subscription_status: string;
+  subscription_period_end: string | null;
+} {
+  const st = (stripeStatus ?? "").trim().toLowerCase();
+  const subscription_tier: "free" | "pro" = tier === "pro" || tier === "analyst" ? "pro" : "free";
+  const subscription_status = st || (subscription_tier === "pro" ? "active" : "inactive");
+  return {
+    subscription_tier,
+    subscription_status,
+    subscription_period_end: periodEndIso ?? null,
+  };
+}
+
 export async function applyTierToUserById(
   admin: SupabaseClient,
   userId: string,
   tier: DbBillingTier,
-  stripe?: { customerId?: string | null; subscriptionId?: string | null },
+  stripe?: {
+    customerId?: string | null;
+    subscriptionId?: string | null;
+    status?: string | null;
+    periodEndIso?: string | null;
+  },
 ): Promise<void> {
-  const patch: Record<string, string> = { tier };
+  const sub = subscriptionFieldsForTier(tier, stripe?.status, stripe?.periodEndIso);
+  const patch: Record<string, string | null> = {
+    tier,
+    subscription_tier: sub.subscription_tier,
+    subscription_status: sub.subscription_status,
+    subscription_period_end: sub.subscription_period_end,
+  };
   if (stripe?.customerId) patch.stripe_customer_id = stripe.customerId;
   if (stripe?.subscriptionId) patch.stripe_subscription_id = stripe.subscriptionId;
   await admin.from("users").update(patch).eq("id", userId);
@@ -84,7 +116,13 @@ export async function syncUserTierFromStripe(
   const email = (authUser.email ?? "").trim();
   if (!email) return null;
 
-  let best: { tier: DbBillingTier; customerId: string; subscriptionId: string } | null = null;
+  let best: {
+    tier: DbBillingTier;
+    customerId: string;
+    subscriptionId: string;
+    status: string;
+    periodEndIso: string | null;
+  } | null = null;
 
   const customers = await stripe.customers.list({ email, limit: 10 });
   for (const customer of customers.data) {
@@ -100,7 +138,15 @@ export async function syncUserTierFromStripe(
       const rank = tier === "pro" ? 2 : 1;
       const curRank = best?.tier === "pro" ? 2 : best?.tier === "analyst" ? 1 : 0;
       if (!best || rank > curRank) {
-        best = { tier, customerId: customer.id, subscriptionId: sub.id };
+        best = {
+          tier,
+          customerId: customer.id,
+          subscriptionId: sub.id,
+          status: sub.status,
+          periodEndIso: sub.current_period_end
+            ? new Date(sub.current_period_end * 1000).toISOString()
+            : null,
+        };
       }
     }
   }
@@ -110,6 +156,8 @@ export async function syncUserTierFromStripe(
   await applyTierToUserById(admin, authUser.id, best.tier, {
     customerId: best.customerId,
     subscriptionId: best.subscriptionId,
+    status: best.status,
+    periodEndIso: best.periodEndIso,
   });
   return best.tier;
 }
@@ -121,6 +169,7 @@ export function parseStripeWebhookSubscription(obj: Record<string, unknown>): {
   status: string | null;
   priceId: string | null;
   subscriptionId: string | null;
+  periodEndIso: string | null;
 } {
   const customer = obj.customer;
   const customerId = typeof customer === "string" ? customer : null;
@@ -140,6 +189,11 @@ export function parseStripeWebhookSubscription(obj: Record<string, unknown>): {
   const price = first?.price as Record<string, unknown> | undefined;
   const priceId = typeof price?.id === "string" ? price.id : null;
 
+  const periodEnd =
+    typeof obj.current_period_end === "number" && Number.isFinite(obj.current_period_end)
+      ? new Date(obj.current_period_end * 1000).toISOString()
+      : null;
+
   return {
     customerId,
     email: null,
@@ -147,5 +201,6 @@ export function parseStripeWebhookSubscription(obj: Record<string, unknown>): {
     status: typeof obj.status === "string" ? obj.status : null,
     priceId,
     subscriptionId: typeof obj.id === "string" ? obj.id : null,
+    periodEndIso: periodEnd,
   };
 }

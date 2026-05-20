@@ -10,6 +10,7 @@ import { useMemo, useState } from "react";
 import { InsiderFlowPanel, InsiderFlowRadarButton } from "@/components/thesis-engine-v2/InsiderFlowPanel";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import { UpgradeButton } from "@/components/billing/UpgradeButton";
 
 export type ThesisNavTab =
   | "theses"
@@ -73,9 +74,10 @@ export function AppHeader({
           <div className="flex items-center gap-2">
             <InsiderFlowRadarButton onClick={() => setInsiderOpen(true)} state={radarState} />
             {alertsSlot}
-            <span className="text-sm text-zinc-500" aria-label="Current tier">
+            <span className="hidden text-sm text-zinc-500 sm:inline" aria-label="Current tier">
               {tierLabel}
             </span>
+            <UpgradeButton compact />
             <LogoutButton />
           </div>
         </div>

@@ -22,7 +22,9 @@ function useAccountTierHydration() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("upgraded") !== "1") return;
+    const checkoutSuccess = params.get("checkout") === "success";
+    const upgraded = params.get("upgraded") === "1";
+    if (!checkoutSuccess && !upgraded) return;
 
     void (async () => {
       try {
@@ -34,6 +36,7 @@ function useAccountTierHydration() {
     })();
 
     params.delete("upgraded");
+    params.delete("checkout");
     const qs = params.toString();
     window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
   }, [refreshUser]);

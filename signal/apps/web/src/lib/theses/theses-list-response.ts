@@ -149,7 +149,7 @@ export function thesisListItemFromEngine(
     lifecycle_state: db?.lifecycle_state,
     status: t.status,
   });
-  let bucket =
+  const bucket =
     db?.surfaced_bucket !== undefined
       ? db.surfaced_bucket
       : surfacedBucketForEngineThesis(t, partition, lifecycle_state);

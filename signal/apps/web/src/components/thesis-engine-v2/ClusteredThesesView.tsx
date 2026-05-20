@@ -6,6 +6,7 @@ import { TABLE_GRID, ThesisRow } from "@/components/thesis-engine-v2/ThesisListR
 import {
   filterClusterTheses,
   filterIsolatedTheses,
+  listItemPassesFilter,
   type ClusterListFilter,
 } from "@/lib/causal-map/cluster-list-filters";
 import { cn } from "@/lib/utils";
@@ -305,7 +306,9 @@ export function ClusteredThesesView({
   }
 
   if (nothingVisible && listBySlug.size > 0) {
-    const flatRows = [...listBySlug.values()].filter((item) => listItemPassesFilter(item, activeFilter));
+    const flatRows = Array.from(listBySlug.values()).filter((item) =>
+      listItemPassesFilter(item, activeFilter),
+    );
     if (flatRows.length > 0) {
       return (
         <IsolatedSection
