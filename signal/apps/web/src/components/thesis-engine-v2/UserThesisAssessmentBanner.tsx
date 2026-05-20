@@ -11,6 +11,12 @@ import {
   mispricingPctFromThesis,
 } from "@/lib/thesis/user-thesis-lifecycle";
 
+function userThesisNeedsMoreDetail(thesis: Thesis): boolean {
+  if (thesis.qualityScore !== 0) return false;
+  const hasCalibration = Boolean(thesis.userCalibration?.summary?.trim());
+  return !hasCalibration && (thesis.status === "forming" || thesis.status === "watching");
+}
+
 export function UserThesisAssessmentBanner({
   thesis,
   className,
@@ -21,6 +27,25 @@ export function UserThesisAssessmentBanner({
   onArchive?: () => void;
 }) {
   if (!isUserOwnedThesis(thesis)) return null;
+
+  if (userThesisNeedsMoreDetail(thesis)) {
+    return (
+      <div
+        className={cn(
+          "rounded-lg border border-amber-500/25 bg-amber-500/[0.04] px-4 py-3",
+          className,
+        )}
+        role="status"
+        data-testid="user-thesis-needs-detail-banner"
+      >
+        <p className="text-[13px] font-medium text-amber-200/90">This thesis may need more detail</p>
+        <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+          DEPTH4 has not assigned a quality score yet. Add catalyst, trigger, and trade framing on the detail
+          page, or wait for the assessment pass to finish — we do not auto-archive user hypotheses.
+        </p>
+      </div>
+    );
+  }
 
   if (isUserThesisAssessing(thesis)) {
     const asset = (thesis.asset ?? "").trim() || "this asset";

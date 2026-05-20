@@ -38,6 +38,8 @@ const TITLE_TICKER_STOP = new Set([
   "FOMC",
   "LONG",
   "SHORT",
+  "OIL",
+  "GAS",
 ]);
 
 function normalizeSymbol(raw: string): string | null {

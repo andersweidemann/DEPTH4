@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 import { buildThesesListResponse } from "@/lib/theses/theses-list-response";
 import { buildDraftUserThesisFromForm } from "@/lib/theses/draft-user-thesis";
+import { tickerFromTitle } from "@/lib/theses/resolve-asset-symbol";
 import {
   normalizeThesisNarrativeFields,
   thesisToDbBodyPayload,
@@ -78,9 +79,16 @@ export async function POST(req: NextRequest) {
   }
   const o = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   const statement = typeof o.statement === "string" ? o.statement : "";
-  const asset = typeof o.asset === "string" ? o.asset : "";
+  let asset = typeof o.asset === "string" ? o.asset.trim() : "";
   const direction = o.direction === "short" ? "short" : o.direction === "long" ? "long" : "";
-  if (!statement.trim() || !asset.trim() || !direction) {
+  if (!statement.trim() || !direction) {
+    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  }
+  if (!asset || asset === "—") {
+    const inferred = tickerFromTitle(statement) ?? tickerFromTitle(asset);
+    if (inferred) asset = inferred;
+  }
+  if (!asset) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
 

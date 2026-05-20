@@ -1,5 +1,6 @@
 import type { Thesis, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
+import { tickerFromTitle } from "@/lib/theses/resolve-asset-symbol";
 
 function slugify(input: string, suffix: string): string {
   const base = input
@@ -18,7 +19,11 @@ export function buildDraftUserThesisFromForm(input: {
   id: string;
 }): Thesis {
   const statement = input.statement.trim();
-  const asset = input.asset.trim() || "—";
+  let asset = input.asset.trim() || "—";
+  if (asset === "—" || !asset) {
+    const fromStatement = tickerFromTitle(statement);
+    if (fromStatement) asset = fromStatement;
+  }
   const direction = input.direction;
   const slug = slugify(statement, input.id.slice(0, 8));
   const now = new Date().toISOString();

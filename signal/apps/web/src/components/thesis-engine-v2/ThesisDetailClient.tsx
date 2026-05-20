@@ -91,7 +91,7 @@ import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
 import { lastRemodeledAtFromBody } from "@/lib/thesis-engine-v2/last-remodeled-at";
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
-import { PUBLIC_READ_STAR_TOOLTIP } from "@/lib/theses/public-read-star-copy";
+import { PUBLIC_READ_LOGIN_PROMPT_SUFFIX, PUBLIC_READ_STAR_TOOLTIP } from "@/lib/theses/public-read-star-copy";
 
 /**
  * Merge server-fed catalog fields into a thesis detail bundle.
@@ -869,6 +869,14 @@ export function ThesisDetailClient({
             </button>
           ) : null}
         </div>
+        {publicReadOnly ? (
+          <p className="mt-3 text-[12px] leading-relaxed text-zinc-500" data-testid="public-read-login-prompt">
+            <Link href={`/login?next=${encodeURIComponent(pathname || `/theses/${slug}`)}`} className="font-medium text-[#E8473F] hover:underline">
+              Sign in
+            </Link>{" "}
+            {PUBLIC_READ_LOGIN_PROMPT_SUFFIX}
+          </p>
+        ) : null}
       </div>
 
       <div className={cn("mt-6 space-y-4", layout === "drawer" && "px-4 sm:px-5")}>

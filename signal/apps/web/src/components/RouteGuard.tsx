@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  isAlwaysPublicThesisPath,
   isDepth4PublicReadModeClient,
   isPublicReadWorkspacePath,
 } from "@/lib/depth4-public-read-paths";
@@ -18,10 +19,11 @@ export function RouteGuard({
   const { isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const pathnameNorm = pathname ?? "";
   const publicRead =
     Boolean(requireAuth) &&
-    isDepth4PublicReadModeClient() &&
-    isPublicReadWorkspacePath(pathname ?? "");
+    (isAlwaysPublicThesisPath(pathnameNorm) ||
+      (isDepth4PublicReadModeClient() && isPublicReadWorkspacePath(pathnameNorm)));
 
   useEffect(() => {
     if (!requireAuth || publicRead || isLoading) return;
