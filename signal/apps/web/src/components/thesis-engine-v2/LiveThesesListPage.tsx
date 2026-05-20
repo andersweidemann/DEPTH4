@@ -110,9 +110,11 @@ export function LiveThesesListPage() {
           : listTab === "monitor"
             ? homeMonitoring
             : null;
-    if (!rows) return null;
+    if (!rows || rows.length === 0) {
+      return listBySlug.size > 0 ? new Set(listBySlug.keys()) : null;
+    }
     return new Set(rows.map((r) => r.slug));
-  }, [listTab, homeTradable, homeEmerging, homeMonitoring]);
+  }, [listTab, homeTradable, homeEmerging, homeMonitoring, listBySlug]);
 
   const listBySlug = useMemo(() => {
     const map = new Map<string, ThesisListItem>();
@@ -222,7 +224,8 @@ export function LiveThesesListPage() {
   }
 
   const clusterCount = clustersPayload?.clusters.length ?? 0;
-  const thesisCount = clustersPayload?.totalTheses ?? 0;
+  const listThesisCount = listBySlug.size;
+  const thesisCount = listThesisCount > 0 ? listThesisCount : (clustersPayload?.totalTheses ?? 0);
 
   return (
     <>

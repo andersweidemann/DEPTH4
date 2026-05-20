@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CATALOG_THESES, sortThesesForDashboard } from "@/lib/thesis-engine-v2/catalog-data";
+import { CATALOG_THESES } from "@/lib/thesis-engine-v2/catalog-data";
 import {
   defaultScenarioOverridesFromThesis,
   isCatalogThesisId,
@@ -17,12 +17,8 @@ import {
   thesisMapHomeRankScore,
 } from "@/lib/theses/thesis-home-surfacing";
 import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
-import { isThesisMapListableThesis } from "@/lib/theses/thesis-surfacing-quality";
-import {
-  buildSurfacingPreferenceFromRow,
-  loadCatalogEngineTheses,
-  type ThesisDbSurfacingPreference,
-} from "@/lib/theses/load-catalog-engine-theses";
+import { THESIS_MAP_LIVE_STATUSES } from "@/lib/theses/thesis-surfacing-quality";
+import { buildSurfacingPreferenceFromRow, type ThesisDbSurfacingPreference } from "@/lib/theses/load-catalog-engine-theses";
 
 function mapDirection(d: EngineThesis["direction"]): ThesisDirection {
   return d === "short" ? "short" : "long";
@@ -157,9 +153,6 @@ export function thesisListItemFromEngine(
     db?.surfaced_bucket !== undefined
       ? db.surfaced_bucket
       : surfacedBucketForEngineThesis(t, partition, lifecycle_state);
-  if (!isThesisMapListableThesis(t)) {
-    bucket = null;
-  }
   const thesis_score =
     db?.thesis_score !== undefined ? db.thesis_score : Math.round(thesisMapHomeRankScore(t));
   const outcome_label = db?.outcome_label;
@@ -192,35 +185,6 @@ function assetClassFilterOk(asset: string, filter: string): boolean {
 const THESIS_LIST_ROW_SELECT =
   "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin, quality_score";
 
-/** All live map rows for any signed-in user — not filtered by plan tier or owner. */
-async function loadLiveStatusThesesFromDb(sb: SupabaseClient): Promise<EngineThesis[]> {
-  const { data: rows, error } = await sb
-    .from("theses")
-    .select(THESIS_LIST_ROW_SELECT)
-    .in("status", ["ready", "watching", "active"])
-    .order("updated_at", { ascending: false })
-    .limit(500);
-
-  if (error) {
-    console.warn("[buildThesesListResponse] live_status_select_failed", error.message);
-    return [];
-  }
-
-  return (rows ?? []).map((row) =>
-    userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
-  );
-}
-
-function mergeEngineThesesById(...groups: EngineThesis[][]): EngineThesis[] {
-  const byId = new Map<string, EngineThesis>();
-  for (const group of groups) {
-    for (const t of group) {
-      if (!byId.has(t.id)) byId.set(t.id, t);
-    }
-  }
-  return Array.from(byId.values());
-}
-
 export async function buildThesesListResponse(
   sb: SupabaseClient,
   userId: string | null,
@@ -240,54 +204,28 @@ export async function buildThesesListResponse(
     }
   }
 
-  const { data: userRows } = await sb
+  const { data: rows, error } = await sb
     .from("theses")
     .select(THESIS_LIST_ROW_SELECT)
-    .eq("owner_user_id", userId)
-    .eq("thesis_origin", "user")
+    .in("status", ["ready", "watching", "active"])
     .order("updated_at", { ascending: false })
-    .limit(200);
+    .limit(500);
 
-  const userTheses: EngineThesis[] = (userRows ?? []).map((row) =>
+  if (error) {
+    console.warn("[buildThesesListResponse] theses_select_failed", error.message);
+  }
+
+  const dbRows = rows ?? [];
+  let combined: EngineThesis[] = dbRows.map((row) =>
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
 
-  const { data: aiRows } = await sb
-    .from("theses")
-    .select(THESIS_LIST_ROW_SELECT)
-    .eq("thesis_origin", "ai_generated")
-    .order("updated_at", { ascending: false })
-    .limit(120);
-
-  const aiTheses: EngineThesis[] = (aiRows ?? []).map((row) =>
-    userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
-  );
-
-  const liveStatusTheses = await loadLiveStatusThesesFromDb(sb);
-
-  const { catalogEngine, discardBulkWriterCollapse, dbSurfacingByThesisId } = await loadCatalogEngineTheses(sb);
-  const surfacingByThesisId = new Map<string, ThesisDbSurfacingPreference>(dbSurfacingByThesisId);
-  for (const row of userRows ?? []) {
+  const surfacingByThesisId = new Map<string, ThesisDbSurfacingPreference>();
+  for (const row of dbRows) {
     const r = row as Record<string, unknown>;
     const id = typeof r.id === "string" ? r.id.trim() : "";
     if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
   }
-  for (const row of aiRows ?? []) {
-    const r = row as Record<string, unknown>;
-    const id = typeof r.id === "string" ? r.id.trim() : "";
-    if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
-  }
-  if (discardBulkWriterCollapse && process.env.NODE_ENV === "development") {
-    console.warn(
-      "[DEPTH4] Discarding unanimous catalog scenario triple 80/15/5 across many theses — treat as corrupt DB/evidence stamp; fix writers in Supabase.",
-      { catalogRowCount: catalogEngine.length },
-    );
-  }
-
-  let combined = sortThesesForDashboard(
-    mergeEngineThesesById(catalogEngine, liveStatusTheses, aiTheses, userTheses),
-  );
-  combined = combined.filter((t) => isThesisMapListableThesis(t));
 
   if (query.starred) {
     combined = combined.filter((t) => starredIds.has(t.id));
@@ -318,7 +256,10 @@ export async function buildThesesListResponse(
     status: t.status,
   });
 
-  const combinedLive = combined.filter((t) => !isTerminalThesis(lifecycleInputFor(t)));
+  /** DB `lifecycle_state` can be stale; live `status` wins for the map list. */
+  const combinedLive = combined.filter(
+    (t) => THESIS_MAP_LIVE_STATUSES.has(t.status) || !isTerminalThesis(lifecycleInputFor(t)),
+  );
 
   const focusEngine = combinedLive.filter((t) => t.status === "ready" || t.status === "active");
   const focusSlugSet = new Set(focusEngine.map((t) => t.slug));
@@ -329,8 +270,8 @@ export async function buildThesesListResponse(
   });
 
   const resolvableSlugSet = buildDetailResolvableSlugSet(
-    mergeEngineThesesById(aiTheses, liveStatusTheses),
-    mergeEngineThesesById(userTheses, liveStatusTheses),
+    combined.filter((t) => t.thesisOrigin === "ai_generated"),
+    combined.filter((t) => t.thesisOrigin === "user"),
   );
 
   const mapEngine = (t: EngineThesis) =>
@@ -343,6 +284,7 @@ export async function buildThesesListResponse(
       surfacingByThesisId.get(t.id),
     );
 
+  const userTheses = combined.filter((t) => t.thesisOrigin === "user");
   if (process.env.NODE_ENV === "development" && userTheses.length >= 3) {
     const signatures = userTheses.map((t) => {
       const c = Math.round(getThesisDisplayModel(t).convictionPct);

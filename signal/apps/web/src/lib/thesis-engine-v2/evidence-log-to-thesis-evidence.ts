@@ -168,7 +168,7 @@ export function thesisEvidenceFromLogRow(
   };
 }
 
-/** Newest log-derived items first, then static bundle rows (e.g. onboarding line). */
+/** Newest log-derived items first, then body/bundle rows not already covered by a log headline. */
 export function mergeEvidenceTimelineItems(
   logRowsForThesis: EvidenceLogRowLike[],
   bundleEvidence: ThesisEvidence[],
@@ -178,5 +178,11 @@ export function mergeEvidenceTimelineItems(
   const live = [...logRowsForThesis]
     .sort((a, b) => b.createdAt - a.createdAt)
     .map((r) => thesisEvidenceFromLogRow(r, headlineProbabilityFallback, opts));
-  return [...live, ...bundleEvidence];
+  const liveHeadlines = new Set(live.map((e) => e.headline.trim().toLowerCase()).filter(Boolean));
+  const staticRows = bundleEvidence.filter((e) => {
+    const h = e.headline.trim().toLowerCase();
+    if (!h) return true;
+    return !liveHeadlines.has(h);
+  });
+  return [...live, ...staticRows];
 }

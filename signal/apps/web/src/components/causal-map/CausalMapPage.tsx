@@ -109,6 +109,7 @@ function ThesisListSkeleton() {
 }
 
 export function CausalMapPage() {
+  /** Default OFF — show all theses until the user opts in to hiding high priced-in names. */
   const [hidePricedIn, setHidePricedIn] = useState(false);
   const [showConflicts, setShowConflicts] = useState(false);
   const [graph, setGraph] = useState<CausalGraphClustersResponse | null>(null);

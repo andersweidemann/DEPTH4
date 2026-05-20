@@ -117,7 +117,11 @@ export function passesDepth4ThesisSurfacingQualityBar(t: Thesis): boolean {
 }
 
 /** Live thesis map rows — always visible when present in DB (not plan-gated). */
-export const THESIS_MAP_LIVE_STATUSES = new Set<Thesis["status"]>(["ready", "active", "watching"]);
+export const THESIS_MAP_LIVE_STATUSES: ReadonlySet<Thesis["status"]> = new Set([
+  "ready",
+  "active",
+  "watching",
+]);
 
 /**
  * `/theses` map: only **promoted causal theses** — not raw headlines, conference decks, or shallow rejected

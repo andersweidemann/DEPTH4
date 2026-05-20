@@ -304,6 +304,20 @@ export function ClusteredThesesView({
     );
   }
 
+  if (nothingVisible && listBySlug.size > 0) {
+    const flatRows = [...listBySlug.values()].filter((item) => listItemPassesFilter(item, activeFilter));
+    if (flatRows.length > 0) {
+      return (
+        <IsolatedSection
+          rows={flatRows}
+          defaultOpen
+          onToggleStar={onToggleStar}
+          onHideThesis={onHideThesis}
+        />
+      );
+    }
+  }
+
   if (nothingVisible) {
     return <p className="mt-8 text-[12px] text-zinc-500">No theses match your filters.</p>;
   }

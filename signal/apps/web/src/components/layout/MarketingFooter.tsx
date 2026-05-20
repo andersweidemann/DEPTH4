@@ -52,7 +52,7 @@ export function MarketingFooter() {
             Privacy
           </Link>
           <span className="mx-1 text-zinc-700">·</span>
-          <Link href="/risk-disclosure" className="text-zinc-400 transition-colors duration-200 hover:text-zinc-200">
+          <Link href="/risk" className="text-zinc-400 transition-colors duration-200 hover:text-zinc-200">
             Risk Disclosure
           </Link>
         </p>

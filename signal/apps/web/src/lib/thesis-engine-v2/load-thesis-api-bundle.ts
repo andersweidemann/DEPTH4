@@ -72,5 +72,8 @@ export async function loadThesisDetailBundleForApi(
     dbRow as Parameters<typeof userThesisFromSupabaseRow>[0],
   );
   const parsed = parseScenarioProbabilities(dbRow.scenario_probabilities);
-  return bundleForUserThesis(thesis, { scenarioProbabilitiesFromDb: parsed != null });
+  return bundleForUserThesis(thesis, {
+    scenarioProbabilitiesFromDb: parsed != null,
+    body: dbRow.body,
+  });
 }

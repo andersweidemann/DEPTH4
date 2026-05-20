@@ -1,3 +1,4 @@
+import { thesisEvidenceFromBodyJson } from "@/lib/thesis-engine-v2/body-evidence-to-thesis-evidence";
 import type { Thesis, ThesisDetailBundle, ThesisEvidence, ThesisScenario, ThesisUpdate } from "@/lib/thesis-engine-v2/types";
 import { catalogSlugForSystemThesisId, RESERVED_CATALOG_SLUGS } from "@/lib/thesis-engine-v2/catalog-slugs";
 import { normalizeThesisNarrativeFields } from "@/lib/thesis-engine-v2/thesis-db-body";
@@ -168,11 +169,13 @@ function mkAdvisoryLog(thesis: Thesis): ThesisUpdate[] {
 
 export function bundleForUserThesis(
   thesis: Thesis,
-  opts?: { scenarioProbabilitiesFromDb?: boolean },
+  opts?: { scenarioProbabilitiesFromDb?: boolean; body?: unknown },
 ): ThesisDetailBundle {
+  const bodyEvidence = opts?.body != null ? thesisEvidenceFromBodyJson(opts.body, thesis.id) : [];
+  const evidence = bodyEvidence.length > 0 ? bodyEvidence : mkEvidence(thesis);
   return {
     thesis: normalizeThesisNarrativeFields(thesis),
-    evidence: mkEvidence(thesis),
+    evidence,
     scenarios: mkScenarios(thesis),
     advisoryLog: mkAdvisoryLog(thesis),
     relatedAssets: [
