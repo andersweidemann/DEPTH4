@@ -7,7 +7,7 @@ export function bearerToken(req: Pick<Request, "headers">): string {
   return authHeader.toLowerCase().startsWith("bearer ") ? authHeader.slice(7).trim() : "";
 }
 
-export type AuthedSupabase = { sb: SupabaseClient; user: { id: string } };
+export type AuthedSupabase = { sb: SupabaseClient; user: { id: string; email?: string | null } };
 
 /**
  * Resolves Supabase for API routes: **Bearer JWT first** (matches `authFetch` / localStorage),

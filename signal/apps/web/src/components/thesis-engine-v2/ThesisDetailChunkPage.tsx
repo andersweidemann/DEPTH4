@@ -464,7 +464,7 @@ export function ThesisDetailChunkPage() {
           >
             Open position
           </Link>
-          <Link href="/risk-disclosure" className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-400">
+          <Link href="/risk" className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-400">
             Risk
           </Link>
         </div>

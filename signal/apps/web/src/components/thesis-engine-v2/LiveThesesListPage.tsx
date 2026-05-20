@@ -116,14 +116,21 @@ export function LiveThesesListPage() {
 
   const listBySlug = useMemo(() => {
     const map = new Map<string, ThesisListItem>();
-    if (!data?.home) return map;
-    const all = [...homeTradable, ...homeEmerging, ...homeMonitoring];
+    if (!data) return map;
+    const all = [
+      ...homeTradable,
+      ...homeEmerging,
+      ...homeMonitoring,
+      ...(data.home?.archivePreview ?? []),
+      ...(data.focus ?? []),
+      ...(data.monitor ?? []),
+    ];
     for (const item of all) {
       if (assetClass !== "All" && inferAssetClassFromTicker(item.asset) !== assetClass) continue;
       map.set(item.slug, item);
     }
     return map;
-  }, [data?.home, homeTradable, homeEmerging, homeMonitoring, assetClass]);
+  }, [data, homeTradable, homeEmerging, homeMonitoring, assetClass]);
 
   const clusterFilter: ClusterListFilter =
     activeFilter === "by_cluster" ? "all" : activeFilter;

@@ -33,9 +33,9 @@ export function buildDraftUserThesisFromForm(input: {
     microLabel: null,
     asset,
     direction,
-    probability: 50,
-    status: "forming" as ThesisStatus,
-    probabilityRationale: "Initial draft conviction — refine scenarios on the thesis page.",
+    probability: 0,
+    status: "watching" as ThesisStatus,
+    probabilityRationale: "Calibrating — DEPTH4 will assess this hypothesis before assigning probabilities.",
     origin: "user",
     hiddenDriver: placeholder,
     likelyPath: placeholder,
@@ -44,7 +44,7 @@ export function buildDraftUserThesisFromForm(input: {
     whyNow: "Add the catalyst window and what changed recently.",
     whatsUnpriced: "State the single misread the tape is still carrying.",
     trigger: "Define the observable gate that proves the thesis is live.",
-    trade: "Describe the risk-defined expression in words; levels live in Trade plan after quotes load.",
+    trade: "Trade plan pending — DEPTH4 generates levels only after the thesis is promoted to tradeable.",
     invalidation: "Write the stand-down that retires the idea cleanly.",
     horizon: "Weeks to quarters (edit to match your clock)",
     advisoryAction: "watch",
@@ -66,6 +66,10 @@ export function buildDraftUserThesisFromForm(input: {
       l4Backdrop2026: "Structural bias that supports or fights the idea this year.",
     },
     insiderFlow: { bullInstruments: [], bearInstruments: [], confirmTags: [], contradictTags: [] },
+    userCalibration: {
+      phase: "assessing",
+      summary: "DEPTH4 is assessing this thesis.",
+    },
   };
 
   return normalizeThesisNarrativeFields(shell);

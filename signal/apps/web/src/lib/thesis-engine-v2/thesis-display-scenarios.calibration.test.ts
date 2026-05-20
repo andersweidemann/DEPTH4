@@ -40,6 +40,11 @@ function scenariosFromTriple(clean: number, messy: number, broken: number): Thes
 }
 
 describe("scenario calibration helpers", () => {
+  it("treats 0/0/0 as uncalibrated (user WATCHING draft)", () => {
+    expect(isUncalibratedScenarioTripleCleanMessyBroken(0, 0, 0)).toBe(true);
+    expect(isUncalibratedDisplayScenarioTriple(scenariosFromTriple(0, 0, 0))).toBe(true);
+  });
+
   it("isUncalibratedScenarioTripleCleanMessyBroken matches known templates only", () => {
     expect(isUncalibratedScenarioTripleCleanMessyBroken(40, 35, 25)).toBe(true);
     expect(isUncalibratedScenarioTripleCleanMessyBroken(35, 40, 25)).toBe(true);

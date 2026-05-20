@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Suspense } from "react";
 import "@/styles/thesis-engine-v2.css";
 import { Depth4V2Shell } from "@/components/thesis-engine-v2/Depth4V2Shell";
+import { MacroDisclaimerBanner } from "@/components/compliance/MacroDisclaimerBanner";
 import { AppTopBar } from "@/components/layout/AppTopBar";
 import { AppSubNav } from "@/components/layout/AppSubNav";
 import { AppFooter } from "@/components/layout/AppFooter";
@@ -23,6 +24,7 @@ export default function AppShellLayout({ children }: { children: ReactNode }) {
         <div className="te2 min-h-screen bg-[#0c0c0e] text-zinc-100 antialiased selection:bg-amber-500/20 selection:text-amber-100">
           <Depth4V2Shell>
             <AppTopBar />
+            <MacroDisclaimerBanner />
             <AppSubNav />
             <main className="mx-auto max-w-4xl px-5 py-8 has-[[data-causal-map]]:max-w-6xl">{children}</main>
             <AppFooter />

@@ -8,6 +8,7 @@ import {
 
 describe("depth4-llm-system-prompt", () => {
   it("includes global retail constitution in JSON system", () => {
+    expect(DEPTH4_PLATFORM_JSON_SYSTEM).toContain("COMPLIANCE RULE");
     expect(DEPTH4_PLATFORM_JSON_SYSTEM).toContain("DEPTH4 GLOBAL WRITING CONSTITUTION");
     expect(DEPTH4_PLATFORM_JSON_SYSTEM).toContain("strict JSON only");
   });

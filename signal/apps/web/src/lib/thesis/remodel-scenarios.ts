@@ -13,6 +13,7 @@ import {
   buildRemodelNotificationMetadata,
   insertRemodelNotifications,
 } from "@/lib/thesis/remodel-notifications";
+import { DEPTH4_COMPLIANCE_RULE_INLINE } from "@/lib/thesis-engine-v2/depth4-compliance-rules";
 import { DEPTH4_PLATFORM_JSON_SYSTEM } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 
 export type RemodelTradePlan = {
@@ -387,10 +388,12 @@ TASK — JSON only:
 }
 
 RULES:
+${DEPTH4_COMPLIANCE_RULE_INLINE}
 1. Probabilities must sum to 100; each path 5-90.
 2. If price is far from entry for a directional thesis, move entry zone toward current reality — do not keep stale levels.
 3. Ground stops/targets in current price when available.
-4. If within ~5% of stop, mention risk; within ~5% of target, mention opportunity.`;
+4. If within ~5% of stop, mention risk; within ~5% of target, mention opportunity.
+5. whatChanged must stay probabilistic research tone — not trade instructions.`;
 
   const parsed = await completeRemodelJson(prompt);
   if (!parsed) throw new Error("llm_remodel_failed");

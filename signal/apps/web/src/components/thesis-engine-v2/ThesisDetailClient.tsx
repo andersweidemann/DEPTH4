@@ -81,6 +81,9 @@ import type { ResolutionCheck } from "@/lib/thesis/check-resolution";
 import { assetSymbolFromThesis, storedTradePlanFromThesis } from "@/lib/thesis-engine-v2/stored-trade-plan";
 import { shouldAutoPopulateUserThesisBody } from "@/lib/thesis/populate-user-thesis-body";
 import { UserThesisAnalyzingBanner } from "@/components/thesis-engine-v2/UserThesisAnalyzingBanner";
+import { UserThesisAssessmentBanner } from "@/components/thesis-engine-v2/UserThesisAssessmentBanner";
+import { UserThesisLifecycleBadge } from "@/components/thesis-engine-v2/UserThesisLifecycleBadge";
+import { shouldHideCalibratedEconomics } from "@/lib/thesis/user-thesis-lifecycle";
 import { hideThesisBySlug } from "@/lib/thesis-engine-v2/user-hidden-theses-client";
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
@@ -677,13 +680,14 @@ export function ThesisDetailClient({
   }, [insider?.applied, scenarioPanelScenarios, bundle, liveEvidence, liveScenarioProbModelEnabled]);
 
   /** Catalog theses ship curated 40/35/25-style triples on purpose — still show % (see `catalogDefaultScenariosForThesis`). User/session theses stay gated until evidence moves off template. */
-  const showAuthoritativeScenarioPercents = useMemo(
-    () =>
+  const showAuthoritativeScenarioPercents = useMemo(() => {
+    if (bundle && shouldHideCalibratedEconomics(bundle.thesis)) return false;
+    return (
       Boolean(insider?.applied) ||
       !isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows) ||
-      (bundle ? isCatalogThesisId(bundle.thesis.id) : false),
-    [insider?.applied, scenarioViewScenarios.rows, bundle],
-  );
+      (bundle ? isCatalogThesisId(bundle.thesis.id) : false)
+    );
+  }, [insider?.applied, scenarioViewScenarios.rows, bundle]);
 
   const assistBundle = useMemo(() => {
     if (!bundle || !thesisLive) return null;
@@ -813,10 +817,12 @@ export function ThesisDetailClient({
     <>
       <div className={cn(layout === "drawer" ? "px-4 pb-6 pt-1 sm:px-5" : "mt-6")}>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <ThesisActionHeader
-            thesis={thesisForDisplay ?? thesis}
-            displaySourceOpts={{ liveEvidenceApplied }}
-            starSlot={
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            {isUserThesis ? <UserThesisLifecycleBadge thesis={thesis} className="mt-1 shrink-0" /> : null}
+            <ThesisActionHeader
+              thesis={thesisForDisplay ?? thesis}
+              displaySourceOpts={{ liveEvidenceApplied }}
+              starSlot={
               liveOpt ? (
                 <ThesisStarButton
                   dataTestId={`thesis-star-header-${thesis.slug}`}
@@ -832,8 +838,9 @@ export function ThesisDetailClient({
                   onClick={handleStarToggle}
                 />
               ) : null
-            }
-          />
+              }
+            />
+          </div>
           {!publicReadOnly ? (
             <button
               type="button"
@@ -848,6 +855,9 @@ export function ThesisDetailClient({
 
       <div className={cn("mt-6 space-y-4", layout === "drawer" && "px-4 sm:px-5")}>
         {userBodyNeedsPopulate ? <UserThesisAnalyzingBanner /> : null}
+        {isUserThesis && !userBodyNeedsPopulate ? (
+          <UserThesisAssessmentBanner thesis={thesis} onArchive={publicReadOnly ? undefined : handleHideFromView} />
+        ) : null}
         {resolutionCheck ? (
           <ThesisResolutionBanner
             check={resolutionCheck}

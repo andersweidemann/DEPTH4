@@ -1,4 +1,5 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { readUserCalibrationFromBody, userCalibrationToBodyPatch } from "@/lib/thesis/user-thesis-lifecycle";
 import { applyThesisNarrativeProbabilityGuardToThesis } from "@/lib/thesis-engine-v2/thesis-narrative-probability-guard";
 import { parseThesisDepthBookFromUnknown } from "@/lib/thesis-engine-v2/thesis-depth-canonical";
 import {
@@ -155,6 +156,7 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
   const assetFromBody = targetAsset && targetAsset !== "—" ? targetAsset : undefined;
 
   const scenarioOverrides = parseScenarioOverridesFromBody(o);
+  const userCalibration = readUserCalibrationFromBody(o);
 
   const next: Thesis = {
     ...thesis,
@@ -191,6 +193,7 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
       : {}),
     ...(scenarioOverrides ? { scenarioOverrides } : {}),
     ...(lastRemodeledAt ? { lastRemodeledAt } : {}),
+    ...(userCalibration ? { userCalibration } : {}),
   };
 
   return normalizeThesisNarrativeFields(next);
@@ -299,5 +302,6 @@ export function thesisToDbBodyPayload(thesis: Thesis): Record<string, unknown> {
     target2: thesis.target2 ?? null,
     thesis_depth_book: thesis.thesisDepthBook ?? null,
     thesis_structured_anatomy: thesis.structuredAnatomy ? anatomyToDbJson(thesis.structuredAnatomy) : null,
+    ...(thesis.userCalibration ? userCalibrationToBodyPatch(thesis.userCalibration) : {}),
   };
 }

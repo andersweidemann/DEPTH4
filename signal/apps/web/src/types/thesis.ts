@@ -173,6 +173,8 @@ export interface ThesisListItem {
    * List UI must not link to `/theses/[slug]` when false.
    */
   detailResolvable: boolean;
+  /** User-owned thesis calibration phase (WATCHING vs TRADEABLE). */
+  user_calibration_phase?: "assessing" | "tradeable" | "watching_no_edge";
 }
 
 export interface ThesisHomeBuckets {

@@ -116,9 +116,14 @@ export function passesDepth4ThesisSurfacingQualityBar(t: Thesis): boolean {
   return true;
 }
 
+/** Live thesis map rows — always visible when present in DB (not plan-gated). */
+export const THESIS_MAP_LIVE_STATUSES = new Set<Thesis["status"]>(["ready", "active", "watching"]);
+
 /**
  * `/theses` map: only **promoted causal theses** — not raw headlines, conference decks, or shallow rejected
  * narratives (those never get `ai_generated` rows). Catalog rows always list (seeded product surface).
+ *
+ * **`ready` / `active` / `watching`:** always list for authenticated users (no plan tier gate, no quality-bar cliff).
  *
  * **`ai_generated`:** registry insert already ran the DEPTH4 pack; seed `scenario_probabilities` stay template-shaped
  * until evidence / cron moves them — do not hide forming/watching AI rows for that alone.
@@ -126,6 +131,7 @@ export function passesDepth4ThesisSurfacingQualityBar(t: Thesis): boolean {
 export function isThesisMapListableThesis(t: Thesis): boolean {
   if (isCatalogThesisId(t.id)) return true;
   if (isQualityHiddenFromList(t.qualityScore, t.status)) return false;
+  if (THESIS_MAP_LIVE_STATUSES.has(t.status)) return true;
   if (!passesDepth4ThesisSurfacingQualityBar(t)) return false;
 
   const title = (t.title || "").trim();

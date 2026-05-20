@@ -60,25 +60,7 @@ function clamp(n: number, a: number, b: number) {
   return Math.min(b, Math.max(a, n));
 }
 
-function scoreFromProb(p: number) {
-  // Heuristic: higher conviction tends to imply stronger driver + clearer trade.
-  const driverStrength = clamp(Math.round((p / 100) * 18), 6, 20);
-  const timeCompression = clamp(Math.round((p / 100) * 22), 6, 25);
-  const marketMispricingScore = clamp(Math.round((p / 100) * 22), 6, 25);
-  const tradeClarityScore = clamp(Math.round((p / 100) * 14), 4, 15);
-  const triggerClarityScore = clamp(Math.round((p / 100) * 14), 4, 15);
-  const total = clamp(
-    driverStrength + timeCompression + marketMispricingScore + tradeClarityScore + triggerClarityScore,
-    0,
-    100,
-  );
-  const qualification = total >= 65 ? "tradeable" : total >= 40 ? "emerging" : "theme";
-  return { driverStrength, timeCompression, marketMispricingScore, tradeClarityScore, triggerClarityScore, total, qualification } as const;
-}
-
 function buildUserThesis(form: FormState): Thesis {
-  const p = clamp(Number.parseInt(form.probability || "0", 10) || 0, 0, 100);
-  const s = scoreFromProb(p);
   const title = form.title.trim();
   const baseSlug = slugify(title || "user-thesis");
   const nowId =
@@ -87,13 +69,8 @@ function buildUserThesis(form: FormState): Thesis {
       : `user-${Date.now().toString(36)}`;
   const asset = form.asset.trim().toUpperCase();
 
-  const tradeLine = form.entrySetup || form.stop || form.target
-    ? `Entry ${form.entrySetup || "—"} · Stop ${form.stop || "—"} · Target ${form.target || "—"}`
-    : "Optional setup pending — define entry/stop/targets when trigger compresses.";
   const tradeProse =
-    form.entrySetup || form.stop || form.target
-      ? "Express the view using the levels in Trade plan once the gate in Trigger is observable; adjust sizing as evidence updates — keep numbers out of this sentence."
-      : "Optional setup pending — define levels in Trade plan when trigger compresses.";
+    "Trade plan pending — DEPTH4 generates levels only after this hypothesis is promoted to tradeable.";
 
   const shell: Thesis = {
     id: nowId,
@@ -102,16 +79,17 @@ function buildUserThesis(form: FormState): Thesis {
     thesisStatement: form.thesisStatement.trim(),
     asset: asset || "—",
     direction: form.direction,
-    probability: p || 50,
-    status: p >= 65 ? "ready" : p >= 50 ? "active" : "watching",
+    probability: 0,
+    status: "watching",
     probabilityRationale:
-      "Starting conviction reflects your framing. DEPTH4 updates thesis conviction as signals confirm or break the trigger — keep narrative text free of extra percentages; the hero and Scenario View carry the numbers.",
+      "Calibrating — DEPTH4 assesses your hypothesis before assigning probabilities or a trade plan.",
     origin: "user",
+    thesisOrigin: "user",
 
     hiddenDriver: "You named the main driver in your draft; incoming headlines will test whether it still holds.",
     likelyPath: "Evidence stacks → the trigger gets obvious → price catches up → you either take targets or hit invalidation.",
     marketMisread: "",
-    tradeExpression: `Straight read: ${asset || "asset"} — ${tradeLine}`,
+    tradeExpression: `Hypothesis: ${asset || "asset"} — ${form.thesisStatement.trim() || title}`,
 
     whyNow: form.whyNow.trim(),
     whatsUnpriced: form.whatsUnpriced.trim(),
@@ -119,41 +97,23 @@ function buildUserThesis(form: FormState): Thesis {
     trade: tradeProse,
     invalidation: form.bearConfirms.trim(),
     horizon: form.horizon.trim(),
-    advisoryAction: p >= 65 ? "enter" : p >= 50 ? "hold" : "watch",
+    advisoryAction: "watch",
     lastUpdated: "Just now",
 
-    qualification: s.qualification,
+    qualification: "emerging",
     scores: {
-      driverStrength: s.driverStrength,
-      timeCompression: s.timeCompression,
-      marketMispricingScore: s.marketMispricingScore,
-      tradeClarityScore: s.tradeClarityScore,
-      triggerClarityScore: s.triggerClarityScore,
-      total: s.total,
+      driverStrength: 10,
+      timeCompression: 10,
+      marketMispricingScore: 10,
+      tradeClarityScore: 8,
+      triggerClarityScore: 8,
+      total: 46,
     },
     theme: "user",
 
-    entryZone: form.entrySetup.trim() || undefined,
-    stop: form.stop.trim() || undefined,
-    target1: form.target.trim() || undefined,
-    target2: undefined,
-
-    scenarioOverrides: {
-      base: {
-        probability: clamp(Number.parseInt(form.baseProb || "0", 10) || 0, 0, 100),
-        confirmation: form.baseConfirms.trim(),
-        marketConsequence: form.baseConsequence.trim(),
-      },
-      bull: {
-        probability: clamp(Number.parseInt(form.bullProb || "0", 10) || 0, 0, 100),
-        confirmation: form.bullConfirms.trim(),
-        marketConsequence: form.bullConsequence.trim(),
-      },
-      bear: {
-        probability: clamp(Number.parseInt(form.bearProb || "0", 10) || 0, 0, 100),
-        confirmation: form.bearConfirms.trim(),
-        marketConsequence: form.bearConsequence.trim(),
-      },
+    userCalibration: {
+      phase: "assessing",
+      summary: "DEPTH4 is assessing this thesis.",
     },
 
     insiderFlow: {

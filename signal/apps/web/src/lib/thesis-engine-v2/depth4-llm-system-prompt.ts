@@ -2,6 +2,7 @@
  * Single entry point for DEPTH4 platform LLM system prompts.
  * Every user-facing write path on depth4.com should use these builders.
  */
+import { DEPTH4_COMPLIANCE_RULE_FOR_LLM } from "@/lib/thesis-engine-v2/depth4-compliance-rules";
 import {
   DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM,
   DEPTH4_RETAIL_VOICE_TEST,
@@ -10,9 +11,9 @@ import {
 export const DEPTH4_JSON_OUTPUT_RULE =
   "You output strict JSON only. No markdown fences or commentary outside the JSON object.";
 
-/** Retail voice test + constitution (macro prompts embed this block). */
+/** Compliance + retail voice (macro prompts embed this block). */
 export function depth4VoiceBlockForLlm(): string {
-  return `${DEPTH4_RETAIL_VOICE_TEST}\n\n${DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM}`;
+  return `${DEPTH4_COMPLIANCE_RULE_FOR_LLM}\n\n${DEPTH4_RETAIL_VOICE_TEST}\n\n${DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM}`;
 }
 
 export type BuildDepth4LlmSystemPromptOptions = {

@@ -2,6 +2,7 @@ import type { ThesisDepthBook } from "@/lib/thesis-engine-v2/thesis-depth-canoni
 import type { ThesisStructuredAnatomy } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import type { IncentiveAnalysis } from "@/types/incentive-analysis";
 import type { ThesisLifecycleState } from "@/types/thesis";
+import type { UserThesisCalibration } from "@/lib/thesis/user-thesis-lifecycle";
 
 export type ThesisStatus =
   | "forming"
@@ -82,6 +83,9 @@ export type Thesis = {
 
   /** From `public.theses.quality_score` — gates list surfacing when low. */
   qualityScore?: number;
+
+  /** User thesis calibration lifecycle (`body.user_calibration`). */
+  userCalibration?: UserThesisCalibration | null;
 
   /**
    * Four-level cascade for the thesis **book** (not event L1–L4). Do not restate the hero title here.

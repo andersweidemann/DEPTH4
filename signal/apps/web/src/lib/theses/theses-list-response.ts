@@ -62,8 +62,6 @@ export function listRowWhyNowLine(t: EngineThesis): string {
   return "";
 }
 
-const DETAIL_RESOLVABLE_DEBUG_SLUG = "uso-will-find-a-floor-within-this-earnings-s-9535544b43";
-
 const DB_THESIS_ID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -115,6 +113,12 @@ function engineThesisToListItem(
   const lastUpdated =
     lastUpdatedIso && !Number.isNaN(Date.parse(lastUpdatedIso)) ? lastUpdatedIso : t.lastUpdated;
 
+  const user_calibration_phase =
+    t.thesisOrigin === "user"
+      ? (t.userCalibration?.phase ??
+        (t.status === "ready" || t.status === "active" ? "tradeable" : "assessing"))
+      : undefined;
+
   return {
     thesisId: t.id,
     listBaselineScenarioTriple: listBaselineScenarioTripleFromEngineThesis(t),
@@ -131,6 +135,7 @@ function engineThesisToListItem(
     lastUpdated,
     starred,
     detailResolvable: computeDetailResolvableForListRow(t, resolvableSlugSet),
+    ...(user_calibration_phase ? { user_calibration_phase } : {}),
   };
 }
 
@@ -184,6 +189,38 @@ function assetClassFilterOk(asset: string, filter: string): boolean {
   return cls === filter;
 }
 
+const THESIS_LIST_ROW_SELECT =
+  "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin, quality_score";
+
+/** All live map rows for any signed-in user — not filtered by plan tier or owner. */
+async function loadLiveStatusThesesFromDb(sb: SupabaseClient): Promise<EngineThesis[]> {
+  const { data: rows, error } = await sb
+    .from("theses")
+    .select(THESIS_LIST_ROW_SELECT)
+    .in("status", ["ready", "watching", "active"])
+    .order("updated_at", { ascending: false })
+    .limit(500);
+
+  if (error) {
+    console.warn("[buildThesesListResponse] live_status_select_failed", error.message);
+    return [];
+  }
+
+  return (rows ?? []).map((row) =>
+    userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
+  );
+}
+
+function mergeEngineThesesById(...groups: EngineThesis[][]): EngineThesis[] {
+  const byId = new Map<string, EngineThesis>();
+  for (const group of groups) {
+    for (const t of group) {
+      if (!byId.has(t.id)) byId.set(t.id, t);
+    }
+  }
+  return Array.from(byId.values());
+}
+
 export async function buildThesesListResponse(
   sb: SupabaseClient,
   userId: string,
@@ -201,9 +238,7 @@ export async function buildThesesListResponse(
 
   const { data: userRows } = await sb
     .from("theses")
-    .select(
-      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin, quality_score",
-    )
+    .select(THESIS_LIST_ROW_SELECT)
     .eq("owner_user_id", userId)
     .eq("thesis_origin", "user")
     .order("updated_at", { ascending: false })
@@ -215,9 +250,7 @@ export async function buildThesesListResponse(
 
   const { data: aiRows } = await sb
     .from("theses")
-    .select(
-      "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, insider_flow, lifecycle_state, surfaced_bucket, thesis_score, outcome_label, outcome, thesis_origin, quality_score",
-    )
+    .select(THESIS_LIST_ROW_SELECT)
     .eq("thesis_origin", "ai_generated")
     .order("updated_at", { ascending: false })
     .limit(120);
@@ -225,6 +258,8 @@ export async function buildThesesListResponse(
   const aiTheses: EngineThesis[] = (aiRows ?? []).map((row) =>
     userThesisFromSupabaseRow(row as Parameters<typeof userThesisFromSupabaseRow>[0]),
   );
+
+  const liveStatusTheses = await loadLiveStatusThesesFromDb(sb);
 
   const { catalogEngine, discardBulkWriterCollapse, dbSurfacingByThesisId } = await loadCatalogEngineTheses(sb);
   const surfacingByThesisId = new Map<string, ThesisDbSurfacingPreference>(dbSurfacingByThesisId);
@@ -245,7 +280,9 @@ export async function buildThesesListResponse(
     );
   }
 
-  let combined = sortThesesForDashboard([...catalogEngine, ...aiTheses, ...userTheses]);
+  let combined = sortThesesForDashboard(
+    mergeEngineThesesById(catalogEngine, liveStatusTheses, aiTheses, userTheses),
+  );
   combined = combined.filter((t) => isThesisMapListableThesis(t));
 
   if (query.starred) {
@@ -287,16 +324,10 @@ export async function buildThesesListResponse(
     effectiveLifecycleFor: (t) => effectiveLifecycleState(lifecycleInputFor(t)),
   });
 
-  const resolvableSlugSet = buildDetailResolvableSlugSet(aiTheses, userTheses);
-
-  console.log("[DEPTH4 temp] detailResolvable slug probe", {
-    slug: DETAIL_RESOLVABLE_DEBUG_SLUG,
-    inAiSlugs: new Set(aiTheses.map((t) => t.slug)).has(DETAIL_RESOLVABLE_DEBUG_SLUG),
-    inUserSlugs: new Set(userTheses.map((t) => t.slug)).has(DETAIL_RESOLVABLE_DEBUG_SLUG),
-    inCatalogSlugs: new Set(CATALOG_THESES.map((t) => t.slug)).has(DETAIL_RESOLVABLE_DEBUG_SLUG),
-    inResolvableSlugSet: resolvableSlugSet.has(DETAIL_RESOLVABLE_DEBUG_SLUG),
-    inCombined: combined.some((t) => t.slug === DETAIL_RESOLVABLE_DEBUG_SLUG),
-  });
+  const resolvableSlugSet = buildDetailResolvableSlugSet(
+    mergeEngineThesesById(aiTheses, liveStatusTheses),
+    mergeEngineThesesById(userTheses, liveStatusTheses),
+  );
 
   const mapEngine = (t: EngineThesis) =>
     thesisListItemFromEngine(

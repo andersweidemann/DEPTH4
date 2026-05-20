@@ -1,9 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { User, UserTier } from "@/types/auth";
+import { loadUserAccountRow } from "@/lib/auth/user-account-row";
 
-function mapDbTierToUserTier(raw: string | undefined | null): UserTier {
-  const t = (raw ?? "free").toLowerCase();
-  if (t === "pro") return "Pro";
+export function mapDbTierToUserTier(raw: string | undefined | null): UserTier {
+  const t = (raw ?? "free").trim().toLowerCase();
+  if (t === "pro" || t === "creator") return "Pro";
   if (t === "analyst" || t === "institutional") return "Analyst";
   return "Free";
 }
@@ -14,19 +15,14 @@ export async function buildUserProfile(
 ): Promise<User> {
   const email = authUser.email ?? "";
 
-  const { data: urow } = await sb
-    .from("users")
-    .select("tier, notification_preferences, stripe_subscription_id")
-    .eq("id", authUser.id)
-    .maybeSingle();
-
-  const row = urow as
-    | {
-        tier?: string | null;
-        notification_preferences?: unknown;
-        stripe_subscription_id?: string | null;
+  const accountRow = await loadUserAccountRow(authUser);
+  const row = accountRow
+    ? {
+        tier: accountRow.tier,
+        notification_preferences: accountRow.notification_preferences,
+        stripe_subscription_id: accountRow.stripe_subscription_id,
       }
-    | null;
+    : null;
 
   const tier = mapDbTierToUserTier(row?.tier);
 

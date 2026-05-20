@@ -144,6 +144,22 @@ describe("thesis-surfacing-quality", () => {
     expect(isThesisMapListableThesis(t)).toBe(true);
   });
 
+  it("isThesisMapListableThesis lists ready/watching/active rows without quality-bar cliff", () => {
+    const thin = minimalThesis({
+      id: "seed-ready-1",
+      thesisOrigin: "seeded_system",
+      status: "ready",
+      title: "DAX",
+      thesisStatement: "DAX",
+      whyNow: "",
+      whatsUnpriced: "",
+      trigger: "",
+      trade: "",
+    });
+    expect(passesDepth4ThesisSurfacingQualityBar(thin)).toBe(false);
+    expect(isThesisMapListableThesis(thin)).toBe(true);
+  });
+
   it("isThesisMapListableThesis lists user forming rows on template triple in Emerging", () => {
     const t = minimalThesis({
       id: "user-1",

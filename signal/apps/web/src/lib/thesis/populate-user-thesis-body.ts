@@ -8,6 +8,8 @@ import { completeKimiJsonObject, isKimiJsonConfigured } from "@/lib/macro-reason
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import { cleanMessyBrokenToTriple, normalizeScenarioTriple } from "@/lib/thesis/remodel-scenarios";
 import { buildDepth4LlmSystemPrompt } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
+import { assessUserThesis } from "@/lib/thesis/assess-user-thesis";
+import { userCalibrationToBodyPatch } from "@/lib/thesis/user-thesis-lifecycle";
 
 export type PopulateUserThesisInput = {
   title: string;
@@ -87,8 +89,8 @@ function buildPopulatePrompt(input: PopulateUserThesisInput): string {
     "Populate the thesis body with:",
     "1. An incentive analysis (who benefits, what must happen)",
     "2. A causal chain (2-3 steps)",
-    "3. A trade plan (entryZone, stopLoss, targetPrice based on plausible market context)",
-    "4. Three scenarios (Clean/Messy/Broken with probabilities summing to 100)",
+    "3. Draft trade plan fields (entryZone, stopLoss, targetPrice) — may be refined after promotion",
+    "4. Three scenarios (Clean/Messy/Broken with probabilities summing to 100) — DEPTH4 may withhold these until the thesis passes edge review",
     "5. Initial evidence (1-2 supporting headlines)",
     "",
     "Output ONLY this JSON:",
@@ -330,7 +332,14 @@ export async function populateUserThesisBody(
       console.warn(`[populateUserThesisBody] trade plan still placeholder for ${thesisId}`);
     }
 
-    const mergedBody = { ...priorBody, ...patch };
+    const mergedBody = {
+      ...priorBody,
+      ...patch,
+      ...userCalibrationToBodyPatch({
+        phase: "assessing",
+        summary: "DEPTH4 is assessing this thesis.",
+      }),
+    };
     const nowIso = new Date().toISOString();
     const update: Record<string, unknown> = {
       body: mergedBody,
@@ -347,6 +356,16 @@ export async function populateUserThesisBody(
     }
 
     await insertSeedEvidenceLogRows(supabase, thesisId, mergedBody, scenarioProbabilities);
+
+    try {
+      await assessUserThesis(supabase, thesisId);
+    } catch (assessErr) {
+      console.warn("[populateUserThesisBody] assess_failed", {
+        thesisId,
+        message: assessErr instanceof Error ? assessErr.message : String(assessErr),
+      });
+    }
+
     console.info("[populateUserThesisBody] ok", { thesisId });
     return true;
   } catch (e) {

@@ -17,12 +17,27 @@ import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspa
 import { EDGE_SCORE_TOOLTIP, SCENARIO_PROBABILITY_TOOLTIP } from "@/lib/depth-labels";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisStatus } from "@/types/thesis";
+import { UserThesisLifecycleBadge } from "@/components/thesis-engine-v2/UserThesisLifecycleBadge";
+import type { Thesis } from "@/lib/thesis-engine-v2/types";
 
 export const TABLE_GRID =
   "grid grid-cols-[minmax(0,1fr)_72px_40px] gap-3 sm:grid-cols-[1fr_80px_80px_80px_40px]";
 
+function listItemToBadgeThesis(item: ThesisListItem): Pick<Thesis, "origin" | "thesisOrigin" | "status" | "userCalibration"> {
+  const phase = item.user_calibration_phase;
+  return {
+    origin: phase ? "user" : undefined,
+    thesisOrigin: phase ? "user" : undefined,
+    status:
+      phase === "tradeable" ? "ready" : phase === "watching_no_edge" ? "watching" : "watching",
+    userCalibration: phase ? { phase } : undefined,
+  };
+}
+
 function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: number }) {
   const { mergeThesis } = useThesisLive();
+  const calibrating =
+    item.user_calibration_phase === "assessing" || item.user_calibration_phase === "watching_no_edge";
   const pct = Math.max(
     0,
     Math.min(100, displayConvictionPctFromThesesListItemWithLive(item, mergeThesis)),
@@ -31,16 +46,22 @@ function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: nu
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
-        <div className="h-1 w-12 overflow-hidden rounded-full bg-zinc-800">
-          <div className="h-full rounded-full bg-amber-500/60" style={{ width: `${pct}%` }} />
-        </div>
+        {!calibrating ? (
+          <div className="h-1 w-12 overflow-hidden rounded-full bg-zinc-800">
+            <div className="h-full rounded-full bg-amber-500/60" style={{ width: `${pct}%` }} />
+          </div>
+        ) : null}
         <HoverHelp
           className="text-[12px] font-medium text-zinc-300"
           label={
-            <>
-              {pct}
-              <span className="text-zinc-500">%</span>
-            </>
+            calibrating ? (
+              <span className="text-zinc-500">Calibrating…</span>
+            ) : (
+              <>
+                {pct}
+                <span className="text-zinc-500">%</span>
+              </>
+            )
           }
           tooltip={SCENARIO_PROBABILITY_TOOLTIP}
         />
@@ -89,20 +110,39 @@ export function ThesisRow({
   const lifecyclePresentation = item.lifecycle_state
     ? listRowLifecyclePresentation({ status: item.status, lifecycle_state: item.lifecycle_state })
     : null;
+  const userWatching =
+    item.user_calibration_phase === "assessing" || item.user_calibration_phase === "watching_no_edge";
+  const userTradeable = item.user_calibration_phase === "tradeable";
+  const badgeThesis = item.user_calibration_phase ? listItemToBadgeThesis(item) : null;
   return (
-    <div className={cn(TABLE_GRID, "items-start border-b border-white/[0.06] py-4")}>
+    <div
+      className={cn(
+        TABLE_GRID,
+        "items-start border-b py-4",
+        userWatching ? "border-dashed border-white/[0.06] bg-zinc-950/20" : "border-white/[0.06]",
+        userTradeable && "border-[#E8473F]/15",
+      )}
+    >
       <div>
         <p className="text-[10px] text-zinc-500">{item.asset}</p>
-        {item.detailResolvable ? (
-          <Link
-            href={`/theses/${item.slug}`}
-            className="mt-0.5 block text-[13px] font-medium text-zinc-100 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-          >
-            {item.title}
-          </Link>
-        ) : (
-          <p className="mt-0.5 text-[13px] font-medium text-zinc-300">{item.title}</p>
-        )}
+        <div className="mt-0.5 flex min-w-0 items-start gap-2">
+          {badgeThesis ? <UserThesisLifecycleBadge thesis={badgeThesis} className="mt-0.5" /> : null}
+          {item.detailResolvable ? (
+            <Link
+              href={`/theses/${item.slug}`}
+              className="min-w-0 flex-1 text-[13px] font-medium text-zinc-100 transition-colors hover:text-[#E8473F] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
+            >
+              {item.title}
+            </Link>
+          ) : (
+            <p className="min-w-0 flex-1 text-[13px] font-medium text-zinc-300">{item.title}</p>
+          )}
+        </div>
+        {item.user_calibration_phase === "assessing" ? (
+          <p className="mt-1 text-[10px] text-zinc-600">
+            <span className="text-[#E8473F]">⚡</span> Assessing…
+          </p>
+        ) : null}
         <div className="mt-1.5 flex flex-wrap items-center gap-2">
           <span
             className={cn(

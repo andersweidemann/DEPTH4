@@ -1,4 +1,5 @@
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
+import { UNCALIBRATED_SCENARIO_DB } from "@/lib/thesis/user-thesis-lifecycle";
 
 export function hasInsiderFlowMonitoring(insiderFlow?: Thesis["insiderFlow"]): boolean {
   if (!insiderFlow) return false;
@@ -29,6 +30,12 @@ export function normalizeInsiderFlowForDb(insiderFlow?: Thesis["insiderFlow"]): 
 
 /** Returns DB row shape: `base`=messy win, `bull`=clean win, `bear`=thesis broken. */
 export function scenarioProbabilitiesForDb(thesis: Thesis): { base: number; bull: number; bear: number } {
+  if (
+    thesis.userCalibration?.phase === "assessing" ||
+    thesis.userCalibration?.phase === "watching_no_edge"
+  ) {
+    return { ...UNCALIBRATED_SCENARIO_DB };
+  }
   if (thesis.scenarioOverrides) {
     return {
       base: thesis.scenarioOverrides.base.probability,

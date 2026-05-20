@@ -49,11 +49,17 @@ export function displayScenarioTripleCleanMessyBroken(scenarios: ThesisScenarioL
  * the scenario as authoritative regardless of this helper (see
  * `ThesisDetailClient` `showAuthoritativeScenarioPercents`).
  */
+/** User theses in WATCHING store `{ base:0, bull:0, bear:0 }` until assessment promotes. */
+export function isZeroScenarioTripleCleanMessyBroken(clean: number, messy: number, broken: number): boolean {
+  return clean === 0 && messy === 0 && broken === 0;
+}
+
 export function isUncalibratedScenarioTripleCleanMessyBroken(
   clean: number,
   messy: number,
   broken: number,
 ): boolean {
+  if (isZeroScenarioTripleCleanMessyBroken(clean, messy, broken)) return true;
   return UNCALIBRATED_SCENARIO_TRIPLES_CLEAN_MESSY_BROKEN.some(
     (u) => u[0] === clean && u[1] === messy && u[2] === broken,
   );
