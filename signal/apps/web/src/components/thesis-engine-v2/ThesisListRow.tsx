@@ -15,7 +15,6 @@ import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton
 import { HoverHelp } from "@/components/ui/HoverHelp";
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 import { EDGE_SCORE_TOOLTIP, SCENARIO_PROBABILITY_TOOLTIP } from "@/lib/depth-labels";
-import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisStatus } from "@/types/thesis";
 
