@@ -1,0 +1,50 @@
+/* Label + hover-reveal "?" help icon (DEPTH4 terminal UI) */
+.hover-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+
+.hover-help__label {
+  display: inline;
+}
+
+.hover-help__icon {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 11px;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.4);
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  cursor: help;
+  flex-shrink: 0;
+  padding: 0;
+  font-family: inherit;
+}
+
+.hover-help:hover .hover-help__icon,
+.hover-help:focus-within .hover-help__icon {
+  opacity: 1;
+}
+
+.hover-help__icon:hover,
+.hover-help__icon:focus-visible {
+  color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.5);
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-help__icon {
+    transition: none;
+  }
+}

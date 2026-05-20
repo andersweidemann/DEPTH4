@@ -1,5 +1,5 @@
 import { DEPTH_LABELS, type DepthLabelKey } from "@/lib/depth-labels";
-import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
+import { HoverHelp } from "@/components/ui/HoverHelp";
 
 export function DepthDepthLabel({
   depth,
@@ -9,8 +9,10 @@ export function DepthDepthLabel({
   kicker: string;
 }) {
   return (
-    <TooltipTerm label={DEPTH_LABELS[depth].tooltip} className="font-semibold text-inherit">
-      {kicker}
-    </TooltipTerm>
+    <HoverHelp
+      className="font-semibold text-inherit"
+      label={kicker}
+      tooltip={DEPTH_LABELS[depth].tooltip}
+    />
   );
 }

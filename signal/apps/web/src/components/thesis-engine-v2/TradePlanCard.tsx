@@ -16,6 +16,8 @@ import { authFetch } from "@/lib/api";
 import { canonicalConvictionPercentFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { formatTimeAgo } from "@/lib/thesis-helpers";
 import { ThesisSectionEmptyCta } from "@/components/thesis-engine-v2/ThesisSectionEmptyCta";
+import { HoverHelp } from "@/components/ui/HoverHelp";
+import { HORIZON_TOOLTIP, TRADE_PLAN_FIELD_TOOLTIPS } from "@/lib/depth-labels";
 
 const PENDING_ENTRY = "Awaiting live setup";
 const PENDING_STOP = "Will appear with a valid trigger";
@@ -152,21 +154,37 @@ export function TradePlanCard({
         </div>
         <div className="mt-3 grid grid-cols-2 gap-3">
           <div>
-            <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Entry</p>
-            <p className="text-[13px] font-medium text-zinc-200">{stored.entry_zone}</p>
+            <HoverHelp
+              className="text-[9px] uppercase tracking-[0.14em] text-zinc-600"
+              label="Entry"
+              tooltip={TRADE_PLAN_FIELD_TOOLTIPS.entry}
+            />
+            <p className="mt-0.5 text-[13px] font-medium text-zinc-200">{stored.entry_zone}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Stop</p>
-            <p className="text-[13px] font-medium text-red-400">{stored.stop}</p>
+            <HoverHelp
+              className="text-[9px] uppercase tracking-[0.14em] text-zinc-600"
+              label="Stop"
+              tooltip={TRADE_PLAN_FIELD_TOOLTIPS.stop}
+            />
+            <p className="mt-0.5 text-[13px] font-medium text-red-400">{stored.stop}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Target 1</p>
-            <p className="text-[13px] font-medium text-emerald-400">{stored.target1}</p>
+            <HoverHelp
+              className="text-[9px] uppercase tracking-[0.14em] text-zinc-600"
+              label="Target 1"
+              tooltip={TRADE_PLAN_FIELD_TOOLTIPS.target1}
+            />
+            <p className="mt-0.5 text-[13px] font-medium text-emerald-400">{stored.target1}</p>
           </div>
           {stored.target2 ? (
             <div>
-              <p className="text-[9px] uppercase tracking-[0.14em] text-zinc-600">Target 2</p>
-              <p className="text-[13px] font-medium text-emerald-300">{stored.target2}</p>
+              <HoverHelp
+                className="text-[9px] uppercase tracking-[0.14em] text-zinc-600"
+                label="Target 2"
+                tooltip={TRADE_PLAN_FIELD_TOOLTIPS.target2}
+              />
+              <p className="mt-0.5 text-[13px] font-medium text-emerald-300">{stored.target2}</p>
             </div>
           ) : null}
         </div>
@@ -259,24 +277,54 @@ export function TradePlanCard({
       ) : null}
       <dl className="mt-3 grid gap-3 sm:grid-cols-2">
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Entry zone</dt>
+          <dt>
+            <HoverHelp
+              className="text-[10px] uppercase tracking-wider text-zinc-600"
+              label="Entry zone"
+              tooltip={TRADE_PLAN_FIELD_TOOLTIPS.entryZone}
+            />
+          </dt>
           <dd className="mt-1 font-mono text-sm text-zinc-200">{entryDisplay}</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Stop</dt>
+          <dt>
+            <HoverHelp
+              className="text-[10px] uppercase tracking-wider text-zinc-600"
+              label="Stop"
+              tooltip={TRADE_PLAN_FIELD_TOOLTIPS.stop}
+            />
+          </dt>
           <dd className="mt-1 font-mono text-sm text-zinc-200">{stopDisplay}</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Target 1</dt>
+          <dt>
+            <HoverHelp
+              className="text-[10px] uppercase tracking-wider text-zinc-600"
+              label="Target 1"
+              tooltip={TRADE_PLAN_FIELD_TOOLTIPS.target1}
+            />
+          </dt>
           <dd className="mt-1 font-mono text-sm text-zinc-200">{t1Display}</dd>
         </div>
         <div>
-          <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Target 2</dt>
+          <dt>
+            <HoverHelp
+              className="text-[10px] uppercase tracking-wider text-zinc-600"
+              label="Target 2"
+              tooltip={TRADE_PLAN_FIELD_TOOLTIPS.target2}
+            />
+          </dt>
           <dd className="mt-1 font-mono text-sm text-zinc-200">{t2Display}</dd>
         </div>
         {!retail ? (
           <div className="sm:col-span-2">
-            <dt className="text-[10px] uppercase tracking-wider text-zinc-600">Time horizon</dt>
+            <dt>
+              <HoverHelp
+                className="text-[10px] uppercase tracking-wider text-zinc-600"
+                label="Time horizon"
+                tooltip={HORIZON_TOOLTIP}
+              />
+            </dt>
             <dd className="mt-1 text-sm text-zinc-300">{thesis.horizon}</dd>
           </div>
         ) : null}

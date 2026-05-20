@@ -1,7 +1,7 @@
 import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import type { ThesisScenarioLike } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { ScenarioProbabilitiesExplainer } from "@/components/thesis-engine-v2/ScenarioProbabilitiesExplainer";
-import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
+import { HoverHelp } from "@/components/ui/HoverHelp";
 import { cn } from "@/lib/utils";
 import { SCENARIO_PATHS_DEFINITION, SCENARIO_SECTION_SUBTITLE } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { RESOLUTION_PATH_TOOLTIPS, SCENARIO_PROBABILITY_TOOLTIP } from "@/lib/depth-labels";
@@ -103,17 +103,16 @@ export function ScenarioPanel({
         {ordered.map((s) => (
           <div key={s.id} className="rounded-none bg-zinc-900/30 p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
-              <h3 className="text-xs font-semibold text-zinc-200">
-                <TooltipTerm label={RESOLUTION_PATH_TOOLTIPS[s.pathKey]}>{s.label}</TooltipTerm>
+              <h3 className="flex flex-wrap items-baseline gap-x-1 text-xs font-semibold text-zinc-200">
+                <HoverHelp label={s.label} tooltip={RESOLUTION_PATH_TOOLTIPS[s.pathKey]} />
                 {showPercentages ? (
                   <>
                     <span className="font-normal text-zinc-600"> · </span>
-                    <TooltipTerm
-                      label={SCENARIO_PROBABILITY_TOOLTIP}
-                      className="text-sm font-semibold tabular-nums text-amber-500/90 border-amber-500/40 hover:border-amber-500/80"
-                    >
-                      <span data-testid="scenario-card-percent">{s.probability}%</span>
-                    </TooltipTerm>
+                    <HoverHelp
+                      className="text-sm font-semibold tabular-nums text-amber-500/90"
+                      label={<span data-testid="scenario-card-percent">{s.probability}%</span>}
+                      tooltip={SCENARIO_PROBABILITY_TOOLTIP}
+                    />
                   </>
                 ) : null}
               </h3>

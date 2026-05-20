@@ -11,7 +11,8 @@ import { primaryTradeSymbolFromThesis } from "@/lib/thesis-engine-v2/thesis-stru
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 import { displayScenarioTripleCleanMessyBroken } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { EDGE_SCORE_TOOLTIP, formatQualityScore, QUALITY_SCORE_TOOLTIP } from "@/lib/depth-labels";
-import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
+import { HoverHelp } from "@/components/ui/HoverHelp";
+import { HORIZON_TOOLTIP } from "@/lib/depth-labels";
 import type { ReactNode } from "react";
 
 function MetricPill({
@@ -26,9 +27,7 @@ function MetricPill({
   labelTooltip?: string;
 }) {
   const labelNode = labelTooltip ? (
-    <TooltipTerm label={labelTooltip} className="text-[9px] text-zinc-600">
-      {label}
-    </TooltipTerm>
+    <HoverHelp className="text-[9px] text-zinc-600" label={label} tooltip={labelTooltip} />
   ) : (
     <span className="text-[9px] text-zinc-600">{label}</span>
   );
@@ -54,9 +53,7 @@ function QualificationBadge({ q, qualityScore }: { q: Thesis["qualification"]; q
       )}
     >
       <span className="text-[11px] font-semibold tabular-nums">{scoreLabel}</span>
-      <TooltipTerm label={QUALITY_SCORE_TOOLTIP} className="text-[9px] normal-case tracking-normal text-zinc-600">
-        quality
-      </TooltipTerm>
+      <HoverHelp className="text-[9px] normal-case tracking-normal text-zinc-600" label="quality" tooltip={QUALITY_SCORE_TOOLTIP} />
     </span>
   );
 }
@@ -112,7 +109,12 @@ export function ThesisActionHeader({
             <span className="max-w-[12rem] text-center text-[9px] leading-snug text-zinc-500">{advisoryCopy}</span>
           ) : null}
         </span>
-        <MetricPill value={thesis.horizon} label="horizon" valueClassName="text-zinc-300" />
+        <MetricPill
+          value={thesis.horizon}
+          label="horizon"
+          labelTooltip={HORIZON_TOOLTIP}
+          valueClassName="text-zinc-300"
+        />
       </div>
     </header>
   );

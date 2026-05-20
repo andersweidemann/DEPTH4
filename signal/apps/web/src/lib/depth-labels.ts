@@ -50,6 +50,23 @@ export const EDGE_SCORE_TOOLTIP = "Conviction × probability × risk/reward — 
 
 export const QUALITY_SCORE_TOOLTIP = "Structural quality of thesis reasoning (0–100).";
 
+export const HORIZON_TOOLTIP = "D1–D2: tactical positioning window; D3–D4: structural / regime-level shift.";
+
+export const TRADE_PLAN_FIELD_TOOLTIPS = {
+  entry: "Recommended entry price zone",
+  entryZone: "Recommended entry price zone",
+  stop: "Invalidation level — exit if hit",
+  target: "Profit target level",
+  target1: "First profit target level",
+  target2: "Second profit target level (runner / scale-out)",
+} as const;
+
+export const DIRECTION_TOOLTIPS = {
+  long: "Long: thesis expects price to rise",
+  short: "Short: thesis expects price to decline",
+  watch: "Watch: monitoring setup without a committed directional bias",
+} as const;
+
 export function formatQualityScore(score: number): string {
   return `${Math.round(score)}/100`;
 }

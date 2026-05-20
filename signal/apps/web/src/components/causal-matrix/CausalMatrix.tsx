@@ -11,7 +11,7 @@ import {
 } from "@/types/causal-graph";
 import type { AssetDepth, CausalMatrixData, MatrixCell, TimeDepth } from "@/types/causal-graph";
 import { DepthDepthLabel } from "@/components/thesis-engine-v2/DepthDepthLabel";
-import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
+import { HoverHelp } from "@/components/ui/HoverHelp";
 import { MATRIX_ASSET_TOOLTIPS } from "@/lib/depth-labels";
 import { MatrixCellDetail } from "@/components/causal-matrix/MatrixCellDetail";
 
@@ -57,9 +57,11 @@ export function CausalMatrix({ matrix, detailTreeSlot, variant = "full" }: Causa
                     compact ? "text-[8px]" : "text-[10px]",
                   )}
                 >
-                  <TooltipTerm label={MATRIX_ASSET_TOOLTIPS[ad]} className="uppercase tracking-[0.14em]">
-                    {ASSET_DEPTH_LABELS[ad]}
-                  </TooltipTerm>
+                  <HoverHelp
+                    className="uppercase tracking-[0.14em]"
+                    label={ASSET_DEPTH_LABELS[ad]}
+                    tooltip={MATRIX_ASSET_TOOLTIPS[ad]}
+                  />
                 </p>
               </div>
             ))}

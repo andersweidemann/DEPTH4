@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import "@/styles/depth4.css";
+import "@/styles/hover-help.css";
 import { ReactNode } from "react";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";

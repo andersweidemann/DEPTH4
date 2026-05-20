@@ -11,9 +11,8 @@ import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { ThesisStarButton } from "./ThesisStarButton";
 import { Tooltip } from "./Tooltip";
-import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
-import { MispricingTooltipContent } from "./MispricingTooltipContent";
-import { EDGE_SCORE_TOOLTIP } from "@/lib/depth-labels";
+import { HoverHelp } from "@/components/ui/HoverHelp";
+import { EDGE_SCORE_TOOLTIP, formatQualityScore, HORIZON_TOOLTIP, QUALITY_SCORE_TOOLTIP } from "@/lib/depth-labels";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { canonicalConvictionPercentFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
@@ -140,14 +139,11 @@ export function ThesisCard({
           <ProbabilityBar value={pathConviction} />
         </div>
         {Math.abs(mispricing.score - pathConviction) >= 2 ? (
-          <Tooltip label={<MispricingTooltipContent m={mispricing} />} side="top">
-            <span className="text-[10px] tabular-nums text-zinc-500">
-              <TooltipTerm label={EDGE_SCORE_TOOLTIP} className="text-zinc-500">
-                Edge
-              </TooltipTerm>{" "}
-              {mispricing.score}/100
-            </span>
-          </Tooltip>
+          <HoverHelp
+            className="text-[10px] tabular-nums text-zinc-500"
+            label={`Edge ${mispricing.score}/100`}
+            tooltip={EDGE_SCORE_TOOLTIP}
+          />
         ) : null}
       </div>
       <ThesisDisplaySourceDebug convictionPct={displayModel.convictionPct} scenarioSource={displayModel.scenarioSource} />
@@ -163,8 +159,17 @@ export function ThesisCard({
         </p>
         <p className="font-mono text-[10px] text-zinc-400">{thesis.trade}</p>
         <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-[10px] text-zinc-600">
-          <span className="text-zinc-500">{thesis.horizon}</span>
-          <span className="tabular-nums text-zinc-500">{thesis.lastUpdated}</span>
+          <HoverHelp className="text-zinc-500" label={thesis.horizon} tooltip={HORIZON_TOOLTIP} />
+          <span className="flex flex-wrap items-center gap-2">
+            {thesis.qualityScore != null && Number.isFinite(thesis.qualityScore) ? (
+              <HoverHelp
+                className="tabular-nums text-zinc-500"
+                label={formatQualityScore(thesis.qualityScore)}
+                tooltip={QUALITY_SCORE_TOOLTIP}
+              />
+            ) : null}
+            <span className="tabular-nums text-zinc-500">{thesis.lastUpdated}</span>
+          </span>
         </div>
       </div>
     </>
