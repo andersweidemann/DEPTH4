@@ -5,6 +5,7 @@ import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
 import { cn } from "@/lib/utils";
 import { SCENARIO_PATHS_DEFINITION, SCENARIO_SECTION_SUBTITLE } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { RESOLUTION_PATH_TOOLTIPS, SCENARIO_PROBABILITY_TOOLTIP } from "@/lib/depth-labels";
+import { ThesisSectionEmptyCta } from "@/components/thesis-engine-v2/ThesisSectionEmptyCta";
 
 /**
  * ScenarioPanel
@@ -42,6 +43,8 @@ export function ScenarioPanel({
   probabilitySource = null,
   templateAuthenticityNote,
   hideHeader = false,
+  userOwned = false,
+  onPopulateBody,
 }: {
   scenarios: ThesisScenarioLike[];
   /** When false, path labels and scenario copy stay; numeric weights and bars are hidden (template / calibrating). */
@@ -51,6 +54,8 @@ export function ScenarioPanel({
   /** When odds are visible but the triple is still a shipped template (user thesis), optional honesty line. */
   templateAuthenticityNote?: string | null;
   hideHeader?: boolean;
+  userOwned?: boolean;
+  onPopulateBody?: () => void | Promise<void>;
 }) {
   const ordered = normalizeThesisScenarios(scenarios);
 
@@ -70,12 +75,21 @@ export function ScenarioPanel({
             {SCENARIO_PATHS_DEFINITION}
           </p>
           {!showPercentages ? (
-            <p
-              className="mt-2 text-[11px] leading-relaxed text-zinc-500"
-              data-testid="scenario-calibrating-line"
-            >
-              Calibrating from live macro, news, and flow.
-            </p>
+            userOwned && onPopulateBody ? (
+              <ThesisSectionEmptyCta
+                className="mt-2"
+                message="Scenarios will be calibrated as evidence arrives. You can seed Clean / Messy / Broken paths now."
+                actionLabel="Add scenario probabilities"
+                onAction={onPopulateBody}
+              />
+            ) : (
+              <p
+                className="mt-2 text-[11px] leading-relaxed text-zinc-500"
+                data-testid="scenario-calibrating-line"
+              >
+                Calibrating from live macro, news, and flow.
+              </p>
+            )
           ) : null}
         </div>
           {showPercentages ? <ScenarioProbabilitiesExplainer /> : null}

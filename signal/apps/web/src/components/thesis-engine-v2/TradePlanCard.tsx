@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { authFetch } from "@/lib/api";
 import { canonicalConvictionPercentFromEngineThesis } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { formatTimeAgo } from "@/lib/thesis-helpers";
+import { ThesisSectionEmptyCta } from "@/components/thesis-engine-v2/ThesisSectionEmptyCta";
 
 const PENDING_ENTRY = "Awaiting live setup";
 const PENDING_STOP = "Will appear with a valid trigger";
@@ -69,6 +70,8 @@ export function TradePlanCard({
   publicMode = false,
   spotPrice = null,
   lastRemodeledAt = null,
+  userOwned = false,
+  onPopulateBody,
 }: {
   thesis: Thesis;
   variant?: "default" | "reader" | "retail";
@@ -77,6 +80,8 @@ export function TradePlanCard({
   spotPrice?: number | null;
   /** ISO timestamp from `body.tradePlan.lastRemodeledAt` after cascade re-model. */
   lastRemodeledAt?: string | null;
+  userOwned?: boolean;
+  onPopulateBody?: () => void | Promise<void>;
 }) {
   const reader = variant === "reader";
   const retail = variant === "retail";
@@ -191,6 +196,25 @@ export function TradePlanCard({
     showLive && plan && plan.target2 != null ? formatTradePlanPrice(plan.target2) : blocked ? "—" : PENDING_TGT;
 
   if (!showLive && (entryDisplay === PENDING_ENTRY || entryDisplay === "Awaiting live setup")) {
+    if (userOwned && onPopulateBody && !stored) {
+      return (
+        <section
+          className={cn(
+            reader ? "border-t border-white/[0.06] pt-8" : "rounded-lg border border-white/[0.08] bg-zinc-900/30 p-4",
+          )}
+        >
+          <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
+            Trade plan
+          </p>
+          <ThesisSectionEmptyCta
+            className="mt-3 border-0 bg-transparent p-0"
+            message="No trade plan yet. DEPTH4 can draft entry, stop, and target from your thesis setup."
+            actionLabel="Add trade plan"
+            onAction={onPopulateBody}
+          />
+        </section>
+      );
+    }
     return (
       <section
         className={cn(

@@ -1,5 +1,6 @@
 import type { IncentiveAnalysis } from "@/types/incentive-analysis";
 import { cn } from "@/lib/utils";
+import { ThesisSectionEmptyCta } from "@/components/thesis-engine-v2/ThesisSectionEmptyCta";
 
 function IncentiveRow({
   label,
@@ -30,11 +31,24 @@ function IncentiveRow({
 export function IncentiveAnalysisSection({
   analysis,
   embedded = false,
+  userOwned = false,
+  onPopulateBody,
 }: {
   analysis: IncentiveAnalysis | null;
   embedded?: boolean;
+  userOwned?: boolean;
+  onPopulateBody?: () => void | Promise<void>;
 }) {
-  if (!analysis) return null;
+  if (!analysis) {
+    if (!userOwned || !onPopulateBody) return null;
+    return (
+      <ThesisSectionEmptyCta
+        message="No incentive analysis yet — who must act, under what constraint, and the likely path."
+        actionLabel="Generate incentive analysis"
+        onAction={onPopulateBody}
+      />
+    );
+  }
 
   return (
     <section

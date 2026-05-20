@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 import { evidenceConvictionSummary, formatEvidenceSource } from "@/lib/thesis-engine-v2/display-format";
 import { cn } from "@/lib/utils";
+import { ThesisSectionEmptyCta } from "@/components/thesis-engine-v2/ThesisSectionEmptyCta";
 
 function impactLabel(impact: ThesisEvidence["impact"]): { text: string; className: string } {
   switch (impact) {
@@ -26,14 +27,41 @@ export function EvidenceTimeline({
   items,
   initialVisible = 5,
   showHeading = true,
+  userOwned = false,
+  onPopulateBody,
 }: {
   items: ThesisEvidence[];
   initialVisible?: number;
   showHeading?: boolean;
+  userOwned?: boolean;
+  onPopulateBody?: () => void | Promise<void>;
 }) {
   const [showAll, setShowAll] = useState(false);
   const hasMore = items.length > initialVisible;
   const visible = showAll ? items : items.slice(0, initialVisible);
+  const onlyPlaceholder =
+    items.length === 1 &&
+    items[0]?.headline?.toLowerCase().includes("user thesis saved");
+
+  if (items.length === 0 || (userOwned && onlyPlaceholder)) {
+    return (
+      <section data-testid="evidence-timeline">
+        {showHeading ? (
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Evidence timeline</h2>
+        ) : null}
+        {userOwned && onPopulateBody ? (
+          <ThesisSectionEmptyCta
+            className={showHeading ? "mt-4" : "mt-0"}
+            message="No evidence linked yet. Link headlines as they hit your thesis."
+            actionLabel="Add evidence"
+            onAction={onPopulateBody}
+          />
+        ) : (
+          <p className={cn("text-[12px] text-zinc-600", showHeading ? "mt-4" : "mt-0")}>No evidence entries yet.</p>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section data-testid="evidence-timeline">

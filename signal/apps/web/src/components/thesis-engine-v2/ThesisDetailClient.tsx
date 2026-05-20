@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
 import { CollapsibleThesisSection } from "@/components/thesis-engine-v2/CollapsibleThesisSection";
@@ -78,7 +78,9 @@ import { authFetch } from "@/lib/api";
 import { friendlyApiMessage } from "@/lib/api-error-message";
 import { ThesisResolutionBanner } from "@/components/thesis/ThesisResolutionBanner";
 import type { ResolutionCheck } from "@/lib/thesis/check-resolution";
-import { assetSymbolFromThesis } from "@/lib/thesis-engine-v2/stored-trade-plan";
+import { assetSymbolFromThesis, storedTradePlanFromThesis } from "@/lib/thesis-engine-v2/stored-trade-plan";
+import { shouldAutoPopulateUserThesisBody } from "@/lib/thesis/populate-user-thesis-body";
+import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
 function lastRemodeledAtFromBody(body: unknown): string | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
@@ -438,6 +440,80 @@ export function ThesisDetailClient({
     };
   }, [slug]);
 
+  const refreshUserThesisFromServer = useCallback(async () => {
+    const ut = getUserThesisBySlug(slug);
+    if (!ut || ut.origin !== "user") return;
+    const sb = createBrowserSupabaseClient();
+    const { data: sess } = await sb.auth.getSession();
+    const tok = sess.session?.access_token;
+    if (!tok) return;
+    const r = await fetch(`/api/user/theses?slug=${encodeURIComponent(slug)}`, {
+      credentials: "include",
+      headers: { authorization: `Bearer ${tok}` },
+    });
+    if (!r.ok) return;
+    const j = (await r.json().catch(() => null)) as {
+      ok?: boolean;
+      thesis?: {
+        slug?: string | null;
+        title?: string | null;
+        micro_label?: string | null;
+        body?: unknown;
+        scenario_probabilities?: CatalogThesisScenarioProbabilities | null;
+        updated_at?: string | null;
+        status?: string | null;
+        incentive_analysis?: unknown;
+      } | null;
+    } | null;
+    if (!j?.ok || !j.thesis?.slug) return;
+    const row = j.thesis;
+    if (row.body != null) setDebugDbBody(row.body);
+    setBundle((prev) => {
+      if (!prev || prev.thesis.origin !== "user" || prev.thesis.slug !== row.slug) return prev;
+      let mergedThesis = mergeUserThesisWithServerCatalog(prev.thesis, {
+        title: row.title ?? null,
+        microLabel: row.micro_label ?? null,
+        body: row.body ?? null,
+        scenarioProbabilities: row.scenario_probabilities ?? null,
+      });
+      const incentive = parseIncentiveAnalysis(row.incentive_analysis);
+      if (incentive) mergedThesis = { ...mergedThesis, incentiveAnalysis: incentive };
+      if (row.updated_at) {
+        mergedThesis = {
+          ...mergedThesis,
+          lastUpdated: `Synced · ${new Date(row.updated_at).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}`,
+        };
+      }
+      if (row.status && USER_THESIS_DB_SYNC_STATUSES.has(row.status as ThesisStatus)) {
+        mergedThesis = { ...mergedThesis, status: row.status as ThesisStatus };
+      }
+      upsertUserThesis(mergedThesis);
+      return bundleForUserThesis(mergedThesis, { scenarioProbabilitiesFromDb: row.scenario_probabilities != null });
+    });
+  }, [slug]);
+
+  const onPopulateBody = useCallback(async () => {
+    const res = await authFetch(`/api/theses/${encodeURIComponent(slug)}/populate-body`, {
+      method: "POST",
+    });
+    const data = (await res.json().catch(() => null)) as {
+      ok?: boolean;
+      populated?: boolean;
+      error?: string;
+    } | null;
+    if (!res.ok || !data?.ok) {
+      toast.error(friendlyApiMessage(data?.error ?? "populate_failed"));
+      return;
+    }
+    toast.success(data.populated ? "Thesis sections updated" : "Could not auto-fill yet — try again in a moment");
+    await refreshUserThesisFromServer();
+  }, [slug, refreshUserThesisFromServer]);
+
   useEffect(() => {
     if (!bundle) return;
     const t = window.setInterval(() => setBookPulse((n) => n + 1), 2000);
@@ -675,6 +751,9 @@ export function ThesisDetailClient({
   }
 
   const isUserThesis = bundle.thesis.origin === "user";
+  const userBodySource = debugDbBody ?? catalogBody;
+  const userBodyNeedsPopulate = isUserThesis && shouldAutoPopulateUserThesisBody(userBodySource);
+
   const insiderMonitoring = hasInsiderFlowMonitoring(thesis.insiderFlow);
   const returnToPath = pathname && pathname.length > 0 ? pathname : `/theses/${slug}`;
   const entrySetupValid = thesis.status === "ready" && canonicalConvictionPercentFromEngineThesis(thesis) >= 50;
@@ -742,6 +821,8 @@ export function ThesisDetailClient({
           variant="retail"
           spotPrice={marketSpotPrice}
           lastRemodeledAt={lastRemodeledAt}
+          userOwned={isUserThesis}
+          onPopulateBody={isUserThesis && !storedTradePlanFromThesis(thesis) ? onPopulateBody : undefined}
         />
         <ThesisInvalidationBlock thesis={thesis} />
         <ResolutionPathBars
@@ -932,6 +1013,8 @@ export function ThesisDetailClient({
             probabilitySource={scenarioViewScenarios.probabilitySource}
             templateAuthenticityNote={scenarioAuthenticityNote}
             hideHeader
+            userOwned={isUserThesis}
+            onPopulateBody={isUserThesis && !showAuthoritativeScenarioPercents ? onPopulateBody : undefined}
           />
         </CollapsibleThesisSection>
 
@@ -970,7 +1053,13 @@ export function ThesisDetailClient({
           contentClassName="pb-5"
         >
           <ThesisWhatChangedHighlight slug={slug} />
-          <EvidenceTimeline items={mergedEvidenceTimeline} initialVisible={5} showHeading={false} />
+          <EvidenceTimeline
+            items={mergedEvidenceTimeline}
+            initialVisible={5}
+            showHeading={false}
+            userOwned={isUserThesis}
+            onPopulateBody={userBodyNeedsPopulate ? onPopulateBody : undefined}
+          />
         </CollapsibleThesisSection>
 
         {!readerActive ? (
@@ -988,7 +1077,12 @@ export function ThesisDetailClient({
           subtitle="Who benefits, who loses, and what that means for price."
           defaultOpen={false}
         >
-          <IncentiveAnalysisSection analysis={thesis.incentiveAnalysis ?? null} embedded />
+          <IncentiveAnalysisSection
+            analysis={thesis.incentiveAnalysis ?? null}
+            embedded
+            userOwned={isUserThesis}
+            onPopulateBody={!thesis.incentiveAnalysis ? onPopulateBody : undefined}
+          />
         </CollapsibleThesisSection>
 
         <CollapsibleThesisSection

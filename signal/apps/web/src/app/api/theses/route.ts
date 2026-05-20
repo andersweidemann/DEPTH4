@@ -22,6 +22,10 @@ import { loadEventLinkContext, resolveEventId } from "@/lib/causal-graph/load-ev
 import { validateThesisEventLink } from "@/lib/causal-graph/causal-validator";
 import { thesisLinkInputFromThesis } from "@/lib/causal-graph/thesis-link-input";
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
+import {
+  populateUserThesisBody,
+  shouldAutoPopulateUserThesisBody,
+} from "@/lib/thesis/populate-user-thesis-body";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -155,6 +159,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "slug_conflict" }, { status: 409 });
     }
     return NextResponse.json({ error: msg }, { status: 400 });
+  }
+
+  if (shouldAutoPopulateUserThesisBody(row.body)) {
+    const admin = createServiceRoleClient();
+    if (admin) {
+      void populateUserThesisBody(admin, thesis.id, {
+        title: thesis.title,
+        assetSymbol: asset.trim().toUpperCase(),
+        direction,
+        timeHorizon: thesis.horizon || "weeks",
+      }).catch((e) => {
+        console.warn("[POST /api/theses] populateUserThesisBody failed", {
+          thesisId: thesis.id,
+          message: e instanceof Error ? e.message : String(e),
+        });
+      });
+    }
   }
 
   if (pendingEventId) {

@@ -17,6 +17,11 @@ import { fetchThesisRowBySlug } from "@/lib/thesis-engine-v2/fetch-thesis-row-by
 import { THESIS_ORIGIN_USER } from "@/lib/thesis-engine-v2/thesis-db-origins";
 import { userThesisUpdateMutationMeta } from "@/lib/thesis-mutation/user-thesis-update-mutation-meta";
 import { enforceThesisQualityGate } from "@/lib/thesis/enforce-thesis-quality-gate";
+import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
+import {
+  populateUserThesisBody,
+  shouldAutoPopulateUserThesisBody,
+} from "@/lib/thesis/populate-user-thesis-body";
 import {
   initialStatusFromQualityReport,
   qualityGateInputFromEngineThesis,
@@ -64,7 +69,9 @@ export async function GET(req: NextRequest) {
   if (list === "1") {
     const { data, error } = await sb
       .from("theses")
-      .select("id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow")
+      .select(
+        "id, slug, title, micro_label, body, scenario_probabilities, updated_at, status, thesis_origin, insider_flow, incentive_analysis",
+      )
       .eq("owner_user_id", user.id)
       .eq("thesis_origin", THESIS_ORIGIN_USER)
       .order("updated_at", { ascending: false })
@@ -95,6 +102,7 @@ export async function GET(req: NextRequest) {
       status: row.status,
       thesis_origin: row.thesis_origin,
       lifecycle_state: row.lifecycle_state ?? null,
+      incentive_analysis: row.incentive_analysis ?? null,
     },
   });
 }
@@ -220,6 +228,23 @@ export async function PUT(req: NextRequest) {
     } else {
       const { error: insErr } = await sb.from("theses").insert(insertRow);
       if (insErr) return NextResponse.json({ ok: false, error: insErr.message }, { status: 400 });
+    }
+    if (shouldAutoPopulateUserThesisBody(insertRow.body)) {
+      const admin = createServiceRoleClient();
+      if (admin) {
+        const assetSymbol = thesis.asset?.split(/[\s—–-]/)[0]?.trim() || thesis.title;
+        void populateUserThesisBody(admin, thesis.id, {
+          title: thesis.title,
+          assetSymbol,
+          direction: thesis.direction,
+          timeHorizon: thesis.horizon || "weeks",
+        }).catch((e) => {
+          console.warn("[PUT /api/user/theses] populateUserThesisBody failed", {
+            thesisId: thesis.id,
+            message: e instanceof Error ? e.message : String(e),
+          });
+        });
+      }
     }
   }
 

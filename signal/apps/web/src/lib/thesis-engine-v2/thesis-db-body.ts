@@ -61,6 +61,33 @@ function str(v: unknown): string | undefined {
   return t ? t : undefined;
 }
 
+function parseScenarioOverridesFromBody(
+  o: Record<string, unknown>,
+): Thesis["scenarioOverrides"] | undefined {
+  const raw = o.scenario_overrides ?? o.scenarioOverrides;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const r = raw as Record<string, unknown>;
+  const leg = (key: "base" | "bull" | "bear") => {
+    const L = r[key];
+    if (!L || typeof L !== "object" || Array.isArray(L)) return null;
+    const row = L as Record<string, unknown>;
+    const confirmation = str(row.confirmation);
+    const marketConsequence = str(row.market_consequence ?? row.marketConsequence);
+    const p = Number(row.probability);
+    if (!confirmation || !Number.isFinite(p)) return null;
+    return {
+      probability: Math.round(p),
+      confirmation,
+      marketConsequence: marketConsequence || confirmation,
+    };
+  };
+  const base = leg("base");
+  const bull = leg("bull");
+  const bear = leg("bear");
+  if (!base || !bull || !bear) return undefined;
+  return { base, bull, bear };
+}
+
 /** Merge `public.theses.body` into a client `Thesis` (catalog baseline or user-authored baseline). */
 export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
   if (!body || typeof body !== "object" || Array.isArray(body)) return normalizeThesisNarrativeFields(thesis);
@@ -129,6 +156,8 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
         : `${targetAsset} — ${targetAsset}`
       : undefined;
 
+  const scenarioOverrides = parseScenarioOverridesFromBody(o);
+
   const next: Thesis = {
     ...thesis,
     ...(assetFromBody ? { asset: assetFromBody } : {}),
@@ -162,6 +191,7 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
     ...(str(o.target2) !== undefined || target2FromTradePlan
       ? { target2: str(o.target2) ?? target2FromTradePlan }
       : {}),
+    ...(scenarioOverrides ? { scenarioOverrides } : {}),
   };
 
   return normalizeThesisNarrativeFields(next);
