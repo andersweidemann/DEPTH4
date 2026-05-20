@@ -42,10 +42,16 @@ function hourKey(tsMs: number, tz: "America/New_York" | "UTC") {
   return Number.isFinite(n) ? String(n) : "0";
 }
 
+function isMissingBaselinesTable(message: string | undefined) {
+  const m = (message ?? "").toLowerCase();
+  return m.includes("instrument_baselines") && (m.includes("schema cache") || m.includes("does not exist"));
+}
+
 export async function GET(req: NextRequest) {
   const deny = assertCronSecret(req);
   if (deny) return deny;
 
+  try {
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   const service = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
@@ -54,16 +60,37 @@ export async function GET(req: NextRequest) {
   }
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
 
+  const { error: tableProbeErr } = await admin.from("instrument_baselines").select("instrument").limit(1);
+  if (tableProbeErr && isMissingBaselinesTable(tableProbeErr.message)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "instrument_baselines_table_missing",
+        hint: "Apply Supabase migration signal/supabase/migrations/20260508123800_instrument_baselines_and_stars.sql (instrument_baselines section) in the SQL editor, then retry.",
+      },
+      { status: 503 },
+    );
+  }
+  if (tableProbeErr) {
+    return NextResponse.json({ ok: false, error: "instrument_baselines_probe_failed", detail: tableProbeErr.message }, { status: 500 });
+  }
+
   // Only refresh baselines for instruments that appear in STARRED theses.
-  const { data: starredRows } = await admin.from("thesis_stars").select("thesis_id").limit(5000);
+  const { data: starredRows, error: starsErr } = await admin.from("thesis_stars").select("thesis_id").limit(5000);
+  if (starsErr) {
+    return NextResponse.json({ ok: false, error: "thesis_stars_query_failed", detail: starsErr.message }, { status: 500 });
+  }
   const starredIds = new Set((starredRows ?? []).map((r: { thesis_id?: unknown }) => String(r.thesis_id ?? "")).filter(Boolean));
 
-  const { data: thesesRaw } = await admin
+  const { data: thesesRaw, error: thesesErr } = await admin
     .from("theses")
     .select("id,insider_flow,status")
     .not("insider_flow", "is", null)
     .in("status", ["watching", "ready", "active"])
     .limit(1000);
+  if (thesesErr) {
+    return NextResponse.json({ ok: false, error: "theses_query_failed", detail: thesesErr.message }, { status: 500 });
+  }
 
   const instruments = new Set<string>();
   for (const row of (thesesRaw ?? []) as Array<{ id?: unknown; insider_flow?: unknown }>) {
@@ -111,21 +138,34 @@ export async function GET(req: NextRequest) {
       if (m > 0) avg_volume_by_hour[k] = m;
     }
 
-    await admin
-      .from("instrument_baselines")
-      .upsert(
+    const { error: upsertErr } = await admin.from("instrument_baselines").upsert(
+      {
+        instrument: sym,
+        volatility_30d: vol30d,
+        avg_volume_by_hour,
+        last_updated: new Date().toISOString(),
+      },
+      { onConflict: "instrument" },
+    );
+    if (upsertErr) {
+      return NextResponse.json(
         {
+          ok: false,
+          error: "instrument_baselines_upsert_failed",
           instrument: sym,
-          volatility_30d: vol30d,
-          avg_volume_by_hour,
-          last_updated: new Date().toISOString(),
+          detail: upsertErr.message,
         },
-        { onConflict: "instrument" },
-      )
-      .throwOnError();
+        { status: 500 },
+      );
+    }
     updated += 1;
   }
 
   return NextResponse.json({ ok: true, instruments_considered: all.length, updated, api_calls });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("[cron/insider-flow-baselines]", message);
+    return NextResponse.json({ ok: false, error: "internal_error", detail: message }, { status: 500 });
+  }
 }
 

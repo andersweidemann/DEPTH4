@@ -15,8 +15,12 @@ export const runtime = "nodejs";
 type DbNewsEvent = {
   headline: unknown;
   published_at?: unknown;
-  created_at?: unknown;
 };
+
+function isMissingFlowAnomaliesTable(message: string | undefined) {
+  const m = (message ?? "").toLowerCase();
+  return m.includes("flow_anomalies") && (m.includes("schema cache") || m.includes("does not exist"));
+}
 
 type DbThesis = {
   id: string;
@@ -233,6 +237,7 @@ export async function GET(req: NextRequest) {
   const deny = assertCronSecret(req);
   if (deny) return deny;
 
+  try {
   const nowMs = Date.now();
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -247,6 +252,24 @@ export async function GET(req: NextRequest) {
 
   // Cast to an untyped client so newly added tables don't break builds before types are regenerated.
   const admin = createSupabaseJsClient(url, service, { auth: { persistSession: false } }) as unknown as SupabaseClient;
+
+  const { error: flowTableProbeErr } = await admin.from("flow_anomalies").select("id").limit(1);
+  if (flowTableProbeErr && isMissingFlowAnomaliesTable(flowTableProbeErr.message)) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "flow_anomalies_table_missing",
+        hint: "Apply signal/supabase/migrations/20260508112500_flow_anomalies.sql and 20260508115300_flow_anomalies_phase2.sql in Supabase SQL editor, then retry.",
+      },
+      { status: 503 },
+    );
+  }
+  if (flowTableProbeErr) {
+    return NextResponse.json(
+      { ok: false, error: "flow_anomalies_probe_failed", detail: flowTableProbeErr.message },
+      { status: 500 },
+    );
+  }
 
   // STARRED-ONLY scan: find which thesis IDs are starred by any user.
   const { data: starredRows } = await admin.from("thesis_stars").select("thesis_id").limit(5000);
@@ -267,14 +290,14 @@ export async function GET(req: NextRequest) {
   const sinceIso = new Date(nowMs - 30 * 60_000).toISOString();
   const { data: news } = await admin
     .from("news_events")
-    .select("headline,published_at,created_at")
-    .or(`published_at.gte.${sinceIso},created_at.gte.${sinceIso}`)
+    .select("headline,published_at")
+    .gte("published_at", sinceIso)
     .order("published_at", { ascending: false })
     .limit(200);
   const recentHeadlines = (news ?? [])
     .map((n: DbNewsEvent) => ({
       headline: String(n.headline ?? ""),
-      atMs: Date.parse(String(n.published_at ?? n.created_at ?? "")) || nowMs,
+      atMs: Date.parse(String(n.published_at ?? "")) || nowMs,
     }))
     .filter((x) => x.headline);
 
@@ -472,11 +495,16 @@ export async function GET(req: NextRequest) {
 
     deduped = anomalies.length - toInsert.length;
 
-    const { data: inserted } = await admin
+    const { data: inserted, error: insertErr } = await admin
       .from("flow_anomalies")
       .insert(toInsert)
-      .select("id,thesis_id,thesis_title,pattern_type,status,probability_suggestion,created_at,instruments_moved")
-      .throwOnError();
+      .select("id,thesis_id,thesis_title,pattern_type,status,probability_suggestion,created_at,instruments_moved");
+    if (insertErr) {
+      return NextResponse.json(
+        { ok: false, error: "flow_anomalies_insert_failed", detail: insertErr.message, anomalies_detected: anomalies.length },
+        { status: 500 },
+      );
+    }
     written = toInsert.length;
 
     // Evidence log (server-side persistence) for inserted anomalies.
@@ -615,14 +643,14 @@ export async function GET(req: NextRequest) {
       const rowCreatedIso = row.created_at;
       const { data: newsSince } = await admin
         .from("news_events")
-        .select("headline,published_at,created_at")
-        .or(`published_at.gte.${rowCreatedIso},created_at.gte.${rowCreatedIso}`)
+        .select("headline,published_at")
+        .gte("published_at", rowCreatedIso)
         .order("published_at", { ascending: false })
         .limit(200);
       const heads = (newsSince ?? [])
         .map((n: DbNewsEvent) => ({
           headline: String(n.headline ?? ""),
-          atMs: Date.parse(String(n.published_at ?? n.created_at ?? "")) || nowMs,
+          atMs: Date.parse(String(n.published_at ?? "")) || nowMs,
         }))
         .filter((x) => x.headline);
 
@@ -633,7 +661,7 @@ export async function GET(req: NextRequest) {
       if (bestConfirm && bestContradict) {
         // Priority: most recent relevant headline wins. Record clearly why.
         if (bestContradict.atMs >= bestConfirm.atMs) {
-          await admin
+          const { error: updateErr } = await admin
             .from("flow_anomalies")
             .update({
               status: "INVALIDATED",
@@ -641,8 +669,10 @@ export async function GET(req: NextRequest) {
               matched_tags: bestContradict.matched,
               status_reason: `contradicting_headline (${Math.max(1, Math.round((bestContradict.atMs - rowCreatedMs) / 60000))}m)`,
             })
-            .eq("id", row.id)
-            .throwOnError();
+            .eq("id", row.id);
+          if (updateErr) {
+            return NextResponse.json({ ok: false, error: "flow_anomalies_update_failed", detail: updateErr.message }, { status: 500 });
+          }
           updated_invalidated += 1;
 
           await admin.from("thesis_evidence_log").upsert(
@@ -656,7 +686,7 @@ export async function GET(req: NextRequest) {
             { onConflict: "dedupe_key" },
           );
         } else {
-          await admin
+          const { error: updateErr } = await admin
             .from("flow_anomalies")
             .update({
               status: "CONFIRMED_MOVE",
@@ -664,8 +694,10 @@ export async function GET(req: NextRequest) {
               confirmed_headline_at: new Date(bestConfirm.atMs).toISOString(),
               status_reason: `confirmed_after_leak (${Math.max(1, Math.round((bestConfirm.atMs - rowCreatedMs) / 60000))}m)`,
             })
-            .eq("id", row.id)
-            .throwOnError();
+            .eq("id", row.id);
+          if (updateErr) {
+            return NextResponse.json({ ok: false, error: "flow_anomalies_update_failed", detail: updateErr.message }, { status: 500 });
+          }
           updated_confirmed += 1;
 
           await admin.from("thesis_evidence_log").upsert(
@@ -683,7 +715,7 @@ export async function GET(req: NextRequest) {
       }
 
       if (bestContradict) {
-        await admin
+        const { error: updateErr } = await admin
           .from("flow_anomalies")
           .update({
             status: "INVALIDATED",
@@ -691,8 +723,10 @@ export async function GET(req: NextRequest) {
             matched_tags: bestContradict.matched,
             status_reason: `contradicting_headline (${Math.max(1, Math.round((bestContradict.atMs - rowCreatedMs) / 60000))}m)`,
           })
-          .eq("id", row.id)
-          .throwOnError();
+          .eq("id", row.id);
+        if (updateErr) {
+          return NextResponse.json({ ok: false, error: "flow_anomalies_update_failed", detail: updateErr.message }, { status: 500 });
+        }
         updated_invalidated += 1;
         await admin.from("thesis_evidence_log").upsert(
           {
@@ -708,7 +742,7 @@ export async function GET(req: NextRequest) {
       }
 
       if (bestConfirm) {
-        await admin
+        const { error: updateErr } = await admin
           .from("flow_anomalies")
           .update({
             status: "CONFIRMED_MOVE",
@@ -716,8 +750,10 @@ export async function GET(req: NextRequest) {
             confirmed_headline_at: new Date(bestConfirm.atMs).toISOString(),
             status_reason: `confirmed_after_leak (${Math.max(1, Math.round((bestConfirm.atMs - rowCreatedMs) / 60000))}m)`,
           })
-          .eq("id", row.id)
-          .throwOnError();
+          .eq("id", row.id);
+        if (updateErr) {
+          return NextResponse.json({ ok: false, error: "flow_anomalies_update_failed", detail: updateErr.message }, { status: 500 });
+        }
         updated_confirmed += 1;
         await admin.from("thesis_evidence_log").upsert(
           {
@@ -797,15 +833,17 @@ export async function GET(req: NextRequest) {
           current,
         })
       ) {
-        await admin
+        const { error: updateErr } = await admin
           .from("flow_anomalies")
           .update({
             status: "INVALIDATED",
             invalidated_at: new Date(nowMs).toISOString(),
             status_reason: "price_reversal",
           })
-          .eq("id", row.id)
-          .throwOnError();
+          .eq("id", row.id);
+        if (updateErr) {
+          return NextResponse.json({ ok: false, error: "flow_anomalies_update_failed", detail: updateErr.message }, { status: 500 });
+        }
         updated_invalidated += 1;
 
         await admin.from("thesis_evidence_log").upsert(
@@ -841,5 +879,10 @@ export async function GET(req: NextRequest) {
     push_removed,
     push_skipped_by_prefs,
   });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    console.error("[cron/insider-flow]", message);
+    return NextResponse.json({ ok: false, error: "internal_error", detail: message }, { status: 500 });
+  }
 }
 
