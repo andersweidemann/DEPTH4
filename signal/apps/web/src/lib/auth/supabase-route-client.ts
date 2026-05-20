@@ -2,10 +2,11 @@ import { createClient as createSupabaseJsClient, type SupabaseClient, type User 
 import { NextResponse } from "next/server";
 import { createClient as createCookieSupabaseClient } from "@/lib/supabase/server";
 import {
-  isLikelySupabaseJwtAnonKey,
+  isSupabaseAnonKeyConfigured,
   normalizeSupabaseAnonKey,
   normalizeSupabaseUrl,
 } from "@/lib/supabase/env";
+import { isUserSessionBearerToken } from "@/lib/supabase/auth-from-request";
 
 /** Authorization: Bearer &lt;token&gt; from a Request (App Router or fetch). */
 export function bearerTokenFromAuthHeader(req: Request): string {
@@ -25,12 +26,21 @@ export type RequireSupabaseUserResult =
 export async function requireSupabaseUser(req: Request): Promise<RequireSupabaseUserResult> {
   const url = normalizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anon = normalizeSupabaseAnonKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  if (!url || !anon || !isLikelySupabaseJwtAnonKey(anon)) {
+  if (!url || !anon || !isSupabaseAnonKeyConfigured(anon)) {
     return { ok: false, response: NextResponse.json({ error: "server_misconfigured" }, { status: 500 }) };
   }
 
+  const cookieSb = await createCookieSupabaseClient();
+  const {
+    data: { user: cookieUser },
+    error: cookieErr,
+  } = await cookieSb.auth.getUser();
+  if (!cookieErr && cookieUser) {
+    return { ok: true, supabase: cookieSb, user: cookieUser };
+  }
+
   const token = bearerTokenFromAuthHeader(req);
-  if (token) {
+  if (token && isUserSessionBearerToken(token)) {
     const supabase = createSupabaseJsClient(url, anon, {
       auth: { persistSession: false, autoRefreshToken: false },
       global: { headers: { Authorization: `Bearer ${token}` } },
@@ -39,19 +49,10 @@ export async function requireSupabaseUser(req: Request): Promise<RequireSupabase
       data: { user },
       error,
     } = await supabase.auth.getUser(token);
-    if (error || !user) {
-      return { ok: false, response: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
+    if (!error && user) {
+      return { ok: true, supabase, user };
     }
-    return { ok: true, supabase, user };
   }
 
-  const cookieSb = await createCookieSupabaseClient();
-  const {
-    data: { user },
-    error,
-  } = await cookieSb.auth.getUser();
-  if (error || !user) {
-    return { ok: false, response: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
-  }
-  return { ok: true, supabase: cookieSb, user };
+  return { ok: false, response: NextResponse.json({ error: "unauthorized" }, { status: 401 }) };
 }

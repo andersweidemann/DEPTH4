@@ -1,6 +1,8 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
+import { createClient } from "@/lib/supabase/server";
 import { buildThesesListResponse } from "@/lib/theses/theses-list-response";
 import { buildDraftUserThesisFromForm } from "@/lib/theses/draft-user-thesis";
 import {
@@ -37,16 +39,22 @@ function isThesisRecord(x: unknown): x is Thesis {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await getAuthedSupabase(req);
-  if (!auth) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const sp = req.nextUrl.searchParams;
   const starred = sp.get("starred") === "true";
   const status = sp.get("status")?.trim() || "";
   const assetClass = sp.get("assetClass")?.trim() || "All";
   const sort = sp.get("sort")?.trim() || "recent";
 
-  const payload = await buildThesesListResponse(auth.sb, auth.user.id, {
+  const auth = await getAuthedSupabase(req);
+  const sb = auth?.sb ?? (isDepth4PublicReadMode() ? await createClient() : null);
+  const userId = auth?.user.id ?? null;
+
+  if (!sb) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (starred && !userId) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const payload = await buildThesesListResponse(sb, userId, {
     starred: starred || undefined,
     status: status || undefined,
     assetClass: assetClass || undefined,

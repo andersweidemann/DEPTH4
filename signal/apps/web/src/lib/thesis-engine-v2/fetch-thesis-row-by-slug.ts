@@ -53,5 +53,10 @@ export async function fetchThesisRowBySlug(
     if (owned) return owned;
   }
 
-  return rows.find((r) => r.thesis_origin === THESIS_ORIGIN_AI) ?? null;
+  const ai = rows.find((r) => r.thesis_origin === THESIS_ORIGIN_AI);
+  if (ai) return ai;
+
+  // Anonymous / public read: allow a single readable row when slug is unambiguous.
+  if (rows.length === 1) return rows[0]!;
+  return null;
 }

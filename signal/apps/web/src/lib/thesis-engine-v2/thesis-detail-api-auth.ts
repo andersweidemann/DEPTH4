@@ -3,8 +3,8 @@ import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * `GET /api/theses/[slug]`: prefer Bearer JWT (`authFetch`), fall back to cookie session, else anonymous
- * Supabase client for catalog-only reads.
+ * `GET /api/theses/[slug]`: cookie session first, then Bearer JWT, else anonymous Supabase client
+ * for catalog / public reads.
  */
 export async function getSupabaseAndUserIdForThesisDetailApi(
   req: Request,

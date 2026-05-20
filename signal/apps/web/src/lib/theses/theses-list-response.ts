@@ -223,7 +223,7 @@ function mergeEngineThesesById(...groups: EngineThesis[][]): EngineThesis[] {
 
 export async function buildThesesListResponse(
   sb: SupabaseClient,
-  userId: string,
+  userId: string | null,
   query: {
     starred?: boolean;
     status?: string;
@@ -231,10 +231,14 @@ export async function buildThesesListResponse(
     sort?: string;
   },
 ): Promise<ThesisListResponse> {
-  const { data: starRows } = await sb.from("thesis_stars").select("thesis_id").eq("user_id", userId).limit(5000);
-  const starredIds = new Set(
-    (starRows ?? []).map((r) => String((r as { thesis_id?: unknown }).thesis_id ?? "").trim()).filter(Boolean),
-  );
+  const starredIds = new Set<string>();
+  if (userId) {
+    const { data: starRows } = await sb.from("thesis_stars").select("thesis_id").eq("user_id", userId).limit(5000);
+    for (const r of starRows ?? []) {
+      const id = String((r as { thesis_id?: unknown }).thesis_id ?? "").trim();
+      if (id) starredIds.add(id);
+    }
+  }
 
   const { data: userRows } = await sb
     .from("theses")

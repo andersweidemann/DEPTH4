@@ -40,6 +40,18 @@ export function isLikelySupabaseJwtAnonKey(key: string): boolean {
   return parts.every((p) => p.length > 0 && b64url.test(p));
 }
 
+/**
+ * Whether `NEXT_PUBLIC_SUPABASE_ANON_KEY` is present enough to build a client.
+ * Do not hard-fail API auth when the key is a valid non-JWT publishable key.
+ */
+export function isSupabaseAnonKeyConfigured(key: string): boolean {
+  const k = key.trim();
+  if (k.length < 20) return false;
+  if (isLikelySupabaseJwtAnonKey(k)) return true;
+  if (k.startsWith("sb_publishable_")) return true;
+  return k.length >= 32;
+}
+
 export function safeAuthErrorForQuery(message: string): string {
   const m = message.trim();
   if (!m) return "Authentication failed";
