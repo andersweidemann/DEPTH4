@@ -13,6 +13,7 @@ import {
   buildRemodelNotificationMetadata,
   insertRemodelNotifications,
 } from "@/lib/thesis/remodel-notifications";
+import { DEPTH4_PLATFORM_JSON_SYSTEM } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 
 export type RemodelTradePlan = {
   entryZone: string;
@@ -233,8 +234,7 @@ export function normalizeRemodelPayload(raw: unknown): LlmRemodelPayload | null 
   return hasProbs || hasLevels ? payload : null;
 }
 
-const REMODEL_JSON_SYSTEM =
-  "You output strict JSON only. No markdown fences or commentary outside the JSON object.";
+const REMODEL_JSON_SYSTEM = DEPTH4_PLATFORM_JSON_SYSTEM;
 
 const REMODEL_MAX_TOKENS = 1600;
 

@@ -3,6 +3,7 @@ import { resolveCheapAnthropicModel } from "@/lib/macro-reasoning/model-routing"
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { parseIncentiveAnalysis, incentiveAnalysisToDbJson } from "@/lib/thesis/incentive-analysis";
 import type { IncentiveAnalysis } from "@/types/incentive-analysis";
+import { buildDepth4LlmSystemPrompt } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 
 export async function generateIncentiveAnalysis(thesis: Thesis): Promise<IncentiveAnalysis | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
@@ -32,7 +33,9 @@ export async function generateIncentiveAnalysis(thesis: Thesis): Promise<Incenti
     apiKey,
     model,
     maxTokens: 600,
-    system: "You output strict JSON only. No markdown fences.",
+    system: buildDepth4LlmSystemPrompt({
+      preamble: "You are DEPTH4's incentive analysis engine.",
+    }),
     user: prompt,
   });
 

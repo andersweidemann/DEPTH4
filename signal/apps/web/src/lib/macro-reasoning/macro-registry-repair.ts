@@ -4,11 +4,10 @@ import { anthropicMessages } from "@/lib/macro-reasoning/anthropic-messages";
 import { FEED_CARD_WORD_LIMITS, countWords } from "@/lib/macro-reasoning/schema";
 import type { MacroEventReasoning } from "@/lib/macro-reasoning/schema";
 import { safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
+import { buildDepth4LlmSystemPrompt } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 
 /** Bump when repair instructions change (logged; not a DB prompt_version key). */
 export const MACRO_REGISTRY_REPAIR_PROMPT_VERSION = "macro-registry-repair-v3";
-
-const VISION_EXCERPT = `DEPTH4 (product): cause, path, timing, and market implication are mandatory. Generic summaries or headline rewrites are failure. Four levels: L1 confirmed (Tier 1–2), L2 this week (1–7d), L3 this month (7–30d) with explicit mispricing, L4 this quarter (30–90d+). Mispricing must state what the crowd prices vs what you see. Voice: simple retail trading English — concrete, not analyst deck tone.`;
 
 const registryRepairOutputSchema = z.object({
   thesis_trade_line: z.string(),
@@ -31,11 +30,10 @@ const registryRepairOutputSchema = z.object({
 
 export type MacroRegistryRepairPatch = z.infer<typeof registryRepairOutputSchema>;
 
-const REPAIR_SYSTEM = `You are DEPTH4's registry repair pass. The first model draft failed the thesis registry hero gate.
-
-${VISION_EXCERPT}
-
-TASK
+const REPAIR_SYSTEM = buildDepth4LlmSystemPrompt({
+  preamble:
+    "You are DEPTH4's registry repair pass. The first model draft failed the thesis registry hero gate.",
+  extra: `TASK
 - Read the rejection reason and the draft JSON fields provided in the user message.
 - **Preprocess:** ANCHOR_HEADLINE and TITLE_HINT are often transcript titles or raw wires — do not recycle them into thesis_trade_line. Infer market facts from the draft's reasoning_chain, mispricing_hypothesis, and event_summary; rewrite the hero from those facts.
 - Output ONE JSON object only (no markdown). Keys exactly:
@@ -73,7 +71,8 @@ BAD thesis_trade_line examples (never output anything like these):
 
 GOOD thesis_trade_line shape (meaning, do not copy verbatim):
 - "MRVI may rerate higher within two prints if management proves the growth story is durable beyond the COVID bump, because the tape still prices a one-quarter fade."
-- "US–China headline risk will fade faster than FXI prices unless Xi signals tariff relief before the next review window within weeks."`;
+- "US–China headline risk will fade faster than FXI prices unless Xi signals tariff relief before the next review window within weeks."`,
+});
 
 export function mergeMacroReasoningRegistryPatch(base: MacroEventReasoning, patch: MacroRegistryRepairPatch): MacroEventReasoning {
   return {

@@ -10,7 +10,8 @@ alwaysApply: false
 
 **Code source of truth (keep in sync):**
 
-- `signal/apps/web/src/lib/thesis-engine-v2/depth4-retail-voice-constitution.ts` — `DEPTH4_RETAIL_VOICE_TEST`, `DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM` (injected into macro LLM system prompts).
+- `signal/apps/web/src/lib/thesis-engine-v2/depth4-retail-voice-constitution.ts` — voice test + constitution text.
+- `signal/apps/web/src/lib/thesis-engine-v2/depth4-llm-system-prompt.ts` — **required** for all new LLM system prompts (`buildDepth4LlmSystemPrompt` / `buildDepth4ProseSystemPrompt` / `DEPTH4_PLATFORM_JSON_SYSTEM`).
 - `signal/apps/web/src/lib/thesis-engine-v2/thesis-book-template.ts` — thesis book snippet + Supabase `body` JSON rules.
 - `signal/apps/web/src/lib/macro-reasoning/prompts.ts` — macro / promoted narrative prompts.
 

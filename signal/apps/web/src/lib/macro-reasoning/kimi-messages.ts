@@ -3,6 +3,7 @@
  */
 
 import { extractJsonFromLlmText } from "@/lib/ai/parse-llm-json";
+import { DEPTH4_PLATFORM_JSON_SYSTEM } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 import {
   isKimiConfigured,
   normalizeKimiApiKey,
@@ -157,8 +158,7 @@ export function extractKimiMessageText(
   return parts.join("\n\n");
 }
 
-const KIMI_JSON_SYSTEM =
-  "You output strict JSON only. No markdown fences or commentary outside the JSON object.";
+const KIMI_JSON_SYSTEM = DEPTH4_PLATFORM_JSON_SYSTEM;
 
 /**
  * Kimi path for structured JSON (remodel, pipeline) — matches diagnostic script settings:

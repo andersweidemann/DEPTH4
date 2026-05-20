@@ -5,10 +5,7 @@
 
 import { FEED_CARD_WORD_LIMITS } from "./schema";
 import { depth4RegistryHeroExemplarsForPrompt } from "./depth4-registry-hero-exemplars";
-import {
-  DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM,
-  DEPTH4_RETAIL_VOICE_TEST,
-} from "@/lib/thesis-engine-v2/depth4-retail-voice-constitution";
+import { depth4VoiceBlockForLlm } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 import {
   DEPTH4_THESIS_BODY_JSON_RULES_FOR_LLM,
   DEPTH4_THESIS_BOOK_SNIPPET_FOR_LLM,
@@ -156,9 +153,7 @@ INPUTS (from the user message — use all that apply)
 
 The JSON CONTRACT at the end of this system message defines exact L1–L4 headers, thesis hero rules, word caps, and rejection rules for thesis_trade_line.
 
-${DEPTH4_RETAIL_VOICE_TEST}
-
-${DEPTH4_RETAIL_VOICE_CONSTITUTION_FOR_LLM}
+${depth4VoiceBlockForLlm()}
 
 VOICE STANDARD (match this every time)
 - Direct. Concrete. Confident. Useful.

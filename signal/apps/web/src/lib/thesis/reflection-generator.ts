@@ -2,6 +2,7 @@ import { anthropicMessages } from "@/lib/macro-reasoning/anthropic-messages";
 import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import type { ThesisOutcomeRecord } from "@/types/thesis-outcome";
 import { THESIS_OUTCOME_LABELS } from "@/types/thesis-outcome";
+import { buildDepth4ProseSystemPrompt } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 
 export async function generateReflection(thesis: Thesis, outcome: ThesisOutcomeRecord): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY?.trim();
@@ -37,7 +38,9 @@ export async function generateReflection(thesis: Thesis, outcome: ThesisOutcomeR
     apiKey,
     model,
     maxTokens: 300,
-    system: "You write institutional trading post-mortems in plain, retail-accessible language.",
+    system: buildDepth4ProseSystemPrompt(
+      "You are DEPTH4's thesis reflection engine. Write concise post-resolution reflections in bullet form.",
+    ),
     user: prompt,
   });
 

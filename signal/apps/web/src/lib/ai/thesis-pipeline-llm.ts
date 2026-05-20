@@ -16,8 +16,9 @@ import {
   resolvePremiumAnthropicModel,
 } from "@/lib/macro-reasoning/model-routing";
 import { extractJsonFromLlmText } from "@/lib/ai/parse-llm-json";
+import { DEPTH4_PLATFORM_JSON_SYSTEM } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 
-const SYSTEM = "You output strict JSON only. No markdown fences or commentary outside the JSON object.";
+const SYSTEM = DEPTH4_PLATFORM_JSON_SYSTEM;
 
 export type PipelineLlmTier = "cheap" | "premium";
 

@@ -1,6 +1,6 @@
 /**
  * GLOBAL WRITING CONSTITUTION — DEPTH4 retail voice.
- * Injected into macro / thesis LLM prompts; mirrored in `.cursor/rules/depth4-thesis-narrative-writing.mdc`.
+ * Injected via `depth4-llm-system-prompt.ts` on every platform LLM call; mirrored in `.cursor/rules/depth4-thesis-narrative-writing.mdc`.
  */
 
 /** Five yes/no checks before shipping any user-facing DEPTH4 line. */

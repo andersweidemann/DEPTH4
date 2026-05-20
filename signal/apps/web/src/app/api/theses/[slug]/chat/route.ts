@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { anthropicMessages } from "@/lib/macro-reasoning/anthropic-messages";
 import { createClient } from "@/lib/supabase/server";
 import { requireThesisForSlug } from "@/lib/thesis-engine-v2/thesis-api-route-helpers";
+import { buildDepth4ProseSystemPrompt } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,18 +36,20 @@ export async function POST(req: Request, context: { params: { slug: string } }) 
 
   const model = process.env.ANTHROPIC_MODEL_CHEAP?.trim() || "claude-3-5-haiku-latest";
   const t = loaded.thesis;
-  const system = [
-    "You are the DEPTH4 thesis assistant. Respond in clear, concise prose.",
-    "Educational and analytical only — no personalized investment advice, no instructions to buy or sell.",
-    "Thesis context:",
-    `Title: ${t.title}`,
-    `Asset: ${t.asset}`,
-    `Direction: ${t.direction}`,
-    `Statement: ${t.thesisStatement}`,
-    `Invalidation: ${t.invalidation}`,
-    `Trigger: ${t.trigger}`,
-    `Trade (narrative): ${t.trade}`,
-  ].join("\n");
+  const system = buildDepth4ProseSystemPrompt(
+    "You are the DEPTH4 thesis assistant. Respond in clear, concise prose about this thesis only.",
+    [
+      "Educational and analytical only — no personalized investment advice, no instructions to buy or sell.",
+      "Thesis context:",
+      `Title: ${t.title}`,
+      `Asset: ${t.asset}`,
+      `Direction: ${t.direction}`,
+      `Statement: ${t.thesisStatement}`,
+      `Invalidation: ${t.invalidation}`,
+      `Trigger: ${t.trigger}`,
+      `Trade (narrative): ${t.trade}`,
+    ].join("\n"),
+  );
 
   try {
     const { text } = await anthropicMessages({
