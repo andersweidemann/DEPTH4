@@ -5,8 +5,27 @@ import type { Thesis } from "@/lib/thesis-engine-v2/types";
 import { generateReflection } from "@/lib/thesis/reflection-generator";
 import { mapOutcomeRow, type ThesisOutcomeRow } from "@/lib/thesis/thesis-outcome-db";
 import { buildTrackRecord } from "@/lib/thesis/track-record";
-import type { MarketDirection, ThesisOutcomeKind, ThesisOutcomeRecord } from "@/types/thesis-outcome";
+import type {
+  MarketDirection,
+  OutcomeCategory,
+  ThesisOutcomeKind,
+  ThesisOutcomeRecord,
+} from "@/types/thesis-outcome";
 import { RESOLVABLE_OUTCOMES } from "@/types/thesis-outcome";
+
+export type ResolveThesisExtendedInput = {
+  outcomeCategory?: OutcomeCategory | null;
+  actualReturnPct?: number | null;
+  entryPrice?: number | null;
+  exitPrice?: number | null;
+  targetPrice?: number | null;
+  stopLossPrice?: number | null;
+  thesisPrediction?: string | null;
+  whatActuallyHappened?: string | null;
+  narrativeFulfilled?: boolean | null;
+  postMortem?: string | null;
+  reflection?: string | null;
+};
 
 export type ResolveThesisInput = {
   outcome: ThesisOutcomeKind;
@@ -14,6 +33,7 @@ export type ResolveThesisInput = {
   catalyst?: string;
   pnl?: number;
   resolvedBy?: "manual" | "auto" | "system";
+  extended?: ResolveThesisExtendedInput;
 };
 
 function predictedDirection(thesis: Thesis): "up" | "down" {
@@ -104,6 +124,7 @@ async function insertOutcomeAndUpdateThesis(
   const conviction = convictionFromThesis(thesis, dbRow?.scenario_probabilities);
   const holdDays = holdDurationDays(createdAt);
 
+  const ext = input.extended;
   const insertRow = {
     thesis_id: thesis.id,
     thesis_slug: slug,
@@ -115,9 +136,19 @@ async function insertOutcomeAndUpdateThesis(
     conviction_at_start: conviction,
     conviction_at_end: conviction,
     hold_duration_days: holdDays,
-    pnl: input.pnl ?? null,
+    pnl: input.pnl ?? ext?.actualReturnPct ?? null,
     catalyst: input.catalyst?.trim() || null,
-    reflection: null as string | null,
+    reflection: ext?.reflection?.trim() || ext?.postMortem?.trim() || null,
+    outcome_category: ext?.outcomeCategory ?? null,
+    actual_return_pct: ext?.actualReturnPct ?? null,
+    entry_price: ext?.entryPrice ?? null,
+    exit_price: ext?.exitPrice ?? null,
+    target_price: ext?.targetPrice ?? null,
+    stop_loss_price: ext?.stopLossPrice ?? null,
+    thesis_prediction: ext?.thesisPrediction?.trim() || null,
+    what_actually_happened: ext?.whatActuallyHappened?.trim() || null,
+    narrative_fulfilled: ext?.narrativeFulfilled ?? null,
+    post_mortem: ext?.postMortem?.trim() || null,
   };
 
   const { data: inserted, error: insertErr } = await sb
@@ -144,19 +175,22 @@ async function insertOutcomeAndUpdateThesis(
 
   let record = mapOutcomeRow(inserted as ThesisOutcomeRow);
 
-  try {
-    const reflection = await generateReflection(thesis, record);
-    if (reflection) {
-      const { data: updated } = await sb
-        .from("thesis_outcomes")
-        .update({ reflection })
-        .eq("id", record.id)
-        .select("*")
-        .single();
-      if (updated) record = mapOutcomeRow(updated as ThesisOutcomeRow);
+  const skipReflection = Boolean(ext?.postMortem?.trim() || ext?.reflection?.trim());
+  if (!skipReflection) {
+    try {
+      const reflection = await generateReflection(thesis, record);
+      if (reflection) {
+        const { data: updated } = await sb
+          .from("thesis_outcomes")
+          .update({ reflection, post_mortem: reflection })
+          .eq("id", record.id)
+          .select("*")
+          .single();
+        if (updated) record = mapOutcomeRow(updated as ThesisOutcomeRow);
+      }
+    } catch (e) {
+      console.error("[thesis-outcome] reflection_failed", e);
     }
-  } catch (e) {
-    console.error("[thesis-outcome] reflection_failed", e);
   }
 
   return record;

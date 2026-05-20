@@ -46,6 +46,21 @@ export interface TrackRecordMonthRow {
   expired: number;
 }
 
+export type OutcomeCategory =
+  | "target_hit"
+  | "stop_hit"
+  | "time_expired"
+  | "invalidated"
+  | "manual_close";
+
+export const OUTCOME_CATEGORY_LABELS: Record<OutcomeCategory, string> = {
+  target_hit: "Target hit",
+  stop_hit: "Stop hit",
+  time_expired: "Time expired",
+  invalidated: "Invalidated",
+  manual_close: "Manual close",
+};
+
 export interface TrackRecordResolvedThesisRow {
   thesisId: string;
   slug: string;
@@ -53,9 +68,13 @@ export interface TrackRecordResolvedThesisRow {
   asset: string;
   direction: string;
   outcome: ThesisOutcomeKind;
+  outcomeCategory: OutcomeCategory | null;
+  outcomeCategoryLabel: string | null;
   resolvedAt: string;
   holdDurationDays: number | null;
   pnl: number | null;
+  reflection: string | null;
+  postMortem: string | null;
 }
 
 export interface TrackRecord {
@@ -68,6 +87,9 @@ export interface TrackRecord {
   superseded: number;
   winRate: number;
   avgHoldDuration: number | null;
+  avgReturnPct: number | null;
+  targetHits: number;
+  stopHits: number;
   byCategory: TrackRecordCategoryRow[];
   monthlyHistory: TrackRecordMonthRow[];
   resolvedTheses: TrackRecordResolvedThesisRow[];

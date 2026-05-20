@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useDepth4AdminGate } from "@/hooks/use-depth4-privileges";
 import { cn } from "@/lib/utils";
+import { insiderFlowStatusLine } from "@/lib/thesis-engine-v2/insider-flow/STATUS";
 
 type Metric = { label: string; value: string };
 
@@ -67,6 +68,9 @@ export default function InsiderFlowAdminPage() {
     <div className="mx-auto max-w-3xl px-5 pb-24 pt-10">
       <p className="text-sm font-semibold text-zinc-100">Insider Flow · Admin</p>
       <p className="mt-2 text-[12px] text-zinc-500">Quality + health snapshot (client-read, 7-day window).</p>
+      <p className="mt-2 font-mono text-[11px] text-zinc-600" role="status">
+        {insiderFlowStatusLine()}
+      </p>
 
       <div className={cn("mt-6 grid gap-3 sm:grid-cols-2", !ok && "opacity-70")}>
         {(metrics.length ? metrics : [{ label: "Loading…", value: "" }]).map((m) => (

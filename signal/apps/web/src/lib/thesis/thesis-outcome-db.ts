@@ -17,6 +17,16 @@ export type ThesisOutcomeRow = {
   max_drawdown: number | string | null;
   catalyst: string | null;
   reflection: string | null;
+  outcome_category?: string | null;
+  actual_return_pct?: number | string | null;
+  entry_price?: number | string | null;
+  exit_price?: number | string | null;
+  target_price?: number | string | null;
+  stop_loss_price?: number | string | null;
+  thesis_prediction?: string | null;
+  what_actually_happened?: string | null;
+  narrative_fulfilled?: boolean | null;
+  post_mortem?: string | null;
   created_at: string;
 };
 

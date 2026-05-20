@@ -11,7 +11,14 @@ import { InsiderFlowPanel, InsiderFlowRadarButton } from "@/components/thesis-en
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
-export type ThesisNavTab = "theses" | "feed" | "book" | "community" | "leaderboard" | "help";
+export type ThesisNavTab =
+  | "theses"
+  | "feed"
+  | "trackRecord"
+  | "book"
+  | "community"
+  | "leaderboard"
+  | "help";
 
 export function AppHeader({
   active,
@@ -78,6 +85,7 @@ export function AppHeader({
         >
           {tab("theses", "/theses", "Theses")}
           {tab("feed", "/feed", "Feed")}
+          {tab("trackRecord", "/track-record", "Track Record")}
           {tab("book", "/book", "Positions")}
           {tab("community", "/community", "Community")}
           {tab("leaderboard", "/leaderboard", "Leaderboard")}
