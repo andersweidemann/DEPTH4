@@ -151,7 +151,9 @@ function ClusterSection({
                 <span className="text-right">Prob</span>
                 <span className="hidden sm:block">Status</span>
                 <span className="hidden text-right sm:block">Update</span>
-                <span />
+                <span className="text-right" title="Star for alerts">
+                  ★
+                </span>
               </div>
               {rows.map((item) => (
                 <ThesisRow
@@ -234,7 +236,9 @@ function IsolatedSection({
                 <span className="text-right">Prob</span>
                 <span className="hidden sm:block">Status</span>
                 <span className="hidden text-right sm:block">Update</span>
-                <span />
+                <span className="text-right" title="Star for alerts">
+                  ★
+                </span>
               </div>
               {rows.map((item) => (
                 <ThesisRow

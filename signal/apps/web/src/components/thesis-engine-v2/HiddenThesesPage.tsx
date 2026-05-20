@@ -10,6 +10,12 @@ import { unhideThesisBySlug } from "@/lib/thesis-engine-v2/user-hidden-theses-cl
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton } from "@/components/shared/Skeleton";
 import type { CausalGraphClustersResponse, CausalThesis } from "@/types/causal-graph";
+import { HoverHelp } from "@/components/ui/HoverHelp";
+import {
+  CAUSAL_DIRECTION_TOOLTIPS,
+  EDGE_SCORE_TOOLTIP,
+  HORIZON_TOOLTIP,
+} from "@/lib/depth-labels";
 import { cn } from "@/lib/utils";
 
 function HiddenThesisRow({
@@ -26,14 +32,20 @@ function HiddenThesisRow({
     <article className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.08] bg-zinc-900/30 px-4 py-3">
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2 text-[12px]">
-          <span className={cn("font-bold", arrowColor)}>{arrow}</span>
+          <HoverHelp
+            className={cn("font-bold", arrowColor)}
+            label={arrow}
+            tooltip={CAUSAL_DIRECTION_TOOLTIPS[thesis.direction]}
+          />
           <span className="font-semibold text-zinc-200">{thesis.targetAssetSymbol}</span>
           <Link href={`/theses/${thesis.slug}`} className="truncate text-zinc-300 hover:text-amber-200/90">
             {thesis.title}
           </Link>
         </p>
-        <p className="mt-1 text-[10px] text-zinc-600">
-          Edge {thesis.mispricingScore}/100 · {thesis.timeHorizon}
+        <p className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
+          <HoverHelp label={`Edge ${thesis.mispricingScore}/100`} tooltip={EDGE_SCORE_TOOLTIP} />
+          <span className="text-zinc-700">·</span>
+          <HoverHelp label={thesis.timeHorizon} tooltip={HORIZON_TOOLTIP} />
         </p>
       </div>
       <button

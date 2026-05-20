@@ -11,31 +11,16 @@ import { formatTimeAgo, getDirectionBadgeClasses, getStatusDotColor, getStatusTe
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { listRowLifecyclePresentation } from "@/lib/theses/thesis-lifecycle";
 import { ThesisActionsMenu } from "@/components/thesis-engine-v2/ThesisActionsMenu";
+import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
+import { HoverHelp } from "@/components/ui/HoverHelp";
+import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
+import { EDGE_SCORE_TOOLTIP, SCENARIO_PROBABILITY_TOOLTIP } from "@/lib/depth-labels";
+import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisStatus } from "@/types/thesis";
 
 export const TABLE_GRID =
   "grid grid-cols-[minmax(0,1fr)_72px_40px] gap-3 sm:grid-cols-[1fr_80px_80px_80px_40px]";
-
-function StarOutlineIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5} aria-hidden>
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"
-      />
-    </svg>
-  );
-}
-
-function StarSolidIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="currentColor" viewBox="0 0 24 24" aria-hidden>
-      <path d="M10.788 3.21c.448-1.077 1.989-1.076 2.437 0l2.358 5.699 6.141.448c1.036.075 1.459 1.405.664 2.124l-4.707 4.597 1.402 6.116c.227 1.002-.848 1.781-1.726 1.302L12 18.678l-5.357 2.808c-.878.46-1.953-.3-1.726-1.302l1.402-6.116-4.707-4.597c-.795-.719-.372-2.049.664-2.124l6.141-.448 2.358-5.699z" />
-    </svg>
-  );
-}
 
 function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: number }) {
   const { mergeThesis } = useThesisLive();
@@ -50,12 +35,20 @@ function ProbColumn({ item, mispricing }: { item: ThesisListItem; mispricing: nu
         <div className="h-1 w-12 overflow-hidden rounded-full bg-zinc-800">
           <div className="h-full rounded-full bg-amber-500/60" style={{ width: `${pct}%` }} />
         </div>
-        <span className="text-[12px] font-medium text-zinc-300">
-          {pct}
-          <span className="text-zinc-500">%</span>
-        </span>
+        <HoverHelp
+          className="text-[12px] font-medium text-zinc-300"
+          label={
+            <>
+              {pct}
+              <span className="text-zinc-500">%</span>
+            </>
+          }
+          tooltip={SCENARIO_PROBABILITY_TOOLTIP}
+        />
       </div>
-      <p className="mt-1 hidden text-[10px] text-zinc-600 sm:block">Mispricing {mispricing}/100</p>
+      <p className="mt-1 hidden text-[10px] text-zinc-600 sm:block">
+        <HoverHelp label={`Edge ${mispricing}/100`} tooltip={EDGE_SCORE_TOOLTIP} />
+      </p>
       {templateNote ? (
         <p
           className="mt-1 text-[9px] leading-tight text-zinc-600"
@@ -89,6 +82,10 @@ export function ThesisRow({
   onToggleStar: () => void;
   onHide?: () => void;
 }) {
+  const live = useThesisLive();
+  const publicReadOnly = usePublicReadOnlyWorkspace();
+  const showStarred = live.isEffectivelyStarred(item.thesisId) || item.starred;
+  const starDisabled = publicReadOnly || !!live.starDisabledReason(item.thesisId);
   const lane = statusLane(item.status);
   const lifecyclePresentation = item.lifecycle_state
     ? listRowLifecyclePresentation({ status: item.status, lifecycle_state: item.lifecycle_state })
@@ -165,21 +162,20 @@ export function ThesisRow({
       </div>
       <div className="flex items-center justify-end gap-0.5">
         {onHide ? <ThesisActionsMenu onHide={onHide} /> : null}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleStar();
-          }}
-          className="no-print text-zinc-600 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-          aria-label={item.starred ? "Unstar thesis" : "Star thesis"}
-        >
-          {item.starred ? (
-            <StarSolidIcon className="h-4 w-4 fill-amber-400 text-amber-400" />
-          ) : (
-            <StarOutlineIcon className="h-4 w-4" />
-          )}
-        </button>
+        <ThesisStarButton
+          size="sm"
+          dataTestId={`thesis-star-${item.slug}`}
+          filled={showStarred}
+          disabled={starDisabled}
+          title={
+            starDisabled
+              ? (live.starDisabledReason(item.thesisId) ?? undefined)
+              : showStarred
+                ? "Starred — alerts on for this thesis"
+                : "Star — bookmark and subscribe to alerts"
+          }
+          onClick={() => onToggleStar()}
+        />
       </div>
     </div>
   );

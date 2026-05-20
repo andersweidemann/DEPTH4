@@ -67,6 +67,12 @@ export const DIRECTION_TOOLTIPS = {
   watch: "Watch: monitoring setup without a committed directional bias",
 } as const;
 
+/** Causal map row arrows (↑ / ↓). */
+export const CAUSAL_DIRECTION_TOOLTIPS = {
+  up: "Long bias: thesis expects price to rise",
+  down: "Short bias: thesis expects price to decline",
+} as const;
+
 export function formatQualityScore(score: number): string {
   return `${Math.round(score)}/100`;
 }
