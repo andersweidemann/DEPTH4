@@ -82,15 +82,8 @@ import { assetSymbolFromThesis, storedTradePlanFromThesis } from "@/lib/thesis-e
 import { shouldAutoPopulateUserThesisBody } from "@/lib/thesis/populate-user-thesis-body";
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
-function lastRemodeledAtFromBody(body: unknown): string | null {
-  if (!body || typeof body !== "object" || Array.isArray(body)) return null;
-  const o = body as Record<string, unknown>;
-  const tp = o.tradePlan ?? o.trade_plan;
-  if (!tp || typeof tp !== "object" || Array.isArray(tp)) return null;
-  const row = tp as Record<string, unknown>;
-  const at = row.lastRemodeledAt ?? row.last_remodeled_at;
-  return typeof at === "string" && at.trim() ? at.trim() : null;
-}
+import { lastRemodeledAtFromBody } from "@/lib/thesis-engine-v2/last-remodeled-at";
+import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 
 /**
  * Merge server-fed catalog fields into a thesis detail bundle.
@@ -221,6 +214,7 @@ export function ThesisDetailClient({
 }) {
   const requireFeature = useRequireFeature();
   const { user } = useAuth();
+  const publicReadOnly = usePublicReadOnlyWorkspace();
   const { privileges } = useDepth4Privileges();
   const searchParams = useSearchParams();
   const readerActive =
@@ -758,7 +752,7 @@ export function ThesisDetailClient({
   const returnToPath = pathname && pathname.length > 0 ? pathname : `/theses/${slug}`;
   const entrySetupValid = thesis.status === "ready" && canonicalConvictionPercentFromEngineThesis(thesis) >= 50;
   const liveStarred = liveOpt?.isEffectivelyStarred(thesis.id) ?? false;
-  const starDisabled = liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false;
+  const starDisabled = publicReadOnly || (liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false);
   const lastRemodeledAt = lastRemodeledAtFromBody(catalogBody ?? debugDbBody);
 
   const scenarioAuthenticityNote =

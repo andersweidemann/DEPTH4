@@ -140,21 +140,20 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
   let stopFromTradePlan: string | undefined;
   let target1FromTradePlan: string | undefined;
   let target2FromTradePlan: string | undefined;
+  let lastRemodeledAt: string | undefined;
   if (tpRaw && typeof tpRaw === "object" && !Array.isArray(tpRaw)) {
     const tp = tpRaw as Record<string, unknown>;
     entryFromTradePlan = str(tp.entry_zone ?? tp.entryZone);
     stopFromTradePlan = str(tp.stop);
     target1FromTradePlan = str(tp.target1);
     target2FromTradePlan = str(tp.target2);
+    const remodeled = str(tp.lastRemodeledAt ?? tp.last_remodeled_at);
+    if (remodeled) lastRemodeledAt = remodeled;
   }
 
   const targetAsset = str(o.target_asset ?? o.targetAsset);
   const assetFromBody =
-    targetAsset && (thesis.asset === "—" || !thesis.asset?.trim())
-      ? targetAsset.includes("—")
-        ? targetAsset
-        : `${targetAsset} — ${targetAsset}`
-      : undefined;
+    targetAsset && (thesis.asset === "—" || !thesis.asset?.trim()) ? targetAsset : undefined;
 
   const scenarioOverrides = parseScenarioOverridesFromBody(o);
 
@@ -192,6 +191,7 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
       ? { target2: str(o.target2) ?? target2FromTradePlan }
       : {}),
     ...(scenarioOverrides ? { scenarioOverrides } : {}),
+    ...(lastRemodeledAt ? { lastRemodeledAt } : {}),
   };
 
   return normalizeThesisNarrativeFields(next);

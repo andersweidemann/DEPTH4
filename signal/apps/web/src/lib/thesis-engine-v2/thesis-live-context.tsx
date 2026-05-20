@@ -1037,7 +1037,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
         void persistDepth4AlertStates(unread.map((x) => ({ alert_key: x.id, state: "read" })), { action: "markAllRead" });
         for (const x of unread) alertAccountStateRef.current[x.id] = "read";
       }
-      return cur.map((x) => ({ ...x, read: true }));
+      return [];
     });
   }, []);
 

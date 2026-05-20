@@ -19,6 +19,7 @@ import { loadUserTheses, upsertUserThesis } from "@/lib/thesis-engine-v2/user-th
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
+import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 import {
   defaultScenarioOverridesFromThesis,
   thesisConvictionPctFromDbTriple,
@@ -69,6 +70,7 @@ export function ThesesDashboardClient({
 }) {
   const live = useThesisLive();
   const requireFeature = useRequireFeature();
+  const publicReadOnly = usePublicReadOnlyWorkspace();
   const [open, setOpen] = useState(false);
   const [userTheses, setUserTheses] = useState<Thesis[]>([]);
   const [show, setShow] = useState<"all" | "ready" | "starred">("all");
@@ -259,17 +261,19 @@ export function ThesesDashboardClient({
             Tracks macro events the market hasn&apos;t priced in yet.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
-            onClick={() => {
-              requireFeature("createPrivateTheses", "new-thesis", () => setOpen(true));
-            }}
-          >
-            + New thesis
-          </button>
-        </div>
+        {!publicReadOnly ? (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/90 hover:bg-amber-500/15"
+              onClick={() => {
+                requireFeature("createPrivateTheses", "new-thesis", () => setOpen(true));
+              }}
+            >
+              + New thesis
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {showNewUserEmpty ? (
@@ -285,13 +289,15 @@ export function ThesesDashboardClient({
                 Example: <span className="text-zinc-300">US Defense Reset — RTX / LMT LONG</span>
               </p>
             </div>
-            <button
-              type="button"
-              className="rounded-md border border-white/[0.10] bg-transparent px-4 py-2.5 text-[12px] font-semibold text-zinc-100 hover:bg-white/[0.05]"
-              onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setOpen(true))}
-            >
-              + New thesis
-            </button>
+            {!publicReadOnly ? (
+              <button
+                type="button"
+                className="rounded-md border border-white/[0.10] bg-transparent px-4 py-2.5 text-[12px] font-semibold text-zinc-100 hover:bg-white/[0.05]"
+                onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setOpen(true))}
+              >
+                + New thesis
+              </button>
+            ) : null}
           </div>
         </section>
       ) : null}

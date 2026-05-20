@@ -23,6 +23,7 @@ import { ClusteredThesesView } from "@/components/thesis-engine-v2/ClusteredThes
 import { TABLE_GRID } from "@/components/thesis-engine-v2/ThesisListRow";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
+import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 
 export { ThesisRow, TABLE_GRID } from "@/components/thesis-engine-v2/ThesisListRow";
@@ -46,6 +47,7 @@ export function LiveThesesListPage() {
   }, []);
 
   const requireFeature = useRequireFeature();
+  const publicReadOnly = usePublicReadOnlyWorkspace();
   const [listTab, setListTab] = useState<"focus" | "emerging" | "monitor" | "archive">("focus");
   const [activeFilter, setActiveFilter] = useState<ClusterListFilter | "by_cluster">("all");
   const [assetClass, setAssetClass] = useState("All");
@@ -223,14 +225,16 @@ export function LiveThesesListPage() {
               Card view →
             </Link>
           ) : null}
-          <button
-            type="button"
-            className="no-print inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
-            onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setCreateThesisOpen(true))}
-          >
-            <PlusIcon className="h-3.5 w-3.5" />
-            New thesis
-          </button>
+          {!publicReadOnly ? (
+            <button
+              type="button"
+              className="no-print inline-flex h-8 items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 text-[12px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0c0c0e]"
+              onClick={() => requireFeature("createPrivateTheses", "new-thesis", () => setCreateThesisOpen(true))}
+            >
+              <PlusIcon className="h-3.5 w-3.5" />
+              New thesis
+            </button>
+          ) : null}
         </div>
       </div>
 

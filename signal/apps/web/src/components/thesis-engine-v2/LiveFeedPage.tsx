@@ -17,6 +17,7 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { FEED_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
 import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 import { cn } from "@/lib/utils";
 import type { User } from "@/types/auth";
 import type { CrossThesisUpdate, FeedItem } from "@/types/feed";
@@ -326,7 +327,7 @@ function ConnectionsSection({
   crossError: unknown;
   hasConflicts: boolean;
   onRetryCross: () => void;
-  onCreateThesis: () => void;
+  onCreateThesis?: () => void;
 }) {
   return (
     <section className="mt-8">
@@ -380,6 +381,7 @@ function ConnectionsSection({
 
 export function LiveFeedPage() {
   const { user } = useAuth();
+  const publicReadOnly = usePublicReadOnlyWorkspace();
   const [createThesisOpen, setCreateThesisOpen] = useState(false);
 
   const feedKey = useMemo(() => "/api/feed", []);
@@ -443,7 +445,7 @@ export function LiveFeedPage() {
         crossError={crossError}
         hasConflicts={hasConflicts}
         onRetryCross={() => void mutateCross()}
-        onCreateThesis={() => setCreateThesisOpen(true)}
+        onCreateThesis={publicReadOnly ? undefined : () => setCreateThesisOpen(true)}
       />
 
       <div className="mt-8 flex items-center justify-between">

@@ -16,6 +16,9 @@ import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { canonicalConvictionPercentFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
+import { isRecentlyRemodeled } from "@/lib/thesis-engine-v2/last-remodeled-at";
+import { formatTimeAgo } from "@/lib/thesis-helpers";
+import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 
 export function ThesisCard({
   thesis,
@@ -32,18 +35,20 @@ export function ThesisCard({
   variant?: "default" | "primary";
 }) {
   const live = useThesisLive();
+  const publicReadOnly = usePublicReadOnlyWorkspace();
   const tradeable = thesis.qualification === "tradeable";
   const isUser = thesis.origin === "user";
   const pathConviction = canonicalConvictionPercentFromEngineThesis(thesis);
   const entrySetupValid = thesis.status === "ready" && pathConviction >= 50;
   const selected = selectedSlug != null && selectedSlug === thesis.slug;
   const starred = live.isEffectivelyStarred(thesis.id);
-  const starDisabled = !!live.starDisabledReason(thesis.id);
+  const starDisabled = publicReadOnly || !!live.starDisabledReason(thesis.id);
 
   const terminal = thesis.status === "resolved" || thesis.status === "invalidated";
   const primary = variant === "primary";
   const mispricing = getThesisMispricing(thesis);
   const displayModel = getThesisDisplayModel(thesis);
+  const showRemodelChip = isRecentlyRemodeled(thesis.lastRemodeledAt);
   const className = cn(
     "group relative block w-full rounded-none bg-zinc-900/40 text-left transition-colors hover:bg-zinc-900/55",
     primary ? "p-4 sm:p-5" : "p-3.5 sm:p-4",
@@ -52,6 +57,7 @@ export function ThesisCard({
     terminal && thesis.status === "invalidated" && "bg-gradient-to-br from-red-500/[0.06] via-zinc-900/45 to-zinc-900/35",
     selected && "bg-zinc-900/60",
     pulseKey > 0 && "animate-[thesis-pulse_0.85s_ease-out_1]",
+    showRemodelChip && "ring-1 ring-amber-500/25",
   );
 
   const body = (
@@ -111,6 +117,15 @@ export function ThesisCard({
               User thesis
             </span>
           )}
+          {showRemodelChip && thesis.lastRemodeledAt ? (
+            <span
+              className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-200/90 ring-1 ring-amber-500/20"
+              title={thesis.lastRemodeledAt}
+            >
+              <span aria-hidden>↻</span>
+              Updated {formatTimeAgo(thesis.lastRemodeledAt)}
+            </span>
+          ) : null}
         </div>
       </div>
       <div className="mt-3 flex items-center gap-2.5">

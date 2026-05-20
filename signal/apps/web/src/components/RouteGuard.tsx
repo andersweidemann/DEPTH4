@@ -3,6 +3,10 @@
 import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  isDepth4PublicReadModeClient,
+  isPublicReadWorkspacePath,
+} from "@/lib/depth4-public-read-paths";
 
 export function RouteGuard({
   children,
@@ -14,18 +18,22 @@ export function RouteGuard({
   const { isAuthenticated, isLoading } = useAuth();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const publicRead =
+    Boolean(requireAuth) &&
+    isDepth4PublicReadModeClient() &&
+    isPublicReadWorkspacePath(pathname ?? "");
 
   useEffect(() => {
-    if (!requireAuth || isLoading) return;
+    if (!requireAuth || publicRead || isLoading) return;
     if (!isAuthenticated) {
       const q = searchParams?.toString();
       const path = pathname + (q ? `?${q}` : "");
       const next = encodeURIComponent(path);
       window.location.replace(`/login?next=${next}`);
     }
-  }, [requireAuth, isLoading, isAuthenticated, pathname, searchParams]);
+  }, [requireAuth, publicRead, isLoading, isAuthenticated, pathname, searchParams]);
 
-  if (!requireAuth) {
+  if (!requireAuth || publicRead) {
     return <>{children}</>;
   }
 

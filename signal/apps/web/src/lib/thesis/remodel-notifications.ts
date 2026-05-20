@@ -44,6 +44,7 @@ export function remodelNotificationAlertKey(notificationId: string): string {
 
 /**
  * Fan out remodel bell notifications to users who starred the thesis (and owner if user thesis).
+ * Star a thesis to receive remodel alerts in the bell — feed shows all catalog remodels globally.
  */
 export async function insertRemodelNotifications(
   admin: SupabaseClient,

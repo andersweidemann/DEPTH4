@@ -20,6 +20,14 @@ import {
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDisplaySourceDebug";
 import { primaryTradeSymbolFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
+import {
+  READER_MARKET_MISREAD_FALLBACK,
+  READER_TRADE_FALLBACK,
+  formatReaderTradeSymbol,
+  readerMarketMisreadBlock,
+  readerThesisNarrative,
+  readerTradeRationale,
+} from "@/lib/thesis-engine-v2/thesis-reader-sections";
 
 function QualificationBadge({ q }: { q: Thesis["qualification"] }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
@@ -65,9 +73,12 @@ export function ThesisHero({
   const advisoryCopy = advisoryHeadlineFromResolutionPaths(cleanPct, messyPct, brokenPct, thesis.advisoryAction);
   const showMispricingHeadline =
     Number.isFinite(mispricing.score) && Math.abs(Math.round(mispricing.score) - Math.round(pathConviction)) >= 2;
-  const primarySym = primaryTradeSymbolFromThesis(thesis);
+  const primarySym = reader ? formatReaderTradeSymbol(thesis) : primaryTradeSymbolFromThesis(thesis);
+  const tradeRationale = reader ? readerTradeRationale(thesis) : null;
+  const misreadBlock = reader ? readerMarketMisreadBlock(thesis) : null;
   const anatomy = thesis.structuredAnatomy;
   const showAnatomyMispricing =
+    !reader &&
     anatomy &&
     anatomy.market_is_pricing.trim() &&
     anatomy.depth4_edge.trim() &&
@@ -104,23 +115,38 @@ export function ThesisHero({
           reader ? "mt-4 text-[15px] leading-[1.65] text-zinc-400" : "mt-3 max-w-2xl text-[13px] leading-relaxed text-zinc-400",
         )}
       >
-        {thesis.thesisStatement}
+        {reader ? readerThesisNarrative(thesis) || thesis.thesisStatement : thesis.thesisStatement}
       </p>
-      {showAnatomyMispricing ? (
+      {reader && misreadBlock ? (
+        misreadBlock.kind === "anatomy" ? (
+          <>
+            <p className="mt-4 text-[15px] leading-[1.65] text-zinc-400">
+              <span className="text-zinc-500">Market is pricing · </span>
+              {misreadBlock.marketIsPricing}
+            </p>
+            <p className="mt-3 text-[15px] leading-[1.65] text-amber-200/85">
+              <span className="text-zinc-500">DEPTH4 edge · </span>
+              {misreadBlock.depth4Edge}
+            </p>
+          </>
+        ) : misreadBlock.kind === "single" ? (
+          <p className="mt-4 text-[15px] leading-[1.65] text-amber-200/85">
+            <span className="text-zinc-500">Market misread · </span>
+            {misreadBlock.text}
+          </p>
+        ) : (
+          <p className="mt-4 text-[15px] leading-[1.65] text-zinc-500">
+            <span className="text-zinc-500">Market misread · </span>
+            {READER_MARKET_MISREAD_FALLBACK}
+          </p>
+        )
+      ) : showAnatomyMispricing ? (
         <>
-          <p
-            className={cn(
-              reader ? "mt-4 text-[15px] leading-[1.65] text-zinc-400" : "mt-3 max-w-2xl text-[12px] leading-relaxed text-zinc-400",
-            )}
-          >
+          <p className="mt-3 max-w-2xl text-[12px] leading-relaxed text-zinc-400">
             <span className="text-zinc-500">Market is pricing · </span>
             {anatomy!.market_is_pricing}
           </p>
-          <p
-            className={cn(
-              reader ? "mt-3 text-[15px] leading-[1.65] text-amber-200/85" : "mt-2 max-w-2xl text-[12px] leading-relaxed text-amber-200/85",
-            )}
-          >
+          <p className="mt-2 max-w-2xl text-[12px] leading-relaxed text-amber-200/85">
             <span className="text-zinc-500">DEPTH4 edge · </span>
             {anatomy!.depth4_edge}
           </p>
@@ -138,9 +164,16 @@ export function ThesisHero({
             <span className="text-zinc-500"> · {thesis.direction}</span>
           ) : null}
         </span>
-        {primarySym !== thesis.asset.trim().toUpperCase() && thesis.asset.trim() && thesis.asset !== "—" ? (
+        {!reader && primarySym !== thesis.asset.trim().toUpperCase() && thesis.asset.trim() && thesis.asset !== "—" ? (
           <span className="text-[10px] text-zinc-600">(headline asset {thesis.asset})</span>
         ) : null}
+      </div>
+      {reader ? (
+        <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-zinc-400">
+          {tradeRationale ?? READER_TRADE_FALLBACK}
+        </p>
+      ) : null}
+      <div className="mt-6 flex flex-wrap items-center gap-2">
         <DirectionBadge direction={thesis.direction} />
         {!reader ? (
           <>

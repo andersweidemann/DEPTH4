@@ -135,6 +135,8 @@ export type Thesis = {
   horizon: string;
   advisoryAction: AdvisoryAction;
   lastUpdated: string;
+  /** ISO from `body.tradePlan.lastRemodeledAt` when scenarios/trade plan were re-modeled. */
+  lastRemodeledAt?: string | null;
 
   // internal classification (derived from score total, but stored for convenience)
   qualification: ThesisQualification;
