@@ -1,10 +1,20 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { isDepth4PublicReadModeClient } from "@/lib/depth4-public-read-paths";
+import {
+  isAlwaysPublicThesisPath,
+  isDepth4PublicReadModeClient,
+  isPublicReadWorkspacePath,
+} from "@/lib/depth4-public-read-paths";
 
-/** Anonymous visitor on `/theses`, `/feed`, etc. when public read mode is enabled. */
+/** Anonymous visitor on public thesis routes (or full workspace when env flag is on). */
 export function usePublicReadOnlyWorkspace(): boolean {
   const { isAuthenticated, isLoading } = useAuth();
-  return isDepth4PublicReadModeClient() && !isLoading && !isAuthenticated;
+  const pathname = usePathname() ?? "";
+  if (isLoading || isAuthenticated) return false;
+  return (
+    isAlwaysPublicThesisPath(pathname) ||
+    (isDepth4PublicReadModeClient() && isPublicReadWorkspacePath(pathname))
+  );
 }

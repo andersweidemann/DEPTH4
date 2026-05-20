@@ -19,6 +19,7 @@ import {
 import { effectiveLifecycleState, isTerminalThesis } from "@/lib/theses/thesis-lifecycle";
 import { THESIS_MAP_LIVE_STATUSES } from "@/lib/theses/thesis-surfacing-quality";
 import { buildSurfacingPreferenceFromRow, type ThesisDbSurfacingPreference } from "@/lib/theses/load-catalog-engine-theses";
+import { resolveAssetSymbol } from "@/lib/theses/resolve-asset-symbol";
 
 function mapDirection(d: EngineThesis["direction"]): ThesisDirection {
   return d === "short" ? "short" : "long";
@@ -102,6 +103,7 @@ function engineThesisToListItem(
   starred: boolean,
   lastUpdatedIso: string | null,
   resolvableSlugSet: Set<string>,
+  dbRow?: { title?: string; body?: unknown },
 ): ThesisListItem {
   const mp = getThesisMispricing(t, {});
   const dm = getThesisDisplayModel(t);
@@ -121,7 +123,11 @@ function engineThesisToListItem(
     slug: t.slug,
     title: t.title,
     statement: t.thesisStatement,
-    asset: t.asset,
+    asset: resolveAssetSymbol({
+      assetLabel: t.asset,
+      title: dbRow?.title ?? t.title,
+      body: dbRow?.body,
+    }),
     direction: mapDirection(t.direction),
     status: mapListStatus(t.status),
     conviction,
@@ -142,9 +148,9 @@ export function thesisListItemFromEngine(
   lastUpdatedIso: string | null,
   partition: ReturnType<typeof partitionHomeBuckets>,
   resolvableSlugSet: Set<string>,
-  db?: ThesisDbSurfacingPreference,
+  db?: ThesisDbSurfacingPreference & { title?: string; body?: unknown },
 ): ThesisListItem {
-  const base = engineThesisToListItem(t, starred, lastUpdatedIso, resolvableSlugSet);
+  const base = engineThesisToListItem(t, starred, lastUpdatedIso, resolvableSlugSet, db);
   const lifecycle_state = effectiveLifecycleState({
     lifecycle_state: db?.lifecycle_state,
     status: t.status,
@@ -221,10 +227,16 @@ export async function buildThesesListResponse(
   );
 
   const surfacingByThesisId = new Map<string, ThesisDbSurfacingPreference>();
+  const listRowMetaByThesisId = new Map<string, { title?: string; body?: unknown }>();
   for (const row of dbRows) {
     const r = row as Record<string, unknown>;
     const id = typeof r.id === "string" ? r.id.trim() : "";
-    if (id) surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
+    if (!id) continue;
+    surfacingByThesisId.set(id, buildSurfacingPreferenceFromRow(r));
+    listRowMetaByThesisId.set(id, {
+      title: typeof r.title === "string" ? r.title : undefined,
+      body: r.body,
+    });
   }
 
   if (query.starred) {
@@ -281,7 +293,7 @@ export async function buildThesesListResponse(
       null,
       partition,
       resolvableSlugSet,
-      surfacingByThesisId.get(t.id),
+      { ...surfacingByThesisId.get(t.id), ...listRowMetaByThesisId.get(t.id) },
     );
 
   const userTheses = combined.filter((t) => t.thesisOrigin === "user");

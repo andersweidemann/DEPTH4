@@ -74,6 +74,7 @@ export type ThesisRow = {
   slug: string | null;
   title: string;
   status: string;
+  updated_at?: string | null;
   scenario_probabilities: unknown;
   body: unknown;
   thesis_score: number | null;
@@ -440,7 +441,7 @@ export async function buildCausalGraphClusters(
   const thesesRes = await supabase
     .from("theses")
     .select(
-      "id, slug, title, status, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label, quality_score, incentive_analysis",
+      "id, slug, title, status, updated_at, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label, quality_score, incentive_analysis",
     )
     .in("status", Array.from(LIVE_STATUSES));
 
@@ -483,12 +484,18 @@ export async function buildCausalGraphClusters(
 
   const clusters = graph.clusters.filter((c) => c.theses.length > 0);
 
+  let lastUpdated = graph.lastUpdated;
+  for (const row of thesisRows) {
+    const u = typeof row.updated_at === "string" ? row.updated_at.trim() : "";
+    if (u && u > lastUpdated) lastUpdated = u;
+  }
+
   return {
     clusters,
     isolated,
     drafts,
     activeEvents: graph.activeEvents,
     totalTheses: clusteredIds.size + isolated.length,
-    lastUpdated: graph.lastUpdated,
+    lastUpdated,
   };
 }

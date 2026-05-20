@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import type { ThesisDetailBundle, ThesisStatus } from "@/lib/thesis-engine-v2/types";
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
+import { thesisEvidenceFromBodyJson } from "@/lib/thesis-engine-v2/body-evidence-to-thesis-evidence";
 import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
@@ -89,6 +90,7 @@ import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
 import { lastRemodeledAtFromBody } from "@/lib/thesis-engine-v2/last-remodeled-at";
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
+import { PUBLIC_READ_STAR_TOOLTIP } from "@/lib/theses/public-read-star-copy";
 
 /**
  * Merge server-fed catalog fields into a thesis detail bundle.
@@ -128,7 +130,11 @@ function withCatalogHeader(
   }
   thesis = thesisWithSyncedLiveProbability({ ...thesis, scenarioOverrides: seeded });
 
-  return { ...bundle, thesis };
+  const bodyEvidence =
+    catalog.body != null ? thesisEvidenceFromBodyJson(catalog.body, thesis.id) : [];
+  const evidence = bodyEvidence.length > 0 ? bodyEvidence : bundle.evidence;
+
+  return { ...bundle, thesis, evidence };
 }
 
 function initialBundleForSlug(
@@ -156,7 +162,7 @@ function initialBundleForSlug(
       body: catalogBody ?? null,
       scenarioProbabilities: catalogScenarioProbabilities ?? null,
     });
-    return bundleForUserThesis(merged);
+    return bundleForUserThesis(merged, { body: catalogBody ?? null });
   }
   return null;
 }
@@ -829,11 +835,13 @@ export function ThesisDetailClient({
                   filled={liveStarred}
                   disabled={starDisabled}
                   title={
-                    starDisabled
-                      ? (liveOpt.starDisabledReason(thesis.id) ?? undefined)
-                      : liveStarred
-                        ? "Starred — alerts on"
-                        : "Star — bookmark and subscribe"
+                    publicReadOnly
+                      ? PUBLIC_READ_STAR_TOOLTIP
+                      : starDisabled
+                        ? (liveOpt.starDisabledReason(thesis.id) ?? undefined)
+                        : liveStarred
+                          ? "Starred — alerts on"
+                          : "Star — bookmark and subscribe"
                   }
                   onClick={handleStarToggle}
                 />

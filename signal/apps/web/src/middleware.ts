@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { CookieOptions } from "@supabase/ssr";
 import { normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/env";
+import {
+  isAlwaysPublicThesisApiPath,
+  isAlwaysPublicThesisPath,
+} from "@/lib/depth4-public-read-paths";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 import { isPublicThesisDiscoveryPath } from "@/lib/thesis-engine-v2/thesis-reader-discovery";
 import { isPublicReaderViewApiPath, isThesisReaderSharePath } from "@/lib/thesis-engine-v2/thesis-reader-public";
@@ -87,6 +91,10 @@ export async function middleware(req: NextRequest) {
   if (isThesisReaderSharePath(pathname)) return NextResponse.next();
 
   if (isPublicThesisDiscoveryPath(pathname)) return NextResponse.next();
+
+  if (isAlwaysPublicThesisPath(pathname) || isAlwaysPublicThesisApiPath(pathname)) {
+    return NextResponse.next();
+  }
 
   if (isPublicReaderViewApiPath(pathname)) return NextResponse.next();
 

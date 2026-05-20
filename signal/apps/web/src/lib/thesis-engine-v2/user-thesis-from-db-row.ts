@@ -5,6 +5,7 @@ import { insiderFlowFromDb } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import { mergeUserThesisWithServerCatalog } from "@/lib/thesis-engine-v2/user-thesis-server-merge";
+import { resolveAssetSymbol } from "@/lib/theses/resolve-asset-symbol";
 
 const ALLOWED = new Set<ThesisStatus>(["forming", "watching", "ready", "active", "resolved", "invalidated"]);
 
@@ -87,6 +88,14 @@ export function userThesisFromSupabaseRow(row: {
   if (incentiveAnalysis) withMeta = { ...withMeta, incentiveAnalysis };
   if (row.quality_score != null && Number.isFinite(row.quality_score)) {
     withMeta = { ...withMeta, qualityScore: Math.min(100, Math.max(0, Math.round(row.quality_score))) };
+  }
+  const resolvedAsset = resolveAssetSymbol({
+    assetLabel: withMeta.asset,
+    title: row.title,
+    body: row.body ?? null,
+  });
+  if (resolvedAsset !== "—") {
+    withMeta = { ...withMeta, asset: resolvedAsset };
   }
   return withMeta;
 }

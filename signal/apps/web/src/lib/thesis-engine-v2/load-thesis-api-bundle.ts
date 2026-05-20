@@ -7,6 +7,7 @@ import { mergeDbBodyIntoThesis } from "@/lib/thesis-engine-v2/thesis-db-body";
 import { overlayDbScenarioProbabilities, scenarioOverridesFromRows, thesisWithSyncedLiveProbability } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 import { fetchThesisRowBySlug } from "@/lib/thesis-engine-v2/fetch-thesis-row-by-slug";
+import { thesisEvidenceFromBodyJson } from "@/lib/thesis-engine-v2/body-evidence-to-thesis-evidence";
 import { bundleForUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { userThesisFromSupabaseRow } from "@/lib/thesis-engine-v2/user-thesis-from-db-row";
 
@@ -41,7 +42,11 @@ function withCatalogHeader(
   const scenarioProbabilitiesFromDb =
     bundle.scenarioProbabilitiesFromDb === true || catalog.scenarioProbabilities != null;
 
-  return { ...bundle, thesis, scenarioProbabilitiesFromDb };
+  const bodyEvidence =
+    catalog.body != null ? thesisEvidenceFromBodyJson(catalog.body, thesis.id) : [];
+  const evidence = bodyEvidence.length > 0 ? bodyEvidence : bundle.evidence;
+
+  return { ...bundle, thesis, evidence, scenarioProbabilitiesFromDb };
 }
 
 /**
