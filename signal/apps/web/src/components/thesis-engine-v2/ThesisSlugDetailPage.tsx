@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { isThesisReaderViewSearchParam, thesisReaderPath } from "@/lib/thesis-engine-v2/thesis-reader-mode";
 import { ThesisDetailClient } from "@/components/thesis-engine-v2/ThesisDetailClient";
@@ -23,12 +23,13 @@ export function ThesisSlugDetailPage({ readerMode = false }: { readerMode?: bool
   const live = useThesisLive();
   const raw = params?.slug;
   const slug = typeof raw === "string" ? raw : Array.isArray(raw) ? (raw[0] ?? "") : "";
+  const [dbBodyBySlug, setDbBodyBySlug] = useState<unknown | null>(null);
+
+  const shippedCatalog = useMemo(() => (slug ? getThesisDetail(slug) : undefined), [slug]);
 
   const catalogHeader = useMemo(() => {
-    if (!slug) return null;
-    const d = getThesisDetail(slug);
-    if (!d) return null;
-    const id = d.thesis.id;
+    if (!slug || !shippedCatalog) return null;
+    const id = shippedCatalog.thesis.id;
     return {
       catalogDisplayTitle: live.catalogDbThesisTitles.get(id) ?? null,
       catalogMicroLabel: live.catalogDbThesisMicroLabels.get(id) ?? null,
@@ -37,11 +38,33 @@ export function ThesisSlugDetailPage({ readerMode = false }: { readerMode?: bool
     };
   }, [
     slug,
+    shippedCatalog,
     live.catalogDbThesisTitles,
     live.catalogDbThesisMicroLabels,
     live.catalogDbThesisBodies,
     live.catalogDbThesisScenarioProbabilities,
   ]);
+
+  useEffect(() => {
+    if (!slug || shippedCatalog) {
+      setDbBodyBySlug(null);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const r = await fetch(`/api/theses/${encodeURIComponent(slug)}/bundle`, { credentials: "include" });
+        if (!r.ok || cancelled) return;
+        const j = (await r.json()) as { body?: unknown };
+        if (!cancelled && j.body != null) setDbBodyBySlug(j.body);
+      } catch {
+        // detail client also hydrates bundle
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, shippedCatalog]);
 
   useEffect(() => {
     if (readerMode || !slug) return;
@@ -54,6 +77,8 @@ export function ThesisSlugDetailPage({ readerMode = false }: { readerMode?: bool
     return <p className="p-6 text-sm text-zinc-400">Missing thesis slug.</p>;
   }
 
+  const catalogBody = catalogHeader?.catalogBody ?? dbBodyBySlug ?? null;
+
   return (
     <ThesisDetailClient
       slug={slug}
@@ -61,7 +86,7 @@ export function ThesisSlugDetailPage({ readerMode = false }: { readerMode?: bool
       readerMode={readerMode}
       catalogDisplayTitle={catalogHeader?.catalogDisplayTitle ?? null}
       catalogMicroLabel={catalogHeader?.catalogMicroLabel ?? null}
-      catalogBody={catalogHeader?.catalogBody ?? null}
+      catalogBody={catalogBody}
       catalogScenarioProbabilities={catalogHeader?.catalogScenarioProbabilities ?? null}
     />
   );

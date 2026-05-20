@@ -47,6 +47,7 @@ import type { ThesisDetailBundle, ThesisStatus } from "@/lib/thesis-engine-v2/ty
 import { useThesisLiveOptional } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { useRequireFeature } from "@/lib/thesis-engine-v2/feature-gate";
 import { thesisEvidenceFromBodyJson } from "@/lib/thesis-engine-v2/body-evidence-to-thesis-evidence";
+import { readBodyEvidenceArray } from "@/lib/thesis/body-evidence-to-timeline";
 import { mergeEvidenceTimelineItems } from "@/lib/thesis-engine-v2/evidence-log-to-thesis-evidence";
 import { hasInsiderFlowMonitoring } from "@/lib/thesis-engine-v2/insider-flow-config";
 import { EditInsiderFlowModal } from "@/components/thesis-engine-v2/EditInsiderFlowModal";
@@ -339,7 +340,6 @@ export function ThesisDetailClient({
    */
   useEffect(() => {
     if (getThesisDetail(slug)) return;
-    if (getUserThesisBySlug(slug)) return;
     let cancelled = false;
     void (async () => {
       const r = await fetch(`/api/theses/${encodeURIComponent(slug)}/bundle`, {
@@ -349,16 +349,18 @@ export function ThesisDetailClient({
       const j = (await r.json().catch(() => null)) as {
         ok?: boolean;
         bundle?: ThesisDetailBundle | null;
+        body?: unknown;
       } | null;
       if (cancelled || !j?.ok || !j.bundle?.thesis?.id) return;
       const hydrated = j.bundle;
       upsertUserThesis(hydrated.thesis);
-      if (catalogBody != null) setDebugDbBody(catalogBody);
+      const dbBody = j.body ?? catalogBody;
+      if (dbBody != null) setDebugDbBody(dbBody);
       setBundle(
         withCatalogHeader(hydrated, {
           title: catalogDisplayTitle,
           microLabel: catalogMicroLabel,
-          body: catalogBody,
+          body: dbBody ?? catalogBody,
           scenarioProbabilities: catalogScenarioProbabilities ?? null,
         }),
       );
@@ -434,8 +436,8 @@ export function ThesisDetailClient({
           mergedThesis = { ...mergedThesis, status: row.status as ThesisStatus };
         }
         upsertUserThesis(mergedThesis);
-        const next = bundleForUserThesis(mergedThesis);
-        return { ...prev, thesis: next.thesis, scenarios: next.scenarios };
+        const next = bundleForUserThesis(mergedThesis, { body: row.body ?? null });
+        return { ...prev, thesis: next.thesis, scenarios: next.scenarios, evidence: next.evidence };
       });
     };
     void poll();
@@ -606,8 +608,16 @@ export function ThesisDetailClient({
     const p = thesisLive
       ? currentThesisProbabilityFromThesis(thesisLive)
       : currentThesisProbabilityFromThesis(bundle.thesis);
+    const bodySource = debugDbBody ?? catalogBody;
+    const bodyRows = readBodyEvidenceArray(bodySource);
+    if (bodyRows.length > 0 || bodySource != null) {
+      return mergeEvidenceTimelineItems(liveEvidence, bundle.evidence, p, {
+        currentConvictionPct: p,
+        body: bodySource,
+      });
+    }
     return mergeEvidenceTimelineItems(liveEvidence, bundle.evidence, p, { currentConvictionPct: p });
-  }, [bundle, liveEvidence, thesisLive]);
+  }, [bundle, liveEvidence, thesisLive, debugDbBody, catalogBody]);
 
   /** Scenario View: probabilities from live merged thesis; narrative fallbacks from bundle defaults. */
   const displayScenarios = useMemo(() => {

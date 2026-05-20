@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAndUserIdForThesisDetailApi } from "@/lib/thesis-engine-v2/thesis-detail-api-auth";
+import { fetchCatalogThesisHeaderBySlug } from "@/lib/thesis-engine-v2/catalog-thesis-titles-server";
+import { fetchThesisRowBySlug } from "@/lib/thesis-engine-v2/fetch-thesis-row-by-slug";
 import { loadThesisDetailBundleForApi } from "@/lib/thesis-engine-v2/load-thesis-api-bundle";
 import type { ThesisDetailBundle } from "@/lib/thesis-engine-v2/types";
 
@@ -15,5 +17,9 @@ export async function GET(_req: NextRequest, context: { params: { slug: string }
   const bundle = await loadThesisDetailBundleForApi(supabase, slug, userId);
   if (!bundle) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-  return NextResponse.json({ ok: true, bundle: bundle as ThesisDetailBundle });
+  const header = await fetchCatalogThesisHeaderBySlug(supabase, slug);
+  const row = await fetchThesisRowBySlug(supabase, slug, userId);
+  const body = header.body ?? row?.body ?? null;
+
+  return NextResponse.json({ ok: true, bundle: bundle as ThesisDetailBundle, body });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { insertUserNewsSubmission } from "@/lib/news/news-sources-data";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -28,8 +29,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "empty_submission" }, { status: 400 });
   }
 
+  const admin = createServiceRoleClient();
+  if (!admin) {
+    return NextResponse.json({ ok: false, error: "service_unavailable" }, { status: 503 });
+  }
+
   try {
-    const { id } = await insertUserNewsSubmission(sb, {
+    const { id } = await insertUserNewsSubmission(admin, {
       userId: user.id,
       url,
       headline: headline || (url ? `Submitted: ${url}` : "Submitted headline"),

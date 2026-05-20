@@ -1,5 +1,12 @@
+import {
+  parseThesisBodyJson,
+  readBodyEvidenceArray,
+  type BodyEvidenceInput,
+} from "@/lib/thesis/body-evidence-to-timeline";
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 import { formatEvidenceSource } from "@/lib/thesis-engine-v2/display-format";
+
+export { readBodyEvidenceArray, parseThesisBodyJson, type BodyEvidenceInput };
 
 export type BodyEvidenceRow = {
   date?: string;
@@ -21,14 +28,13 @@ function parseBodyEvidenceRow(raw: unknown): BodyEvidenceRow | null {
 
 /** Map `public.theses.body.evidence[]` (pipeline) into timeline rows. */
 export function thesisEvidenceFromBodyJson(body: unknown, thesisId: string): ThesisEvidence[] {
-  if (!body || typeof body !== "object" || Array.isArray(body)) return [];
-  const ev = (body as Record<string, unknown>).evidence;
-  if (!Array.isArray(ev)) return [];
+  const rows = readBodyEvidenceArray(body);
+  if (!rows.length) return [];
 
   const items: ThesisEvidence[] = [];
-  ev.forEach((raw, index) => {
-    const row = parseBodyEvidenceRow(raw);
-    if (!row) return;
+  rows.forEach((row, index) => {
+    const parsed = parseBodyEvidenceRow(row);
+    if (!parsed) return;
     const headline = (row.headline || row.excerpt || "").trim();
     if (!headline) return;
     const source = formatEvidenceSource(row.source || "Source");

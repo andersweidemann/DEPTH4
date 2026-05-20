@@ -1,3 +1,4 @@
+import { mergeEvidenceTimelineFromBodyAndLog } from "@/lib/thesis/body-evidence-to-timeline";
 import type { ThesisEvidence } from "@/lib/thesis-engine-v2/types";
 import {
   formatEvidenceEventLabel,
@@ -180,8 +181,21 @@ export function mergeEvidenceTimelineItems(
   logRowsForThesis: EvidenceLogRowLike[],
   bundleEvidence: ThesisEvidence[],
   headlineProbabilityFallback: number,
-  opts?: ThesisEvidenceFromLogOpts,
+  opts?: ThesisEvidenceFromLogOpts & { body?: unknown },
 ): ThesisEvidence[] {
+  if (opts?.body != null) {
+    const thesisId = logRowsForThesis[0]?.thesisId ?? bundleEvidence[0]?.thesisId ?? "";
+    if (thesisId) {
+      return mergeEvidenceTimelineFromBodyAndLog(
+        opts.body,
+        logRowsForThesis,
+        thesisId,
+        headlineProbabilityFallback,
+        { ...opts, bundleEvidence },
+      );
+    }
+  }
+
   const live = [...logRowsForThesis]
     .sort((a, b) => b.createdAt - a.createdAt)
     .map((r) => thesisEvidenceFromLogRow(r, headlineProbabilityFallback, opts));
