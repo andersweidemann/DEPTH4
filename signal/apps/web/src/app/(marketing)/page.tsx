@@ -138,37 +138,37 @@ export default function HomePage() {
               unfolds across four future states so you see where the real edge lives.
             </p>
             <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
-              The moat is depth selection: the same story can be fully priced at Level 2 while the real edge survives at Level 3–4.
+              The moat is depth selection: the same story can be fully priced at D2 while the real edge survives at D3–D4.
             </p>
           </div>
           <div className="lg:col-span-7">
             <div className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:thin]">
               <div className="min-w-[240px] shrink-0 rounded-lg border border-[#E8473F]/20 bg-zinc-900/30 p-4 transition-colors hover:border-white/[0.12]">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#E8473F]">
-                  Level 1 · Confirmed (0–24h)
+                  D1 · Confirmed (0–24h)
                 </p>
                 <p className="mt-2 text-[13px] font-medium text-zinc-200">Fed pauses; statement verifies higher-for-longer bias.</p>
                 <p className="mt-2 text-[12px] text-zinc-500">Wait for verification, then size into the chain.</p>
               </div>
               <div className="min-w-[240px] shrink-0 rounded-lg border border-white/[0.06] bg-zinc-900/30 p-4 transition-colors hover:border-white/[0.12]">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Level 2 · This week (1–7d)</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">D2 · This week (1–7d)</p>
                 <p className="mt-2 text-[13px] font-medium text-zinc-200">Rates reprice first; duration whipsaws as cuts drift.</p>
                 <p className="mt-2 text-[12px] text-zinc-500">Duration reacts — e.g. TLT / curve proxies.</p>
               </div>
               <div className="min-w-[240px] shrink-0 rounded-lg border border-white/[0.06] bg-zinc-900/30 p-4 transition-colors hover:border-white/[0.12]">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Level 3 · This month (7–30d)</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">D3 · This month (7–30d)</p>
                 <p className="mt-2 text-[13px] font-medium text-zinc-200">Spillovers hit funding + margins; credit and cyclicals diverge.</p>
                 <p className="mt-2 text-[12px] text-zinc-500">Credit vs quality if funding stays tight.</p>
               </div>
               <div className="min-w-[240px] shrink-0 rounded-lg border border-white/[0.06] bg-zinc-900/30 p-4 transition-colors hover:border-white/[0.12]">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">Level 4 · This quarter (30–90d+)</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400">D4 · This quarter (30–90d+)</p>
                 <p className="mt-2 text-[13px] font-medium text-zinc-200">Systemic shift: leadership rotates toward cashflows/defensives.</p>
                 <p className="mt-2 text-[12px] text-zinc-500">Delayed cuts + USD strength pressure duration and EM importers.</p>
               </div>
             </div>
             <p className="mt-6 max-w-3xl text-[12px] text-zinc-600">
-              Example: a Fed pause headline moves bonds (Level 2). But the real edge is in credit spreads tightening over the
-              following month (Level 3) and leadership rotating to cash-flow names for the quarter (Level 4).
+              Example: a Fed pause headline moves bonds (D2). But the real edge is in credit spreads tightening over the
+              following month (D3) and leadership rotating to cash-flow names for the quarter (D4).
             </p>
           </div>
         </div>

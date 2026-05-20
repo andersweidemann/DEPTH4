@@ -10,6 +10,7 @@ import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-sel
 import { primaryTradeSymbolFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 import { displayScenarioTripleCleanMessyBroken } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
+import { formatQualityScore } from "@/lib/depth-labels";
 
 function MetricPill({
   value,
@@ -31,7 +32,7 @@ function MetricPill({
 function QualificationBadge({ q, qualityScore }: { q: Thesis["qualification"]; qualityScore?: number }) {
   const label = q === "tradeable" ? "Tradeable" : q === "emerging" ? "Emerging" : "Theme";
   const scoreLabel =
-    qualityScore != null && Number.isFinite(qualityScore) ? `${Math.round(qualityScore)}/100` : label;
+    qualityScore != null && Number.isFinite(qualityScore) ? formatQualityScore(qualityScore) : label;
   return (
     <span
       className={cn(

@@ -1,8 +1,10 @@
 import { normalizeThesisScenarios } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import type { ThesisScenarioLike } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
 import { ScenarioProbabilitiesExplainer } from "@/components/thesis-engine-v2/ScenarioProbabilitiesExplainer";
+import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
 import { cn } from "@/lib/utils";
 import { SCENARIO_PATHS_DEFINITION, SCENARIO_SECTION_SUBTITLE } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
+import { RESOLUTION_PATH_TOOLTIPS, SCENARIO_PROBABILITY_TOOLTIP } from "@/lib/depth-labels";
 
 /**
  * ScenarioPanel
@@ -88,16 +90,16 @@ export function ScenarioPanel({
           <div key={s.id} className="rounded-none bg-zinc-900/30 p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1">
               <h3 className="text-xs font-semibold text-zinc-200">
-                {s.label}
+                <TooltipTerm label={RESOLUTION_PATH_TOOLTIPS[s.pathKey]}>{s.label}</TooltipTerm>
                 {showPercentages ? (
                   <>
                     <span className="font-normal text-zinc-600"> · </span>
-                    <span
-                      className="text-sm font-semibold tabular-nums text-amber-500/90"
-                      data-testid="scenario-card-percent"
+                    <TooltipTerm
+                      label={SCENARIO_PROBABILITY_TOOLTIP}
+                      className="text-sm font-semibold tabular-nums text-amber-500/90 border-amber-500/40 hover:border-amber-500/80"
                     >
-                      {s.probability}%
-                    </span>
+                      <span data-testid="scenario-card-percent">{s.probability}%</span>
+                    </TooltipTerm>
                   </>
                 ) : null}
               </h3>

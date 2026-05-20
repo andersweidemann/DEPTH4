@@ -790,7 +790,7 @@ export function FeedItemFourLayer({
         <Sheet
           open={!!sheet}
           onOpenChange={(o) => !o && setSheet(null)}
-          title={sheet === "L2" ? "Depth 2" : sheet === "L3" ? "Depth 3" : sheet === "L4" ? "Depth 4" : "DEPTH4"}
+          title={sheet === "L2" ? "D2" : sheet === "L3" ? "D3" : sheet === "L4" ? "D4" : "DEPTH4"}
           className="md:hidden"
         >
           <div className="pt-2">

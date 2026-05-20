@@ -131,22 +131,22 @@ function buildFourLevelCascade(thesis: Thesis): ApiThesis["fourLevelCascade"] {
   const fallback = (s: string) => s || "";
   return {
     l1: {
-      timeframe: "L1 · Now",
+      timeframe: "D1 · Now",
       label: "Setup",
       description: fallback(thesis.whyNow),
     },
     l2: {
-      timeframe: "L2 · Near term",
+      timeframe: "D2 · Near term",
       label: "Path",
       description: fallback(thesis.hiddenDriver),
     },
     l3: {
-      timeframe: "L3 · Medium term",
+      timeframe: "D3 · Medium term",
       label: "Tape",
       description: fallback(thesis.likelyPath),
     },
     l4: {
-      timeframe: "L4 · Structural",
+      timeframe: "D4 · Structural",
       label: "Backdrop",
       description: fallback(thesis.tradeExpression),
     },

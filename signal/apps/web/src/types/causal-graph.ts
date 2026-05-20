@@ -56,7 +56,7 @@ export const TIME_DEPTH_LABELS: Record<TimeDepth, string> = {
 };
 
 export const ASSET_DEPTH_LABELS: Record<AssetDepth, string> = {
-  root: "Primary",
+  root: "Root",
   direct: "Direct",
   indirect: "Indirect",
   speculative: "Speculative",

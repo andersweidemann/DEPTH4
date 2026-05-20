@@ -114,7 +114,7 @@ export type PrimaryTradeSelection = {
   /** Optional second expression (hedge or paired book). */
   secondaryDepth?: ThesisDepthKey;
   secondaryScore?: number;
-  /** User-facing line e.g. "Primary edge is Level 3, not the headline." */
+  /** User-facing line e.g. "Primary edge is D3, not the headline." */
   headlineFraming: string;
 };
 
@@ -187,8 +187,8 @@ export function selectPrimaryTradeNode(book: ThesisDepthBook): PrimaryTradeSelec
       : primary === "depth_2"
         ? "Primary edge is the direct 1–7d move — watch whether it is already priced in."
         : primary === "depth_3"
-          ? "Primary edge is Level 3 (7–30d spillovers) — not only the first tape reaction."
-          : "Primary edge is Level 4 (systemic 30–90d+) — expression targets backdrop repricing, not the spike.";
+          ? "Primary edge is D3 (7–30d spillovers) — not only the first tape reaction."
+          : "Primary edge is D4 (systemic 30–90d+) — expression targets backdrop repricing, not the spike.";
 
   let rationale = `${headlineFraming} Selected depth ${primary} with tradeability ${best!.s}/100.`;
   if (book.mispricingByDepth[primary].gap != null && book.mispricingByDepth[primary].gap! < 0.05) {

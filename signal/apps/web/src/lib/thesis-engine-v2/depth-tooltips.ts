@@ -1,10 +1,12 @@
+import { DEPTH_LABELS, RESOLUTION_PATH_TOOLTIPS } from "@/lib/depth-labels";
+
 /** Shared hover copy for DEPTH4 depth labels and map/thesis metrics. */
 
 export const DEPTH_TOOLTIPS = {
-  d1: "Depth 1 — Confirmed now: what Tier 1–2 sources verify and the immediate tape reaction.",
-  d2: "Depth 2 — This week: transmission path, positioning, and the first market move.",
-  d3: "Depth 3 — This month: portfolio mechanics — who rebalances, what they unwind, and why it hits this asset.",
-  d4: "Depth 4 — This quarter: regime shift — how the macro backdrop and cross-asset pricing change.",
+  d1: DEPTH_LABELS.D1.tooltip,
+  d2: DEPTH_LABELS.D2.tooltip,
+  d3: DEPTH_LABELS.D3.tooltip,
+  d4: DEPTH_LABELS.D4.tooltip,
   fourDepthChain: "Four-depth chain: confirmed facts → mechanism → portfolio mechanics → regime shift.",
 } as const;
 
@@ -27,7 +29,7 @@ export const THESIS_DETAIL_TOOLTIPS = {
     "Chance this thesis is broadly right over the horizon. DEPTH4 sets it to Clean win + Messy win from the resolution paths.",
   edge: "How much of the expected move is still not in the price. Higher edge means more room before the crowd catches up.",
   qualityBadge:
-    "Quality score (Q): checks incentive depth, causal chain, trade plan, evidence, and resolution paths. Higher = more complete setup.",
+    "Quality score (0–100): checks incentive depth, causal chain, trade plan, evidence, and resolution paths. Higher = more complete setup.",
   status:
     "Where this thesis sits in the playbook — forming, watching, ready to trade, active in your book, or closed out.",
   horizon: "How long DEPTH4 expects this idea to matter — use it to size patience and time stops.",
@@ -48,9 +50,9 @@ export const THESIS_DETAIL_TOOLTIPS = {
   goal: "What they must achieve politically or economically.",
   constraint: "What blocks the easy path — forces a specific action.",
   resolutionPaths: "Three futures: clean win, messy win, or thesis broken — with path probabilities.",
-  resolutionClean: "Clean win: thesis plays out as written with limited noise.",
-  resolutionMessy: "Messy win: direction right but path noisy — size and timing matter.",
-  resolutionBroken: "Broken: invalidation scenario — exit or hedge.",
+  resolutionClean: RESOLUTION_PATH_TOOLTIPS.clean_win,
+  resolutionMessy: RESOLUTION_PATH_TOOLTIPS.messy_win,
+  resolutionBroken: RESOLUTION_PATH_TOOLTIPS.thesis_broken,
   qualityScore:
     "Quality score (0–100): combines incentive analysis, causal depth, trade plan, evidence, and resolution paths.",
   tradePlan: "Actionable entry, stop, and targets — updated as evidence and volatility shift.",

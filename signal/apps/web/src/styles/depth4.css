@@ -1258,3 +1258,13 @@ body.d4-skin {
   font-size: 14px;
   margin: 0.75em 0 0.35em;
 }
+
+.tooltip-term {
+  border-bottom: 1px dotted rgba(255, 255, 255, 0.3);
+  cursor: help;
+}
+.tooltip-term:hover,
+.tooltip-term:focus-visible {
+  border-bottom-color: rgba(255, 255, 255, 0.8);
+  outline: none;
+}

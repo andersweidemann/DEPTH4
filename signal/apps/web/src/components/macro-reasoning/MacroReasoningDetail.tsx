@@ -234,7 +234,7 @@ export function MacroReasoningDetail({
                 className="max-w-prose rounded-lg border border-white/[0.06] bg-[#111110] px-4 py-4 md:px-5 md:py-5"
               >
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
-                  Level {b.num} · {b.label}
+                  D{b.num} · {b.label}
                 </p>
                 <p className="mt-2 whitespace-pre-wrap text-[15px] leading-[1.7] text-zinc-200">{b.body}</p>
               </li>
@@ -253,7 +253,7 @@ export function MacroReasoningDetail({
             Watch
           </h2>
           <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
-            Tickers and indicators to track against the levels above (L2 ≈ days to ~4 weeks, L3 = this quarter, L4 = backdrop bias this year).
+            Tickers and indicators to track against the depths above (D2 ≈ days to ~4 weeks, D3 = this quarter, D4 = backdrop bias this year).
           </p>
           <ul className="mt-3 flex flex-wrap gap-2">
             {reasoning.impacted_assets.map((sym) => {

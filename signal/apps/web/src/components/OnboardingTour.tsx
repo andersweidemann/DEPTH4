@@ -33,7 +33,7 @@ export function OnboardingTour({
       {
         targetSelector: ".dm-tabs",
         title: "Go deeper",
-        body: "L1 is what happened. L4 is what to trade. The edge is always deeper than the headline.",
+        body: "D1 is what happened. D4 is what to trade. The edge is always deeper than the headline.",
       },
       {
         targetSelector: "#edgeList",
