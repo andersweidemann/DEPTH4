@@ -26,6 +26,8 @@ import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { hideThesisBySlug } from "@/lib/thesis-engine-v2/user-hidden-theses-client";
+import { useThesesPagePreferences } from "@/hooks/use-theses-page-preferences";
+import { applyThesesPageFiltersToGraph } from "@/lib/theses/apply-theses-page-filters";
 
 export { ThesisRow, TABLE_GRID } from "@/components/thesis-engine-v2/ThesisListRow";
 
@@ -47,6 +49,7 @@ export function LiveThesesListPage() {
     document.title = "DEPTH4 · Theses · List view";
   }, []);
 
+  const { prefs } = useThesesPagePreferences();
   const requireFeature = useRequireFeature();
   const publicReadOnly = usePublicReadOnlyWorkspace();
   const [listTab, setListTab] = useState<"focus" | "emerging" | "monitor" | "archive">("focus");
@@ -137,6 +140,11 @@ export function LiveThesesListPage() {
   const clusterFilter: ClusterListFilter =
     activeFilter === "by_cluster" ? "all" : activeFilter;
 
+  const filteredClustersPayload = useMemo(
+    () => (clustersPayload ? applyThesesPageFiltersToGraph(clustersPayload, prefs) : null),
+    [clustersPayload, prefs],
+  );
+
   const starredCount = useMemo(() => {
     if (!data) return 0;
     if (data.home) {
@@ -223,9 +231,10 @@ export function LiveThesesListPage() {
     );
   }
 
-  const clusterCount = clustersPayload?.clusters.length ?? 0;
+  const clusterCount = filteredClustersPayload?.clusters.length ?? 0;
   const listThesisCount = listBySlug.size;
-  const thesisCount = listThesisCount > 0 ? listThesisCount : (clustersPayload?.totalTheses ?? 0);
+  const thesisCount =
+    listThesisCount > 0 ? listThesisCount : (filteredClustersPayload?.totalTheses ?? 0);
 
   return (
     <>
@@ -233,9 +242,16 @@ export function LiveThesesListPage() {
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
           <h1 className="text-xl font-semibold text-zinc-50">Thesis map</h1>
-          {listTab !== "archive" && clustersPayload ? (
+          {listTab !== "archive" && filteredClustersPayload ? (
             <p className="mt-1 text-[12px] text-zinc-500">
-              Active events: {clustersPayload.activeEvents} · Theses: {thesisCount} · Clusters: {clusterCount}
+              Active events: {filteredClustersPayload.activeEvents} · Theses: {thesisCount} · Clusters:{" "}
+              {clusterCount}
+              {clustersPayload?.statusCounts ? (
+                <span className="text-zinc-600">
+                  {" "}
+                  · {clustersPayload.statusCounts.watching} watching
+                </span>
+              ) : null}
             </p>
           ) : (
             <p className="mt-1 text-[13px] text-zinc-400">Resolved theses and track record.</p>
@@ -330,9 +346,9 @@ export function LiveThesesListPage() {
         </div>
       </div>
 
-      {listTab !== "archive" && clustersPayload ? (
+      {listTab !== "archive" && filteredClustersPayload ? (
         <ClusteredThesesView
-          clustersPayload={clustersPayload}
+          clustersPayload={filteredClustersPayload}
           listBySlug={listBySlug}
           allowedSlugs={allowedSlugs}
           activeFilter={clusterFilter}

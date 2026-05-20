@@ -180,4 +180,7 @@ export interface CausalGraphClustersResponse {
   recentlyUpdatedThesisIds?: string[];
   /** Newest audit row timestamp in the 24h digest window. */
   latestUpdateAt?: string | null;
+  /** Per-thesis DB metadata for settings filters (status / origin). */
+  thesisMetaById?: Record<string, { status: string; thesisOrigin: string | null }>;
+  statusCounts?: { active: number; watching: number; archived: number };
 }

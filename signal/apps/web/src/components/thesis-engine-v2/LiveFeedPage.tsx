@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo } from "react";
 import useSWR from "swr";
 import { friendlyApiMessage } from "@/lib/api-error-message";
@@ -87,6 +88,14 @@ export function LiveFeedPage() {
         </p>
         <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
           AI monitoring · thesis pipeline active · evidence cascade on
+        </p>
+        <p className="mt-2 flex flex-wrap gap-3 text-[11px]">
+          <Link href="/sources" className="text-zinc-500 hover:text-zinc-300">
+            News sources
+          </Link>
+          <Link href="/submit-news" className="font-medium text-[#E8473F] hover:underline">
+            Submit headline →
+          </Link>
         </p>
       </div>
 

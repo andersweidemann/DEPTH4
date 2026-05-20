@@ -23,9 +23,12 @@ import {
   shouldShowDailyUpdatesBanner,
 } from "@/lib/thesis-engine-v2/dismissed-update-banner";
 import { hideThesisBySlug } from "@/lib/thesis-engine-v2/user-hidden-theses-client";
+import { useThesesPagePreferences } from "@/hooks/use-theses-page-preferences";
+import { applyThesesPageFiltersToGraph } from "@/lib/theses/apply-theses-page-filters";
+import { LatestHeadlinesPanel } from "@/components/news/LatestHeadlinesPanel";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
-import type { CausalEvent, CausalGraphClustersResponse, CausalThesis, ThesisCluster } from "@/types/causal-graph";
+import type { CausalEvent, CausalGraphClustersResponse, CausalThesis } from "@/types/causal-graph";
 import { cn } from "@/lib/utils";
 
 const SEEN_THESIS_SLUGS_KEY = "depth4_theses_seen_slugs_v1";
@@ -91,13 +94,6 @@ function formatTimeAgo(iso: string): string {
   });
 }
 
-function sortThesesByEdge(cluster: ThesisCluster): ThesisCluster {
-  return {
-    ...cluster,
-    theses: [...cluster.theses].sort((a, b) => b.mispricingScore - a.mispricingScore),
-  };
-}
-
 function ThesisListSkeleton() {
   return (
     <div className="mt-8 space-y-2">
@@ -109,6 +105,7 @@ function ThesisListSkeleton() {
 }
 
 export function CausalMapPage() {
+  const { prefs } = useThesesPagePreferences();
   /** Default OFF — show all theses until the user opts in to hiding high priced-in names. */
   const [hidePricedIn, setHidePricedIn] = useState(false);
   const [showConflicts, setShowConflicts] = useState(false);
@@ -163,9 +160,14 @@ export function CausalMapPage() {
     void loadGraph();
   }, [loadGraph]);
 
+  const displayGraph = useMemo(
+    () => (graph ? applyThesesPageFiltersToGraph(graph, prefs) : null),
+    [graph, prefs],
+  );
+
   const recentUpdateIds = useMemo(
-    () => new Set(graph?.recentlyUpdatedThesisIds ?? []),
-    [graph?.recentlyUpdatedThesisIds],
+    () => new Set(displayGraph?.recentlyUpdatedThesisIds ?? []),
+    [displayGraph?.recentlyUpdatedThesisIds],
   );
 
   const hideThesis = useCallback(async (slug: string, thesisId: string) => {
@@ -196,32 +198,31 @@ export function CausalMapPage() {
     (graph?.dailyUpdates?.length ?? 0) > 0 &&
     shouldShowDailyUpdatesBanner(graph?.latestUpdateAt ?? null);
 
-  const totalTheses = graph?.totalTheses ?? 0;
+  const totalTheses = displayGraph?.totalTheses ?? 0;
 
   const visibleClusters = useMemo(() => {
-    const clusters = graph?.clusters ?? [];
+    const clusters = displayGraph?.clusters ?? [];
     return clusters
       .map((c) => filterCluster(c, hidePricedIn, showConflicts))
-      .filter((c) => c.theses.length > 0)
-      .map(sortThesesByEdge);
-  }, [graph?.clusters, hidePricedIn, showConflicts]);
+      .filter((c) => c.theses.length > 0);
+  }, [displayGraph?.clusters, hidePricedIn, showConflicts]);
 
   const visibleIsolated = useMemo(() => {
-    const isolated = graph?.isolated ?? [];
-    return filterIsolatedTheses(isolated, hidePricedIn, showConflicts).sort(
-      (a, b) => b.mispricingScore - a.mispricingScore,
-    );
-  }, [graph?.isolated, hidePricedIn, showConflicts]);
+    const isolated = displayGraph?.isolated ?? [];
+    return filterIsolatedTheses(isolated, hidePricedIn, showConflicts);
+  }, [displayGraph?.isolated, hidePricedIn, showConflicts]);
 
   const isolatedConflicts = useMemo(
-    () => isolatedConflictWarningsFor(graph?.isolated ?? []),
-    [graph?.isolated],
+    () => isolatedConflictWarningsFor(displayGraph?.isolated ?? []),
+    [displayGraph?.isolated],
   );
 
   const visibleConflictCount = useMemo(() => {
-    if (!showConflicts || !graph) return 0;
-    return countVisibleConflicts(graph.clusters, graph.isolated, hidePricedIn, true);
-  }, [graph, hidePricedIn, showConflicts]);
+    if (!showConflicts || !displayGraph) return 0;
+    return countVisibleConflicts(displayGraph.clusters, displayGraph.isolated, hidePricedIn, true);
+  }, [displayGraph, hidePricedIn, showConflicts]);
+
+  const matrixLayout = prefs.viewMode === "matrix";
 
   if (loading) {
     return (
@@ -243,18 +244,31 @@ export function CausalMapPage() {
   const nothingVisible = visibleClusters.length === 0 && visibleIsolated.length === 0;
 
   return (
-    <div data-causal-map className="mx-auto max-w-6xl">
+    <div data-causal-map className="mx-auto max-w-6xl lg:flex lg:items-start lg:gap-6">
+      <div className="min-w-0 flex-1">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
           <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Theses</h1>
           <p className="mt-1 text-[13px] text-zinc-400">
-            {visibleClusters.length} clusters · {totalTheses} active · Last updated{" "}
+            {visibleClusters.length} clusters · {totalTheses} visible · Last updated{" "}
             {graph?.lastUpdated ? formatTimeAgo(graph.lastUpdated) : "—"}
           </p>
+          {graph?.statusCounts ? (
+            <p className="mt-1 text-[11px] text-zinc-500">
+              {graph.statusCounts.active} tradeable · {graph.statusCounts.watching} watching ·{" "}
+              {graph.statusCounts.archived} archived
+            </p>
+          ) : null}
           <p className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
             <Link href="/theses?list=1" className="text-zinc-500 hover:text-zinc-300">
               List view
+            </Link>
+            <Link href="/sources" className="text-zinc-500 hover:text-zinc-300">
+              Sources
+            </Link>
+            <Link href="/submit-news" className="text-zinc-500 hover:text-zinc-300">
+              Submit news
             </Link>
             <Link href="/theses/archive" className="text-zinc-500 hover:text-zinc-300">
               Archive
@@ -363,7 +377,11 @@ export function CausalMapPage() {
                   </span>
                 </div>
 
-                <div className="space-y-2">
+                <div
+                  className={cn(
+                    matrixLayout ? "grid grid-cols-1 gap-2 md:grid-cols-2" : "space-y-2",
+                  )}
+                >
                   {cluster.theses.map((thesis) => (
                     <ThesisMapCard
                       key={thesis.slug}
@@ -398,7 +416,11 @@ export function CausalMapPage() {
 
           {visibleIsolated.length > 0 ? (
             <section>
-              <div className="space-y-2">
+              <div
+                className={cn(
+                  matrixLayout ? "grid grid-cols-1 gap-2 md:grid-cols-2" : "space-y-2",
+                )}
+              >
                 {isolatedConflicts.length > 0 ? (
                   <div className="mb-2 space-y-1 rounded-md border border-red-500/20 bg-red-500/5 p-2">
                     {isolatedConflicts.map((w, i) => (
@@ -468,6 +490,9 @@ export function CausalMapPage() {
           void putUserThesisToSupabase(t).then(() => loadGraph());
         }}
       />
+      </div>
+
+      <LatestHeadlinesPanel className="mt-8 shrink-0 lg:mt-0 lg:w-72" />
     </div>
   );
 }

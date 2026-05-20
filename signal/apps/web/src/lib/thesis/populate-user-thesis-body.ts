@@ -24,7 +24,7 @@ type PathLeg = {
   trigger?: string;
 };
 
-type PopulateAiPayload = {
+export type PopulateAiPayload = {
   incentive_analysis?: Record<string, unknown>;
   causal_chain?: Array<Record<string, unknown>>;
   tradePlan?: Record<string, unknown>;

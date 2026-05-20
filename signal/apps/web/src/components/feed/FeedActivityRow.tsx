@@ -97,9 +97,8 @@ export function FeedActivityRow({ item }: { item: FeedItem }) {
         </span>
       </div>
       <h3 className="mt-2 text-[14px] font-medium leading-snug text-zinc-100">
-        {asset ? (
-          <span className="font-mono text-zinc-500">{asset} · </span>
-        ) : null}
+        <span className="font-medium text-zinc-500">[{item.source}]</span>{" "}
+        {asset ? <span className="font-mono text-zinc-500">{asset} · </span> : null}
         {title}
       </h3>
       <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">{item.summary}</p>

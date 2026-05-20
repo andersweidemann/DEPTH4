@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThesisLiveProvider } from "@/lib/thesis-engine-v2/thesis-live-context";
 import { ThesisLiveToasts } from "@/components/thesis-engine-v2/ThesisLiveToasts";
+import { PipelineActivityBanner } from "@/components/thesis-engine-v2/PipelineActivityBanner";
 import { clearLegacyV2PlanOverride } from "@/lib/thesis-engine-v2/use-plan";
 
 function useAccountTierHydration() {
@@ -67,6 +68,7 @@ export function Depth4V2Shell({ children }: { children: ReactNode }) {
     <ThesisLiveProvider>
       {children}
       <ThesisLiveToasts />
+      <PipelineActivityBanner />
     </ThesisLiveProvider>
   );
 }

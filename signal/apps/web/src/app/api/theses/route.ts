@@ -24,7 +24,6 @@ import { applyThesisEventLink } from "@/lib/causal-graph/apply-thesis-event-link
 import { loadEventLinkContext, resolveEventId } from "@/lib/causal-graph/load-event-link-context";
 import { validateThesisEventLink } from "@/lib/causal-graph/causal-validator";
 import { thesisLinkInputFromThesis } from "@/lib/causal-graph/thesis-link-input";
-import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 import {
   populateUserThesisBody,
   shouldAutoPopulateUserThesisBody,

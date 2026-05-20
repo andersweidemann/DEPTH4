@@ -5,6 +5,7 @@ import {
   filterOnlyHiddenFromGraph,
   loadThesesPageActivity,
 } from "@/lib/causal-map/theses-page-activity";
+import { fetchThesisStatusCounts } from "@/lib/theses/thesis-status-counts";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 import { createClient } from "@/lib/supabase/server";
 
@@ -48,11 +49,13 @@ export async function GET(req: NextRequest) {
     const activity = viewHidden
       ? { dailyUpdates: [], recentlyUpdatedThesisIds: [], latestUpdateAt: null }
       : await loadThesesPageActivity(supabase, payload);
+    const statusCounts = await fetchThesisStatusCounts(supabase);
     payload = {
       ...payload,
       dailyUpdates: activity.dailyUpdates,
       recentlyUpdatedThesisIds: activity.recentlyUpdatedThesisIds,
       latestUpdateAt: activity.latestUpdateAt,
+      statusCounts,
     };
 
     return NextResponse.json(payload, {

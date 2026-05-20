@@ -74,6 +74,7 @@ export type ThesisRow = {
   slug: string | null;
   title: string;
   status: string;
+  thesis_origin?: string | null;
   updated_at?: string | null;
   scenario_probabilities: unknown;
   body: unknown;
@@ -441,7 +442,7 @@ export async function buildCausalGraphClusters(
   const thesesRes = await supabase
     .from("theses")
     .select(
-      "id, slug, title, status, updated_at, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label, quality_score, incentive_analysis",
+      "id, slug, title, status, thesis_origin, updated_at, scenario_probabilities, body, thesis_score, priced_in_estimate, micro_label, quality_score, incentive_analysis",
     )
     .in("status", Array.from(LIVE_STATUSES));
 
@@ -462,6 +463,13 @@ export async function buildCausalGraphClusters(
   const assetById = new Map(assets.map((a) => [a.id, a]));
   const affectRows = (affectsRes.data ?? []) as AffectRow[];
   const thesisRows = (thesesRes.data ?? []) as ThesisRow[];
+  const thesisMetaById: Record<string, { status: string; thesisOrigin: string | null }> = {};
+  for (const row of thesisRows) {
+    thesisMetaById[row.id] = {
+      status: row.status,
+      thesisOrigin: row.thesis_origin ?? null,
+    };
+  }
 
   const affectsByThesis = new Map<string, CausalAffect[]>();
   for (const row of affectRows) {
@@ -497,5 +505,6 @@ export async function buildCausalGraphClusters(
     activeEvents: graph.activeEvents,
     totalTheses: clusteredIds.size + isolated.length,
     lastUpdated,
+    thesisMetaById,
   };
 }
