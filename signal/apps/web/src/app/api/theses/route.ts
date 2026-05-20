@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
 import { getAuthedSupabase } from "@/lib/supabase/auth-from-request";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 import { buildThesesListResponse } from "@/lib/theses/theses-list-response";
 import { buildDraftUserThesisFromForm } from "@/lib/theses/draft-user-thesis";
 import {
@@ -46,7 +47,9 @@ export async function GET(req: NextRequest) {
   const sort = sp.get("sort")?.trim() || "recent";
 
   const auth = await getAuthedSupabase(req);
-  const sb = auth?.sb ?? (isDepth4PublicReadMode() ? await createClient() : null);
+  const sb =
+    auth?.sb ??
+    (isDepth4PublicReadMode() ? createServiceRoleClient() ?? (await createClient()) : null);
   const userId = auth?.user.id ?? null;
 
   if (!sb) return NextResponse.json({ error: "unauthorized" }, { status: 401 });

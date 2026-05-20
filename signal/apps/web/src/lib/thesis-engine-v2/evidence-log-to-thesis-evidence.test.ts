@@ -126,6 +126,28 @@ describe("mergeEvidenceTimelineItems", () => {
     expect(merged.length).toBeGreaterThan(1);
   });
 
+  it("dedupes body rows when log row shares headline with live entry", () => {
+    const headline = "Ceasefire framework at Geneva";
+    const bundle: ThesisEvidence[] = [
+      {
+        id: "body-1",
+        thesisId: "user-1",
+        source: "Reuters",
+        timestamp: "May 11, 2026",
+        headline,
+        impact: "neutral",
+        probabilityBefore: 50,
+        probabilityAfter: 55,
+        interpretation: "excerpt text",
+      },
+    ];
+    const log = logRow("user-1");
+    log.description = headline;
+    const merged = mergeEvidenceTimelineItems([log], bundle, 55);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.id).toMatch(/^log-/);
+  });
+
   it("prepends live log rows for a user thesis id before static bundle evidence", () => {
     const bundle: ThesisEvidence[] = [
       {

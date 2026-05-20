@@ -168,7 +168,14 @@ export function thesisEvidenceFromLogRow(
   };
 }
 
-/** Newest log-derived items first, then body/bundle rows not already covered by a log headline. */
+function evidenceTimelineDedupeKey(item: Pick<ThesisEvidence, "source" | "timestamp" | "headline">): string {
+  const source = item.source.trim().toLowerCase();
+  const ts = item.timestamp.trim().toLowerCase();
+  const headline = item.headline.trim().toLowerCase();
+  return `${source}|${ts}|${headline}`;
+}
+
+/** Newest log-derived items first, then body/bundle rows not already covered by log source+date (or headline). */
 export function mergeEvidenceTimelineItems(
   logRowsForThesis: EvidenceLogRowLike[],
   bundleEvidence: ThesisEvidence[],
@@ -178,8 +185,11 @@ export function mergeEvidenceTimelineItems(
   const live = [...logRowsForThesis]
     .sort((a, b) => b.createdAt - a.createdAt)
     .map((r) => thesisEvidenceFromLogRow(r, headlineProbabilityFallback, opts));
+  const liveKeys = new Set(live.map((e) => evidenceTimelineDedupeKey(e)).filter((k) => k !== "||"));
   const liveHeadlines = new Set(live.map((e) => e.headline.trim().toLowerCase()).filter(Boolean));
   const staticRows = bundleEvidence.filter((e) => {
+    const key = evidenceTimelineDedupeKey(e);
+    if (key !== "||" && liveKeys.has(key)) return false;
     const h = e.headline.trim().toLowerCase();
     if (!h) return true;
     return !liveHeadlines.has(h);

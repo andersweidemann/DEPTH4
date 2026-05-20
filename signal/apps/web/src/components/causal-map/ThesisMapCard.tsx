@@ -8,6 +8,7 @@ import { ThesisTree } from "@/components/causal-map/ThesisTree";
 import { MatrixToggle } from "@/components/causal-map/MatrixToggle";
 import { HoverHelp } from "@/components/ui/HoverHelp";
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
+import { PUBLIC_READ_STAR_TOOLTIP } from "@/lib/theses/public-read-star-copy";
 import { useThesisLive } from "@/lib/thesis-engine-v2/thesis-live-context";
 import {
   CAUSAL_DIRECTION_TOOLTIPS,
@@ -144,11 +145,13 @@ export function ThesisMapCard({
           filled={starred}
           disabled={starDisabled}
           title={
-            starDisabled
-              ? (live.starDisabledReason(thesis.id) ?? undefined)
-              : starred
-                ? "Starred — alerts on for this thesis"
-                : "Star — bookmark and subscribe to alerts"
+            publicReadOnly
+              ? PUBLIC_READ_STAR_TOOLTIP
+              : starDisabled
+                ? (live.starDisabledReason(thesis.id) ?? undefined)
+                : starred
+                  ? "Starred — alerts on for this thesis"
+                  : "Star — bookmark and subscribe to alerts"
           }
           onClick={() => live.toggleStar(thesis.id)}
         />

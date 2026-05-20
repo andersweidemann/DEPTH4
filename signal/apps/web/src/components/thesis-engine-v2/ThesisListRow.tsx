@@ -14,6 +14,7 @@ import { ThesisActionsMenu } from "@/components/thesis-engine-v2/ThesisActionsMe
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { HoverHelp } from "@/components/ui/HoverHelp";
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
+import { PUBLIC_READ_STAR_TOOLTIP } from "@/lib/theses/public-read-star-copy";
 import { EDGE_SCORE_TOOLTIP, SCENARIO_PROBABILITY_TOOLTIP } from "@/lib/depth-labels";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisStatus } from "@/types/thesis";
@@ -207,11 +208,13 @@ export function ThesisRow({
           filled={showStarred}
           disabled={starDisabled}
           title={
-            starDisabled
-              ? (live.starDisabledReason(item.thesisId) ?? undefined)
-              : showStarred
-                ? "Starred — alerts on for this thesis"
-                : "Star — bookmark and subscribe to alerts"
+            publicReadOnly
+              ? PUBLIC_READ_STAR_TOOLTIP
+              : starDisabled
+                ? (live.starDisabledReason(item.thesisId) ?? undefined)
+                : showStarred
+                  ? "Starred — alerts on for this thesis"
+                  : "Star — bookmark and subscribe to alerts"
           }
           onClick={() => onToggleStar()}
         />

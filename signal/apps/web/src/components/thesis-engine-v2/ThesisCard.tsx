@@ -20,6 +20,7 @@ import { ThesisDisplaySourceDebug } from "@/components/thesis-engine-v2/ThesisDi
 import { isRecentlyRemodeled } from "@/lib/thesis-engine-v2/last-remodeled-at";
 import { formatTimeAgo } from "@/lib/thesis-helpers";
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
+import { PUBLIC_READ_STAR_TOOLTIP } from "@/lib/theses/public-read-star-copy";
 
 export function ThesisCard({
   thesis,
@@ -70,11 +71,13 @@ export function ThesisCard({
           filled={starred}
           disabled={starDisabled}
           title={
-            starDisabled
-              ? (live.starDisabledReason(thesis.id) ?? undefined)
-              : starred
-                ? "Starred — alerts on for this thesis"
-                : "Star — bookmark and subscribe to alerts"
+            publicReadOnly
+              ? PUBLIC_READ_STAR_TOOLTIP
+              : starDisabled
+                ? (live.starDisabledReason(thesis.id) ?? undefined)
+                : starred
+                  ? "Starred — alerts on for this thesis"
+                  : "Star — bookmark and subscribe to alerts"
           }
           onClick={() => live.toggleStar(thesis.id)}
         />

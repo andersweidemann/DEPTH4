@@ -1,13 +1,23 @@
 import Link from "next/link";
+import { formatTimeAgo } from "@/lib/thesis-helpers";
+import { queryFleetLastUpdatedAt } from "@/lib/theses/fleet-last-updated";
 
 const DISCLAIMER =
   "DEPTH4 is a macro analysis and information tool, not personalized investment advice. Not a broker. Not a registered investment adviser.";
 
-export function AppFooter() {
+export async function AppFooter() {
+  const fleetUpdatedAt = await queryFleetLastUpdatedAt();
+  const lastUpdatedLabel = fleetUpdatedAt ? formatTimeAgo(fleetUpdatedAt) : null;
+
   return (
     <div className="border-t border-white/[0.06] py-6">
       <div className="mx-auto max-w-6xl px-5 text-center">
-        <p className="text-[11px] text-zinc-500">{DISCLAIMER}</p>
+        {lastUpdatedLabel ? (
+          <p className="text-[11px] tabular-nums text-zinc-600">Last updated {lastUpdatedLabel}</p>
+        ) : null}
+        <p className={lastUpdatedLabel ? "mt-3 text-[11px] text-zinc-500" : "text-[11px] text-zinc-500"}>
+          {DISCLAIMER}
+        </p>
         <p className="mt-2 text-[11px] text-zinc-500">
           <Link href="/terms" className="text-zinc-400 hover:text-zinc-200">
             Terms of Use
