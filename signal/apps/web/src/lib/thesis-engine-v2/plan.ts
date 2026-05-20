@@ -1,4 +1,22 @@
+import type { UserTier } from "@/types/auth";
+
 export type V2Plan = "free" | "analyst" | "pro" | "creator";
+
+/** Map auth profile tier (capitalized) to V2 plan slug. */
+export function v2PlanFromUserTier(tier: UserTier | null | undefined): V2Plan {
+  if (tier === "Pro") return "pro";
+  if (tier === "Analyst") return "analyst";
+  return "free";
+}
+
+/** Map `public.users.tier` (lowercase) to V2 plan slug. */
+export function v2PlanFromDbTier(tier: string | null | undefined): V2Plan {
+  const t = (tier ?? "").trim().toLowerCase();
+  if (t === "creator") return "creator";
+  if (t === "pro") return "pro";
+  if (t === "analyst" || t === "institutional") return "analyst";
+  return "free";
+}
 
 export const V2_PLAN_LABEL: Record<V2Plan, string> = {
   free: "Free",

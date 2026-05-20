@@ -4,7 +4,7 @@ import type { User, UserTier } from "@/types/auth";
 function mapDbTierToUserTier(raw: string | undefined | null): UserTier {
   const t = (raw ?? "free").toLowerCase();
   if (t === "pro") return "Pro";
-  if (t === "institutional") return "Analyst";
+  if (t === "analyst" || t === "institutional") return "Analyst";
   return "Free";
 }
 

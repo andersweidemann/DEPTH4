@@ -2,12 +2,12 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import type { V2Plan } from "@/lib/thesis-engine-v2/plan";
 import { V2_PLAN_LABEL } from "@/lib/thesis-engine-v2/plan";
-import { useV2Plan } from "@/lib/thesis-engine-v2/use-plan";
 
 export function UpgradeModal({
   open,
@@ -34,7 +34,7 @@ export function UpgradeModal({
   secondaryHref?: string;
   showCompare?: boolean;
 }) {
-  const { setPlan } = useV2Plan();
+  const router = useRouter();
 
   const primary =
     requiredPlan === "analyst"
@@ -129,9 +129,12 @@ export function UpgradeModal({
                 type="button"
                 className="min-h-11 rounded-md bg-amber-500 px-4 py-2.5 text-[14px] font-semibold text-zinc-950 hover:bg-amber-400 sm:min-h-0 sm:px-3 sm:py-2 sm:text-[11px]"
                 onClick={() => {
-                  setPlan(requiredPlan);
                   onOpenChange(false);
                   onUpgraded?.();
+                  const sp = new URLSearchParams();
+                  sp.set("source", "upgrade-modal");
+                  sp.set("recommended", requiredPlan);
+                  router.push(`/pricing?${sp.toString()}`);
                 }}
               >
                 {primaryLabel ?? primary}
