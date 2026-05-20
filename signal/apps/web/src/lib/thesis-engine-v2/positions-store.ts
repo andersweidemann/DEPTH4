@@ -4,6 +4,7 @@ import { closeReasonLabel, isCloseReason } from "@/lib/thesis-engine-v2/close-re
 import type { CloseReason, Position, TradeStatus } from "@/lib/thesis-engine-v2/types";
 
 const KEY = "depth4.v2.positions.v1";
+const LEGACY_SESSION_KEY = KEY;
 
 /** Fired on same-tab session writes so Book header + lists stay in sync. */
 export const DEPTH4_POSITIONS_CHANGED = "depth4:positions-changed";
@@ -42,10 +43,14 @@ function isPosition(x: unknown): x is Position {
   return true;
 }
 
+function readPositionsRaw(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(KEY) ?? window.sessionStorage.getItem(LEGACY_SESSION_KEY);
+}
+
 export function loadPositions(): Position[] {
   if (typeof window === "undefined") return [];
-  const raw = window.sessionStorage.getItem(KEY);
-  const parsed = safeParse(raw);
+  const parsed = safeParse(readPositionsRaw());
   if (!Array.isArray(parsed)) return [];
   return parsed.filter(isPosition);
 }
@@ -55,13 +60,18 @@ export type SavePositionsOptions = { /** Skip PATCH to `depth4_user_book` (e.g. 
 export function savePositions(next: Position[], opts?: SavePositionsOptions) {
   if (typeof window === "undefined") return;
   try {
-    window.sessionStorage.setItem(KEY, JSON.stringify(next));
+    const json = JSON.stringify(next);
+    window.localStorage.setItem(KEY, json);
+    window.sessionStorage.removeItem(LEGACY_SESSION_KEY);
     window.dispatchEvent(new CustomEvent(DEPTH4_POSITIONS_CHANGED));
   } catch {
     // ignore
   }
   if (!opts?.skipRemote) {
-    void import("@/lib/thesis-engine-v2/depth4-book-positions-persist").then((m) => m.schedulePersistBookPositionsDebounced());
+    void import("@/lib/thesis-engine-v2/depth4-book-positions-persist").then((m) => {
+      void m.flushBookPositionsImmediately();
+      m.schedulePersistBookPositionsDebounced();
+    });
   }
 }
 

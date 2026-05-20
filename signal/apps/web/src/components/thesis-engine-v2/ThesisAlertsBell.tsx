@@ -12,18 +12,9 @@ export function ThesisAlertsBell() {
   const { alerts, unreadAlertCount, dismissAlert, markAllRead, markReadOnOpen } = useThesisLive();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [filter, setFilter] = useState<"all" | "probability" | "trade" | "system">("all");
   const [testRowId, setTestRowId] = useState<string | null>(null);
 
   const unreadAlerts = useMemo(() => alerts.filter((a) => !a.read), [alerts]);
-
-  const filtered = useMemo(() => {
-    const base = unreadAlerts;
-    if (filter === "all") return base;
-    if (filter === "probability") return base.filter((a) => a.type === "probability_change");
-    if (filter === "trade") return base.filter((a) => a.type === "consequence_change" || a.type === "invalidation");
-    return base.filter((a) => a.type === "system");
-  }, [unreadAlerts, filter]);
 
   useEffect(() => {
     if (!open) return;
@@ -81,40 +72,14 @@ export function ThesisAlertsBell() {
               </button>
             ) : null}
           </div>
-          <div className="flex items-center gap-1 border-b border-white/[0.06] px-2 py-2">
-            {(
-              [
-                ["all", "All"],
-                ["probability", "Branch odds"],
-                ["trade", "Trade"],
-                ["system", "System"],
-              ] as const
-            ).map(([k, label]) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setFilter(k)}
-                className={cn(
-                  "rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
-                  filter === k ? "bg-zinc-900/60 text-zinc-100" : "text-zinc-500 hover:text-zinc-300",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
           <div className="max-h-[min(70vh,24rem)] overflow-y-auto">
-            {filtered.length === 0 ? (
-              <div className="px-3 py-4 text-[12px] text-zinc-500">
+            {unreadAlerts.length === 0 ? (
+              <div className="px-3 py-4 text-[12px] leading-relaxed text-zinc-500">
                 <p className="text-zinc-400">No alerts yet.</p>
-                <p className="mt-1">
-                  Star a thesis for probability updates. Insider Flow events (tape + tags) also land here under{" "}
-                  <span className="text-zinc-300">System</span> when the server writes evidence — works on any DEPTH4 page, not only
-                  Theses.
-                </p>
+                <p className="mt-1">Star a thesis to get notified when its probabilities shift.</p>
               </div>
             ) : (
-              filtered.map((a) => (
+              unreadAlerts.map((a) => (
                 <div
                   key={a.id}
                   data-testid={a.id === testRowId ? "thesis-alert-row" : undefined}

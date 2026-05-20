@@ -14,6 +14,11 @@ export function schedulePersistBookPositionsDebounced(): void {
   }, 850);
 }
 
+/** Persist book to account immediately (e.g. open/close position). */
+export async function flushBookPositionsImmediately(): Promise<void> {
+  await flushBookPositions();
+}
+
 async function flushBookPositions(): Promise<void> {
   try {
     const sb = createClient();

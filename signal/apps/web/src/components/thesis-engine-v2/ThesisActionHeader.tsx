@@ -10,21 +10,32 @@ import { getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-sel
 import { primaryTradeSymbolFromThesis } from "@/lib/thesis-engine-v2/thesis-structured-anatomy";
 import { advisoryHeadlineFromResolutionPaths } from "@/lib/thesis-engine-v2/advisory-from-resolution-paths";
 import { displayScenarioTripleCleanMessyBroken } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
-import { formatQualityScore } from "@/lib/depth-labels";
+import { EDGE_SCORE_TOOLTIP, formatQualityScore, QUALITY_SCORE_TOOLTIP } from "@/lib/depth-labels";
+import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
+import type { ReactNode } from "react";
 
 function MetricPill({
   value,
   label,
   valueClassName,
+  labelTooltip,
 }: {
   value: string;
   label: string;
   valueClassName?: string;
+  labelTooltip?: string;
 }) {
+  const labelNode = labelTooltip ? (
+    <TooltipTerm label={labelTooltip} className="text-[9px] text-zinc-600">
+      {label}
+    </TooltipTerm>
+  ) : (
+    <span className="text-[9px] text-zinc-600">{label}</span>
+  );
   return (
     <span className="inline-flex flex-col items-center rounded bg-zinc-900/50 px-2 py-1">
       <span className={cn("text-[11px] font-medium tabular-nums", valueClassName ?? "text-zinc-200")}>{value}</span>
-      <span className="text-[9px] text-zinc-600">{label}</span>
+      {labelNode}
     </span>
   );
 }
@@ -43,7 +54,9 @@ function QualificationBadge({ q, qualityScore }: { q: Thesis["qualification"]; q
       )}
     >
       <span className="text-[11px] font-semibold tabular-nums">{scoreLabel}</span>
-      <span className="text-[9px] normal-case tracking-normal text-zinc-600">quality</span>
+      <TooltipTerm label={QUALITY_SCORE_TOOLTIP} className="text-[9px] normal-case tracking-normal text-zinc-600">
+        quality
+      </TooltipTerm>
     </span>
   );
 }
@@ -51,9 +64,12 @@ function QualificationBadge({ q, qualityScore }: { q: Thesis["qualification"]; q
 export function ThesisActionHeader({
   thesis,
   displaySourceOpts,
+  starSlot,
 }: {
   thesis: Thesis;
   displaySourceOpts?: { liveEvidenceApplied?: boolean };
+  /** Star control beside the title (detail page). */
+  starSlot?: ReactNode;
 }) {
   const dm = getThesisDisplayModel(thesis, displaySourceOpts);
   const pathConviction = dm.convictionPct;
@@ -67,11 +83,14 @@ export function ThesisActionHeader({
   return (
     <header className="border-b border-white/[0.06] pb-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <ThesisHeadingStack thesis={thesis} titleAs="h1" />
-          {thesis.oneLineSummary ? (
-            <p className="mt-2 max-w-2xl text-[13px] leading-snug text-zinc-300">{thesis.oneLineSummary}</p>
-          ) : null}
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          {starSlot ? <div className="mt-1 shrink-0">{starSlot}</div> : null}
+          <div className="min-w-0 flex-1">
+            <ThesisHeadingStack thesis={thesis} titleAs="h1" />
+            {thesis.oneLineSummary ? (
+              <p className="mt-2 max-w-2xl text-[13px] leading-snug text-zinc-300">{thesis.oneLineSummary}</p>
+            ) : null}
+          </div>
         </div>
         {entrySetupValid ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-300/80">
@@ -84,7 +103,7 @@ export function ThesisActionHeader({
         <DirectionBadge direction={thesis.direction} />
         <span className="font-mono text-[11px] text-zinc-400">{primarySym}</span>
         <MetricPill value={`${pathConviction}%`} label="conviction" valueClassName="text-amber-200/90" />
-        <MetricPill value={`${edge}/100`} label="edge" />
+        <MetricPill value={`${edge}/100`} label="edge" labelTooltip={EDGE_SCORE_TOOLTIP} />
         <QualificationBadge q={thesis.qualification} qualityScore={thesis.qualityScore} />
         <span className="inline-flex flex-col items-center gap-0.5">
           <StatusBadge status={thesis.status} />

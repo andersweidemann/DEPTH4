@@ -10,6 +10,7 @@ import {
 import { formatTimeAgo, getDirectionBadgeClasses, getStatusDotColor, getStatusTextColor } from "@/lib/thesis-helpers";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
 import { listRowLifecyclePresentation } from "@/lib/theses/thesis-lifecycle";
+import { ThesisActionsMenu } from "@/components/thesis-engine-v2/ThesisActionsMenu";
 import { cn } from "@/lib/utils";
 import type { ThesisListItem, ThesisStatus } from "@/types/thesis";
 
@@ -79,7 +80,15 @@ function statusLane(s: ThesisStatus): "ready" | "active" | "watch" {
   return "watch";
 }
 
-export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onToggleStar: () => void }) {
+export function ThesisRow({
+  item,
+  onToggleStar,
+  onHide,
+}: {
+  item: ThesisListItem;
+  onToggleStar: () => void;
+  onHide?: () => void;
+}) {
   const lane = statusLane(item.status);
   const lifecyclePresentation = item.lifecycle_state
     ? listRowLifecyclePresentation({ status: item.status, lifecycle_state: item.lifecycle_state })
@@ -154,10 +163,14 @@ export function ThesisRow({ item, onToggleStar }: { item: ThesisListItem; onTogg
       <div className="hidden text-right sm:block">
         <span className="text-[11px] text-zinc-500">{formatListTime(item.lastUpdated)}</span>
       </div>
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-0.5">
+        {onHide ? <ThesisActionsMenu onHide={onHide} /> : null}
         <button
           type="button"
-          onClick={onToggleStar}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleStar();
+          }}
           className="no-print text-zinc-600 transition-colors hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
           aria-label={item.starred ? "Unstar thesis" : "Star thesis"}
         >

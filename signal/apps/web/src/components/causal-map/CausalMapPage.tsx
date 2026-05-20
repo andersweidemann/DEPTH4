@@ -16,7 +16,13 @@ import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisMod
 import { ThesisToast, type ThesisToastType } from "@/components/toast/ThesisToast";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
-import { authFetch } from "@/lib/api";
+import { X } from "lucide-react";
+import { toast as sonnerToast } from "sonner";
+import {
+  dismissUpdateBannerNow,
+  shouldShowDailyUpdatesBanner,
+} from "@/lib/thesis-engine-v2/dismissed-update-banner";
+import { hideThesisBySlug } from "@/lib/thesis-engine-v2/user-hidden-theses-client";
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import type { CausalEvent, CausalGraphClustersResponse, CausalThesis, ThesisCluster } from "@/types/causal-graph";
@@ -161,30 +167,33 @@ export function CausalMapPage() {
     [graph?.recentlyUpdatedThesisIds],
   );
 
-  const hideThesis = useCallback(
-    async (thesisId: string) => {
-      const res = await authFetch("/api/user/hidden-theses", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ thesisId }),
-      });
-      if (!res.ok) return;
-      setGraph((g) => {
-        if (!g) return g;
-        const clusters = g.clusters
-          .map((c) => ({ ...c, theses: c.theses.filter((t) => t.id !== thesisId) }))
-          .filter((c) => c.theses.length > 0);
-        const isolated = g.isolated.filter((t) => t.id !== thesisId);
-        return {
-          ...g,
-          clusters,
-          isolated,
-          totalTheses: clusters.reduce((n, c) => n + c.theses.length, 0) + isolated.length,
-        };
-      });
-    },
-    [],
-  );
+  const hideThesis = useCallback(async (slug: string, thesisId: string) => {
+    const ok = await hideThesisBySlug(slug);
+    if (!ok) {
+      sonnerToast.error("Could not hide thesis");
+      return;
+    }
+    sonnerToast.success("Hidden from view — find it under Hidden");
+    setGraph((g) => {
+      if (!g) return g;
+      const clusters = g.clusters
+        .map((c) => ({ ...c, theses: c.theses.filter((t) => t.id !== thesisId) }))
+        .filter((c) => c.theses.length > 0);
+      const isolated = g.isolated.filter((t) => t.id !== thesisId);
+      return {
+        ...g,
+        clusters,
+        isolated,
+        totalTheses: clusters.reduce((n, c) => n + c.theses.length, 0) + isolated.length,
+      };
+    });
+  }, []);
+
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const showUpdateBanner =
+    !bannerDismissed &&
+    (graph?.dailyUpdates?.length ?? 0) > 0 &&
+    shouldShowDailyUpdatesBanner(graph?.latestUpdateAt ?? null);
 
   const totalTheses = graph?.totalTheses ?? 0;
 
@@ -249,6 +258,9 @@ export function CausalMapPage() {
             <Link href="/theses/archive" className="text-zinc-500 hover:text-zinc-300">
               Archive
             </Link>
+            <Link href="/theses?hidden=1" className="text-zinc-500 hover:text-zinc-300">
+              Hidden
+            </Link>
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -299,15 +311,27 @@ export function CausalMapPage() {
         </div>
       ) : null}
 
-      {(graph?.dailyUpdates?.length ?? 0) > 0 ? (
+      {showUpdateBanner ? (
         <div
           id="updates"
-          className="mb-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3"
+          className="relative mb-4 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 pr-10"
+          role="status"
         >
           <p className="text-[11px] text-blue-400">
             ↻ {graph!.dailyUpdates!.length} thesis{graph!.dailyUpdates!.length > 1 ? "es" : ""} updated today:{" "}
             {graph!.dailyUpdates!.map((u) => u.thesisTitle).join(", ")}
           </p>
+          <button
+            type="button"
+            className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-md text-blue-300/80 hover:bg-blue-500/10 hover:text-blue-200"
+            aria-label="Dismiss update banner"
+            onClick={() => {
+              dismissUpdateBannerNow();
+              setBannerDismissed(true);
+            }}
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
         </div>
       ) : null}
 
@@ -353,7 +377,7 @@ export function CausalMapPage() {
                       showConflicts={showConflicts}
                       hasConflict={thesisInConflictWarnings(thesis, cluster.conflictWarnings)}
                       hasRecentUpdate={recentUpdateIds.has(thesis.id)}
-                      onHide={() => void hideThesis(thesis.id)}
+                      onHide={() => void hideThesis(thesis.slug, thesis.id)}
                     />
                   ))}
                 </div>
@@ -399,7 +423,7 @@ export function CausalMapPage() {
                       hasConflict={isoConflict}
                       noCluster
                       hasRecentUpdate={recentUpdateIds.has(thesis.id)}
-                      onHide={() => void hideThesis(thesis.id)}
+                      onHide={() => void hideThesis(thesis.slug, thesis.id)}
                     />
                   );
                 })}

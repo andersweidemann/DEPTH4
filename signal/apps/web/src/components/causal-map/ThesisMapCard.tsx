@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
+import { ThesisActionsMenu } from "@/components/thesis-engine-v2/ThesisActionsMenu";
 import { ThesisTree } from "@/components/causal-map/ThesisTree";
 import { MatrixToggle } from "@/components/causal-map/MatrixToggle";
 import type { CausalEvent, CausalThesis } from "@/types/causal-graph";
@@ -20,6 +21,7 @@ export interface ThesisMapCardProps {
   noCluster?: boolean;
   hasRecentUpdate?: boolean;
   onHide?: () => void;
+  onUnhide?: () => void;
 }
 
 function formatHorizon(horizon: string): string {
@@ -40,6 +42,7 @@ export function ThesisMapCard({
   noCluster = false,
   hasRecentUpdate = false,
   onHide,
+  onUnhide,
 }: ThesisMapCardProps) {
   const mispricingScore = thesis.mispricingScore;
   const conflictActive = showConflicts && hasConflict;
@@ -112,6 +115,15 @@ export function ThesisMapCard({
           </span>
         ) : null}
 
+        {(onHide || onUnhide) && !isExpanded ? (
+          <ThesisActionsMenu
+            className="shrink-0"
+            onHide={onHide}
+            onUnhide={onUnhide}
+            hideLabel="Hide from view"
+          />
+        ) : null}
+
         <ChevronDown
           className={cn("ml-2 h-4 w-4 shrink-0 text-zinc-600 transition-transform", isExpanded && "rotate-180")}
           aria-hidden
@@ -155,7 +167,7 @@ export function ThesisMapCard({
                 }}
                 className="text-[10px] text-zinc-500 hover:text-zinc-300"
               >
-                Hide from my map
+                Hide from view
               </button>
             ) : null}
           </div>

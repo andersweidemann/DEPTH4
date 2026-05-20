@@ -10,6 +10,8 @@ export type ThesisDailyUpdate = {
 export type ThesesPageActivity = {
   dailyUpdates: ThesisDailyUpdate[];
   recentlyUpdatedThesisIds: string[];
+  /** Latest `thesis_updates.created_at` in the 24h window (for dismissible banner). */
+  latestUpdateAt: string | null;
 };
 
 function slugByThesisId(graph: CausalGraphClustersResponse): Map<string, string> {
@@ -43,12 +45,15 @@ export async function loadThesesPageActivity(
 
   const dailyByThesis = new Map<string, ThesisDailyUpdate>();
   const recentIds = new Set<string>();
+  let latestUpdateAt: string | null = null;
 
   for (const row of rows ?? []) {
     const thesisId = String((row as { thesis_id?: string }).thesis_id ?? "");
     if (!thesisId) continue;
     const slug = slugMap.get(thesisId);
     if (!slug) continue;
+    const createdAt = String((row as { created_at?: string }).created_at ?? "");
+    if (createdAt && (!latestUpdateAt || createdAt > latestUpdateAt)) latestUpdateAt = createdAt;
 
     recentIds.add(thesisId);
 
@@ -64,6 +69,7 @@ export async function loadThesesPageActivity(
   return {
     dailyUpdates: Array.from(dailyByThesis.values()).slice(0, 12),
     recentlyUpdatedThesisIds: Array.from(recentIds),
+    latestUpdateAt,
   };
 }
 
@@ -79,6 +85,26 @@ export function filterHiddenFromGraph(
     }))
     .filter((c) => c.theses.length > 0 || c.impliedEffects.length > 0);
   const isolated = graph.isolated.filter((t) => !hiddenIds.has(t.id));
+  const totalTheses =
+    clusters.reduce((n, c) => n + c.theses.length, 0) + isolated.length;
+  return { ...graph, clusters, isolated, totalTheses };
+}
+
+/** Inverse of {@link filterHiddenFromGraph} — hidden-theses view only. */
+export function filterOnlyHiddenFromGraph(
+  graph: CausalGraphClustersResponse,
+  hiddenIds: Set<string>,
+): CausalGraphClustersResponse {
+  if (!hiddenIds.size) {
+    return { ...graph, clusters: [], isolated: [], totalTheses: 0 };
+  }
+  const clusters = graph.clusters
+    .map((c) => ({
+      ...c,
+      theses: c.theses.filter((t) => hiddenIds.has(t.id)),
+    }))
+    .filter((c) => c.theses.length > 0);
+  const isolated = graph.isolated.filter((t) => hiddenIds.has(t.id));
   const totalTheses =
     clusters.reduce((n, c) => n + c.theses.length, 0) + isolated.length;
   return { ...graph, clusters, isolated, totalTheses };

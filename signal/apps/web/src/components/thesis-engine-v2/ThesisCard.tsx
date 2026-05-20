@@ -11,7 +11,9 @@ import { ProbabilityBar } from "./ProbabilityBar";
 import { StatusBadge } from "./StatusBadge";
 import { ThesisStarButton } from "./ThesisStarButton";
 import { Tooltip } from "./Tooltip";
+import { TooltipTerm } from "@/components/thesis-engine-v2/TooltipTerm";
 import { MispricingTooltipContent } from "./MispricingTooltipContent";
+import { EDGE_SCORE_TOOLTIP } from "@/lib/depth-labels";
 import { getThesisMispricing } from "@/lib/thesis-engine-v2/mispricing";
 import { canonicalConvictionPercentFromEngineThesis, getThesisDisplayModel } from "@/lib/thesis-engine-v2/thesis-display-selectors";
 import { THESIS_CONVICTION_TEMPLATE_NOTE_SHORT } from "@/lib/thesis-engine-v2/thesis-conviction-microcopy";
@@ -138,17 +140,14 @@ export function ThesisCard({
           <ProbabilityBar value={pathConviction} />
         </div>
         {Math.abs(mispricing.score - pathConviction) >= 2 ? (
-          <div className="flex items-center gap-1 text-[10px] tabular-nums text-zinc-500">
-            <span>Mispricing {mispricing.score}/100</span>
-            <Tooltip label={<MispricingTooltipContent m={mispricing} />} side="top">
-              <span
-                aria-label="Mispricing score info"
-                className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-sm text-[10px] font-semibold text-zinc-400 ring-1 ring-white/[0.08] hover:text-zinc-200"
-              >
-                ?
-              </span>
-            </Tooltip>
-          </div>
+          <Tooltip label={<MispricingTooltipContent m={mispricing} />} side="top">
+            <span className="text-[10px] tabular-nums text-zinc-500">
+              <TooltipTerm label={EDGE_SCORE_TOOLTIP} className="text-zinc-500">
+                Edge
+              </TooltipTerm>{" "}
+              {mispricing.score}/100
+            </span>
+          </Tooltip>
         ) : null}
       </div>
       <ThesisDisplaySourceDebug convictionPct={displayModel.convictionPct} scenarioSource={displayModel.scenarioSource} />

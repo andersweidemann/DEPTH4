@@ -178,4 +178,6 @@ export interface CausalGraphClustersResponse {
   dailyUpdates?: ThesisDailyUpdate[];
   /** Thesis ids with updates in the last 24h (pulse on cards). */
   recentlyUpdatedThesisIds?: string[];
+  /** Newest audit row timestamp in the 24h digest window. */
+  latestUpdateAt?: string | null;
 }

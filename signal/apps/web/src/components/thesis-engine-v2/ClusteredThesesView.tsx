@@ -90,6 +90,7 @@ function ClusterSection({
   emphasizeHeader,
   onToggleStar,
   onCreateThesis,
+  onHideThesis,
 }: {
   cluster: ThesisCluster;
   rows: ThesisListItem[];
@@ -97,6 +98,7 @@ function ClusterSection({
   emphasizeHeader?: boolean;
   onToggleStar: (slug: string, starred: boolean) => void;
   onCreateThesis?: () => void;
+  onHideThesis?: (slug: string, thesisId: string) => void;
 }) {
   const [open, setOpen] = useState(defaultOpen ?? true);
   const conflictCount = cluster.conflictWarnings.length;
@@ -156,6 +158,11 @@ function ClusterSection({
                   key={item.slug}
                   item={item}
                   onToggleStar={() => void onToggleStar(item.slug, item.starred)}
+                  onHide={
+                    onHideThesis && item.thesisId
+                      ? () => onHideThesis(item.slug, item.thesisId!)
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -189,10 +196,12 @@ function IsolatedSection({
   rows,
   defaultOpen,
   onToggleStar,
+  onHideThesis,
 }: {
   rows: ThesisListItem[];
   defaultOpen?: boolean;
   onToggleStar: (slug: string, starred: boolean) => void;
+  onHideThesis?: (slug: string, thesisId: string) => void;
 }) {
   const [open, setOpen] = useState(defaultOpen ?? true);
   if (rows.length === 0) return null;
@@ -232,6 +241,11 @@ function IsolatedSection({
                   key={item.slug}
                   item={item}
                   onToggleStar={() => void onToggleStar(item.slug, item.starred)}
+                  onHide={
+                    onHideThesis && item.thesisId
+                      ? () => onHideThesis(item.slug, item.thesisId!)
+                      : undefined
+                  }
                 />
               ))}
             </div>
@@ -250,6 +264,7 @@ export function ClusteredThesesView({
   emphasizeClusterHeaders,
   onToggleStar,
   onCreateThesis,
+  onHideThesis,
 }: {
   clustersPayload: CausalGraphClustersResponse;
   listBySlug: Map<string, ThesisListItem>;
@@ -258,6 +273,7 @@ export function ClusteredThesesView({
   emphasizeClusterHeaders?: boolean;
   onToggleStar: (slug: string, starred: boolean) => void;
   onCreateThesis?: () => void;
+  onHideThesis?: (slug: string, thesisId: string) => void;
 }) {
   const visibleClusters = useMemo(() => {
     return clustersPayload.clusters
@@ -299,9 +315,10 @@ export function ClusteredThesesView({
           emphasizeHeader={emphasizeClusterHeaders}
           onToggleStar={onToggleStar}
           onCreateThesis={onCreateThesis}
+          onHideThesis={onHideThesis}
         />
       ))}
-      <IsolatedSection rows={isolatedRows} onToggleStar={onToggleStar} />
+      <IsolatedSection rows={isolatedRows} onToggleStar={onToggleStar} onHideThesis={onHideThesis} />
     </div>
   );
 }

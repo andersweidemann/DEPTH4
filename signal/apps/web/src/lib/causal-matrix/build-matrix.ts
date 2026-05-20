@@ -201,7 +201,6 @@ export function buildMatrixFromThesis(thesis: CausalThesis, rootEvent: CausalEve
         hasThesis: true,
         thesisSlug: thesis.slug,
         thesisTitle: isTarget ? thesis.title : undefined,
-        conviction: thesis.conviction,
         timeHorizon: thesis.timeHorizon,
         whyItMatters: affect.whyItMatters || (isTarget ? thesis.statement : affect.whyItMatters),
       }),

@@ -25,6 +25,7 @@ import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisMod
 import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
 import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
 import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
+import { hideThesisBySlug } from "@/lib/thesis-engine-v2/user-hidden-theses-client";
 
 export { ThesisRow, TABLE_GRID } from "@/components/thesis-engine-v2/ThesisListRow";
 
@@ -151,6 +152,17 @@ export function LiveThesesListPage() {
     }
   };
 
+  const hideThesis = async (slug: string) => {
+    if (publicReadOnly) return;
+    const ok = await hideThesisBySlug(slug);
+    if (!ok) {
+      toast.error("Could not hide thesis");
+      return;
+    }
+    toast.success("Hidden from view");
+    await Promise.all([mutate(), mutateClusters()]);
+  };
+
   const pageLoading = isLoading || (listTab !== "archive" && clustersLoading);
 
   if (pageLoading) {
@@ -221,9 +233,14 @@ export function LiveThesesListPage() {
         </div>
         <div className="flex flex-col items-end gap-2">
           {listTab !== "archive" ? (
-            <Link href="/theses" className="text-[11px] text-zinc-400 transition-colors hover:text-amber-400">
-              Card view →
-            </Link>
+            <>
+              <Link href="/theses" className="text-[11px] text-zinc-400 transition-colors hover:text-amber-400">
+                Card view →
+              </Link>
+              <Link href="/theses?hidden=1" className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-300">
+                Hidden
+              </Link>
+            </>
           ) : null}
           {!publicReadOnly ? (
             <button
@@ -311,6 +328,7 @@ export function LiveThesesListPage() {
           activeFilter={clusterFilter}
           emphasizeClusterHeaders={activeFilter === "by_cluster"}
           onToggleStar={(slug, starred) => void toggleStar(slug, starred)}
+          onHideThesis={publicReadOnly ? undefined : (slug) => void hideThesis(slug)}
           onCreateThesis={() =>
             requireFeature("createPrivateTheses", "new-thesis", () => setCreateThesisOpen(true))
           }

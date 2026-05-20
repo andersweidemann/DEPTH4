@@ -151,9 +151,8 @@ export function mergeDbBodyIntoThesis(thesis: Thesis, body: unknown): Thesis {
     if (remodeled) lastRemodeledAt = remodeled;
   }
 
-  const targetAsset = str(o.target_asset ?? o.targetAsset);
-  const assetFromBody =
-    targetAsset && (thesis.asset === "—" || !thesis.asset?.trim()) ? targetAsset : undefined;
+  const targetAsset = str(o.target_asset ?? o.targetAsset) ?? str(o.asset);
+  const assetFromBody = targetAsset && targetAsset !== "—" ? targetAsset : undefined;
 
   const scenarioOverrides = parseScenarioOverridesFromBody(o);
 
@@ -266,8 +265,11 @@ export function normalizeThesisNarrativeFields(thesis: Thesis): Thesis {
 /** Serialize narrative fields for `public.theses.body` on user sync (subset of `Thesis`). */
 export function thesisToDbBodyPayload(thesis: Thesis): Record<string, unknown> {
   const cascade = thesis.thesisCascade;
+  const assetLabel = (thesis.asset ?? "").trim();
+  const target_asset = assetLabel && assetLabel !== "—" ? assetLabel : null;
   return {
     one_line_summary: thesis.oneLineSummary ?? null,
+    ...(target_asset ? { target_asset, asset: target_asset } : {}),
     thesis_statement: thesis.thesisStatement,
     why_thesis_exists: thesis.whyThesisExists ?? null,
     thesis_cascade: cascade

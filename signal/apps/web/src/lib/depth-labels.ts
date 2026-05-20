@@ -46,6 +46,10 @@ export const RESOLUTION_PATH_TOOLTIPS: Record<ThesisScenarioPathKey, string> = {
 export const SCENARIO_PROBABILITY_TOOLTIP =
   "Chance this resolution path plays out over the thesis horizon. Thesis conviction is Clean win + Messy win.";
 
+export const EDGE_SCORE_TOOLTIP = "Conviction × probability × risk/reward — how actionable the setup looks.";
+
+export const QUALITY_SCORE_TOOLTIP = "Structural quality of thesis reasoning (0–100).";
+
 export function formatQualityScore(score: number): string {
   return `${Math.round(score)}/100`;
 }

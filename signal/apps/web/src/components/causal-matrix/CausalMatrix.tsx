@@ -181,11 +181,12 @@ function MatrixGridCell({
           </span>
           {cell.hasThesis ? <span className="shrink-0 text-[8px] text-[#E8473F]">★</span> : null}
         </div>
-        {cell.conviction != null ? (
-          <span className={cn("shrink-0 tabular-nums text-zinc-400", compact ? "text-[8px]" : "text-[9px]")}>
-            {cell.conviction}%
-          </span>
-        ) : null}
+        <span
+          className={cn("shrink-0 tabular-nums text-zinc-400", compact ? "text-[8px]" : "text-[9px]")}
+          title="Priced in"
+        >
+          {cell.pricedInPercent}% in
+        </span>
       </div>
 
       <p

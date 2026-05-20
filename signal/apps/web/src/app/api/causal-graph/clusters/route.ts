@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { buildCausalGraphClusters } from "@/lib/causal-map/build-causal-graph";
 import {
   filterHiddenFromGraph,
+  filterOnlyHiddenFromGraph,
   loadThesesPageActivity,
 } from "@/lib/causal-map/theses-page-activity";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
@@ -11,13 +12,18 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const revalidate = 60;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const viewHidden = req.nextUrl.searchParams.get("view") === "hidden";
 
   if (!user && !isDepth4PublicReadMode()) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (viewHidden && !user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -31,15 +37,22 @@ export async function GET() {
         .eq("user_id", user.id);
       if (!hiddenErr && hiddenRows) {
         const hiddenIds = new Set(hiddenRows.map((r) => String(r.thesis_id)));
-        payload = filterHiddenFromGraph(payload, hiddenIds);
+        payload = viewHidden
+          ? filterOnlyHiddenFromGraph(payload, hiddenIds)
+          : filterHiddenFromGraph(payload, hiddenIds);
+      } else if (viewHidden) {
+        payload = filterOnlyHiddenFromGraph(payload, new Set());
       }
     }
 
-    const activity = await loadThesesPageActivity(supabase, payload);
+    const activity = viewHidden
+      ? { dailyUpdates: [], recentlyUpdatedThesisIds: [], latestUpdateAt: null }
+      : await loadThesesPageActivity(supabase, payload);
     payload = {
       ...payload,
       dailyUpdates: activity.dailyUpdates,
       recentlyUpdatedThesisIds: activity.recentlyUpdatedThesisIds,
+      latestUpdateAt: activity.latestUpdateAt,
     };
 
     return NextResponse.json(payload, {

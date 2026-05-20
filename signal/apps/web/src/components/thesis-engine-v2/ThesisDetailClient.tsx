@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ThesisStarButton } from "@/components/thesis-engine-v2/ThesisStarButton";
 import { EvidenceTimeline } from "@/components/thesis-engine-v2/EvidenceTimeline";
@@ -80,6 +80,8 @@ import { ThesisResolutionBanner } from "@/components/thesis/ThesisResolutionBann
 import type { ResolutionCheck } from "@/lib/thesis/check-resolution";
 import { assetSymbolFromThesis, storedTradePlanFromThesis } from "@/lib/thesis-engine-v2/stored-trade-plan";
 import { shouldAutoPopulateUserThesisBody } from "@/lib/thesis/populate-user-thesis-body";
+import { UserThesisAnalyzingBanner } from "@/components/thesis-engine-v2/UserThesisAnalyzingBanner";
+import { hideThesisBySlug } from "@/lib/thesis-engine-v2/user-hidden-theses-client";
 import { parseIncentiveAnalysis } from "@/lib/thesis/incentive-analysis";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
 import { lastRemodeledAtFromBody } from "@/lib/thesis-engine-v2/last-remodeled-at";
@@ -243,6 +245,7 @@ export function ThesisDetailClient({
   const [marketSpotPrice, setMarketSpotPrice] = useState<number | null>(null);
   const [resolutionResolving, setResolutionResolving] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     let cancelled = false;
@@ -508,6 +511,20 @@ export function ThesisDetailClient({
     await refreshUserThesisFromServer();
   }, [slug, refreshUserThesisFromServer]);
 
+  const populateKickRef = useRef(false);
+
+  useEffect(() => {
+    if (!bundle || bundle.thesis.origin !== "user") return;
+    const body = debugDbBody ?? catalogBody;
+    if (!shouldAutoPopulateUserThesisBody(body)) return;
+    if (!populateKickRef.current) {
+      populateKickRef.current = true;
+      void onPopulateBody();
+    }
+    const iv = window.setInterval(() => void refreshUserThesisFromServer(), 3000);
+    return () => window.clearInterval(iv);
+  }, [bundle, slug, debugDbBody, catalogBody, onPopulateBody, refreshUserThesisFromServer]);
+
   useEffect(() => {
     if (!bundle) return;
     const t = window.setInterval(() => setBookPulse((n) => n + 1), 2000);
@@ -755,6 +772,36 @@ export function ThesisDetailClient({
   const starDisabled = publicReadOnly || (liveOpt ? !!liveOpt.starDisabledReason(thesis.id) : false);
   const lastRemodeledAt = lastRemodeledAtFromBody(catalogBody ?? debugDbBody);
 
+  const handleStarToggle = () => {
+    if (!liveOpt || starDisabled) return;
+    void (async () => {
+      try {
+        const res = await authFetch(`/api/theses/${encodeURIComponent(slug)}/star`, { method: "POST" });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => null)) as { error?: string } | null;
+          toast.error(friendlyApiMessage(data?.error ?? "star_failed"));
+          return;
+        }
+        liveOpt.toggleStar(thesis.id);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "Star failed");
+      }
+    })();
+  };
+
+  const handleHideFromView = () => {
+    if (publicReadOnly) return;
+    void (async () => {
+      const ok = await hideThesisBySlug(slug);
+      if (!ok) {
+        toast.error("Could not hide thesis");
+        return;
+      }
+      toast.success("Hidden from view");
+      router.push("/theses?hidden=1");
+    })();
+  };
+
   const scenarioAuthenticityNote =
     showAuthoritativeScenarioPercents && isUncalibratedDisplayScenarioTriple(scenarioViewScenarios.rows)
       ? isUserThesis
@@ -765,10 +812,42 @@ export function ThesisDetailClient({
   const inner = (
     <>
       <div className={cn(layout === "drawer" ? "px-4 pb-6 pt-1 sm:px-5" : "mt-6")}>
-        <ThesisActionHeader thesis={thesisForDisplay ?? thesis} displaySourceOpts={{ liveEvidenceApplied }} />
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <ThesisActionHeader
+            thesis={thesisForDisplay ?? thesis}
+            displaySourceOpts={{ liveEvidenceApplied }}
+            starSlot={
+              liveOpt ? (
+                <ThesisStarButton
+                  dataTestId={`thesis-star-header-${thesis.slug}`}
+                  filled={liveStarred}
+                  disabled={starDisabled}
+                  title={
+                    starDisabled
+                      ? (liveOpt.starDisabledReason(thesis.id) ?? undefined)
+                      : liveStarred
+                        ? "Starred — alerts on"
+                        : "Star — bookmark and subscribe"
+                  }
+                  onClick={handleStarToggle}
+                />
+              ) : null
+            }
+          />
+          {!publicReadOnly ? (
+            <button
+              type="button"
+              className="shrink-0 rounded-md border border-white/[0.08] px-3 py-1.5 text-[11px] font-medium text-zinc-400 hover:bg-zinc-900/50 hover:text-zinc-200"
+              onClick={handleHideFromView}
+            >
+              Hide from view
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className={cn("mt-6 space-y-4", layout === "drawer" && "px-4 sm:px-5")}>
+        {userBodyNeedsPopulate ? <UserThesisAnalyzingBanner /> : null}
         {resolutionCheck ? (
           <ThesisResolutionBanner
             check={resolutionCheck}
@@ -885,21 +964,6 @@ export function ThesisDetailClient({
         )}
       >
         <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-600">
-          {liveOpt ? (
-            <ThesisStarButton
-              dataTestId={`thesis-star-${thesis.slug}`}
-              filled={liveStarred}
-              disabled={starDisabled}
-              title={
-                starDisabled
-                  ? (liveOpt.starDisabledReason(thesis.id) ?? undefined)
-                  : liveStarred
-                    ? "Starred — alerts on"
-                    : "Star — bookmark and subscribe"
-              }
-              onClick={() => liveOpt.toggleStar(thesis.id)}
-            />
-          ) : null}
           {liveOpt ? (
             <div ref={alertsMenuRef} className="relative">
               {(() => {

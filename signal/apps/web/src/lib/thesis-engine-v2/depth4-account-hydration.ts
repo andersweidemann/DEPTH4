@@ -119,11 +119,14 @@ export async function hydrateDepth4AccountState(sb: SupabaseClient): Promise<Dep
     if (serverPositions.length > 0) {
       savePositions(serverPositions as Position[], { skipRemote: true });
     } else if (local.length > 0) {
-      await authFetch("/api/user/book-positions", {
+      const mig = await authFetch("/api/user/book-positions", {
         method: "PATCH",
         headers: { Authorization: `Bearer ${tok}`, "Content-Type": "application/json" },
         body: JSON.stringify({ positions: local }),
       });
+      if (mig.ok) {
+        savePositions(local, { skipRemote: true });
+      }
     }
   }
 
