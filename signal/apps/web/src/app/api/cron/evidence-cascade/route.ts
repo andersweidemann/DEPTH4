@@ -134,12 +134,6 @@ export async function GET(req: NextRequest) {
     const log = evidenceLogFromJoin(raw.thesis_evidence_log);
 
     try {
-      if (log?.probability_before != null && log?.probability_after != null) {
-        await mark({ status: "done", result: { skipped: "already_remodeled" } });
-        results.push({ thesisId: raw.thesis_id, status: "skipped_already_remodeled" });
-        continue;
-      }
-
       await mark({ status: "processing", processed: false });
 
       const description = String(log?.description ?? "").trim();
