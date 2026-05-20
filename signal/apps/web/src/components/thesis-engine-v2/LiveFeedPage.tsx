@@ -1,95 +1,16 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import useSWR from "swr";
-import { toast } from "sonner";
 import { friendlyApiMessage } from "@/lib/api-error-message";
 import { swrJsonFetcher } from "@/lib/swr-json-fetcher";
-import { formatTimeAgo } from "@/lib/thesis-helpers";
-import { putUserThesisToSupabase } from "@/lib/thesis-engine-v2/sync-user-thesis-client";
-import { upsertUserThesis } from "@/lib/thesis-engine-v2/user-theses";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
-import { PageHeaderSkeleton, Skeleton, TableRowSkeleton } from "@/components/shared/Skeleton";
-import { CrossThesisFeedItem } from "@/components/feed/CrossThesisFeedItem";
-import { ThesisUpdateCard } from "@/components/feed/ThesisUpdateCard";
-import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { FEED_TOOLTIPS } from "@/lib/thesis-engine-v2/depth-tooltips";
-import { CreateThesisModal } from "@/components/thesis-engine-v2/CreateThesisModal";
-import { useAuth } from "@/contexts/AuthContext";
-import { usePublicReadOnlyWorkspace } from "@/hooks/use-public-read-only-workspace";
-import { cn } from "@/lib/utils";
-import type { User } from "@/types/auth";
-import type { CrossThesisUpdate, FeedItem } from "@/types/feed";
-
-const FEED_TABLE_HEADER =
-  "grid grid-cols-[1fr_100px_minmax(132px,1.1fr)_72px_40px] gap-3 border-b border-white/[0.06] pb-2 text-[10px] uppercase tracking-[0.14em] text-zinc-600";
-
-const FEED_ROW_GRID =
-  "grid grid-cols-[1fr_100px_minmax(132px,1.1fr)_72px_40px] gap-3 border-b border-white/[0.06] py-4 items-start";
-
-/** Quiet copy for Thesis column + tooltips (feed discovery lane). */
-const FEED_THESIS_DISCOVERY_HELPER =
-  "Headlines without a linked thesis still show a forming narrative when DEPTH4 has a working read — provisional only, not trade advice.";
-
-const FEED_THESIS_COLUMN_TOOLTIP =
-  "Provisional interpretation while clustering runs. Promoted theses appear here when mapping and quality gates pass — not trade instructions.";
-
-const FORMING_NARRATIVE_TITLE =
-  "Provisional only — DEPTH4 is still evaluating this signal. Not a promoted thesis and not trade advice.";
-
-function ThesisFeedColumn({ item }: { item: FeedItem }) {
-  const asset = item.thesisAsset?.trim();
-  const slug = item.linkedThesisSlug?.trim();
-  const narrative = item.formingNarrative?.trim();
-
-  if (asset) {
-    return <span className="text-[11px] text-zinc-300">{asset}</span>;
-  }
-  if (slug) {
-    return (
-      <span className="cursor-help text-[11px] text-zinc-600 tabular-nums" title={FEED_THESIS_COLUMN_TOOLTIP}>
-        —
-      </span>
-    );
-  }
-  return (
-    <div className="text-right">
-      <span
-        className="inline-flex cursor-help rounded-full border border-zinc-600/35 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-zinc-500"
-        title={FORMING_NARRATIVE_TITLE}
-      >
-        Evaluating
-      </span>
-      {narrative ? (
-        <p className="mt-2 text-left text-[10px] leading-snug text-zinc-600" title={FORMING_NARRATIVE_TITLE}>
-          <span className="font-medium text-zinc-500">Forming narrative · </span>
-          {narrative}
-        </p>
-      ) : (
-        <p className="mt-1.5 text-left text-[9px] leading-snug text-zinc-600" title={FEED_THESIS_COLUMN_TOOLTIP}>
-          Under evaluation — interpretation will appear when macro reasoning lands on this cluster.
-        </p>
-      )}
-    </div>
-  );
-}
+import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
+import { FeedActivityRow } from "@/components/feed/FeedActivityRow";
+import type { FeedItem } from "@/types/feed";
 
 function isFeedItemArray(x: unknown): x is FeedItem[] {
   return Array.isArray(x) && x.every((i) => i && typeof i === "object" && "type" in i && "id" in i);
-}
-
-function isCrossThesisUpdateArray(x: unknown): x is CrossThesisUpdate[] {
-  return (
-    Array.isArray(x) &&
-    x.every(
-      (i) =>
-        i &&
-        typeof i === "object" &&
-        (i as CrossThesisUpdate).type === "cross_thesis_update" &&
-        "severity" in i,
-    )
-  );
 }
 
 function startOfLocalDay(d: Date): number {
@@ -123,287 +44,15 @@ function groupByDay(items: FeedItem[]): { label: string; items: FeedItem[] }[] {
   return order.map((label) => ({ label, items: map.get(label)! }));
 }
 
-function ChevronRightIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} aria-hidden>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-    </svg>
-  );
-}
-
-function ConvictionChangeRow({ item }: { item: FeedItem }) {
-  const up = item.changeDirection === "up";
-  return (
-    <div className={FEED_ROW_GRID}>
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={cn(
-              "rounded-full border px-1.5 py-0.5 text-[10px] font-medium uppercase",
-              up ? "border-emerald-500/30 text-emerald-400" : "border-red-500/30 text-red-400",
-            )}
-          >
-            {up ? "Conviction ↑" : "Conviction ↓"}
-          </span>
-          <span className="text-[10px] text-zinc-500">Signal level {item.signalLevel}</span>
-        </div>
-        <p className="mt-1.5 text-[12px] font-medium text-zinc-200">{item.summary}</p>
-        {item.linkedThesisSlug ? (
-          <Link
-            href={`/theses/${item.linkedThesisSlug}`}
-            className="mt-1 inline-flex items-center gap-1 text-[10px] text-[#E8473F] transition-colors hover:text-[#ff5c52] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-          >
-            {item.linkedThesisTitle ?? item.linkedThesisSlug} →
-          </Link>
-        ) : null}
-      </div>
-      <div className="text-right">
-        <span className="text-[11px] text-zinc-500">{item.source}</span>
-      </div>
-      <div className="text-right">
-        <ThesisFeedColumn item={item} />
-      </div>
-      <div className="text-right">
-        {item.oldConviction !== null && item.newConviction !== null ? (
-          <div className="flex items-center justify-end gap-1.5">
-            <span className="text-[11px] text-zinc-500">{item.oldConviction}%</span>
-            <ChevronRightIcon className="h-3 w-3 shrink-0 text-zinc-600" />
-            <span className={cn("text-[11px] font-medium", up ? "text-emerald-400" : "text-red-400")}>{item.newConviction}%</span>
-          </div>
-        ) : (
-          <span className="text-[11px] text-zinc-600">—</span>
-        )}
-      </div>
-      <div className="text-right">
-        <span className="text-[10px] text-zinc-600" title={item.timestamp}>
-          {formatTimeAgo(item.timestamp)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function ReasoningRow({ item }: { item: FeedItem }) {
-  const [expanded, setExpanded] = useState(false);
-  const pct = item.newConviction;
-  return (
-    <div className={FEED_ROW_GRID}>
-      <div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full border border-amber-500/30 px-1.5 py-0.5 text-[10px] font-medium uppercase text-amber-400">
-            Reasoning
-          </span>
-          <span className="text-[10px] text-zinc-500">{item.source}</span>
-          <span className="text-[10px] text-zinc-600">·</span>
-          <span className="text-[10px] text-zinc-500">Signal level {item.signalLevel}</span>
-        </div>
-        {!expanded ? (
-          <>
-            <p className="mt-1.5 text-[12px] font-medium text-zinc-200">{item.summary}</p>
-            {item.body ? (
-              <button
-                type="button"
-                onClick={() => setExpanded(true)}
-                className="mt-1 text-left text-[10px] text-zinc-500 transition-colors hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-              >
-                Read analysis →
-              </button>
-            ) : null}
-          </>
-        ) : item.body ? (
-          <div className="mt-3 rounded-md border border-white/[0.06] bg-zinc-900/50 p-3">
-            <div className="max-h-64 space-y-2 overflow-y-auto text-[12px] leading-relaxed text-zinc-300">
-              {item.body
-                .split(/\n\n+/)
-                .slice(0, 3)
-                .map((para, idx) => (
-                  <p key={idx}>{para.length > 400 ? `${para.slice(0, 399)}…` : para}</p>
-                ))}
-            </div>
-            <button
-              type="button"
-              onClick={() => setExpanded(false)}
-              className="mt-2 text-[10px] text-zinc-500 transition-colors hover:text-zinc-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-            >
-              Collapse
-            </button>
-          </div>
-        ) : null}
-        {item.linkedThesisSlug ? (
-          <Link
-            href={`/theses/${item.linkedThesisSlug}`}
-            className="mt-1 inline-flex items-center gap-1 text-[10px] text-[#E8473F] transition-colors hover:text-[#ff5c52] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-          >
-            {item.linkedThesisTitle ?? item.linkedThesisSlug} →
-          </Link>
-        ) : null}
-      </div>
-      <div className="text-right">
-        <span className="text-[11px] text-zinc-500">{item.source}</span>
-      </div>
-      <div className="text-right">
-        <ThesisFeedColumn item={item} />
-      </div>
-      <div className="text-right">
-        {item.linkedThesisSlug && pct !== null ? (
-          <span className="inline-flex items-center justify-end gap-1">
-            <div className="h-1 w-8 overflow-hidden rounded-full bg-zinc-800">
-              <div className="h-full rounded-full bg-[#E8473F]/70" style={{ width: `${Math.min(100, Math.max(0, pct))}%` }} />
-            </div>
-            <span className="text-[10px] text-zinc-400">{pct}%</span>
-          </span>
-        ) : (
-          <span className="text-[11px] text-zinc-600">—</span>
-        )}
-      </div>
-      <div className="text-right">
-        <span className="text-[10px] text-zinc-600" title={item.timestamp}>
-          {formatTimeAgo(item.timestamp)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function HeadlineRow({ item }: { item: FeedItem }) {
-  return (
-    <div className={cn(FEED_ROW_GRID, "py-3")}>
-      <div>
-        <p className="text-[12px] text-zinc-300">{item.headline}</p>
-        {item.linkedThesisSlug ? (
-          <Link
-            href={`/theses/${item.linkedThesisSlug}`}
-            className="mt-0.5 inline-block text-[10px] text-[#E8473F] transition-colors hover:text-[#ff5c52] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
-          >
-            {item.linkedThesisTitle || item.linkedThesisSlug}
-          </Link>
-        ) : null}
-      </div>
-      <div className="text-right">
-        <span className="text-[11px] text-zinc-500">{item.source}</span>
-      </div>
-      <div className="text-right">
-        <ThesisFeedColumn item={item} />
-      </div>
-      <div className="text-right">
-        <span className="text-[11px] text-zinc-600">—</span>
-      </div>
-      <div className="text-right">
-        <span className="text-[10px] text-zinc-600" title={item.timestamp}>
-          {formatTimeAgo(item.timestamp)}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function RemodelRow({ item }: { item: FeedItem }) {
-  return (
-    <div className="border-b border-white/[0.06] py-4">
-      <ThesisUpdateCard item={item} />
-    </div>
-  );
-}
-
-function FeedRow({ item }: { item: FeedItem }) {
-  if (item.type === "thesis_remodel") return <RemodelRow item={item} />;
-  if (item.type === "conviction_change") return <ConvictionChangeRow item={item} />;
-  if (item.type === "reasoning") return <ReasoningRow item={item} />;
-  return <HeadlineRow item={item} />;
-}
-
-function ConnectionsSection({
-  user,
-  crossUpdates,
-  crossLoading,
-  crossError,
-  hasConflicts,
-  onRetryCross,
-  onCreateThesis,
-}: {
-  user: User | null;
-  crossUpdates: CrossThesisUpdate[];
-  crossLoading: boolean;
-  crossError: unknown;
-  hasConflicts: boolean;
-  onRetryCross: () => void;
-  onCreateThesis?: () => void;
-}) {
-  return (
-    <section className="mt-8">
-      <div className="mb-4 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Connections</p>
-          <p className="mt-0.5 text-[11px] text-zinc-600">
-            Cross-thesis relationships detected by the causal graph
-          </p>
-        </div>
-        {crossUpdates.length > 0 ? (
-          <span
-            className={cn(
-              "inline-flex shrink-0 items-center gap-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium",
-              hasConflicts ? "bg-red-500/10 text-red-400" : "bg-amber-500/10 text-amber-400",
-            )}
-          >
-            {crossUpdates.length} active
-            <InfoTooltip text={FEED_TOOLTIPS.activeConnections} maxWidth={200} />
-          </span>
-        ) : null}
-      </div>
-
-      {!user ? (
-        <p className="text-[12px] text-zinc-500">Sign in to see cross-thesis intelligence</p>
-      ) : crossLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-16 w-full rounded-lg" />
-          <Skeleton className="h-16 w-full rounded-lg" />
-        </div>
-      ) : crossError ? (
-        <ErrorBanner message={friendlyApiMessage(crossError)} onRetry={onRetryCross} />
-      ) : user.starredTheses.length === 0 ? (
-        <p className="text-[12px] text-zinc-500">Star theses to see cross-thesis connections</p>
-      ) : crossUpdates.length === 0 ? (
-        <p className="text-[12px] text-zinc-500">Your theses are not yet connected in the causal graph</p>
-      ) : (
-        <div className="space-y-2">
-          {crossUpdates.map((update) => (
-            <CrossThesisFeedItem
-              key={update.id}
-              update={update}
-              onCreateThesis={update.severity === "opportunity" ? onCreateThesis : undefined}
-            />
-          ))}
-        </div>
-      )}
-    </section>
-  );
-}
-
 export function LiveFeedPage() {
-  const { user } = useAuth();
-  const publicReadOnly = usePublicReadOnlyWorkspace();
-  const [createThesisOpen, setCreateThesisOpen] = useState(false);
-
   const feedKey = useMemo(() => "/api/feed", []);
-  const crossThesisKey = user ? "/api/feed/cross-thesis" : null;
   const { data, error, isLoading, mutate } = useSWR<unknown>(feedKey, swrJsonFetcher);
-  const {
-    data: crossData,
-    error: crossError,
-    isLoading: crossLoading,
-    mutate: mutateCross,
-  } = useSWR<unknown>(crossThesisKey, swrJsonFetcher);
 
   useEffect(() => {
     document.title = "DEPTH4 · Feed";
   }, []);
 
   const items = useMemo(() => (isFeedItemArray(data) ? data : []), [data]);
-  const crossUpdates = useMemo(
-    () => (isCrossThesisUpdateArray(crossData) ? crossData : []),
-    [crossData],
-  );
-  const hasConflicts = crossUpdates.some((u) => u.severity === "conflict");
   const grouped = useMemo(() => groupByDay(items), [items]);
 
   if (isLoading) {
@@ -412,11 +61,8 @@ export function LiveFeedPage() {
         <PageHeaderSkeleton />
         <div className="mt-6 space-y-3">
           <Skeleton className="h-8 w-full max-w-md rounded-lg" />
-        </div>
-        <div className="mt-8 space-y-0">
-          {[0, 1, 2, 3].map((i) => (
-            <TableRowSkeleton key={i} />
-          ))}
+          <Skeleton className="h-24 w-full rounded-lg" />
+          <Skeleton className="h-24 w-full rounded-lg" />
         </div>
       </div>
     );
@@ -435,74 +81,32 @@ export function LiveFeedPage() {
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
         <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Feed</h1>
-        <p className="mt-1 text-[13px] text-zinc-400">News read, analyzed, and mapped to your theses.</p>
-      </div>
-
-      <ConnectionsSection
-        user={user}
-        crossUpdates={crossUpdates}
-        crossLoading={crossLoading}
-        crossError={crossError}
-        hasConflicts={hasConflicts}
-        onRetryCross={() => void mutateCross()}
-        onCreateThesis={publicReadOnly ? undefined : () => setCreateThesisOpen(true)}
-      />
-
-      <div className="mt-8 flex items-center justify-between">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Latest events</p>
-        <p className="text-[10px] text-zinc-600">Reasoning, headlines, and conviction changes</p>
+        <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-zinc-400">
+          Live stream of DEPTH4 intelligence — thesis updates, new theses from analyzed news, and status changes.
+          Every item is machine activity tied to a thesis, not raw headlines.
+        </p>
+        <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.14em] text-zinc-500">
+          AI monitoring · thesis pipeline active · evidence cascade on
+        </p>
       </div>
 
       {items.length === 0 ? (
-        <p className="mt-4 text-[12px] text-zinc-600">
-          No events yet. News will appear here as DEPTH4 ingests and analyzes macro headlines.
+        <p className="mt-8 text-[13px] leading-relaxed text-zinc-500">
+          DEPTH4 is monitoring markets. Activity will appear here when theses re-model, graduate, resolve, or are
+          created from analyzed macro news.
         </p>
       ) : (
-        <div className="mt-3 overflow-x-auto">
-          <div className="min-w-[720px]">
-            <div className={FEED_TABLE_HEADER}>
-              <span>Event</span>
-              <span className="text-right">Source</span>
-              <span className="text-right">Thesis</span>
-              <span className="text-right">Change</span>
-              <span />
-            </div>
-            <p className="mt-2 mb-1 max-w-2xl border-l border-[#E8473F]/20 pl-2.5 text-[10px] leading-relaxed text-zinc-600">
-              {FEED_THESIS_DISCOVERY_HELPER}
-            </p>
-            {grouped.map((g) => (
-              <div key={g.label}>
-                <div className="mt-6 mb-2">
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-zinc-600">{g.label}</p>
-                </div>
-                {g.items.map((item) => (
-                  <FeedRow key={item.id} item={item} />
-                ))}
-              </div>
-            ))}
-          </div>
+        <div className="mt-8 max-w-2xl">
+          {grouped.map((g) => (
+            <section key={g.label}>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.16em] text-zinc-600">{g.label}</p>
+              {g.items.map((item) => (
+                <FeedActivityRow key={item.id} item={item} />
+              ))}
+            </section>
+          ))}
         </div>
       )}
-
-      <CreateThesisModal
-        open={createThesisOpen}
-        onOpenChange={setCreateThesisOpen}
-        onCreate={(t) => {
-          upsertUserThesis(t);
-          void putUserThesisToSupabase(t).then(async (r) => {
-            if (!r.ok) {
-              toast.error(
-                r.error === "sign_in_required"
-                  ? "Sign in to save this thesis to your account."
-                  : friendlyApiMessage(r.error),
-              );
-              return;
-            }
-            await Promise.all([mutate(), mutateCross()]);
-            toast.success("Thesis created");
-          });
-        }}
-      />
     </div>
   );
 }

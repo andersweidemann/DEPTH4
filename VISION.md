@@ -6,6 +6,62 @@ DEPTH4 is a macro intelligence engine that reads the news, maps how stories casc
 
 The core insight: **prices don't move because of headlines — they move because of chains of consequences that most traders never trace.** A Fed pause headline moves bonds. But the real edge is in credit spreads tightening the following month, and leadership rotating to cash-flow names for the quarter. Most traders stop at the headline. DEPTH4 follows the full chain.
 
+## What DEPTH4 Does
+
+The platform reads headlines, runs incentive analysis, detects mispricings, and **generates theses automatically**. Users review AI-generated theses, star them, or create personal overlays — but the engine **never offloads thesis creation to the user** as the default path.
+
+- **No raw news without analysis.** Headlines appear only after they've been processed through the full pipeline: event detection → incentive analysis → causal propagation → thesis generation → quality gate.
+
+## What DEPTH4 Does NOT Do
+
+- Delegate core thesis creation to users ("create a thesis for this implied asset").
+- Surface raw headlines or wire items that have not been analyzed and mapped.
+- Use the feed as a discovery lane for manual gap-filling the AI should have closed.
+
+## The Feed: AI Activity Dashboard
+
+The feed exists for one purpose: **prove the engine is working.** It shows:
+
+- **Thesis updates** — re-model events (probability shifts, trade plan changes, "what changed" summaries)
+- **New thesis creation** — AI-generated theses from breaking news
+- **Status transitions** — watching → active → resolved → archived
+- **Key evidence** — significant headlines that triggered a re-model
+
+The feed does **not** show:
+
+- Implied asset lists requiring manual thesis creation
+- Raw news without analysis
+- User action prompts ("create thesis for X")
+
+If implied asset relationships are valuable, they appear on the **thesis detail page** under a collapsible **"Implied moves"** section. The AI auto-creates a thesis if the implied move crosses significance thresholds.
+
+## Two Types of Theses
+
+| Type | Created by | Purpose |
+|------|------------|---------|
+| **AI-generated** | DEPTH4 pipeline | Core intelligence product — reads news, creates theses automatically |
+| **User-created** | User | Personal conviction trades, overrides, or niche theses the AI hasn't found |
+
+User-created theses get the same AI treatment (`populateUserThesisBody`, continuous re-modeling via evidence cascade). They are not second-class — they're **personal overlays** on the AI-generated base.
+
+## Two-Shell Layout
+
+**Marketing shell** (`/` homepage):
+
+- Hero + proof sections
+- No auth required
+- Converts visitors to signups
+
+**App shell** (`/theses`, `/feed`, `/book`, …):
+
+- Top navigation: Theses · Feed · Positions · Community · Leaderboard · Help
+- Content area with thesis cards, feed, causal graph
+- Auth required for write actions; **public read mode** for visitors (view-only)
+
+## Core Value Proposition
+
+DEPTH4 reads thousands of headlines so you don't have to. It turns news into structured macro theses with trade plans, tracks them as evidence arrives, and tells you what changed. The user reviews, refines, and acts — **but never starts from zero.**
+
 ---
 
 ## The Two Dimensions of Depth
@@ -117,8 +173,8 @@ Every cell shows "what the thesis expects" AND "how much is already priced in." 
 ### 4. Conflicts are signals
 When two theses from the same event predict opposite directions on the same asset, that's not a bug — it's a portfolio risk signal. The system should surface these conflicts, not hide them.
 
-### 5. Implied effects are opportunities
-When an event propagates to an asset with high mispricing but no dedicated thesis, that's a product opportunity. The "Create thesis →" button on implied effects turns AI-detected implications into tracked positions.
+### 5. Implied effects are opportunities — engine-owned, not user homework
+When an event propagates to an asset with high mispricing but no dedicated thesis, the pipeline should **auto-create** a thesis if significance thresholds are met. Otherwise implied moves live on **thesis detail** (collapsible "Implied moves") — never as feed prompts that ask the user to create a thesis.
 
 ---
 
@@ -128,7 +184,7 @@ When an event propagates to an asset with high mispricing but no dedicated thesi
 - Sees thesis clusters grouped by root event — understands how their positions interconnect
 - Sees which assets are most mispriced across the full causal chain
 - Gets conflict warnings when their portfolio has contradictory bets
-- Converts implied effects into tracked theses with one click
+- Reviews AI-generated theses and stars or trades them — does not build the catalog from scratch
 
 ### For the serious retail trader
 - Sees the full story chain from headline to fourth-order effect
@@ -161,7 +217,7 @@ No competitor systematically maps both time depth AND asset depth for macro thes
 - Trade plans with entry/stop/target
 - AI chat assistant
 - Position tracking
-- Feed with news analysis
+- Feed as AI activity dashboard (thesis updates, new theses, status, key evidence)
 - Help documentation
 
 ### In Development
@@ -169,8 +225,8 @@ No competitor systematically maps both time depth AND asset depth for macro thes
 - Global causal map (/map page)
 - Thesis clustering by event
 - Cross-thesis conflict detection
-- Implied effect → thesis creation flow
-- Graph-aware feed (cross-thesis updates)
+- Auto-create theses from significant implied moves (pipeline thresholds)
+- Implied moves on thesis detail (not feed discovery)
 
 ---
 

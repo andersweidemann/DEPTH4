@@ -8,8 +8,6 @@ import {
 } from "@/lib/thesis-engine-v2/thesis-display-scenarios";
 import { dbScenarioTripleFromMacroHeadlineLeadPct } from "@/lib/macro-reasoning/macro-headline-probability-to-db-triple";
 import { pickStrongestCatalogThesisId } from "@/lib/macro-reasoning/pick-strongest-catalog-thesis";
-import { safeParseMacroEventReasoning } from "@/lib/macro-reasoning/schema";
-import { formingNarrativeLineFromMacro } from "@/lib/feed/forming-narrative";
 import {
   fetchPromotedMacroReasoningRows,
   parseReasoningPayload,
@@ -63,81 +61,6 @@ function thesisMetaToFeedThesisFields(meta: ThesisMeta | undefined) {
     linkedThesisSlug: slug,
     linkedThesisTitle: title,
   };
-}
-
-async function fetchFormingNarrativeByNewsEventIds(
-  supabase: SupabaseClient,
-  newsEventIds: string[],
-): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  const ids = Array.from(new Set(newsEventIds.map((x) => x.trim()).filter(Boolean)));
-  if (!ids.length) return out;
-
-  const { data, error } = await supabase
-    .from("event_reasoning")
-    .select("news_event_id, reasoning, created_at")
-    .in("news_event_id", ids)
-    .order("created_at", { ascending: false });
-
-  if (error || !data?.length) return out;
-
-  for (const row of data as { news_event_id?: string; reasoning?: unknown }[]) {
-    const nid = typeof row.news_event_id === "string" ? row.news_event_id.trim() : "";
-    if (!nid || out.has(nid)) continue;
-    const p = safeParseMacroEventReasoning(row.reasoning);
-    if (!p.ok) continue;
-    const line = formingNarrativeLineFromMacro(p.data);
-    if (line) out.set(nid, line);
-  }
-  return out;
-}
-
-async function fetchNewsHeadlineItems(supabase: SupabaseClient, limit: number): Promise<FeedItem[]> {
-  const { data, error } = await supabase
-    .from("news_events")
-    .select("id, headline, source, published_at, signal_level")
-    .order("published_at", { ascending: false })
-    .limit(limit);
-
-  if (error || !data?.length) return [];
-
-  const rows = data as {
-    id: string;
-    headline: string | null;
-    source: string | null;
-    published_at: string | null;
-    signal_level: number | null;
-  }[];
-
-  const formingByNewsId = await fetchFormingNarrativeByNewsEventIds(
-    supabase,
-    rows.map((r) => r.id),
-  );
-
-  return rows.map((row) => {
-    const iso = row.published_at;
-    const headline = (row.headline ?? "").trim() || "Headline unavailable";
-    return {
-      id: `news-${row.id}`,
-      type: "headline" as const,
-      source: (row.source ?? "").trim() || "Wire",
-      headline,
-      timestamp: formatFeedTimestamp(iso),
-      signalLevel: typeof row.signal_level === "number" ? row.signal_level : 0,
-      thesisSlug: null,
-      thesisTitle: null,
-      thesisAsset: null,
-      thesisDirection: null,
-      oldConviction: null,
-      newConviction: null,
-      changeDirection: null,
-      summary: headline,
-      body: undefined,
-      linkedThesisSlug: null,
-      linkedThesisTitle: null,
-      formingNarrative: formingByNewsId.get(row.id) ?? null,
-    };
-  });
 }
 
 async function fetchConvictionChangeItems(supabase: SupabaseClient, limit: number): Promise<FeedItem[]> {
@@ -237,8 +160,6 @@ function promotedJoinToFeedItem(
   const newsJoin = parseReasoningPayload(row)?.news;
   const signalLevel = typeof newsJoin?.signal_level === "number" ? newsJoin.signal_level : 0;
   const t = thesisMetaToFeedThesisFields(meta);
-  const linkedSlug = (t.linkedThesisSlug ?? "").trim();
-  const formingNarrative = !linkedSlug ? formingNarrativeLineFromMacro(parsed) : null;
   const iso = newsJoin?.published_at ?? row.created_at;
   const summary =
     (parsed.reasoning_summary ?? "").trim() ||
@@ -263,7 +184,6 @@ function promotedJoinToFeedItem(
     body: reasoningBody.trim() || undefined,
     linkedThesisSlug: t.linkedThesisSlug,
     linkedThesisTitle: t.linkedThesisTitle,
-    formingNarrative,
   };
 }
 
@@ -282,7 +202,8 @@ async function fetchReasoningItems(supabase: SupabaseClient, loadPromoted: boole
   const thesisMetaById = await fetchThesisMetaMap(supabase, [...thesisIds, ...bridgeIds]);
   return rows
     .map((r) => promotedJoinToFeedItem(r, thesisMetaById, aiThesisIdByClusterId))
-    .filter((x): x is FeedItem => x !== null);
+    .filter((x): x is FeedItem => x !== null)
+    .filter((item) => Boolean(item.linkedThesisSlug?.trim()));
 }
 
 function parseRemodelScenarios(raw: unknown): { clean: number; messy: number; broken: number } | null {
@@ -399,12 +320,237 @@ async function fetchThesisRemodelFeedItems(supabase: SupabaseClient, limit: numb
   return out;
 }
 
+function assetDirectionFromBody(body: unknown): { asset: string | null; direction: "long" | "short" | null } {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return { asset: null, direction: null };
+  const o = body as Record<string, unknown>;
+  const asset = typeof o.asset === "string" && o.asset.trim() ? o.asset.trim() : null;
+  const d = o.direction === "short" ? "short" : o.direction === "long" ? "long" : null;
+  return { asset, direction: d };
+}
+
+function statusChangeLabel(toStatus: string): string {
+  const s = toStatus.trim().toLowerCase();
+  if (s === "resolved") return "Thesis resolved";
+  if (s === "invalidated") return "Thesis invalidated";
+  if (s === "active") return "Thesis active";
+  if (s === "ready") return "Thesis ready";
+  if (s === "watching") return "Thesis watching";
+  return "Status change";
+}
+
+async function fetchThesisCreatedFeedItems(supabase: SupabaseClient, limit: number): Promise<FeedItem[]> {
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const { data, error } = await supabase
+    .from("theses")
+    .select("id, slug, title, micro_label, body, thesis_origin, created_at")
+    .eq("thesis_origin", "ai_generated")
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data?.length) return [];
+
+  const out: FeedItem[] = [];
+  for (const row of data as {
+    id?: unknown;
+    slug?: unknown;
+    title?: unknown;
+    micro_label?: unknown;
+    body?: unknown;
+    thesis_origin?: unknown;
+    created_at?: unknown;
+  }[]) {
+    const id = String(row.id ?? "").trim();
+    const slug = String(row.slug ?? "").trim();
+    const title = String(row.title ?? "").trim();
+    if (!id || !slug || !title) continue;
+    const meta = thesisMetaToFeedThesisFields({
+      slug,
+      title,
+      microLabel: typeof row.micro_label === "string" ? row.micro_label : null,
+      asset: assetDirectionFromBody(row.body).asset,
+      direction: assetDirectionFromBody(row.body).direction,
+    });
+    const sourceLine =
+      typeof row.micro_label === "string" && row.micro_label.trim()
+        ? `AI-generated · ${row.micro_label.trim()}`
+        : "AI-generated from analyzed macro news";
+    out.push({
+      id: `created-${id}`,
+      type: "thesis_created",
+      source: "DEPTH4",
+      headline: title,
+      timestamp: formatFeedTimestamp(typeof row.created_at === "string" ? row.created_at : null),
+      signalLevel: 2,
+      ...meta,
+      oldConviction: null,
+      newConviction: null,
+      changeDirection: null,
+      summary: sourceLine,
+      body: sourceLine,
+      linkedThesisSlug: slug,
+      linkedThesisTitle: title,
+      createdMeta: {
+        origin: String(row.thesis_origin ?? "ai_generated"),
+        sourceLine,
+      },
+    });
+  }
+  return out;
+}
+
+async function fetchStatusChangeFeedItems(supabase: SupabaseClient, limit: number): Promise<FeedItem[]> {
+  const { data, error } = await supabase
+    .from("thesis_updates")
+    .select("id, thesis_id, created_at, change_type, reason, old_values, new_values")
+    .eq("change_type", "status_transition")
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+
+  if (error || !data?.length) return [];
+
+  const rows = data as {
+    id: string;
+    thesis_id: string;
+    created_at: string;
+    reason: string | null;
+    old_values: unknown;
+    new_values: unknown;
+  }[];
+
+  const thesisIds = Array.from(new Set(rows.map((r) => String(r.thesis_id ?? "").trim()).filter(Boolean)));
+  const metaById = await fetchThesisMetaMap(supabase, thesisIds);
+  const out: FeedItem[] = [];
+
+  for (const row of rows) {
+    const oldV = row.old_values && typeof row.old_values === "object" ? (row.old_values as Record<string, unknown>) : {};
+    const newV = row.new_values && typeof row.new_values === "object" ? (row.new_values as Record<string, unknown>) : {};
+    const fromStatus = String(oldV.status ?? "").trim();
+    const toStatus = String(newV.status ?? "").trim();
+    if (!toStatus) continue;
+
+    const label = statusChangeLabel(toStatus);
+    const reason = (row.reason ?? "").trim();
+    const summary =
+      reason ||
+      (fromStatus
+        ? `${label}: ${fromStatus} → ${toStatus}`
+        : `${label} — ${toStatus}`);
+
+    const t = thesisMetaToFeedThesisFields(metaById.get(String(row.thesis_id).trim()));
+    if (!t.linkedThesisSlug) continue;
+
+    out.push({
+      id: `status-${row.id}`,
+      type: "status_change",
+      source: "DEPTH4",
+      headline: t.thesisTitle ? `${t.thesisTitle}: ${summary}` : summary,
+      timestamp: formatFeedTimestamp(row.created_at),
+      signalLevel: toStatus === "resolved" || toStatus === "invalidated" ? 3 : 2,
+      ...t,
+      oldConviction: null,
+      newConviction: null,
+      changeDirection: null,
+      summary,
+      body: summary,
+      linkedThesisSlug: t.linkedThesisSlug,
+      linkedThesisTitle: t.linkedThesisTitle,
+      statusMeta: { fromStatus, toStatus, label },
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
+async function fetchKeyEvidenceFeedItems(supabase: SupabaseClient, limit: number): Promise<FeedItem[]> {
+  const { data, error } = await supabase
+    .from("thesis_evidence_log")
+    .select("id, thesis_id, created_at, event_type, description, metadata")
+    .order("created_at", { ascending: false })
+    .limit(limit * 4);
+
+  if (error || !data?.length) return [];
+  return buildKeyEvidenceFromRows(
+    data as {
+      id: string;
+      thesis_id: string;
+      created_at: string;
+      event_type: string;
+      description: string | null;
+      metadata: unknown;
+    }[],
+    supabase,
+    limit,
+  );
+}
+
+async function buildKeyEvidenceFromRows(
+  data: {
+    id: string;
+    thesis_id: string;
+    created_at: string;
+    event_type: string;
+    description: string | null;
+    metadata: unknown;
+  }[],
+  supabase: SupabaseClient,
+  limit: number,
+): Promise<FeedItem[]> {
+  const thesisIds = Array.from(new Set(data.map((r) => String(r.thesis_id ?? "").trim()).filter(Boolean)));
+  const metaById = await fetchThesisMetaMap(supabase, thesisIds);
+  const out: FeedItem[] = [];
+
+  for (const row of data) {
+    const metaObj = row.metadata && typeof row.metadata === "object" ? (row.metadata as Record<string, unknown>) : {};
+    const signalLevel = typeof metaObj.signal_level === "number" ? metaObj.signal_level : 0;
+    if (signalLevel < 4) continue;
+
+    const desc = (row.description ?? "").trim();
+    if (!desc) continue;
+
+    const t = thesisMetaToFeedThesisFields(metaById.get(String(row.thesis_id).trim()));
+    if (!t.linkedThesisSlug) continue;
+
+    out.push({
+      id: `evidence-${row.id}`,
+      type: "key_evidence",
+      source: "DEPTH4",
+      headline: headlineFromDescription(desc),
+      timestamp: formatFeedTimestamp(row.created_at),
+      signalLevel,
+      ...t,
+      oldConviction: null,
+      newConviction: null,
+      changeDirection: null,
+      summary: desc,
+      body: desc,
+      linkedThesisSlug: t.linkedThesisSlug,
+      linkedThesisTitle: t.linkedThesisTitle,
+    });
+    if (out.length >= limit) break;
+  }
+  return out;
+}
+
 const TYPE_PRIORITY: Record<FeedItem["type"], number> = {
   thesis_remodel: 0,
-  conviction_change: 1,
-  reasoning: 2,
-  headline: 3,
+  thesis_created: 1,
+  status_change: 2,
+  conviction_change: 3,
+  key_evidence: 4,
+  reasoning: 5,
+  headline: 6,
 };
+
+/** Feed is AI activity only — no raw headlines or unmapped discovery noise. */
+export function filterAiActivityFeedItems(items: FeedItem[]): FeedItem[] {
+  return items.filter((item) => {
+    if (item.type === "headline") return false;
+    if (item.type === "reasoning" && !item.linkedThesisSlug?.trim()) return false;
+    if (!item.linkedThesisSlug?.trim()) return false;
+    return true;
+  });
+}
 
 function sortKeyMs(iso: string): number {
   const d = new Date(iso);
@@ -413,11 +559,20 @@ function sortKeyMs(iso: string): number {
 
 export function mergeAndSortFeedItems(parts: {
   remodel: FeedItem[];
+  created: FeedItem[];
+  status: FeedItem[];
   conviction: FeedItem[];
+  evidence: FeedItem[];
   reasoning: FeedItem[];
-  headlines: FeedItem[];
 }): FeedItem[] {
-  const merged = [...parts.remodel, ...parts.conviction, ...parts.reasoning, ...parts.headlines];
+  const merged = [
+    ...parts.remodel,
+    ...parts.created,
+    ...parts.status,
+    ...parts.conviction,
+    ...parts.evidence,
+    ...parts.reasoning,
+  ];
   merged.sort((a, b) => {
     const byTime = sortKeyMs(b.timestamp) - sortKeyMs(a.timestamp);
     if (byTime !== 0) return byTime;
@@ -427,11 +582,15 @@ export function mergeAndSortFeedItems(parts: {
 }
 
 export async function buildFeedItems(supabase: SupabaseClient, loadPromoted: boolean): Promise<FeedItem[]> {
-  const [remodel, conviction, reasoning, headlines] = await Promise.all([
+  const [remodel, created, status, conviction, evidence, reasoning] = await Promise.all([
     fetchThesisRemodelFeedItems(supabase, 24),
-    fetchConvictionChangeItems(supabase, 80),
+    fetchThesisCreatedFeedItems(supabase, 16),
+    fetchStatusChangeFeedItems(supabase, 16),
+    fetchConvictionChangeItems(supabase, 40),
+    fetchKeyEvidenceFeedItems(supabase, 12),
     fetchReasoningItems(supabase, loadPromoted),
-    fetchNewsHeadlineItems(supabase, 48),
   ]);
-  return mergeAndSortFeedItems({ remodel, conviction, reasoning, headlines });
+  return filterAiActivityFeedItems(
+    mergeAndSortFeedItems({ remodel, created, status, conviction, evidence, reasoning }),
+  );
 }

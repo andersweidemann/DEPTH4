@@ -25,7 +25,14 @@ export type ThesisRemodelFeedMeta = {
 
 export interface FeedItem {
   id: string;
-  type: "reasoning" | "headline" | "conviction_change" | "thesis_remodel";
+  type:
+    | "thesis_remodel"
+    | "thesis_created"
+    | "status_change"
+    | "conviction_change"
+    | "key_evidence"
+    | "reasoning"
+    | "headline";
   source: string;
   headline: string;
   /** ISO 8601 for sorting and day grouping; formatted in the client for display. */
@@ -50,6 +57,17 @@ export interface FeedItem {
   formingNarrative?: string | null;
   /** Present when `type === "thesis_remodel"`. */
   remodelMeta?: ThesisRemodelFeedMeta | null;
+  /** Present when `type === "status_change"`. */
+  statusMeta?: {
+    fromStatus: string;
+    toStatus: string;
+    label: string;
+  } | null;
+  /** Present when `type === "thesis_created"`. */
+  createdMeta?: {
+    origin: string;
+    sourceLine?: string | null;
+  } | null;
 }
 
 /** @deprecated Legacy feed card — prefer {@link FeedItem}. */
