@@ -64,6 +64,12 @@ import {
   fetchBellNotificationsForUser,
   mergeBellNotificationsIntoAlerts,
 } from "@/lib/thesis-engine-v2/fetch-bell-notifications";
+import {
+  isRemodelBellAlertKey,
+  parseRemodelNotificationIdFromAlertKey,
+  persistBellNotificationDismiss,
+  persistBellNotificationsMarkAllRead,
+} from "@/lib/thesis-engine-v2/bell-notifications-persist";
 
 const MAX_TICKER = 14;
 const MAX_ALERTS = 20;
@@ -700,7 +706,7 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
             });
             if (!pending) continue;
             const st = alertAccountStateRef.current[pending.id];
-            if (st === "dismissed") continue;
+            if (st === "dismissed" || st === "read") continue;
             nextAlerts.push({
               ...pending,
               read: st === "read",
@@ -1016,10 +1022,15 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const dismissAlert = useCallback((id: string) => {
     alertAccountStateRef.current[id] = "dismissed";
     void persistDepth4AlertStates([{ alert_key: id, state: "dismissed" }], { action: "dismiss" });
+    if (isRemodelBellAlertKey(id)) {
+      const nid = parseRemodelNotificationIdFromAlertKey(id);
+      if (nid) void persistBellNotificationDismiss(nid);
+    }
     setAlerts((cur) => cur.filter((x) => x.id !== id));
   }, []);
 
   const markAllRead = useCallback(() => {
+    void persistBellNotificationsMarkAllRead();
     setAlerts((cur) => {
       const unread = cur.filter((x) => !x.read);
       if (unread.length > 0) {

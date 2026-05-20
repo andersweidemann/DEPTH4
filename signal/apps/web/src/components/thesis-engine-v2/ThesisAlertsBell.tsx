@@ -15,12 +15,15 @@ export function ThesisAlertsBell() {
   const [filter, setFilter] = useState<"all" | "probability" | "trade" | "system">("all");
   const [testRowId, setTestRowId] = useState<string | null>(null);
 
+  const unreadAlerts = useMemo(() => alerts.filter((a) => !a.read), [alerts]);
+
   const filtered = useMemo(() => {
-    if (filter === "all") return alerts;
-    if (filter === "probability") return alerts.filter((a) => a.type === "probability_change");
-    if (filter === "trade") return alerts.filter((a) => a.type === "consequence_change" || a.type === "invalidation");
-    return alerts.filter((a) => a.type === "system");
-  }, [alerts, filter]);
+    const base = unreadAlerts;
+    if (filter === "all") return base;
+    if (filter === "probability") return base.filter((a) => a.type === "probability_change");
+    if (filter === "trade") return base.filter((a) => a.type === "consequence_change" || a.type === "invalidation");
+    return base.filter((a) => a.type === "system");
+  }, [unreadAlerts, filter]);
 
   useEffect(() => {
     if (!open) return;
@@ -34,8 +37,8 @@ export function ThesisAlertsBell() {
 
   useEffect(() => {
     if (!open) return;
-    setTestRowId((prev) => prev ?? alerts[0]?.id ?? null);
-  }, [open, alerts]);
+    setTestRowId((prev) => prev ?? unreadAlerts[0]?.id ?? null);
+  }, [open, unreadAlerts]);
 
   useEffect(() => {
     if (open) return;
@@ -68,7 +71,7 @@ export function ThesisAlertsBell() {
         >
           <div className="flex items-center justify-between gap-2 border-b border-white/[0.06] px-3 py-2">
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-500">Alerts</p>
-            {alerts.length > 0 ? (
+            {unreadAlerts.length > 0 ? (
               <button
                 type="button"
                 className="shrink-0 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-300 hover:bg-zinc-900/60 hover:text-zinc-100"

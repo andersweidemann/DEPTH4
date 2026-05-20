@@ -17,6 +17,7 @@ export async function fetchBellNotificationsForUser(
     .select("id, created_at, thesis_id, title, body, metadata, read_at, dismissed_at")
     .eq("user_id", userId)
     .gte("created_at", since)
+    .is("read_at", null)
     .is("dismissed_at", null)
     .order("created_at", { ascending: false })
     .limit(BELL_NOTIFICATION_LIMIT);
@@ -36,16 +37,25 @@ export async function fetchBellNotificationsForUser(
   return out;
 }
 
-/** Bell remodel rows first, then other alerts; dedupe by stable alert id. */
+/** Bell remodel rows first, then other alerts; dedupe by stable alert id; preserve read flags. */
 export function mergeBellNotificationsIntoAlerts(
   current: ThesisAlertEntry[],
   bell: ThesisAlertEntry[],
   limit = BELL_NOTIFICATION_LIMIT,
 ): ThesisAlertEntry[] {
   const byId = new Map<string, ThesisAlertEntry>();
-  for (const b of bell) byId.set(b.id, b);
-  for (const e of current) {
-    if (!byId.has(e.id)) byId.set(e.id, e);
+  for (const e of current) byId.set(e.id, e);
+  for (const b of bell) {
+    const prev = byId.get(b.id);
+    if (!prev) {
+      byId.set(b.id, b);
+      continue;
+    }
+    byId.set(b.id, {
+      ...b,
+      read: prev.read || b.read,
+      createdAt: Math.max(prev.createdAt, b.createdAt),
+    });
   }
   return Array.from(byId.values())
     .sort((a, b) => b.createdAt - a.createdAt)
