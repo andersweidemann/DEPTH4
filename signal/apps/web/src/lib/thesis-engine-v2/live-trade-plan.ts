@@ -4,6 +4,7 @@
  */
 import type { LiveTradePlan, Thesis } from "@/lib/thesis-engine-v2/types";
 import type { OhlcvBar } from "@/lib/market-data";
+import { toTwelveDataSymbol } from "@/lib/market-data/symbol-mapping";
 
 /** Maps thesis primary asset labels to Twelve Data symbols (daily series). */
 export function mapAssetToQuoteSymbol(assetRaw: string): string | null {
@@ -11,7 +12,6 @@ export function mapAssetToQuoteSymbol(assetRaw: string): string | null {
   if (!a || a === "—" || a === "-") return null;
 
   const map: Record<string, string> = {
-    XAUUSD: "XAU/USD",
     USOIL: "WTI",
     GLD: "GLD",
     TLT: "TLT",
@@ -26,8 +26,8 @@ export function mapAssetToQuoteSymbol(assetRaw: string): string | null {
     CL: "WTI",
   };
 
-  if (map[a]) return map[a];
-  if (/^[A-Z][A-Z0-9./\-]*$/.test(a)) return a;
+  if (map[a]) return toTwelveDataSymbol(map[a]);
+  if (/^[A-Z][A-Z0-9./\-]*$/.test(a)) return toTwelveDataSymbol(a);
   return null;
 }
 

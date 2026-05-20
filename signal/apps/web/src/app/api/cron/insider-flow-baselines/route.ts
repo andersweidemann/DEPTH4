@@ -3,6 +3,7 @@ import { assertCronSecret } from "@/lib/cron-auth";
 import { normalizeSupabaseUrl, normalizeSupabaseAnonKey } from "@/lib/supabase/env";
 import { createClient as createSupabaseJsClient, type SupabaseClient } from "@supabase/supabase-js";
 import { getDailyBars, getIntraday5mBars } from "@/lib/market-data";
+import { isTwentyFourSevenTwelveDataSymbol } from "@/lib/market-data/symbol-mapping";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ function pctChange(a: number, b: number) {
 }
 
 function isAlwaysOnInstrument(symbol: string) {
-  return symbol.includes("/");
+  return isTwentyFourSevenTwelveDataSymbol(symbol);
 }
 
 function median(xs: number[]) {

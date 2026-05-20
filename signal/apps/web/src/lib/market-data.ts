@@ -1,3 +1,15 @@
+import {
+  isTwentyFourSevenTwelveDataSymbol,
+  toTwelveDataSymbol,
+} from "@/lib/market-data/symbol-mapping";
+
+export {
+  fromTwelveDataSymbol,
+  toTwelveDataSymbol,
+  TWELVE_DATA_SYMBOL_MAP,
+  isTwentyFourSevenTwelveDataSymbol,
+} from "@/lib/market-data/symbol-mapping";
+
 export type OhlcvBar = {
   tsMs: number;
   open: number;
@@ -92,14 +104,11 @@ function isUsMarketHoursNow(): boolean {
 }
 
 function isAlwaysOnInstrument(symbol: string) {
-  // Conservative heuristic:
-  // - Anything with "/" is treated as 24/7 (crypto/forex/commodities).
-  // - Plain tickers treated as stock/ETF.
-  return symbol.includes("/");
+  return isTwentyFourSevenTwelveDataSymbol(symbol);
 }
 
 function normalizeSymbol(sym: string) {
-  return sym.trim();
+  return toTwelveDataSymbol(sym);
 }
 
 async function fetchTwelveDataBars(symbol: string, interval: "1min" | "5min" | "1day", outputsize: number): Promise<OhlcvBar[]> {
@@ -298,10 +307,11 @@ export async function getMarketSnapshotsBatch(args: {
   const batch = await fetchTwelveDataBatch(symbols, { interval: "5min", outputsize: 7 });
   const out: Record<string, MarketSnapshot | null> = {};
   for (const s0 of symbols) {
-    const s = normalizeSymbol(s0);
-    const bars = batch.barsBySymbol[s] ?? [];
-    const b = baselinesBySymbol[s];
-    out[s] = barsToSnapshot(s, bars, b?.baseline_volume_30m ?? null, b?.volatility_30d ?? null);
+    const internalKey = s0.trim().toUpperCase();
+    const tdSymbol = normalizeSymbol(s0);
+    const bars = batch.barsBySymbol[tdSymbol] ?? [];
+    const b = baselinesBySymbol[internalKey] ?? baselinesBySymbol[s0.trim()];
+    out[internalKey] = barsToSnapshot(internalKey, bars, b?.baseline_volume_30m ?? null, b?.volatility_30d ?? null);
   }
   return { snapshots: out, meta: batch };
 }

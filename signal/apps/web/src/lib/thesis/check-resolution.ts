@@ -1,4 +1,5 @@
 import { getDailyBars } from "@/lib/market-data";
+import { toTwelveDataSymbol } from "@/lib/market-data/symbol-mapping";
 import { mapAssetToQuoteSymbol } from "@/lib/thesis-engine-v2/live-trade-plan";
 import type { StoredTradePlanLevels } from "@/lib/thesis-engine-v2/stored-trade-plan";
 import type { ThesisOutcomeKind } from "@/types/thesis-outcome";
@@ -21,20 +22,12 @@ export type ResolutionCheckInput = {
   tradePlan: StoredTradePlanLevels | null;
 };
 
-const QUOTE_SYMBOL_OVERRIDES: Record<string, string> = {
-  "CL.1": "CL",
-  "GC.1": "GC",
-  "SI.1": "SI",
-  "HG.1": "HG",
-  EURUSD: "EUR/USD",
-  USDJPY: "USD/JPY",
-};
-
 export function resolveQuoteSymbol(assetRaw: string): string | null {
   const upper = assetRaw.trim().toUpperCase();
   if (!upper || upper === "—") return null;
-  if (QUOTE_SYMBOL_OVERRIDES[upper]) return QUOTE_SYMBOL_OVERRIDES[upper];
-  return mapAssetToQuoteSymbol(assetRaw);
+  const quote = mapAssetToQuoteSymbol(assetRaw);
+  if (!quote) return null;
+  return toTwelveDataSymbol(quote);
 }
 
 export function parsePriceLevel(raw: string | null | undefined): number | null {
