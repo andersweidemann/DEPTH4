@@ -39,6 +39,14 @@ function isCronApiPath(pathname: string): boolean {
   return p === "/api/cron" || p.startsWith("/api/cron/");
 }
 
+/** Machine-auth admin APIs — assertCronSecret in route; must not 302 to /login. */
+const MACHINE_CRON_API_PATHS = ["/api/admin/backfill-seeded", "/api/admin/rewrite-targeted"] as const;
+
+function isMachineCronApiPath(pathname: string): boolean {
+  const p = pathname.toLowerCase();
+  return MACHINE_CRON_API_PATHS.some((path) => p === path);
+}
+
 /** Ops routes stay login-gated even when public read mode is on. */
 function isAdminProtectedPath(pathname: string): boolean {
   const p = pathname.toLowerCase();
@@ -48,8 +56,8 @@ function isAdminProtectedPath(pathname: string): boolean {
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // (1) Cron API — MUST run before any session / Supabase logic (no 302 to /login).
-  if (isCronApiPath(pathname)) {
+  // (1) Cron / machine-auth API — MUST run before session logic (no 302 to /login).
+  if (isCronApiPath(pathname) || isMachineCronApiPath(pathname)) {
     console.info("[middleware] cron route: skip session auth", { pathname, method: req.method });
     return NextResponse.next();
   }
