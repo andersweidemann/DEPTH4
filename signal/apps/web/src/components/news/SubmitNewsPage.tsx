@@ -9,7 +9,6 @@ import { PageHeaderSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 
 const SUBMIT_TIMEOUT_MS = 30_000;
-const AUTH_WAIT_MS = 4_000;
 
 function SubmitNewsLoading() {
   return (
@@ -20,40 +19,27 @@ function SubmitNewsLoading() {
 }
 
 function SubmitNewsContent() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const [url, setUrl] = useState("");
   const [headline, setHeadline] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [authTimedOut, setAuthTimedOut] = useState(false);
 
   useEffect(() => {
     document.title = "DEPTH4 · Submit news";
   }, []);
 
   useEffect(() => {
-    if (!isLoading) {
-      setAuthTimedOut(false);
-      return;
-    }
-    const id = window.setTimeout(() => setAuthTimedOut(true), AUTH_WAIT_MS);
-    return () => window.clearTimeout(id);
-  }, [isLoading]);
+    void refreshUser();
+  }, [refreshUser]);
 
-  const authPending = isLoading && !authTimedOut;
-  const canSubmit = !authPending && isAuthenticated && !submitting;
+  const signedIn = Boolean(user);
+  const hasContent = Boolean(url.trim() || headline.trim() || body.trim());
+  const canSubmit = hasContent && !submitting;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (authPending) {
-      toast.error("Still checking your session — try again in a moment");
-      return;
-    }
-    if (!isAuthenticated) {
-      toast.error("Sign in to submit news for analysis");
-      return;
-    }
-    if (!url.trim() && !headline.trim() && !body.trim()) {
+    if (!hasContent) {
       toast.error("Add a URL, headline, or excerpt");
       return;
     }
@@ -69,6 +55,10 @@ function SubmitNewsContent() {
         body: JSON.stringify({ url, headline, body }),
       });
       const j = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      if (res.status === 401) {
+        toast.error("Sign in to submit news for analysis");
+        return;
+      }
       if (!res.ok || !j.ok) throw new Error(j.error ?? `HTTP ${res.status}`);
       toast.success(j.message ?? "Queued for analysis");
       setUrl("");
@@ -86,8 +76,6 @@ function SubmitNewsContent() {
     }
   };
 
-  if (authPending) return <SubmitNewsLoading />;
-
   return (
     <div className="pb-16">
       <div>
@@ -104,7 +92,9 @@ function SubmitNewsContent() {
         </p>
       </div>
 
-      {!isAuthenticated ? (
+      {isLoading ? (
+        <p className="mt-6 text-[13px] text-zinc-500">Checking your session…</p>
+      ) : !signedIn ? (
         <p className="mt-6 text-[13px] text-zinc-400">
           Sign in to queue a headline.{" "}
           <Link href="/login?next=%2Fsubmit-news" className="font-medium text-[#E8473F] hover:underline">
@@ -123,8 +113,7 @@ function SubmitNewsContent() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://…"
-            disabled={!isAuthenticated}
-            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30 disabled:opacity-50"
+            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30"
           />
         </label>
         <label className="block">
@@ -133,8 +122,7 @@ function SubmitNewsContent() {
             type="text"
             value={headline}
             onChange={(e) => setHeadline(e.target.value)}
-            disabled={!isAuthenticated}
-            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30 disabled:opacity-50"
+            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30"
           />
         </label>
         <label className="block">
@@ -143,8 +131,7 @@ function SubmitNewsContent() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={4}
-            disabled={!isAuthenticated}
-            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30 disabled:opacity-50"
+            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30"
           />
         </label>
         <button

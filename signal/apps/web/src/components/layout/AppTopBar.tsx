@@ -8,8 +8,9 @@ import { ThesisAlertsBell } from "@/components/thesis-engine-v2/ThesisAlertsBell
 import { ThesesSettingsMenu } from "@/components/thesis-engine-v2/ThesesSettingsMenu";
 
 export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
-  const { logout, user } = useAuth();
+  const { logout, user, isLoading } = useAuth();
   const bell = alertsSlot ?? <ThesisAlertsBell />;
+  const signedIn = Boolean(user);
 
   return (
     <header className="no-print border-b border-white/[0.06]">
@@ -42,20 +43,32 @@ export function AppTopBar({ alertsSlot }: { alertsSlot?: ReactNode }) {
             {bell}
           </div>
 
-          <span className="text-[12px] text-zinc-400" aria-label="Current tier">
-            {user?.tier ?? "Free"}
-          </span>
-
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className={cn(
-              "text-[12px] text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm",
-              "min-h-8 px-0 py-1",
-            )}
-          >
-            Log out
-          </button>
+          {signedIn ? (
+            <>
+              <span className="text-[12px] text-zinc-400" aria-label="Current tier">
+                {user?.tier ?? "Free"}
+              </span>
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className={cn(
+                  "text-[12px] text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm",
+                  "min-h-8 px-0 py-1",
+                )}
+              >
+                Log out
+              </button>
+            </>
+          ) : isLoading ? (
+            <span className="text-[12px] text-zinc-600">…</span>
+          ) : (
+            <Link
+              href="/login"
+              className="text-[12px] text-zinc-400 transition-colors hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:rounded-sm"
+            >
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
     </header>

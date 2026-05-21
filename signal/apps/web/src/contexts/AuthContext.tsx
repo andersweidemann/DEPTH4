@@ -28,12 +28,17 @@ type LoginResponse = {
   refresh_token?: string;
 };
 
+const AUTH_BOOT_TIMEOUT_MS = 10_000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+    const bootTimeoutId = window.setTimeout(() => {
+      if (!cancelled) setIsLoading(false);
+    }, AUTH_BOOT_TIMEOUT_MS);
 
     async function boot() {
       /**
@@ -113,10 +118,52 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    void boot();
+    void boot().finally(() => {
+      window.clearTimeout(bootTimeoutId);
+    });
     return () => {
       cancelled = true;
+      window.clearTimeout(bootTimeoutId);
     };
+  }, []);
+
+  useEffect(() => {
+    const supa = createClient();
+    const {
+      data: { subscription },
+    } = supa.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      if (!session?.user) return;
+      void (async () => {
+        try {
+          const token = session.access_token;
+          if (token) {
+            try {
+              localStorage.setItem("depth4_token", token);
+            } catch {
+              sessionStorage.setItem("depth4_token", token);
+            }
+          }
+          const r = await fetch("/api/auth/me", {
+            credentials: "include",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          });
+          if (r.ok) {
+            const data = (await r.json()) as { user?: User | null };
+            setUser(data.user ?? null);
+          }
+        } catch {
+          // keep prior user until explicit sign-out
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
   const persistToken = useCallback((rememberMe: boolean, token: string) => {
