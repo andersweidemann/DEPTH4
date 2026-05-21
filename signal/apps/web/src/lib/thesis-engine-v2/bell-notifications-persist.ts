@@ -9,8 +9,24 @@ export function parseRemodelNotificationIdFromAlertKey(alertKey: string): string
   return id || null;
 }
 
+export function parseNewThesisNotificationIdFromAlertKey(alertKey: string): string | null {
+  const prefix = "new_thesis:";
+  const k = alertKey.trim();
+  if (!k.startsWith(prefix)) return null;
+  const id = k.slice(prefix.length).trim();
+  return id || null;
+}
+
+export function parseBellNotificationIdFromAlertKey(alertKey: string): string | null {
+  return parseRemodelNotificationIdFromAlertKey(alertKey) ?? parseNewThesisNotificationIdFromAlertKey(alertKey);
+}
+
 export function isRemodelBellAlertKey(alertKey: string): boolean {
   return parseRemodelNotificationIdFromAlertKey(alertKey) != null;
+}
+
+export function isBellDbAlertKey(alertKey: string): boolean {
+  return parseBellNotificationIdFromAlertKey(alertKey) != null;
 }
 
 /** Write-through: mark all unread DB bell rows read + delete rows older than 7 days. */

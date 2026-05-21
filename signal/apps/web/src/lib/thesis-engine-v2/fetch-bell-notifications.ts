@@ -14,7 +14,7 @@ export async function fetchBellNotificationsForUser(
   const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
   const { data, error } = await sb
     .from("depth4_notifications")
-    .select("id, created_at, thesis_id, title, body, metadata, read_at, dismissed_at")
+    .select("id, created_at, thesis_id, kind, title, body, metadata, read_at, dismissed_at")
     .eq("user_id", userId)
     .gte("created_at", since)
     .is("read_at", null)

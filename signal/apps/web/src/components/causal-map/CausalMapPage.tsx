@@ -273,6 +273,9 @@ export function CausalMapPage() {
             <Link href="/theses/archive" className="text-zinc-500 hover:text-zinc-300">
               Archive
             </Link>
+            <Link href="/theses?archived=1" className="text-zinc-500 hover:text-zinc-300">
+              Archived{graph?.statusCounts ? ` (${graph.statusCounts.archived})` : ""}
+            </Link>
             <Link href="/theses?hidden=1" className="text-zinc-500 hover:text-zinc-300">
               Hidden
             </Link>

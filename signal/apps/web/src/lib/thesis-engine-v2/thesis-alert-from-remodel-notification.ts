@@ -1,12 +1,17 @@
 import type { ThesisAlertImpact } from "@/lib/thesis-engine-v2/thesis-alert-types";
 import { displayLabelForDbScenarioKey } from "@/lib/thesis-engine-v2/thesis-scenarios-normalize";
-import { remodelNotificationAlertKey } from "@/lib/thesis/remodel-notifications";
+import {
+  NEW_THESIS_NOTIFICATION_KIND,
+  newThesisNotificationAlertKey,
+  remodelNotificationAlertKey,
+} from "@/lib/thesis/remodel-notifications";
 import type { PendingThesisAlert } from "@/lib/thesis-engine-v2/thesis-alert-from-evidence";
 
 export type Depth4NotificationRow = {
   id: string;
   created_at: string;
   thesis_id: string;
+  kind?: string;
   title: string;
   body: string;
   metadata: Record<string, unknown>;
@@ -30,6 +35,26 @@ function leadScenarioOf(p: { base: number; bull: number; bear: number }) {
 
 export function buildThesisAlertFromRemodelNotification(row: Depth4NotificationRow): PendingThesisAlert {
   const meta = row.metadata ?? {};
+  const kind = String(row.kind ?? "").trim();
+
+  if (kind === NEW_THESIS_NOTIFICATION_KIND) {
+    const slug = String(meta.thesis_slug ?? "").trim();
+    const asset = String(meta.asset_symbol ?? "").trim();
+    return {
+      id: newThesisNotificationAlertKey(row.id),
+      thesisId: row.thesis_id,
+      thesisTitle: row.title.replace(/^New thesis:\s*/i, "").trim() || row.title,
+      type: "system",
+      confirmText: row.title,
+      consequenceText: row.body.trim()
+        ? `Consequence: ${row.body.trim()}`
+        : slug
+          ? `Consequence: New research thesis mapped${asset ? ` on ${asset}` : ""}.`
+          : "Consequence: DEPTH4 mapped a new macro research thesis.",
+      impact: "neutral",
+    };
+  }
+
   const before = parseTriple(meta.scenario_probabilities_before);
   const after = parseTriple(meta.scenario_probabilities_after);
 

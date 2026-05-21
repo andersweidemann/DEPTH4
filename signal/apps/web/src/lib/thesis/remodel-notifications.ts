@@ -3,6 +3,7 @@ import type { DbScenarioTriple } from "@/lib/thesis-engine-v2/thesis-display-sce
 import type { RemodelScenarios } from "@/lib/thesis/remodel-scenarios";
 
 export const REMODEL_NOTIFICATION_KIND = "thesis_remodel";
+export const NEW_THESIS_NOTIFICATION_KIND = "new_thesis";
 
 export type RemodelNotificationMetadata = {
   probability_diffs: {
@@ -42,9 +43,47 @@ export function remodelNotificationAlertKey(notificationId: string): string {
   return `remodel:${notificationId.trim()}`;
 }
 
+/** Collect user ids subscribed to thesis alerts (stars, owner, book, optional catalog broadcast). */
+async function collectThesisNotificationUserIds(
+  admin: SupabaseClient,
+  input: { thesisId: string; ownerUserId?: string | null; broadcastToAllUsers?: boolean },
+): Promise<Set<string>> {
+  const userIds = new Set<string>();
+
+  const { data: stars } = await admin.from("thesis_stars").select("user_id").eq("thesis_id", input.thesisId);
+  for (const row of stars ?? []) {
+    const uid = String((row as { user_id?: unknown }).user_id ?? "").trim();
+    if (uid) userIds.add(uid);
+  }
+
+  const owner = (input.ownerUserId ?? "").trim();
+  if (owner) userIds.add(owner);
+
+  const { data: books } = await admin.from("depth4_user_book").select("user_id, positions").limit(500);
+  for (const row of books ?? []) {
+    const uid = String((row as { user_id?: unknown }).user_id ?? "").trim();
+    if (!uid) continue;
+    const positions = (row as { positions?: unknown }).positions;
+    if (!Array.isArray(positions)) continue;
+    if (positions.some((p) => p && typeof p === "object" && (p as { linkedThesisId?: string }).linkedThesisId === input.thesisId)) {
+      userIds.add(uid);
+    }
+  }
+
+  if (input.broadcastToAllUsers) {
+    const { data: allUsers } = await admin.from("users").select("id").limit(500);
+    for (const row of allUsers ?? []) {
+      const uid = String((row as { id?: unknown }).id ?? "").trim();
+      if (uid) userIds.add(uid);
+    }
+  }
+
+  return userIds;
+}
+
 /**
- * Fan out remodel bell notifications to users who starred the thesis (and owner if user thesis).
- * Star a thesis to receive remodel alerts in the bell — feed shows all catalog remodels globally.
+ * Fan out remodel bell notifications. Catalog theses broadcast to all signed-in users;
+ * user theses notify stars, owner, and book holders.
  */
 export async function insertRemodelNotifications(
   admin: SupabaseClient,
@@ -55,24 +94,14 @@ export async function insertRemodelNotifications(
     whatChanged: string;
     metadata: RemodelNotificationMetadata;
     ownerUserId?: string | null;
+    broadcastToAllUsers?: boolean;
   },
 ): Promise<number> {
-  const { data: stars, error: starErr } = await admin
-    .from("thesis_stars")
-    .select("user_id")
-    .eq("thesis_id", input.thesisId);
-  if (starErr) {
-    console.warn("[remodel-notifications] thesis_stars_fetch_failed", { message: starErr.message });
-    return 0;
-  }
-
-  const userIds = new Set<string>();
-  for (const row of stars ?? []) {
-    const uid = String((row as { user_id?: unknown }).user_id ?? "").trim();
-    if (uid) userIds.add(uid);
-  }
-  const owner = (input.ownerUserId ?? "").trim();
-  if (owner) userIds.add(owner);
+  const userIds = await collectThesisNotificationUserIds(admin, {
+    thesisId: input.thesisId,
+    ownerUserId: input.ownerUserId,
+    broadcastToAllUsers: input.broadcastToAllUsers ?? !input.ownerUserId,
+  });
   if (userIds.size === 0) return 0;
 
   const title = input.thesisTitle.trim() || "Thesis";
@@ -90,6 +119,63 @@ export async function insertRemodelNotifications(
   const { error } = await admin.from("depth4_notifications").insert(rows as never);
   if (error) {
     console.warn("[remodel-notifications] insert_failed", { message: error.message, count: rows.length });
+    return 0;
+  }
+  return rows.length;
+}
+
+export type NewThesisNotificationMetadata = {
+  thesis_slug: string;
+  asset_symbol: string;
+  edge_score: number | null;
+};
+
+/** Stable bell id for new thesis alerts. */
+export function newThesisNotificationAlertKey(notificationId: string): string {
+  return `new_thesis:${notificationId.trim()}`;
+}
+
+/**
+ * Notify users when DEPTH4 creates a new catalog thesis (broadcast to all signed-in users).
+ */
+export async function insertNewThesisNotifications(
+  admin: SupabaseClient,
+  input: {
+    thesisId: string;
+    thesisTitle: string;
+    thesisSlug: string;
+    assetSymbol: string;
+    edgeScore: number | null;
+    broadcastToAllUsers?: boolean;
+  },
+): Promise<number> {
+  const userIds = await collectThesisNotificationUserIds(admin, {
+    thesisId: input.thesisId,
+    broadcastToAllUsers: input.broadcastToAllUsers ?? true,
+  });
+  if (userIds.size === 0) return 0;
+
+  const title = `New thesis: ${input.thesisTitle.trim() || "Macro thesis"}`;
+  const body = `DEPTH4 mapped a new research thesis on ${input.assetSymbol.trim() || "macro assets"}.`;
+  const metadata: NewThesisNotificationMetadata = {
+    thesis_slug: input.thesisSlug,
+    asset_symbol: input.assetSymbol,
+    edge_score: input.edgeScore,
+  };
+
+  const rows = Array.from(userIds).map((user_id) => ({
+    user_id,
+    thesis_id: input.thesisId,
+    kind: NEW_THESIS_NOTIFICATION_KIND,
+    title,
+    body,
+    metadata,
+    thesis_update_id: null,
+  }));
+
+  const { error } = await admin.from("depth4_notifications").insert(rows as never);
+  if (error) {
+    console.warn("[new-thesis-notifications] insert_failed", { message: error.message, count: rows.length });
     return 0;
   }
   return rows.length;

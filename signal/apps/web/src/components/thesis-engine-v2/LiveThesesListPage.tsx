@@ -263,6 +263,9 @@ export function LiveThesesListPage() {
               <Link href="/theses" className="text-[11px] text-zinc-400 transition-colors hover:text-amber-400">
                 Card view →
               </Link>
+            <Link href="/theses?archived=1" className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-300">
+                Archived
+              </Link>
               <Link href="/theses?hidden=1" className="text-[11px] text-zinc-500 transition-colors hover:text-zinc-300">
                 Hidden
               </Link>

@@ -26,6 +26,7 @@ import {
 } from "@/lib/ai/find-similar-thesis";
 import { updateExistingPipelineThesis } from "@/lib/ai/thesis-pipeline-update-existing";
 import { insertEvidenceAndRemodelScenarios } from "@/lib/thesis/update-scenarios";
+import { insertNewThesisNotifications } from "@/lib/thesis/remodel-notifications";
 import type {
   CausalPropagationResult,
   DetectedEvent,
@@ -118,6 +119,19 @@ export async function step6_savePipelineThesis(
   if (!ins.ok) {
     throw new Error(ins.error);
   }
+
+  void insertNewThesisNotifications(admin, {
+    thesisId: id,
+    thesisTitle: thesis.title,
+    thesisSlug: slug,
+    assetSymbol: candidate.targetAssetSymbol,
+    edgeScore: candidate.mispricingScore ?? null,
+  }).catch((e) => {
+    console.warn("[thesis_pipeline] new_thesis_notification_failed", {
+      thesisId: id,
+      message: e instanceof Error ? e.message : String(e),
+    });
+  });
 
   for (const ev of candidate.evidence) {
     await insertEvidenceAndRemodelScenarios(admin, id, {

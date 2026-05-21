@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { ClientSectionErrorBoundary } from "@/components/shared/ClientSectionErrorBoundary";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
+
+const FETCH_TIMEOUT_MS = 20_000;
 
 type SourceRow = {
   id: string;
@@ -33,7 +37,20 @@ function formatFetched(iso: string | null): string {
   });
 }
 
-export function SourcesPage() {
+function SourcesLoading() {
+  return (
+    <div className="pb-16">
+      <PageHeaderSkeleton />
+      <div className="mt-6 space-y-2">
+        <Skeleton className="h-12 w-full rounded-lg" />
+        <Skeleton className="h-12 w-full rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function SourcesContent() {
+  const { isLoading: authLoading } = useAuth();
   const [sources, setSources] = useState<SourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,37 +60,41 @@ export function SourcesPage() {
   }, []);
 
   useEffect(() => {
+    if (authLoading) return;
     let cancelled = false;
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
     void (async () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch("/api/news/sources", { credentials: "include" });
+        const res = await fetch("/api/news/sources", { credentials: "include", signal: controller.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const j = (await res.json()) as { sources?: SourceRow[] };
+        const j = (await res.json()) as { sources?: SourceRow[]; error?: string };
+        if (j.error) throw new Error(j.error);
         if (!cancelled) setSources(j.sources ?? []);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : "Failed to load sources");
+        if (cancelled) return;
+        if (e instanceof DOMException && e.name === "AbortError") {
+          setError("Request timed out — try again.");
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load sources");
+        }
       } finally {
+        window.clearTimeout(timeoutId);
         if (!cancelled) setLoading(false);
       }
     })();
+
     return () => {
       cancelled = true;
+      controller.abort();
+      window.clearTimeout(timeoutId);
     };
-  }, []);
+  }, [authLoading]);
 
-  if (loading) {
-    return (
-      <div className="pb-16">
-        <PageHeaderSkeleton />
-        <div className="mt-6 space-y-2">
-          <Skeleton className="h-12 w-full rounded-lg" />
-          <Skeleton className="h-12 w-full rounded-lg" />
-        </div>
-      </div>
-    );
-  }
+  if (authLoading || loading) return <SourcesLoading />;
 
   if (error) {
     return <ErrorBanner message={error} onRetry={() => window.location.reload()} />;
@@ -109,35 +130,43 @@ export function SourcesPage() {
             </tr>
           </thead>
           <tbody>
-            {sources.map((s) => (
-              <tr key={s.id} className="border-b border-white/[0.04] last:border-0">
-                <td className="px-3 py-2.5">
-                  <p className="font-medium text-zinc-200">{s.name}</p>
-                  <a
-                    href={s.feedUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-0.5 block max-w-xs truncate text-[10px] text-zinc-600 hover:text-zinc-400"
-                  >
-                    {s.feedUrl}
-                  </a>
-                </td>
-                <td className="px-3 py-2.5 tabular-nums text-zinc-400">{s.headlines24h}</td>
-                <td className="px-3 py-2.5 text-zinc-500">{formatFetched(s.lastFetchedAt)}</td>
-                <td className="px-3 py-2.5">
-                  <span
-                    className={cn(
-                      "inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium",
-                      s.status === "active" && "bg-emerald-500/10 text-emerald-400",
-                      s.status === "idle" && "bg-zinc-500/10 text-zinc-400",
-                      s.status === "error" && "bg-red-500/10 text-red-400",
-                    )}
-                  >
-                    {statusLabel(s.status)}
-                  </span>
+            {sources.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
+                  No sources configured yet.
                 </td>
               </tr>
-            ))}
+            ) : (
+              sources.map((s) => (
+                <tr key={s.id} className="border-b border-white/[0.04] last:border-0">
+                  <td className="px-3 py-2.5">
+                    <p className="font-medium text-zinc-200">{s.name}</p>
+                    <a
+                      href={s.feedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-0.5 block max-w-xs truncate text-[10px] text-zinc-600 hover:text-zinc-400"
+                    >
+                      {s.feedUrl}
+                    </a>
+                  </td>
+                  <td className="px-3 py-2.5 tabular-nums text-zinc-400">{s.headlines24h}</td>
+                  <td className="px-3 py-2.5 text-zinc-500">{formatFetched(s.lastFetchedAt)}</td>
+                  <td className="px-3 py-2.5">
+                    <span
+                      className={cn(
+                        "inline-flex rounded px-1.5 py-0.5 text-[10px] font-medium",
+                        s.status === "active" && "bg-emerald-500/10 text-emerald-400",
+                        s.status === "idle" && "bg-zinc-500/10 text-zinc-400",
+                        s.status === "error" && "bg-red-500/10 text-red-400",
+                      )}
+                    >
+                      {statusLabel(s.status)}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
@@ -146,5 +175,15 @@ export function SourcesPage() {
         User submissions are queued separately and run through the same evidence cascade as ingested headlines.
       </p>
     </div>
+  );
+}
+
+export function SourcesPage() {
+  return (
+    <ClientSectionErrorBoundary label="sources">
+      <Suspense fallback={<SourcesLoading />}>
+        <SourcesContent />
+      </Suspense>
+    </ClientSectionErrorBoundary>
   );
 }

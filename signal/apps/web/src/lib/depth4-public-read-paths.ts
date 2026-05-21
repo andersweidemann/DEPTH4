@@ -14,6 +14,12 @@ export function isAlwaysPublicThesisPath(pathname: string): boolean {
   return /^\/theses\/[^/]+\/read(?:\/opengraph-image)?\/?$/.test(p);
 }
 
+/** Read-only news APIs (sources list, headlines) — no write. */
+export function isPublicNewsReadApiPath(pathname: string): boolean {
+  const p = pathname.split("?")[0] ?? pathname;
+  return p === "/api/news/sources" || p === "/api/news/headlines";
+}
+
 /** APIs required to hydrate public thesis detail and causal map. */
 export function isAlwaysPublicThesisApiPath(pathname: string): boolean {
   const p = pathname.split("?")[0] ?? pathname;
@@ -21,6 +27,8 @@ export function isAlwaysPublicThesisApiPath(pathname: string): boolean {
   if (p.startsWith("/api/theses/catalog-titles")) return true;
   if (/^\/api\/theses\/[^/]+\/bundle\/?$/.test(p)) return true;
   if (p === "/api/causal-graph/clusters" || p.startsWith("/api/causal-graph/")) return true;
+  if (p === "/api/help") return true;
+  if (isPublicNewsReadApiPath(pathname)) return true;
   return false;
 }
 
@@ -31,6 +39,8 @@ export function isAlwaysPublicThesisApiPath(pathname: string): boolean {
 export function isPublicReadWorkspacePath(pathname: string): boolean {
   const p = (pathname.split("?")[0] ?? pathname).replace(/\/$/, "") || "/";
   if (p === "/feed" || p.startsWith("/feed/")) return true;
+  if (p === "/sources" || p === "/submit-news") return true;
+  if (p === "/community" || p === "/leaderboard" || p === "/help") return true;
   if (isAlwaysPublicThesisPath(pathname)) return true;
   return false;
 }

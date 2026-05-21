@@ -1,3 +1,12 @@
 {
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/cron/thesis-auto-resolve",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/evidence-cascade",
+      "schedule": "*/5 * * * *"
+    }
+  ]
 }

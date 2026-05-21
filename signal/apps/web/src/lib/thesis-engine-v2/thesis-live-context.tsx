@@ -65,8 +65,8 @@ import {
   mergeBellNotificationsIntoAlerts,
 } from "@/lib/thesis-engine-v2/fetch-bell-notifications";
 import {
-  isRemodelBellAlertKey,
-  parseRemodelNotificationIdFromAlertKey,
+  isBellDbAlertKey,
+  parseBellNotificationIdFromAlertKey,
   persistBellNotificationDismiss,
   persistBellNotificationsMarkAllRead,
 } from "@/lib/thesis-engine-v2/bell-notifications-persist";
@@ -1022,8 +1022,8 @@ export function ThesisLiveProvider({ children }: { children: ReactNode }) {
   const dismissAlert = useCallback((id: string) => {
     alertAccountStateRef.current[id] = "dismissed";
     void persistDepth4AlertStates([{ alert_key: id, state: "dismissed" }], { action: "dismiss" });
-    if (isRemodelBellAlertKey(id)) {
-      const nid = parseRemodelNotificationIdFromAlertKey(id);
+    if (isBellDbAlertKey(id)) {
+      const nid = parseBellNotificationIdFromAlertKey(id);
       if (nid) void persistBellNotificationDismiss(nid);
     }
     setAlerts((cur) => cur.filter((x) => x.id !== id));

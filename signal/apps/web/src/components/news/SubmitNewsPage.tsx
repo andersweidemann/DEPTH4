@@ -1,13 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { ClientSectionErrorBoundary } from "@/components/shared/ClientSectionErrorBoundary";
+import { PageHeaderSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 
-export function SubmitNewsPage() {
-  const { isAuthenticated } = useAuth();
+function SubmitNewsLoading() {
+  return (
+    <div className="pb-16">
+      <PageHeaderSkeleton />
+    </div>
+  );
+}
+
+function SubmitNewsContent() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [url, setUrl] = useState("");
   const [headline, setHeadline] = useState("");
   const [body, setBody] = useState("");
@@ -17,12 +27,29 @@ export function SubmitNewsPage() {
     document.title = "DEPTH4 · Submit news";
   }, []);
 
+  if (isLoading) return <SubmitNewsLoading />;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="pb-16 text-center">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
+        <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Submit news</h1>
+        <p className="mx-auto mt-4 max-w-md text-[13px] text-zinc-400">
+          Sign in to submit headlines for DEPTH4 analysis. Submissions join the evidence queue — not instant
+          publication.
+        </p>
+        <Link
+          href="/login?next=%2Fsubmit-news"
+          className="mt-6 inline-block text-[13px] font-medium text-[#E8473F] hover:underline"
+        >
+          Sign in →
+        </Link>
+      </div>
+    );
+  }
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isAuthenticated) {
-      toast.error("Sign in to submit news for analysis");
-      return;
-    }
     if (!url.trim() && !headline.trim() && !body.trim()) {
       toast.error("Add a URL, headline, or excerpt");
       return;
@@ -102,10 +129,17 @@ export function SubmitNewsPage() {
         >
           {submitting ? "Queuing…" : "Submit for analysis"}
         </button>
-        {!isAuthenticated ? (
-          <p className="text-[11px] text-amber-400/90">Sign in required to submit.</p>
-        ) : null}
       </form>
     </div>
+  );
+}
+
+export function SubmitNewsPage() {
+  return (
+    <ClientSectionErrorBoundary label="submit-news">
+      <Suspense fallback={<SubmitNewsLoading />}>
+        <SubmitNewsContent />
+      </Suspense>
+    </ClientSectionErrorBoundary>
   );
 }
