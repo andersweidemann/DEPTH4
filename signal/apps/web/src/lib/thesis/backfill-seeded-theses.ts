@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { verifyPipelineBodyForRender } from "@/lib/ai/thesis-pipeline-body";
+import { bodyEvidenceCount, verifyPipelineBodyForRender } from "@/lib/ai/thesis-pipeline-body";
 import { getThesisBySlug } from "@/lib/thesis-engine-v2/catalog-data";
 import { buildDepth4LlmSystemPrompt } from "@/lib/thesis-engine-v2/depth4-llm-system-prompt";
 import { completeKimiJsonObject, isKimiJsonConfigured } from "@/lib/macro-reasoning/kimi-messages";
@@ -11,7 +11,8 @@ import {
 import { createServiceRoleClient } from "@/lib/supabase/service-role-client";
 
 const LIVE_STATUSES = ["ready", "watching", "active"] as const;
-const RATE_LIMIT_MS = 2000;
+const RATE_LIMIT_MS = 3000;
+const MIN_EVIDENCE_TO_SKIP = 2;
 
 export type SeededThesisRow = {
   id: string;
@@ -27,10 +28,11 @@ export type SeededThesisRow = {
 export type SeededBackfillResult = {
   processed: number;
   errors: number;
+  total: number;
   skipped: number;
   dryRun: boolean;
   slugs: string[];
-  logs: Array<{ slug: string; ok: boolean; message?: string }>;
+  logs: Array<{ slug: string; ok: boolean; message?: string; method?: string }>;
 };
 
 function str(v: unknown): string {
@@ -71,14 +73,21 @@ function timeHorizonForRow(row: SeededThesisRow): string {
   return catalog?.horizon?.trim() || "This quarter";
 }
 
+/** Idempotent skip when body already has enough evidence rows. */
+export function hasSeededBackfillEvidence(body: unknown): boolean {
+  return bodyEvidenceCount(body) >= MIN_EVIDENCE_TO_SKIP;
+}
+
 /** True when pipeline body blocks or narrative summary are missing. */
 export function needsSeededBodyBackfill(body: unknown): boolean {
+  if (hasSeededBackfillEvidence(body)) return false;
   const pipe = verifyPipelineBodyForRender(body);
   if (!pipe.ok) return true;
   const o = existingBodyRecord(body);
   const hasSummary = Boolean(str(o.summary ?? o.one_line_summary));
   const hasNarrative = Boolean(str(o.narrative ?? o.why_thesis_exists));
-  return !hasSummary || !hasNarrative;
+  const hasCausal = Array.isArray(o.causal_chain) && o.causal_chain.length > 0;
+  return !hasSummary || !hasNarrative || !hasCausal;
 }
 
 export type SeededBackfillAiPayload = PopulateAiPayload & {
@@ -268,6 +277,7 @@ export async function backfillSeededTheses(
     return {
       processed: 0,
       errors: 1,
+      total: 0,
       skipped: 0,
       dryRun,
       slugs: [],
@@ -280,6 +290,7 @@ export async function backfillSeededTheses(
     return {
       processed: 0,
       errors: 1,
+      total: 0,
       skipped: 0,
       dryRun,
       slugs: [],
@@ -302,6 +313,7 @@ export async function backfillSeededTheses(
     return {
       processed: 0,
       errors: 1,
+      total: 0,
       skipped: 0,
       dryRun,
       slugs: [],
@@ -309,12 +321,15 @@ export async function backfillSeededTheses(
     };
   }
 
-  const candidates = ((rows ?? []) as SeededThesisRow[]).filter((r) => needsSeededBodyBackfill(r.body));
+  const allRows = (rows ?? []) as SeededThesisRow[];
+  const total = allRows.length;
+  const skipped = allRows.filter((r) => !needsSeededBodyBackfill(r.body)).length;
+  const candidates = allRows.filter((r) => needsSeededBodyBackfill(r.body));
   const limited =
     options.limit != null && options.limit > 0 ? candidates.slice(0, options.limit) : candidates;
 
   if (limited.length === 0) {
-    return { processed: 0, errors: 0, skipped: 0, dryRun, slugs: [], logs };
+    return { processed: 0, errors: 0, total, skipped, dryRun, slugs: [], logs };
   }
 
   let processed = 0;
@@ -377,7 +392,12 @@ export async function backfillSeededTheses(
       }
 
       processed++;
-      logs.push({ slug, ok: true, message: dryRun ? "dry_run_ok" : "updated" });
+      logs.push({
+        slug,
+        ok: true,
+        method: "kimi_backfill",
+        message: dryRun ? "dry_run_ok" : "updated",
+      });
     } catch (err) {
       errors++;
       logs.push({ slug, ok: false, message: err instanceof Error ? err.message : "backfill_failed" });
@@ -391,7 +411,8 @@ export async function backfillSeededTheses(
   return {
     processed,
     errors,
-    skipped: candidates.length - limited.length,
+    total,
+    skipped: skipped + (candidates.length - limited.length),
     dryRun,
     slugs,
     logs,

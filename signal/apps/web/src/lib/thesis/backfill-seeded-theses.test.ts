@@ -1,10 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasSeededBackfillEvidence,
   mergeLogEvidenceIntoBodyEvidence,
   needsSeededBodyBackfill,
   normalizeResolutionPathProbabilities,
   parseSeededBackfillPayload,
 } from "@/lib/thesis/backfill-seeded-theses";
+
+describe("hasSeededBackfillEvidence", () => {
+  it("skips when two or more evidence rows exist", () => {
+    expect(
+      hasSeededBackfillEvidence({
+        evidence: [
+          { date: "2024-01-01", source: "Reuters", excerpt: "One" },
+          { date: "2024-01-02", source: "FT", excerpt: "Two" },
+        ],
+      }),
+    ).toBe(true);
+    expect(needsSeededBodyBackfill({ evidence: [{ date: "2024-01-01", source: "Reuters", excerpt: "One" }] })).toBe(
+      true,
+    );
+  });
+});
 
 describe("needsSeededBodyBackfill", () => {
   it("flags empty or target-only bodies", () => {
