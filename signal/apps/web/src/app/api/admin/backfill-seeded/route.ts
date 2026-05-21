@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   const sp = req.nextUrl.searchParams;
   const limitRaw = sp.get("limit");
-  const limit = limitRaw ? Math.min(20, Math.max(1, Number.parseInt(limitRaw, 10) || 1)) : undefined;
+  const limit = limitRaw ? Math.max(1, Number.parseInt(limitRaw, 10) || 1) : undefined;
 
   try {
     const result = await backfillSeededTheses({

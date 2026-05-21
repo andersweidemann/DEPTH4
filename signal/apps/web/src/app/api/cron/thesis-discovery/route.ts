@@ -85,7 +85,7 @@ async function runThesisDiscovery() {
   const gatePassed = allClusters.filter((c) => c.passesPromotionGate);
 
   const softPersist = (process.env.THESIS_DISCOVERY_SOFT_PERSIST ?? "").trim() === "1";
-  const softCap = Math.max(1, Math.min(100, Math.floor(Number(process.env.THESIS_DISCOVERY_SOFT_PERSIST_CAP ?? 25) || 25)));
+  const softCap = Math.max(1, Math.min(100, Math.floor(Number(process.env.THESIS_DISCOVERY_SOFT_PERSIST_CAP ?? 20) || 20)));
   const candidates = softPersist
     ? [...allClusters]
         .filter((c) => c.memberIds.length > 0)

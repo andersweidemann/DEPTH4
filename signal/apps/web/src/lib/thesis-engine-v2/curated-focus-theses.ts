@@ -3,12 +3,11 @@ import { SYSTEM_THESIS_IDS } from "@/lib/thesis-engine-v2/system-thesis-ids";
 
 /**
  * Default “Focus” strip: how many ready/active rows to show before “See more”.
- * Product target: ~6 strong theses, fast to scan.
  */
-export const FOCUS_INITIAL_VISIBLE_PREFERRED = 6;
+export const FOCUS_INITIAL_VISIBLE_PREFERRED = 20;
 
-/** Hard cap for the first paint of the Focus strip (no expand). */
-export const FOCUS_INITIAL_VISIBLE_MAX = 8;
+/** Show all ready/active rows when total is at most this many; otherwise use {@link FOCUS_INITIAL_VISIBLE_PREFERRED}. */
+export const FOCUS_INITIAL_VISIBLE_MAX = 20;
 
 /**
  * Explicit catalog order for the Focus strip — macro breadth, not array order.

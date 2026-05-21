@@ -11,7 +11,7 @@ import { effectiveLifecycleState, isTerminalLifecycleState } from "@/lib/theses/
 export { deriveLifecycleState, deriveLifecycleStateFromStatus } from "@/lib/theses/thesis-lifecycle";
 
 /** Max ready/active rows in the Tradable lane (overflow → Monitoring, still ranked). */
-export const HOME_TRADABLE_BUCKET_MAX = 15;
+export const HOME_TRADABLE_BUCKET_MAX = 20;
 /** @deprecated Prefer {@link HOME_TRADABLE_BUCKET_MAX}; kept for import stability in tests. */
 export const HOME_TRADABLE_CAP = HOME_TRADABLE_BUCKET_MAX;
 
@@ -19,7 +19,7 @@ export const HOME_TRADABLE_CAP = HOME_TRADABLE_BUCKET_MAX;
 export const HOME_EMERGING_CAP = 500;
 
 /** Reserved for optional UI truncation — partition does not slice monitoring. */
-export const HOME_MONITORING_SOFT_CAP = 15;
+export const HOME_MONITORING_SOFT_CAP = 20;
 export const HOME_ARCHIVE_PREVIEW_CAP = 5;
 
 function parseUpdatedMs(v: string): number {
