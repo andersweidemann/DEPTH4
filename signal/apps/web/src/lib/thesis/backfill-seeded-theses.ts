@@ -301,11 +301,12 @@ export async function backfillSeededTheses(
   let query = admin
     .from("theses")
     .select("id, slug, title, body, incentive_analysis, micro_label, scenario_probabilities, status")
-    .eq("thesis_origin", "seeded_system")
-    .in("status", [...LIVE_STATUSES]);
+    .eq("thesis_origin", "seeded_system");
 
   if (options.slug?.trim()) {
     query = query.eq("slug", options.slug.trim());
+  } else {
+    query = query.in("status", [...LIVE_STATUSES]);
   }
 
   const { data: rows, error: fetchError } = await query;
