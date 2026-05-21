@@ -5,6 +5,7 @@ import { normalizeSupabaseAnonKey, normalizeSupabaseUrl } from "@/lib/supabase/e
 import {
   isAlwaysPublicThesisApiPath,
   isAlwaysPublicThesisPath,
+  isAlwaysPublicWorkspacePath,
   isPublicNewsReadApiPath,
 } from "@/lib/depth4-public-read-paths";
 import { isDepth4PublicReadMode } from "@/lib/depth4-public-read-mode";
@@ -102,6 +103,10 @@ export async function middleware(req: NextRequest) {
   if (isPublicThesisDiscoveryPath(pathname)) return NextResponse.next();
 
   if (isAlwaysPublicThesisPath(pathname) || isAlwaysPublicThesisApiPath(pathname)) {
+    return NextResponse.next();
+  }
+
+  if (isAlwaysPublicWorkspacePath(pathname)) {
     return NextResponse.next();
   }
 

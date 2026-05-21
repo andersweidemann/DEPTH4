@@ -20,6 +20,21 @@ export function isPublicNewsReadApiPath(pathname: string): boolean {
   return p === "/api/news/sources" || p === "/api/news/headlines";
 }
 
+/**
+ * Workspace pages that always render without login (each page handles auth for writes).
+ * Not gated on DEPTH4_PUBLIC_READ_MODE — prevents RouteGuard/middleware hang on navigation.
+ */
+export function isAlwaysPublicWorkspacePath(pathname: string): boolean {
+  const p = (pathname.split("?")[0] ?? pathname).replace(/\/$/, "") || "/";
+  return (
+    p === "/sources" ||
+    p === "/submit-news" ||
+    p === "/help" ||
+    p === "/community" ||
+    p === "/leaderboard"
+  );
+}
+
 /** APIs required to hydrate public thesis detail and causal map. */
 export function isAlwaysPublicThesisApiPath(pathname: string): boolean {
   const p = pathname.split("?")[0] ?? pathname;

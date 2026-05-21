@@ -8,6 +8,9 @@ import { ClientSectionErrorBoundary } from "@/components/shared/ClientSectionErr
 import { PageHeaderSkeleton } from "@/components/shared/Skeleton";
 import { cn } from "@/lib/utils";
 
+const SUBMIT_TIMEOUT_MS = 30_000;
+const AUTH_WAIT_MS = 4_000;
+
 function SubmitNewsLoading() {
   return (
     <div className="pb-16">
@@ -22,43 +25,46 @@ function SubmitNewsContent() {
   const [headline, setHeadline] = useState("");
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [authTimedOut, setAuthTimedOut] = useState(false);
 
   useEffect(() => {
     document.title = "DEPTH4 · Submit news";
   }, []);
 
-  if (isLoading) return <SubmitNewsLoading />;
+  useEffect(() => {
+    if (!isLoading) {
+      setAuthTimedOut(false);
+      return;
+    }
+    const id = window.setTimeout(() => setAuthTimedOut(true), AUTH_WAIT_MS);
+    return () => window.clearTimeout(id);
+  }, [isLoading]);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="pb-16 text-center">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500">DEPTH4</p>
-        <h1 className="mt-1 text-xl font-semibold tracking-tight text-zinc-50">Submit news</h1>
-        <p className="mx-auto mt-4 max-w-md text-[13px] text-zinc-400">
-          Sign in to submit headlines for DEPTH4 analysis. Submissions join the evidence queue — not instant
-          publication.
-        </p>
-        <Link
-          href="/login?next=%2Fsubmit-news"
-          className="mt-6 inline-block text-[13px] font-medium text-[#E8473F] hover:underline"
-        >
-          Sign in →
-        </Link>
-      </div>
-    );
-  }
+  const authPending = isLoading && !authTimedOut;
+  const canSubmit = !authPending && isAuthenticated && !submitting;
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (authPending) {
+      toast.error("Still checking your session — try again in a moment");
+      return;
+    }
+    if (!isAuthenticated) {
+      toast.error("Sign in to submit news for analysis");
+      return;
+    }
     if (!url.trim() && !headline.trim() && !body.trim()) {
       toast.error("Add a URL, headline, or excerpt");
       return;
     }
     setSubmitting(true);
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), SUBMIT_TIMEOUT_MS);
     try {
       const res = await fetch("/api/news/submit", {
         method: "POST",
         credentials: "include",
+        signal: controller.signal,
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ url, headline, body }),
       });
@@ -69,11 +75,18 @@ function SubmitNewsContent() {
       setHeadline("");
       setBody("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Submit failed");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        toast.error("Submission timed out — try again");
+      } else {
+        toast.error(err instanceof Error ? err.message : "Submit failed");
+      }
     } finally {
+      window.clearTimeout(timeoutId);
       setSubmitting(false);
     }
   };
+
+  if (authPending) return <SubmitNewsLoading />;
 
   return (
     <div className="pb-16">
@@ -91,15 +104,27 @@ function SubmitNewsContent() {
         </p>
       </div>
 
+      {!isAuthenticated ? (
+        <p className="mt-6 text-[13px] text-zinc-400">
+          Sign in to queue a headline.{" "}
+          <Link href="/login?next=%2Fsubmit-news" className="font-medium text-[#E8473F] hover:underline">
+            Sign in →
+          </Link>
+        </p>
+      ) : null}
+
       <form onSubmit={(e) => void onSubmit(e)} className="mt-8 max-w-lg space-y-4">
         <label className="block">
           <span className="text-[11px] font-medium text-zinc-500">Article URL</span>
           <input
-            type="url"
+            type="text"
+            inputMode="url"
+            autoComplete="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://…"
-            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30"
+            disabled={!isAuthenticated}
+            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30 disabled:opacity-50"
           />
         </label>
         <label className="block">
@@ -108,7 +133,8 @@ function SubmitNewsContent() {
             type="text"
             value={headline}
             onChange={(e) => setHeadline(e.target.value)}
-            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30"
+            disabled={!isAuthenticated}
+            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30 disabled:opacity-50"
           />
         </label>
         <label className="block">
@@ -117,12 +143,13 @@ function SubmitNewsContent() {
             value={body}
             onChange={(e) => setBody(e.target.value)}
             rows={4}
-            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30"
+            disabled={!isAuthenticated}
+            className="mt-1 w-full rounded-md border border-white/[0.08] bg-[#111110] px-3 py-2 text-[13px] text-zinc-100 placeholder:text-zinc-600 focus:border-[#E8473F]/40 focus:outline-none focus:ring-1 focus:ring-[#E8473F]/30 disabled:opacity-50"
           />
         </label>
         <button
           type="submit"
-          disabled={submitting}
+          disabled={!canSubmit}
           className={cn(
             "rounded-md border border-[#E8473F]/30 bg-[#E8473F]/10 px-4 py-2 text-[12px] font-medium text-[#E8473F] transition-colors hover:bg-[#E8473F]/20 disabled:opacity-50",
           )}

@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   isAlwaysPublicThesisPath,
+  isAlwaysPublicWorkspacePath,
   isDepth4PublicReadModeClient,
   isPublicReadWorkspacePath,
 } from "@/lib/depth4-public-read-paths";
@@ -23,6 +24,7 @@ export function RouteGuard({
   const publicRead =
     Boolean(requireAuth) &&
     (isAlwaysPublicThesisPath(pathnameNorm) ||
+      isAlwaysPublicWorkspacePath(pathnameNorm) ||
       (isDepth4PublicReadModeClient() && isPublicReadWorkspacePath(pathnameNorm)));
 
   useEffect(() => {

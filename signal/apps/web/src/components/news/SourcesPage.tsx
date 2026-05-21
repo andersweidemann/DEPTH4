@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { ClientSectionErrorBoundary } from "@/components/shared/ClientSectionErrorBoundary";
 import { ErrorBanner } from "@/components/shared/ErrorBanner";
 import { PageHeaderSkeleton, Skeleton } from "@/components/shared/Skeleton";
@@ -50,7 +49,6 @@ function SourcesLoading() {
 }
 
 function SourcesContent() {
-  const { isLoading: authLoading } = useAuth();
   const [sources, setSources] = useState<SourceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +58,6 @@ function SourcesContent() {
   }, []);
 
   useEffect(() => {
-    if (authLoading) return;
     let cancelled = false;
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -92,9 +89,9 @@ function SourcesContent() {
       controller.abort();
       window.clearTimeout(timeoutId);
     };
-  }, [authLoading]);
+  }, []);
 
-  if (authLoading || loading) return <SourcesLoading />;
+  if (loading) return <SourcesLoading />;
 
   if (error) {
     return <ErrorBanner message={error} onRetry={() => window.location.reload()} />;
