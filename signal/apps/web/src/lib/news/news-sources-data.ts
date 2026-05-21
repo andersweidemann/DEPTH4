@@ -1,8 +1,15 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { KNOWN_NEWS_SOURCES, matchKnownSourceId, normalizeSourceLabel } from "@/lib/news/known-feed-sources";
+import {
+  KNOWN_NEWS_SOURCES,
+  matchKnownSourceId,
+  normalizeSourceLabel,
+  SOCRATES_CURATED_SOURCE,
+} from "@/lib/news/known-feed-sources";
 
 export type NewsSourceStatus = "active" | "idle" | "error";
+
+export type NewsSourceKind = "rss" | "proprietary";
 
 export type NewsSourceRow = {
   id: string;
@@ -11,6 +18,8 @@ export type NewsSourceRow = {
   lastFetchedAt: string | null;
   headlines24h: number;
   status: NewsSourceStatus;
+  kind: NewsSourceKind;
+  scheduleLabel?: string;
 };
 
 export type NewsHeadlineRow = {
@@ -59,14 +68,17 @@ export async function fetchNewsSourceRows(sb: SupabaseClient): Promise<NewsSourc
     .maybeSingle();
   const globalLast = latestAny?.published_at ? String(latestAny.published_at) : null;
 
-  return KNOWN_NEWS_SOURCES.map((src) => {
+  function rowForSource(
+    src: { id: string; name: string; feedUrl: string; scheduleLabel?: string },
+    kind: NewsSourceKind,
+  ): NewsSourceRow {
     const agg =
       counts.get(src.name) ??
       counts.get(normalizeSourceLabel(src.name)) ??
       { count: 0, lastAt: null };
-    const lastFetchedAt = agg.lastAt ?? globalLast;
+    const lastFetchedAt = agg.lastAt ?? (kind === "rss" ? globalLast : null);
     const status: NewsSourceStatus =
-      agg.count > 0 ? "active" : globalLast ? "idle" : "error";
+      agg.count > 0 ? "active" : kind === "proprietary" ? (lastFetchedAt ? "idle" : "error") : globalLast ? "idle" : "error";
     return {
       id: src.id,
       name: src.name,
@@ -74,8 +86,14 @@ export async function fetchNewsSourceRows(sb: SupabaseClient): Promise<NewsSourc
       lastFetchedAt,
       headlines24h: agg.count,
       status,
+      kind,
+      scheduleLabel: src.scheduleLabel,
     };
-  });
+  }
+
+  const rssRows = KNOWN_NEWS_SOURCES.map((src) => rowForSource(src, "rss"));
+  const socratesRow = rowForSource(SOCRATES_CURATED_SOURCE, "proprietary");
+  return [socratesRow, ...rssRows];
 }
 
 export async function fetchRecentHeadlines(

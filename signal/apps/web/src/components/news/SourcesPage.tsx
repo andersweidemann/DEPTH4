@@ -16,6 +16,8 @@ type SourceRow = {
   lastFetchedAt: string | null;
   headlines24h: number;
   status: "active" | "idle" | "error";
+  kind?: "rss" | "proprietary";
+  scheduleLabel?: string;
 };
 
 function statusLabel(status: SourceRow["status"]): string {
@@ -97,6 +99,9 @@ function SourcesContent() {
     return <ErrorBanner message={error} onRetry={() => window.location.reload()} />;
   }
 
+  const proprietary = sources.filter((s) => s.kind === "proprietary");
+  const rssSources = sources.filter((s) => s.kind !== "proprietary");
+
   return (
     <div className="pb-16">
       <div>
@@ -116,6 +121,50 @@ function SourcesContent() {
         </p>
       </div>
 
+      {proprietary.length > 0 ? (
+        <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          {proprietary.map((s) => (
+            <div
+              key={s.id}
+              className="rounded-lg border border-white/[0.08] bg-[#111110] p-4"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-[13px] font-semibold text-zinc-100">{s.name}</h2>
+                  <p className="mt-1 text-[11px] leading-relaxed text-zinc-500">
+                    Proprietary technical arrays, ECM turn dates, and capital-flow indicators — ingested as
+                    evidence, not republished headlines.
+                  </p>
+                </div>
+                {s.scheduleLabel ? (
+                  <span className="shrink-0 rounded bg-[#E8473F]/15 px-2 py-0.5 text-[10px] font-medium text-[#E8473F]">
+                    {s.scheduleLabel}
+                  </span>
+                ) : null}
+              </div>
+              <dl className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                <div>
+                  <dt className="text-zinc-600">Last fetch</dt>
+                  <dd className="mt-0.5 text-zinc-400">{formatFetched(s.lastFetchedAt)}</dd>
+                </div>
+                <div>
+                  <dt className="text-zinc-600">24h signals</dt>
+                  <dd className="mt-0.5 tabular-nums text-zinc-400">{s.headlines24h}</dd>
+                </div>
+              </dl>
+              <a
+                href={s.feedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-block text-[10px] text-zinc-600 hover:text-[#E8473F]"
+              >
+                {s.feedUrl}
+              </a>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <div className="mt-8 overflow-hidden rounded-lg border border-white/[0.08]">
         <table className="w-full text-left text-[12px]">
           <thead>
@@ -127,14 +176,14 @@ function SourcesContent() {
             </tr>
           </thead>
           <tbody>
-            {sources.length === 0 ? (
+            {rssSources.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-3 py-6 text-center text-zinc-500">
-                  No sources configured yet.
+                  No RSS sources configured yet.
                 </td>
               </tr>
             ) : (
-              sources.map((s) => (
+              rssSources.map((s) => (
                 <tr key={s.id} className="border-b border-white/[0.04] last:border-0">
                   <td className="px-3 py-2.5">
                     <p className="font-medium text-zinc-200">{s.name}</p>

@@ -10,6 +10,14 @@ export const KNOWN_NEWS_SOURCES = [
   { id: "cnbc", name: "CNBC", feedUrl: "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100003114" },
 ] as const;
 
+/** Proprietary technical ingest (Playwright cron — not RSS). */
+export const SOCRATES_CURATED_SOURCE = {
+  id: "armstrong-socrates",
+  name: "Armstrong Socrates",
+  feedUrl: "https://www.armstrongeconomics.com/socrates/",
+  scheduleLabel: "Daily 06:00 ET",
+} as const;
+
 export function normalizeSourceLabel(raw: string | null | undefined): string {
   const s = (raw ?? "").trim();
   if (!s) return "Wire";
@@ -21,6 +29,7 @@ export function normalizeSourceLabel(raw: string | null | undefined): string {
   if (lower.includes("cnbc")) return "CNBC";
   if (lower.includes("al jazeera")) return "Al Jazeera";
   if (lower.includes("seeking alpha")) return "Seeking Alpha";
+  if (lower.includes("socrates") || lower.includes("armstrong")) return "Armstrong Socrates";
   return s.length > 48 ? `${s.slice(0, 45)}…` : s;
 }
 
